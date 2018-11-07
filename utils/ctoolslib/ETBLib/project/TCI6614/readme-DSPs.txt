@@ -1,0 +1,1 @@
+The DSPs in the TCI6614 should use the C66xx project for ETBLib.

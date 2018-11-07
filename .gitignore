@@ -1,2 +1,8 @@
 binary
 */*/lib
+
+out/**
+**/Debug
+**/Release
+**/.launches
+**/.settings
