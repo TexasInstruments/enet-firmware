@@ -95,7 +95,7 @@ $(_MODULE)_DEP_HEADERS := $(foreach inc,$($(_MODULE)_HEADERS),$($(_MODULE)_SDIR)
 ifneq ($(TARGET_OS),CYGWIN)
 $(_MODULE)_COPT += -fPIC
 endif
-$(_MODULE)_COPT += -Wall -fms-extensions -Wno-write-strings -Wno-format-security 
+$(_MODULE)_COPT += -Wall -fms-extensions -Wno-write-strings -Wno-format-security -mstrict-align
 
 ifeq ($(TARGET_OS),SYSBIOS)
 $(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections 
@@ -149,7 +149,7 @@ $(_MODULE)_COPT += -mcpu=cortex-a15
 else ifneq ($(filter $(TARGET_CPU),A53 A53F),)
 $(_MODULE)_COPT += -mcpu=cortex-a53
 else ifneq ($(filter $(TARGET_CPU),A72 A72F),)
-$(_MODULE)_COPT += -mcpu=cortex-a72
+$(_MODULE)_COPT += -mcpu=cortex-a72+fp+simd
 endif
 
 ifeq ($(BUILD_IGNORE_LIB_ORDER),yes)
@@ -243,7 +243,7 @@ else
 define $(_MODULE)_COMPILE_TOOLS
 $(ODIR)/%.o: $(SDIR)/%.c $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C99 $$(notdir $$<)
-	$(Q)$(CC) -std=gnu99 $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
+	$(Q)$(CC) -std=c99 $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C++ $$(notdir $$<)

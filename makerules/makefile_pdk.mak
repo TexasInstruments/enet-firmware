@@ -45,14 +45,40 @@ PDK_CORE_LIST_ALL+=c7x
 endif
 
 pdk_build:
-	make -C $(PDK_PATH)/packages/ti/build BOARD=j721e_sim custom_target BUILD_PROFILE_LIST_ALL="$(PDK_BUILD_PROFILE_LIST_ALL)" CORE_LIST_ALL="$(PDK_CORE_LIST_ALL)" BUILD_TARGET_LIST_ALL="$(PDK_BUILD_TARGET_LIST_ALL)" -s $(MAKE_EXTRA_OPTIONS)
+	make -C $(PDK_PATH)/packages/ti/build BOARD=${PDK_BUILD_BOARD} custom_target BUILD_PROFILE_LIST_ALL="$(sort ${PDK_BUILD_PROFILE_LIST_ALL})" CORE_LIST_ALL="$(sort ${PDK_CORE_LIST_ALL})" BUILD_TARGET_LIST_ALL="$(sort ${PDK_BUILD_TARGET_LIST_ALL})" -s $(MAKE_EXTRA_OPTIONS)
 	
 pdk:
-ifeq ($(BUILD_TARGET_MODE),yes)
+	$(foreach soc, $(sort ${SOC_LIST}),\
 	make pdk_build PDK_BUILD_TARGET_LIST_ALL="pdk_libs"
-endif
+	)
 
 pdk_clean:
+	$(foreach soc, $(sort ${SOC_LIST}),\
 	make pdk_build PDK_BUILD_TARGET_LIST_ALL="pdk_libs_clean"
+	)
 
-.PHONY: pdk pdk_build pdk_clean
+.SILENT:pdk_custom_libs pdk_custom_libs_clean
+
+pdk_custom_libs:
+	$(foreach profile, $(sort ${PDK_BUILD_PROFILE_LIST_ALL}),\
+	$(foreach soc, $(sort ${PDK_SOC_LIST}),\
+	$(foreach rule, $(sort ${PDK_LIB_RULES}),\
+	$(foreach core, $(filter ${$(soc)_CORE_LIST},$(sort ${PDK_CORE_LIST_ALL})), \
+	make -C $(PDK_PATH)/packages/ti/build  ${rule} CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD};\
+	) \
+	) \
+	) \
+	)
+
+pdk_custom_libs_clean:
+	$(foreach profile, $(sort ${PDK_BUILD_PROFILE_LIST_ALL}),\
+	$(foreach soc, $(sort ${PDK_SOC_LIST}),\
+	$(foreach rule, $(sort ${PDK_LIB_RULES}),\
+	$(foreach core, $(filter ${$(soc)_CORE_LIST},$(sort ${PDK_CORE_LIST_ALL})), \
+	make -C $(PDK_PATH)/packages/ti/build  $(patsubst %,%_clean,${rule}) CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD};\
+	) \
+	) \
+	) \
+	)
+
+.PHONY: pdk pdk_build pdk_clean pdk_custom_libs pdk_custom_libs_clean

@@ -36,24 +36,23 @@ endif
 #NDK_ENV_SETTINGS  += gnu.targets.arm.A9F=${GCC_SYSBIOS_ARM_ROOT} 
 #NDK_ENV_SETTINGS  +=  gnu.targets.arm.A15F=${GCC_SYSBIOS_ARM_ROOT}
 ifeq ($(BUILD_ISA_A72),yes)
-NDK_ENV_SETTINGS  +=  gnu.targets.arm.A72F=${GCC_SYSBIOS_ARM_ROOT}
+NDK_ENV_SETTINGS  +=  gnu.targets.arm.A53F=${GCC_SYSBIOS_ARM_ROOT}
 endif
 ifeq ($(BUILD_ISA_A53),yes)
 NDK_ENV_SETTINGS  +=  gnu.targets.arm.A53F=${GCC_SYSBIOS_ARM_ROOT}
 endif
 
 NDK_ENV_SETTINGS += XDC_INSTALL_DIR=${XDCTOOLS_PATH} \
-                    SYSBIOS_INSTALL_DIR=${BIOS_PATH}  \
+                    SYSBIOS_INSTALL_DIR=${BIOS_PATH_$(TARGET_PLATFORM)}  \
                     NS_INSTALL_DIR=${NS_PATH}
 
 
 
 ndk:
-	echo $(TARGET_COMBOS)
-	make -C $(NDK_PATH) -f ndk.mak all ${NDK_ENV_SETTINGS} 
+	make -C $(NDK_PATH) -f ndk.mak all $(sort ${NDK_ENV_SETTINGS}) 
 
 ndk_clean:
-	make -C $(NDK_PATH) -f ndk.mak clean ${NDK_ENV_SETTINGS}
+	make -C $(NDK_PATH) -f ndk.mak clean $(sort ${NDK_ENV_SETTINGS})
 	
 
 .PHONY: ndk ndk_clean

@@ -14,10 +14,12 @@
 
 ifeq ($(TARGET_CPU),$(HOST_CPU))
 	CROSS_COMPILE:=
-endif
-
-ifeq ($(TARGET_CPU), $(filter $(TARGET_CPU), X86 x86_64))
+else ifeq $(filter $(TARGET_CPU), X86 x86_64))
 	CROSS_COMPILE:=
+else ifeq ($(TARGET_CPU),A72)
+	CROSS_COMPILE:=aarch64-linux-gnu-
+else ifeq ($(TARGET_CPU),A15)
+	CROSS_COMPILE:=arm-linux-gnueabihf-
 endif
 
 ifneq ($(HOST_FAMILY),$(TARGET_FAMILY))
@@ -75,7 +77,7 @@ else ifeq ($(strip $($(_MODULE)_TYPE)),dsmo)
 	BIN_EXT=$(DSO_EXT)
 else
 	BIN_PRE=
-	BIN_EXT=
+	BIN_EXT=.out
 endif
 
 $(_MODULE)_OUT  := $(BIN_PRE)$($(_MODULE)_TARGET)$(BIN_EXT)
@@ -99,11 +101,23 @@ endif
 $(_MODULE)_COPT += -Wall -fms-extensions -Wno-write-strings -Wno-format-security
 
 ifeq ($(TARGET_OS),SYSBIOS)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
-$(_MODULE)_COPT += -Wno-unknown-pragmas -Wno-missing-braces -Wno-format -Wno-unused-variable
+ifeq ($(TARGET_CPU),A72)
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a72 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
+else ifeq ($(TARGET_CPU),A53)
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a53 -g -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
+else ifeq ($(TARGET_CPU),A15)
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections 
+endif
 endif
 
-$(_MODULE)_COPT += -Wno-unknown-pragmas
+$(_MODULE)_COPT += -Wno-unknown-pragmas -Wno-missing-braces -Wno-format -Wno-unused-variable
+
+ifeq ($(TARGET_OS),LINUX)
+$(_MODULE)_COPT += -fno-short-enums
+ifeq ($(TARGET_CPU),A15)
+$(_MODULE)_COPT += -mfpu=neon -mfloat-abi=hard
+endif
+endif
 
 ifeq ($(TARGET_BUILD),debug)
 $(_MODULE)_COPT += -ggdb -ggdb3 -gdwarf-2 -D_DEBUG_=1
@@ -145,6 +159,8 @@ else ifneq ($(filter $(TARGET_CPU),A9 A9F),)
 $(_MODULE)_COPT += -mcpu=cortex-a9
 else ifneq ($(filter $(TARGET_CPU),A15 A15F),)
 $(_MODULE)_COPT += -mcpu=cortex-a15
+else ifneq ($(filter $(TARGET_CPU),A72 A72F),)
+$(_MODULE)_COPT += -mcpu=cortex-a72+fp+simd
 endif
 
 ifeq ($(TARGET_ARCH),32)

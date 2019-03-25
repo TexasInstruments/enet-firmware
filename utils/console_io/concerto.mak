@@ -3,7 +3,7 @@ include $(PRELUDE)
 TARGET      := app_utils_console_io
 TARGETTYPE  := library
 
-ifeq ($(TARGET_PLATFORM),J721E)
+ifneq (,$(filter $(TARGET_PLATFORM),J721E AM65XX))
 ifeq ($(TARGET_OS),SYSBIOS)
 
 CSOURCES    := src/app_log_writer.c src/app_log_sysbios.c src/app_log_reader.c src/app_cli_sysbios.c
@@ -24,6 +24,11 @@ CSOURCES    := src/app_log_writer.c src/app_log_reader.c src/app_log_linux.c
 
 endif
 endif
+
+IDIRS       := ${ETHSWITCHFW_PATH}
+IDIRS       += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
+IDIRS       += $(XDCTOOLS_PATH)/packages
+IDIRS       += $(PDK_PATH)/packages
 
 include $(FINALE)
 

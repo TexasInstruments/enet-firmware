@@ -4,23 +4,7 @@ include ethswitchfw_tools_path.mak
 # Edit below file to change default build options
 include ethswitchfw_build_flags.mak
 
-
-get-num-cores = $(strip $(foreach core-list, $(1), \
-                    $(if $(findstring $(2),$(core-list)), $(word 2,$(subst :, ,$(core-list))))))
-
-is-valid-combo =  $(and $(call get-num-cores,$(5),$(1)), $(strip $(filter $(1):$(2):$(3),$(4))))
-
-expand-target-combos =  $(foreach soc,$(1),\
-					       $(foreach os,$(2),\
-						       $(foreach isa,$(3),\
-							       $(foreach profile,$(4),\
-								       $(foreach cgt,$(5),\
-									       $(if $(call is-valid-combo,$(isa),$(cgt),$(os),$(6),${${soc}_ISA_CORE_COUNT}),$(soc):$(os):$(isa):$(strip $(call get-num-cores,${${soc}_ISA_CORE_COUNT},$(isa))):$(profile):$(cgt)) \
-									   )\
-								   )\
-							   )\
-						    )\
-					    )	
+include makerules/ethswitchfw_soc_config.mak
 
 DIRECTORIES :=
 DIRECTORIES += utils
@@ -34,23 +18,10 @@ ISA_LIST := R5F A72 A53 C66 C71
 PROFILE_LIST := debug release
 CGT_LIST := TIARMCGT GCC_SYSBIOS_ARM CGT6X CGT7X GCC_LINUX_ARM
 
-J721E_ISA_CORE_COUNT := R5F:3
-J721E_ISA_CORE_COUNT += A72:1
-J721E_ISA_CORE_COUNT += C66:2
-J721E_ISA_CORE_COUNT += C71:1
-J721E_BOARD          := j721e_sim
-AM65XX_ISA_CORE_COUNT := R5F:1
-AM65XX_ISA_CORE_COUNT += A53:1
-AM65XX_BOARD         := am65xx_evm
 
-
-ISA_CGT_OS_VALID_TUPLE   := R5F:TIARMCGT:SYSBIOS
-ISA_CGT_OS_VALID_TUPLE   += C66:CGT6X:SYSBIOS
-ISA_CGT_OS_VALID_TUPLE   += C71:CGT7X:SYSBIOS
-ISA_CGT_OS_VALID_TUPLE   += A72:GCC_SYSBIOS_ARM:SYSBIOS
-ISA_CGT_OS_VALID_TUPLE   += A72:GCC_LINUX_ARM:LINUX
-ISA_CGT_OS_VALID_TUPLE   += A53:GCC_SYSBIOS_ARM:SYSBIOS
-ISA_CGT_OS_VALID_TUPLE   += A53:GCC_LINUX_ARM:LINUX
+#Clear PDK libs and PDK SoC to build.Will get updated by executables
+PDK_LIB_RULES :=
+PDK_SOC_LIST  :=
 
 
 ifeq ($(BUILD_TARGET_MODE),yes)
@@ -100,7 +71,7 @@ include $(CONCERTO_ROOT)/rules.mak
 include makerules/makefile_pdk.mak
 include makerules/makefile_ndk.mak
 
-ethfw_all: pdk ndk all
-ethfw_all_clean: pdk_clean ndk_clean clean
+ethfw_all: pdk_custom_libs ndk all
+ethfw_all_clean: pdk_custom_libs_clean ndk_clean clean
 
 

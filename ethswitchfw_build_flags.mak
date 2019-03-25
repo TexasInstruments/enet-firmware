@@ -2,6 +2,9 @@
 ifndef $(ETHSWITCHFW_BUILD_FLAGS_MAK)
 ETHSWITCHFW_BUILD_FLAGS_MAK = 1
 
+#Build log flags
+NO_BANNER?=1
+
 BUILD_TARGET_MODE?=yes
 BUILD_EMULATION_MODE?=no
 # valid values: X86 x86_64 all
@@ -56,5 +59,6 @@ BUILD_ISA_A53=yes
 else
 BUILD_ISA_A53=no
 endif
+
 
 endif # ifndef $(ETHSWITCHFW_BUILD_FLAGS_MAK)

@@ -1,43 +1,94 @@
 /* linker options */
 --fill_value=0
---stack_size=0x2000
---heap_size=0x1000
+--entry_point=ti_sysbios_family_arm_v7r_keystone3_Hwi_vectors /* Default BIOS */
 
-MEMORY
-{
-    /* R5F Core 0 local view  */
-    R5F_TCMA (X)          : origin=0x0,        length=0x8000
-    R5F_TCMB0 (RWIX)      : origin=0x41010000, length=0x8000
-
-    MSMC3	(RWIX)        : origin=0x70040800, length=0x00000800
-    DDR0    (RWIX)        : origin=0x82000000, length=0x01000000
-
-    APP_LOG_MEM            : ORIGIN = 0x8C000000, LENGTH = 0x00040000
-    TIOVX_OBJ_DESC_MEM     : ORIGIN = 0x8C040000, LENGTH = 0x00FC0000
-    RESERVED_MEM           : ORIGIN = 0x8D000000, LENGTH = 0x01000000
-    IPC_VRING_MEM          : ORIGIN = 0x8E000000, LENGTH = 0x01000000
-    DDR_SHARED_MEM         : ORIGIN = 0x90000000, LENGTH = 0x30000000
-}
 
 SECTIONS
 {
     .text_boot {
         *boot.aer5f<*boot.o*>(.text)
-     }  palign(8)   > MSMC3
-    .text:xdc_runtime_Startup_reset__I     : {} palign(8) > MSMC3
-    .text:ti_sysbios_family_arm_v7r_Cache* : {} palign(8) > MSMC3
-    .text:ti_sysbios_family_arm_MPU*       : {} palign(8) > MSMC3
+        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_keystone3_Hwi_*)
+        -lti.targets.arm.rtsarm.aer5f<*.o*>(.text:xdc_runtime_*)
+        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_Cache*)
+        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_MPU*)
+        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_exc*)
+        *(*:xdc_runtime_Startup*)
+        *(*:ti_sysbios_family_arm_v7r*)
+        *(*:ti_sysbios_family_arm_MPU*)
+    }    >> MCU0_R5F_TCMB0
+    .text_fast {
+		*(.text:CpswDma_retrieveRxPackets*)    
+		*(.text:CpswDma_retrieveTxDonePackets*)
+		*(.text:CpswDma_ringDequeue*)          
+		*(.text:CpswDma_ringEnqueue*)          
+		*(.text:CpswDma_rxFlowIdxInit*)        
+		*(.text:CpswDma_submitPkts*)           
+		*(.text:CpswDma_submitRxPackets*)      
+		*(.text:CpswDma_submitTxReadyPackets*) 
+		*(.text:CpswUtils_appendQ*)
+		*(.text:CpswUtils_copyQ*)
+		*(.text:CpswUtils_deQ*)
+		*(.text:CpswUtils_disableIntr*)
+		*(.text:CpswUtils_enQ*)
+		*(.text:CpswUtils_enQHead*)
+		*(.text:CpswUtils_enableIntr*)
+		*(.text:CpswUtils_getQCount*)
+		*(.text:CpswUtils_mutexLock*)
+		*(.text:CpswUtils_mutexUnlock*)
+		*(.text:CpswUtils_phyToVirtFxn*)
+		*(.text:CpswUtils_virtToPhyFxn*)
+		*(.text:NIMUPacketService*)
+		*(.text:NIMUReceivePacket*)
+		*(.text:NIMUSendPacket*)
+		*(.text:NIMUCreatePacket*)
+		*(.text:Ndk2Cpsw_sendTxPackets*)
+		*(.text:PBM_alloc*)
+		*(.text:PBMQ_enq*)
+		*(.text:PBMQ_deq*)
+		*(.text:Udma_ringQueueRaw*)
+		*(.text:Udma_ringDequeueRaw*)
+		*(.text:Udma_virtToPhyFxn*)
+     }     > DDR0
+    .irqStackSection
+    {
+       *(*:ti_sysbios_family_arm_v7r_keystone3_Hwi_Module_State_0_irqStack__A)
+    } palign(8) > MCU0_R5F_TCMB0
+    
+    .text_rest{
+       _text_rest_begin = .;
+       *(.text)
+       _text_rest_end = .;
+    } palign(32)    >  DDR0
+    .const_sect {
+       *(.const)
+    } palign(32)    >  DDR0
 
-    .text       : {} palign(8)   > DDR0
-    .cinit      : {} palign(8)   > DDR0
-    .bss        : {} align(8)    > DDR0
-    .const      : {} palign(8)   > DDR0
-    .data       : {} palign(128) > DDR0
-    .sysmem     : {} align(8)    > DDR0
-    .stack      : {} align(4)    > DDR0
+    .data_sect {
+       *(.data)
+    } palign(128)   >  DDR0
+    
+    .cinit      : {} palign(8)      > MCU0_R5F_TCMB0 
+    .pinit      : {} palign(8)      > MCU0_R5F_TCMB0
 
-    .bss:app_log_mem        (NOLOAD) : {} > APP_LOG_MEM
-    .bss:tiovx_obj_desc_mem (NOLOAD) : {} > TIOVX_OBJ_DESC_MEM
-    .bss:ipc_vring_mem      (NOLOAD) : {} > IPC_VRING_MEM
-    .bss:ddr_shared_mem     (NOLOAD) : {} > DDR_SHARED_MEM
-}
+    /* For NDK packet memory, we need to map this sections before .bss*/
+    .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR0
+    .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR0
+
+    .bss        : {} align(4)       > DDR0
+    .far        : {} align(4)       > DDR0
+    .boardcfg_data        : {} palign(128)           > DDR0
+    .sysmem     : {}                > DDR0
+    .stack      : {} align(8)       > MCU0_R5F_TCMB0
+
+    /* USB or any other LLD buffer for benchmarking */
+    .benchmark_buffer (NOLOAD) {} ALIGN (8) > DDR0
+
+/* Additional sections settings     */
+
+}  /* end of SECTIONS */
+
+/*----------------------------------------------------------------------------*/
+/* Misc linker settings                                                       */
+
+
+/*-------------------------------- END ---------------------------------------*/

@@ -34,7 +34,8 @@ LINUX_CMEM_PATH ?= $(PSDK_PATH)/ludev
 LINUX_KERNEL_PATH ?= $(PSDK_PATH)/../ks3-linux-integrated/linux/
 LINUX_FS_PATH ?= $(PSDK_PATH)/../ks3-linux-integrated/buildroot/output/target/
 
-BIOS_PATH ?= $(PSDK_PATH)/bios_6_75_00_09_eng
+BIOS_PATH_AM65XX ?= $(PSDK_PATH)/bios_6_75_02_00
+BIOS_PATH_J721E ?= $(PSDK_PATH)/bios_6_76_00_01_eng
 XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_linux/xdctools_3_51_01_18_core
 NDK_PATH ?= $(PSDK_PATH)/ndk_3_40_01_01
 NS_PATH  ?= $(PSDK_PATH)/ns_2_40_01_02

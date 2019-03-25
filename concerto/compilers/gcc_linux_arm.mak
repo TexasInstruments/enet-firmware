@@ -101,14 +101,15 @@ $(_MODULE)_COPT += -Wall -fms-extensions -Wno-write-strings -Wno-format-security
 
 ifeq ($(TARGET_OS),SYSBIOS)
 ifeq ($(TARGET_CPU),A72)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A72F -DCGT_GCC -c -mcpu=cortex-a72 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a72+fp+simd  -g -mabi=lp64 -ffunction-sections -fdata-sections
 else ifeq ($(TARGET_CPU),A53)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a53 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a53 -g -mabi=lp64 -ffunction-sections -fdata-sections
 else ifeq ($(TARGET_CPU),A15)
 $(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections 
 endif
-$(_MODULE)_COPT += -Wno-unknown-pragmas -Wno-missing-braces -Wno-format -Wno-unused-variable
 endif
+
+$(_MODULE)_COPT += -Wno-unknown-pragmas -Wno-missing-braces -Wno-format -Wno-unused-variable
 
 ifeq ($(TARGET_OS),LINUX)
 $(_MODULE)_COPT += -fno-short-enums
@@ -147,7 +148,7 @@ endif
 
 ifeq ($(HOST_CPU),$(TARGET_CPU))
 $(_MODULE)_COPT += -march=native -pthread
-else ifeq ($(TARGET_CPU),X86)
+else ifeq ($(TARGET_CPU), $(filter $(TARGET_CPU), X86 x86_64))
 $(_MODULE)_COPT += -march=native -pthread
 else ifeq ($(TARGET_CPU),M3)
 $(_MODULE)_COPT += -mcpu=cortex-m3
@@ -160,7 +161,7 @@ $(_MODULE)_COPT += -mcpu=cortex-a9
 else ifneq ($(filter $(TARGET_CPU),A15 A15F),)
 $(_MODULE)_COPT += -mcpu=cortex-a15
 else ifneq ($(filter $(TARGET_CPU),A72 A72F),)
-$(_MODULE)_COPT += -mcpu=cortex-a72
+$(_MODULE)_COPT += -mcpu=cortex-a72+fp+simd
 endif
 
 ifeq ($(BUILD_IGNORE_LIB_ORDER),yes)
@@ -192,6 +193,7 @@ endif
 $(_MODULE)_LDFLAGS  += $($(_MODULE)_LOPT)
 $(_MODULE)_CPLDFLAGS := $(foreach ldf,$($(_MODULE)_LDFLAGS),-Wl,$(ldf)) $($(_MODULE)_COPT)
 $(_MODULE)_CFLAGS   := -c $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS)
+$(_MODULE)_CPPFLAGS := $(CPPFLAGS)
 
 ifdef DEBUG
 $(_MODULE)_AFLAGS += --gdwarf-2
@@ -242,7 +244,7 @@ $(ODIR)/%.o: $(SDIR)/%.c $($(_MODULE)_DEP_HEADERS)
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C++ $$(notdir $$<)
-	$(Q)$(CP) $($(_MODULE)_CFLAGS) $(call $(_MODULE)_GCC_DEPS,$$*) $$< -o $$@ $(LOGGING)
+	$(Q)$(CP) $($(_MODULE)_CFLAGS) $($(_MODULE)_CPPFLAGS) $(call $(_MODULE)_GCC_DEPS,$$*) $$< -o $$@ $(LOGGING)
 
 $(ODIR)/%.o: $(SDIR)/%.S
 	@echo [GCC] Assembling $$(notdir $$<)
@@ -254,11 +256,11 @@ else
 define $(_MODULE)_COMPILE_TOOLS
 $(ODIR)/%.o: $(SDIR)/%.c $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C99 $$(notdir $$<)
-	$(Q)$(CC) -std=gnu99 $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
+	$(Q)$(CC) -std=c99 $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C++ $$(notdir $$<)
-	$(Q)$(CP) $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
+	$(Q)$(CP) $($(_MODULE)_CFLAGS) $($(_MODULE)_CPPFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
 
 $(ODIR)/%.o: $(SDIR)/%.S
 	@echo [GCC] Assembling $$(notdir $$<)
