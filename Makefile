@@ -1,10 +1,10 @@
 
-include ethswitchfw_tools_path.mak
+include ethfw_tools_path.mak
 
 # Edit below file to change default build options
-include ethswitchfw_build_flags.mak
+include ethfw_build_flags.mak
 
-include makerules/ethswitchfw_soc_config.mak
+include makerules/ethfw_soc_config.mak
 
 DIRECTORIES :=
 DIRECTORIES += utils
@@ -56,6 +56,15 @@ ifeq ($(BUILD_TARGET_MODE),yes)
   ifneq ($(BUILD_LINUX_A72),yes)
     OS_LIST := $(filter-out LINUX,$(OS_LIST))
   endif
+  
+  ifeq (,$(filter $(BUILD_SOC_LIST),J721E))
+    SOC_LIST := $(filter-out J721E,$(SOC_LIST))
+  endif
+
+  ifeq (,$(filter $(BUILD_SOC_LIST),AM65XX))
+    SOC_LIST := $(filter-out AM65XX,$(SOC_LIST))
+  endif
+
 endif
 
 TARGET_COMBOS := $(foreach combo, $(call expand-target-combos,$(SOC_LIST),$(OS_LIST),$(ISA_LIST),$(PROFILE_LIST),$(CGT_LIST),$(ISA_CGT_OS_VALID_TUPLE)),$(strip $(combo)))
@@ -71,7 +80,10 @@ include $(CONCERTO_ROOT)/rules.mak
 include makerules/makefile_pdk.mak
 include makerules/makefile_ndk.mak
 
-ethfw_all: pdk_custom_libs ndk all
-ethfw_all_clean: pdk_custom_libs_clean ndk_clean clean
+#Due to bug in NDK needs patch to build .
+#DIsabling NDK build for now
+#Add ndk and ndk_clean dependent rules for ethfw_all/ethfw_all_clean once NDK bug is fixed
+ethfw_all: pdk_custom_libs all
+ethfw_all_clean: pdk_custom_libs_clean clean scrub
 
 

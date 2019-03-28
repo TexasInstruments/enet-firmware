@@ -16,7 +16,7 @@ SECTIONS
         *(*:xdc_runtime_Startup*)
         *(*:ti_sysbios_family_arm_v7r*)
         *(*:ti_sysbios_family_arm_MPU*)
-    }    >> MCU0_R5F_TCMB0
+    }    >> R5F_TCMB0
     .text_fast {
 		*(.text:CpswDma_retrieveRxPackets*)    
 		*(.text:CpswDma_retrieveTxDonePackets*)
@@ -49,44 +49,44 @@ SECTIONS
 		*(.text:Udma_ringQueueRaw*)
 		*(.text:Udma_ringDequeueRaw*)
 		*(.text:Udma_virtToPhyFxn*)
-     }     > DDR0
+     }     > DDR_MCU2_1
     .irqStackSection
     {
        *(*:ti_sysbios_family_arm_v7r_keystone3_Hwi_Module_State_0_irqStack__A)
-    } palign(8) > MCU0_R5F_TCMB0
+    } palign(8) > R5F_TCMB0
     
     .text_rest{
        _text_rest_begin = .;
        *(.text)
        _text_rest_end = .;
-    } palign(32)    >  DDR0
+    } palign(32)    >  DDR_MCU2_1
     .const_sect {
        *(.const)
-    } palign(32)    >  DDR0
+    } palign(32)    >  DDR_MCU2_1
 
     .data_sect {
        *(.data)
-    } palign(128)   >  DDR0
+    } palign(128)   >  DDR_MCU2_1
     
-    .cinit      : {} palign(8)      > MCU0_R5F_TCMB0 
-    .pinit      : {} palign(8)      > MCU0_R5F_TCMB0
+    .cinit      : {} palign(8)      > R5F_TCMB0 
+    .pinit      : {} palign(8)      > R5F_TCMB0
 
     /* For NDK packet memory, we need to map this sections before .bss*/
     /* For NDK packet memory, we need to map this sections before .bss*/
-    .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR0
-    .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
-    .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
-    .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR0
-    .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR0
+    .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
+    .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
+    .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
+    .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
+    .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
 
-    .bss        : {} align(4)       > DDR0
-    .far        : {} align(4)       > DDR0
-    .boardcfg_data        : {} palign(128)           > MSMC3
-    .sysmem     : {}                > MSMC3
-    .stack      : {} align(8)       > MCU0_R5F_TCMB0
+    .bss        : {} align(4)       > DDR_MCU2_1
+    .far        : {} align(4)       > DDR_MCU2_1
+    .boardcfg_data        : {} palign(128)           > DDR_MCU2_1
+    .sysmem     : {}                > DDR_MCU2_1
+    .stack      : {} align(8)       > R5F_TCMB0
 
     /* USB or any other LLD buffer for benchmarking */
-    .benchmark_buffer (NOLOAD) {} ALIGN (8) > DDR0
+    .benchmark_buffer (NOLOAD) {} ALIGN (8) > DDR_MCU2_1
 
 /* Additional sections settings     */
 

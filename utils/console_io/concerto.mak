@@ -25,7 +25,7 @@ CSOURCES    := src/app_log_writer.c src/app_log_reader.c src/app_log_linux.c
 endif
 endif
 
-IDIRS       := ${ETHSWITCHFW_PATH}
+IDIRS       := ${ETHFW_PATH}
 IDIRS       += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
 IDIRS       += $(XDCTOOLS_PATH)/packages
 IDIRS       += $(PDK_PATH)/packages

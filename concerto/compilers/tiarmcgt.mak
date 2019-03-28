@@ -48,9 +48,17 @@ endif
 ifeq ($(strip $($(_MODULE)_TYPE)),library)
 	BIN_PRE=
 	BIN_EXT=.$(LIB_EXT)
-else ifeq ($(strip $($(_MODULE)_TYPE)),exe)
-	BIN_PRE=
-	BIN_EXT=.out
+else 
+    ifeq ($(strip $($(_MODULE)_TYPE)),exe)
+	    BIN_PRE=
+        ifneq (,$(filter ${TARGET_CPU},R5F))
+            BIN_EXT=.xe$(strip $(call lowercase,$(TARGET_CPU)))
+        else
+            ifneq (,$(filter ${TARGET_CPU},A72 A53))
+                BIN_EXT=.xa$(strip $(call lowercase,$(TARGET_CPU)f$(if $(filter $(TARGET_BUILD),debug),g,)))
+	        endif
+        endif
+    endif
 endif
 
 $(_MODULE)_BIN  := $(TDIR)/$(BIN_PRE)$($(_MODULE)_TARGET)$(BIN_EXT)

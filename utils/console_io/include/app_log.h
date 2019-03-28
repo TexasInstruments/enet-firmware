@@ -66,12 +66,12 @@
 #include <stdint.h>
 
 /**
- * \defgroup group_ethswitchfw_utils_log Logging APIs
+ * \defgroup group_ethfw_utils_log Logging APIs
  *
  * \brief This section contains APIs for logging from remote cores to a
  *        central host core which prints all the logs to a common console.
  *
- * \ingroup group_ethswitchfw_utils
+ * \ingroup group_ethfw_utils
  *
  * @{
  */

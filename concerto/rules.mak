@@ -89,7 +89,7 @@ TESTABLE_MODULES :=
 
 # Define a macro to make the output target path
 MAKE_OUT = $(1)/$(BUILD_OUTPUT)/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
-TARGET_LIB_OUT = $(1)/lib/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
+TARGET_LIB_OUT = $(1)/out/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
 
 # Define a macro to remove a combo from the combos list if it matches a value
 FILTER_COMBO = $(foreach combo,$(TARGET_COMBOS),$(if $(filter $(1),$(subst :, ,$(combo))),$(combo)))

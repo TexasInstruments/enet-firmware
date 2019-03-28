@@ -20,7 +20,7 @@ LINKER_CMD_FILES +=  $($(_MODULE)_SDIR)/linker.cmd
 
 SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
 
-include $(ETHSWITCHFW_PATH)/apps/concerto_inc.mak
+include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)
 
