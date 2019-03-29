@@ -15,7 +15,7 @@ endif
 ifeq ($(HOST_OS),CYGWIN)
 PSDK_PATH ?= $(shell cygpath -m ${abspath ..})
 else
-PSDK_PATH = $(abspath ..)
+PSDK_PATH ?= $(abspath ..)
 endif
 
 #CCS Path needed for CCS project build

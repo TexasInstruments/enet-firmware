@@ -151,14 +151,14 @@ $($(_MODULE)_BIN): $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS) $($(_MODULE)_SHA
 	-$(Q)$(call $(_MODULE)_LINK_LIB) $(LOGGING)
 
 build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as static library
+	@echo Building $$(notdir $$<) as dynamic library
 endef
 
 else ifeq ($(strip $($(_MODULE)_TYPE)),exe)
 
 define $(_MODULE)_BUILD
 build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as static library
+	@echo Building $$(notdir $$<) as executable
 endef
 
 endif

@@ -64,7 +64,7 @@ pdk_custom_libs:
 	$(foreach soc, $(sort ${PDK_SOC_LIST}),\
 	$(foreach rule, $(sort ${PDK_LIB_RULES}),\
 	$(foreach core, $(filter ${$(soc)_CORE_LIST},$(sort ${PDK_CORE_LIST_ALL})), \
-	make -C $(PDK_PATH)/packages/ti/build  ${rule} CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD};\
+	make -C $(PDK_PATH)/packages/ti/build  ${rule} CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD} PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH);\
 	) \
 	) \
 	) \
@@ -75,7 +75,7 @@ pdk_custom_libs_clean:
 	$(foreach soc, $(sort ${PDK_SOC_LIST}),\
 	$(foreach rule, $(sort ${PDK_LIB_RULES}),\
 	$(foreach core, $(filter ${$(soc)_CORE_LIST},$(sort ${PDK_CORE_LIST_ALL})), \
-	make -C $(PDK_PATH)/packages/ti/build  $(patsubst %,%_clean,${rule}) CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD};\
+	make -C $(PDK_PATH)/packages/ti/build  $(patsubst %,%_clean,${rule}) CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD} PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH);\
 	) \
 	) \
 	) \
