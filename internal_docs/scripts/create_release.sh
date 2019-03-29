@@ -18,51 +18,6 @@ function abort()
     exit 1
 }
 
-function update_project_dependency()
-{
-    local prefix_text=${1}
-
-    # For some reason all numbers in the version lose the leading zero except the build number
-    local major=$(echo ${2} | cut -d _ -f 1 | sed 's/0\([0-9]*\)/\1/g')
-    local minor=$(echo ${2} | cut -d _ -f 2 | sed 's/0\([0-9]*\)/\1/g')
-    local patch=$(echo ${2} | cut -d _ -f 3 | sed 's/0\([0-9]*\)/\1/g')
-    local build=$(echo ${2} | cut -d _ -f 4)
-    local old_dot_version=$(echo "${major}.${minor}.${patch}.${build}")
-
-    if [ -z ${4} ]; then
-        old_dot_version=$(echo "${major}.${minor}.${patch}.${build}")
-    elif [ ${4} -eq 3 ]; then
-        old_dot_version=$(echo "${major}.${minor}.${patch}")
-    elif [ ${4} -eq 2 ]; then
-        old_dot_version=$(echo "${major}.${minor}")
-    fi
-
-    local major=$(echo ${3} | cut -d _ -f 1 | sed 's/0\([0-9]*\)/\1/g')
-    local minor=$(echo ${3} | cut -d _ -f 2 | sed 's/0\([0-9]*\)/\1/g')
-    local patch=$(echo ${3} | cut -d _ -f 3 | sed 's/0\([0-9]*\)/\1/g')
-    local build=$(echo ${3} | cut -d _ -f 4)
-    local new_dot_version=$(echo "${major}.${minor}.${patch}.${build}")
-
-    if [ -z ${4} ]; then
-        new_dot_version=$(echo "${major}.${minor}.${patch}.${build}")
-    elif [ ${4} -eq 3 ]; then
-        new_dot_version=$(echo "${major}.${minor}.${patch}")
-    elif [ ${4} -eq 2 ]; then
-        new_dot_version=$(echo "${major}.${minor}")
-    fi
-
-    # The .cproject file
-    for file in $(find ./packages/ti/ndk -type f -name .cproject); do
-        echo "Editing file ${file}..."
-        sed -i -b "s/${prefix_text}${old_dot_version}/${prefix_text}${new_dot_version}/g" ${file}
-    done
-
-    for file in $(find ./utils -type f -name .cproject); do
-        echo "Editing file ${file}..."
-        sed -i -b "s/${prefix_text}${old_dot_version}/${prefix_text}${new_dot_version}/g" ${file}
-    done
-}
-
 function update_file()
 {
     local searchdir=${1}
@@ -77,7 +32,6 @@ function update_file()
         sed -i -b "s/${prefix_text}${old_underscore_version}/${prefix_text}${new_underscore_version}/g" ${file}
     done
 }
-
 
 function update_files()
 {
@@ -105,16 +59,6 @@ function update_files()
     fi
     git checkout HEAD ${old_underscore_pkg_name}_${old_underscore_version}_release_notes.html
 
-    # The plugin files have the version and package name parameterized
-    # so the actual values are filled in
-    for file in $(find ./eclipse/ -type f); do
-        echo "Editing file ${file}..."
-        sed -i -b "s/${old_dot_version}/${new_dot_version}/g" ${file}
-        sed -i -b "s/${old_dot_pkg_name}/${new_dot_pkg_name}/g" ${file}
-        sed -i -b "s/${old_underscore_pkg_name}/${new_underscore_pkg_name}/g" ${file}
-        sed -i -b "s/${old_date}/${new_date}/g" ${file}
-    done
-
     # Update manifest, release notes, user's guide
     files="./${old_underscore_pkg_name}_${old_underscore_version}_manifest.html
            ./${old_underscore_pkg_name}_${old_underscore_version}_release_notes.html
@@ -135,17 +79,13 @@ function update_files()
     git mv docs/${old_underscore_pkg_name}_${old_underscore_version}_user_guide.html docs/${new_underscore_pkg_name}_${new_underscore_version}_user_guide.html
     git mv ${old_underscore_pkg_name}_${old_underscore_version}_manifest.html      ${new_underscore_pkg_name}_${new_underscore_version}_manifest.html
     git mv ${old_underscore_pkg_name}_${old_underscore_version}_release_notes.html ${new_underscore_pkg_name}_${new_underscore_version}_release_notes.html
-
-    # Use the actual version numbers in the plugin folders
-    git mv eclipse/features/com.ti.rtsc.${old_dot_pkg_name}_${old_dot_version} eclipse/features/com.ti.rtsc.${new_dot_pkg_name}_${new_dot_version}
-    git mv eclipse/plugins/com.ti.rtsc.${old_dot_pkg_name}.product_${old_dot_version} eclipse/plugins/com.ti.rtsc.${new_dot_pkg_name}.product_${new_dot_version}
 }
 
 # Make sure to remove temp directory when script is aborted
 trap abort SIGINT
 
 # Verify that we are running this script in the correct git working tree
-if [ ! -e ./packages/ti/nsp/drv/package.xdc ]; then
+if [ ! -e ./ethfw_build_flags.mak ]; then
     echo "Not running in the correct path! Aborting!"
     abort
 fi
@@ -174,20 +114,33 @@ if [ "${STATUS}" != "" ]; then
 fi
 
 # Read OLD (previous) release variables
-. ./scripts/release_info.sh
+. ./internal_docs/scripts/release_info.sh
 
-echo "Previous build number:  ${OLD_VERSION}"
-echo "Previous package name:  ${OLD_PKGNAME}"
-echo "Previous package date:  ${OLD_PKGDATE}"
-echo "Previous NDK version :  ${OLD_NDK}"
-echo "Previous BIOS version:  ${OLD_BIOS}"
-echo "Previous XDC version:   ${OLD_XDC}"
-echo "Previous UIA version:   ${OLD_UIA}"
-echo "Previous EDMA3 version: ${OLD_EDMA3}"
+echo "Previous build number:             ${OLD_VERSION}"
+echo "Previous package name:             ${OLD_PKGNAME}"
+echo "Previous package date:             ${OLD_PKGDATE}"
+echo "Previous NDK version:              ${OLD_NDK}"
+echo "Previous NS version:               ${OLD_NS}"
+echo "Previous BIOS version (AM65XX):    ${OLD_BIOS_AM65XX}"
+echo "Previous BIOS version (J721E):     ${OLD_BIOS_J721E}"
+echo "Previous XDC version:              ${OLD_XDC}"
+echo "Previous GCC_ARCH64 version:       ${OLD_GCC_ARCH64}"
+echo "Previous CGT_ARM version (AM65XX): ${OLD_CGT_ARM_AM65XX}"
+echo "Previous CGT_ARM version (J721E):  ${OLD_CGT_ARM_J721E}"
 
-# Get current dependency version info
-make env.sh
-. ./env.sh
+# Get AM65XX's current dependency version info
+make --no-print-directory -C ../.repo/manifests/ SOC=am65xx BOARD=am65xx_evm get_component_versions > .component_versions
+source .component_versions
+BIOS_VERSION_AM65XX=${BIOS_VERSION}
+CGT_ARM_VERSION_AM65XX=${CGT_ARM_VERSION}
+
+# Get J721E's current dependency version info
+make --no-print-directory -C ../.repo/manifests/ SOC=j721e BOARD=j721e_sim get_component_versions > .component_versions
+source .component_versions
+BIOS_VERSION_J721E=${BIOS_VERSION}
+CGT_ARM_VERSION_J721E=${CGT_ARM_VERSION}
+
+rm .component_versions
 
 # Get the new package date
 NEW_PKGDATE=$(date +"%m-%e-%Y")
@@ -237,36 +190,47 @@ NEW_VERSION_BUILD=$(printf "%02d" $BUILD)
 NEW_VERSION=${NEW_VERSION_MAJOR}_${NEW_VERSION_MINOR}_${NEW_VERSION_PATCH}_${NEW_VERSION_BUILD}
 
 echo ""
-echo "New build number:  ${NEW_VERSION}"
-echo "New package name:  ${NEW_PKGNAME}"
-echo "New package date:  ${NEW_PKGDATE}"
-echo "New NDK version :  ${NDK_VERSION}"
-echo "New BIOS version:  ${BIOS_VERSION}"
-echo "New XDC version:   ${XDC_VERSION}"
-echo "New UIA version:   ${UIA_VERSION}"
-echo "New EDMA3 version: ${EDMA3_VERSION}"
+echo "New build number:             ${NEW_VERSION}"
+echo "New package name:             ${NEW_PKGNAME}"
+echo "New package date:             ${NEW_PKGDATE}"
+echo "New NDK version:              ${NDK_VERSION}"
+echo "New NS version:               ${NS_VERSION}"
+echo "New BIOS version (AM65XX):    ${BIOS_VERSION_AM65XX}"
+echo "New BIOS version (J721E):     ${BIOS_VERSION_J721E}"
+echo "New XDC version:              ${XDC_VERSION}"
+echo "New GCC_ARCH64 version:       ${GCC_ARCH64_VERSION}"
+echo "New CGT_ARM version (AM65XX): ${CGT_ARM_VERSION_AM65XX}"
+echo "New CGT_ARM version (J721E):  ${CGT_ARM_VERSION_J721E}"
+
 
 # Update files in the repo (manifests, release notes, etc).
-update_files "${OLD_VERSION}" "${NEW_VERSION}" "${OLD_PKGNAME}" "${NEW_PKGNAME}" "${OLD_PKGDATE}" "${NEW_PKGDATE}"
-
-# Update Dependency Versions in the example project files
-update_project_dependency "com.ti.rtsc.NDK:" "${OLD_NDK}" "${NDK_VERSION}"
-update_project_dependency "com.ti.rtsc.SYSBIOS:" "${OLD_BIOS}" "${BIOS_VERSION}"
-update_project_dependency "XDC_VERSION=" "${OLD_XDC}" "${XDC_VERSION}"
-update_project_dependency "com.ti.uia:" "${OLD_UIA}" "${UIA_VERSION}"
+# TODO: Uncomment when *_release_notes.html, *_user_guide.html and *_manifest.html are present
+#update_files "${OLD_VERSION}" "${NEW_VERSION}" "${OLD_PKGNAME}" "${NEW_PKGNAME}" "${OLD_PKGDATE}" "${NEW_PKGDATE}"
 
 # Update package config.bld file
-update_file ./packages config.bld "ndk_" "${OLD_NDK}" "${NDK_VERSION}"
-update_file ./packages config.bld "bios_" "${OLD_BIOS}" "${BIOS_VERSION}"
+update_file ./ ethfw_tools_path.mak "ndk_" "${OLD_NDK}" "${NDK_VERSION}"
+update_file ./ ethfw_tools_path.mak "ns_" "${OLD_NS}" "${NS_VERSION}"
+update_file ./ ethfw_tools_path.mak "bios_" "${OLD_BIOS_AM65XX}" "${BIOS_VERSION_AM65XX}"
+update_file ./ ethfw_tools_path.mak "bios_" "${OLD_BIOS_J721E}" "${BIOS_VERSION_J721E}"
+update_file ./ ethfw_tools_path.mak "xdctools_" "${OLD_XDC}" "${XDC_VERSION}"
+update_file ./ ethfw_tools_path.mak "gcc-linaro-" "${OLD_GCC_ARCH64}" "${GCC_ARCH64_VERSION}"
+update_file ./ ethfw_tools_path.mak "ti-cgt-arm_" "${OLD_CGT_ARM_AM65XX}" "${CGT_ARM_VERSION_AM65XX}"
+update_file ./ ethfw_tools_path.mak "ti-cgt-arm_" "${OLD_CGT_ARM_J721E}" "${CGT_ARM_VERSION_J721E}"
 
 # Update release_info.sh
-update_file ./scripts release_info.sh "OLD_NDK=" "${OLD_NDK}" "${NDK_VERSION}"
-update_file ./scripts release_info.sh "OLD_BIOS=" "${OLD_BIOS}" "${BIOS_VERSION}"
-update_file ./scripts release_info.sh "OLD_XDC=" "${OLD_XDC}" "${XDC_VERSION}"
-update_file ./scripts release_info.sh "OLD_UIA=" "${OLD_UIA}" "${UIA_VERSION}"
+update_file ./internal_docs/scripts release_info.sh "OLD_VERSION=" "${OLD_VERSION}" "${NEW_VERSION}"
+update_file ./internal_docs/scripts release_info.sh "OLD_NDK=" "${OLD_NDK}" "${NDK_VERSION}"
+update_file ./internal_docs/scripts release_info.sh "OLD_NS=" "${OLD_NS}" "${NS_VERSION}"
+update_file ./internal_docs/scripts release_info.sh "OLD_BIOS_AM65XX=" "${OLD_BIOS_AM65XX}" "${BIOS_VERSION_AM65XX}"
+update_file ./internal_docs/scripts release_info.sh "OLD_BIOS_J721E=" "${OLD_BIOS_J721E}" "${BIOS_VERSION_J721E}"
+update_file ./internal_docs/scripts release_info.sh "OLD_XDC=" "${OLD_XDC}" "${XDC_VERSION}"
+update_file ./internal_docs/scripts release_info.sh "OLD_GCC_ARCH64=" "${OLD_GCC_ARCH64}" "${GCC_ARCH64_VERSION}"
+update_file ./internal_docs/scripts release_info.sh "OLD_CGT_ARM_AM65XX=" "${OLD_CGT_ARM_AM65XX}" "${CGT_ARM_VERSION_AM65XX}"
+update_file ./internal_docs/scripts release_info.sh "OLD_CGT_ARM_J721E=" "${OLD_CGT_ARM_J721E}" "${CGT_ARM_VERSION_J721E}"
 
 # Update the Static C and Misra C reports
-NSP_ROOT=${PWD} ./scripts/kw_code_checks.sh
+# TODO: Uncomment when static analysis reports are enabled
+#NSP_ROOT=${PWD} ./scripts/kw_code_checks.sh
 
 # Commit the updated package.xdc with the new version number
 echo "Committing the release to current branch."

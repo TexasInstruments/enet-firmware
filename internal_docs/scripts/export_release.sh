@@ -19,7 +19,7 @@ function abort()
 trap abort SIGINT
 
 # Verify that we are running this script in the correct git working tree
-if [ ! -e ./packages/ti/nsp/drv/package.xdc ]; then
+if [ ! -e ./ethfw_build_flags.mak ]; then
     echo "Not running in the correct path! Aborting!"
     abort
 fi
@@ -29,20 +29,19 @@ if [ ! -e ./.git ]; then
 fi
 
 # Read OLD (previous) release variables
-. ./scripts/release_info.sh
+source ./internal_docs/scripts/release_info.sh
 
-echo "Package version:        ${OLD_VERSION}"
-echo "Package name:           ${OLD_PKGNAME}"
-echo "Package date:           ${OLD_PKGDATE}"
-echo "Current NDK version :   ${OLD_NDK}"
-echo "Current BIOS version:   ${OLD_BIOS}"
-echo "Current XDC version:    ${OLD_XDC}"
-echo "Current UIA version:    ${OLD_UIA}"
-echo "Previous EDMA3 version: ${OLD_EDMA3}"
-
-# Get current dependency version info
-make env.sh
-. ./env.sh
+echo "Package version:                  ${OLD_VERSION}"
+echo "Package name:                     ${OLD_PKGNAME}"
+echo "Package date:                     ${OLD_PKGDATE}"
+echo "Current NDK version:              ${OLD_NDK}"
+echo "Current NS version:               ${OLD_NS}"
+echo "Current BIOS version (AM65XX):    ${OLD_BIOS_AM65XX}"
+echo "Current BIOS version (J721E):     ${OLD_BIOS_J721E}"
+echo "Current XDC version:              ${OLD_XDC}"
+echo "Current GCC_ARCH64 version:       ${OLD_GCC_ARCH64}"
+echo "Current CGT_ARM version (AM65XX): ${OLD_CGT_ARM_AM65XX}"
+echo "Current CGT_ARM version (J721E):  ${OLD_CGT_ARM_J721E}"
 
 # Get the output address if supplied
 OUT_DIR=$1
@@ -77,12 +76,17 @@ PKG_TAR=${PKG_NAME}_${REL_VER}.tar
 PKG_TARGZ=${PKG_TAR}.gz
 TEMP_DIR=$(mktemp -d)
 CURR_DIR=$(pwd)
+PSDK_DIR=$(realpath ../)
 
 mkdir -p ${TEMP_DIR}/${PKG_NAME}_${REL_VER}
 if [ ! -d ${TEMP_DIR} ]; then
     echo "Could not create temporary directory!"
     exit 1
 fi
+
+# Set environment variables for build
+export ETHFW_PATH=${TEMP_DIR}/${PKG_NAME}_${REL_VER}
+export PSDK_PATH=${PSDK_DIR}
 
 echo "TEMP DIR is ${TEMP_DIR}"
 echo "CURR_DIR is ${CURR_DIR}"
@@ -96,8 +100,11 @@ tar -C ${PKG_NAME}_${REL_VER} -xf ${PKG_TAR}
 
 # Build the library
 pushd ${PKG_NAME}_${REL_VER}
-make all
+make ethfw_all
 popd > /dev/null
+
+# Remove internal_docs directory
+rm -vr ${TEMP_DIR}/${PKG_NAME}_${REL_VER}/internal_docs
 
 # Create tar.gz archive
 tar -czf ${PKG_TARGZ} ${PKG_NAME}_${REL_VER}/

@@ -1,13 +1,13 @@
-#Generate doxygen documentation
+# Generate doxygen documentation
 doxygen Doxyfile 2> doxy_warnings.txt
 
-#Fix doxy_warnings
+# Fix doxy_warnings
 
-#create release
-./scripts/create_release.sh
+# Create release
+./internal_docs/scripts/create_release.sh
 
-#Create build
-cd scripts/
+# Create build
+cd internal_docs/scripts/
 ./build_procedures.sh
 
 tar -xvzf artifacts/output/nsp_gmacsw_4_14_00_01.tar.gz

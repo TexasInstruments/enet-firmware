@@ -22,9 +22,9 @@ mkdir -p artifacts/output
 
 # Step 2 - Run build steps
 echo "Exporting release"
-cd ..
-./scripts/export_release.sh scripts/artifacts/output
-cd scripts/
+cd ../../
+./internal_docs/scripts/export_release.sh ./internal_docs/scripts/artifacts/output
+cd internal_docs/scripts/
 
 # Step 3 - Create the artifacts.tgz archive
 
@@ -33,8 +33,8 @@ export COMMIT_ID=`git log -n 1 | grep commit | grep -v 'this commit' | cut -d" "
 export git_branch=`git branch | grep '*' | cut -d" " -f 2`
 
 ## Write into the repo-revs info file
-echo -n vayu_nsp: > artifacts/repo-revs.txt
-echo -n ${COMMIT_ID}:$git_branch >> artifacts/repo-revs.txt
+echo -n "ethfw:" > artifacts/repo-revs.txt
+echo -n "${COMMIT_ID}:$git_branch" >> artifacts/repo-revs.txt
 echo :`git log -1 | grep "    "` >> artifacts/repo-revs.txt
 
 ## Create a compressed tar of artifacts directory 
