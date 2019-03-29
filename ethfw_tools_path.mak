@@ -20,7 +20,8 @@ endif
 
 #CCS Path needed for CCS project build
 CCS_PATH ?= D:/ccs_v8_3/ccsv8
-TIARMCGT_ROOT ?= $(PSDK_PATH)/ti-cgt-arm_16.9.9.LTS
+TIARMCGT_ROOT_AM65XX ?= $(PSDK_PATH)/ti-cgt-arm_18.1.5.LTS
+TIARMCGT_ROOT_J721E ?= $(PSDK_PATH)/ti-cgt-arm_16.9.9.LTS
 CGT7X_ROOT ?= $(PSDK_PATH)/ti-cgt-c7000_1.0.0A18263
 CGT6X_ROOT ?= $(PSDK_PATH)/ti-cgt-c6000_8.2.4
 ifneq (,$(filter $(HOST_OS),Windows_NT CYGWIN))

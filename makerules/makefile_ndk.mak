@@ -27,7 +27,7 @@ endif
 #NDK_ENV_SETTINGS  += ti.targets.arm.elf.M4=${TIARMCGT_ROOT}      
 #NDK_ENV_SETTINGS  += ti.targets.arm.elf.M4F=${TIARMCGT_ROOT}     
 ifeq ($(BUILD_ISA_R5F),yes)
-NDK_ENV_SETTINGS  += ti.targets.arm.elf.R5F=${TIARMCGT_ROOT}
+NDK_ENV_SETTINGS  += ti.targets.arm.elf.R5F=${TIARMCGT_ROOT_$(TARGET_PLATFORM)}
 endif
 #NDK_ENV_SETTINGS  += gnu.targets.arm.M3=${GCC_SYSBIOS_ARM_ROOT}  
 #NDK_ENV_SETTINGS  += gnu.targets.arm.M4=${GCC_SYSBIOS_ARM_ROOT}  
