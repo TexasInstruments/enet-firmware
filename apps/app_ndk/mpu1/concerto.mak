@@ -1,3 +1,5 @@
+#NDK app validated only on AM65xx silicon
+ifeq ($(TARGET_PLATFORM),AM65XX)
 ifneq (,$(filter $(TARGET_CPU),A72 A53))
 
 include $(PRELUDE)
@@ -24,4 +26,5 @@ include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)
 
+endif
 endif

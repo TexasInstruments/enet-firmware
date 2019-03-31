@@ -18,6 +18,14 @@ else
 PSDK_PATH ?= $(abspath ..)
 endif
 
+ifeq ($(HOST_OS),CYGWIN)
+ETHFW_PATH ?= $(shell cygpath -m ${abspath .})
+else
+ETHFW_PATH ?= $(abspath .)
+endif
+
+
+
 #CCS Path needed for CCS project build
 CCS_PATH ?= D:/ccs_v8_3/ccsv8
 TIARMCGT_ROOT_AM65XX ?= $(PSDK_PATH)/ti-cgt-arm_18.1.5.LTS
@@ -41,8 +49,6 @@ XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_3_51_01_18_core
 NDK_PATH ?= $(PSDK_PATH)/ndk_3_40_01_01
 NS_PATH  ?= $(PSDK_PATH)/ns_2_40_01_02
 CTOOLSLIB_PATH ?= $(PSDK_PATH)/ctoolslib
-
-ETHFW_PATH ?= $(PSDK_PATH)/ethswitchfw
 
 PDK_PATH ?= $(PSDK_PATH)/pdk
 

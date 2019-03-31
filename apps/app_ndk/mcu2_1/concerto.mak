@@ -1,4 +1,6 @@
 #MCU_2_1 available only on J721E
+#NDK app validated only on AM65xx silicon
+ifeq ($(TARGET_PLATFORM),AM65XX)
 ifeq ($(TARGET_PLATFORM),J721E)
 ifeq ($(TARGET_CPU),R5F)
 
@@ -29,3 +31,5 @@ include $(FINALE)
 
 endif
 endif
+endif
+
