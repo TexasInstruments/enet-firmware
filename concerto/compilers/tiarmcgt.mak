@@ -48,7 +48,7 @@ endif
 ifeq ($(strip $($(_MODULE)_TYPE)),library)
 	BIN_PRE=
 	BIN_EXT=.$(LIB_EXT)
-else 
+else
     ifeq ($(strip $($(_MODULE)_TYPE)),exe)
 	    BIN_PRE=
         ifneq (,$(filter ${TARGET_CPU},R5F))
@@ -119,7 +119,7 @@ $(_MODULE)_DEFINES  := $(foreach def,$($(_MODULE)_DEFS),-D=$(def))
 $(_MODULE)_LIBRARIES:= $(foreach ldir,$($(_MODULE)_LDIRS),--search_path="$(ldir)") $(foreach ldir,$($(_MODULE)_SYSLDIRS),--search_path="$(ldir)") $(foreach lib,$(STATIC_LIBS),--library=$(LIB_PRE)$(lib).$(LIB_EXT)) $(foreach lib,$(SYS_STATIC_LIBS),--library=$(LIB_PRE)$(lib).$(LIB_EXT)) $(foreach lib,$(ADDITIONAL_STATIC_LIBS),--library=$(lib)) $(foreach linkerf,$(LINKER_FILES),--library=$(linkerf))
 $(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES)
 $(_MODULE)_CFLAGS   := $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS)
-$(_MODULE)_LDFLAGS  := $($(_MODULE)_CFLAGS) -z --warn_sections --reread_libs --zero_init=on $($(_MODULE)_LINKER_CMD_FILES)
+$(_MODULE)_LDFLAGS  := $($(_MODULE)_CFLAGS) -z --warn_sections --reread_libs --zero_init=on $($(_MODULE)_LINKER_CMD_FILES) --rom_model
 
 ###################################################
 # COMMANDS
