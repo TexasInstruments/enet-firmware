@@ -1,0 +1,14 @@
+=================================
+Cpsw Loopback app: Iteration 0
+=================================
+CPSW_9G Test on MAIN NAVSS
+Host MAC address: 00:10:20:30:40:50
+port: 1 Mac address: 02:00:00:00:00:00
+port: 2 Mac address: 04:00:00:00:00:00
+port: 3 Mac address: 06:00:00:00:00:00
+port: 4 Mac address: 08:00:00:00:00:00
+port: 5 Mac address: 0a:00:00:00:00:00
+port: 6 Mac address: 0c:00:00:00:00:00
+port: 7 Mac address: 0e:00:00:00:00:00
+port: 8 Mac address: 10:00:00:00:00:00
+initQs() txFreePktInfoQ initialized with 128 pkts
