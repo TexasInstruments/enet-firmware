@@ -239,7 +239,7 @@ git commit -a -m "${LOGMSG}"
 
 # Tagging the release
 echo "Tagging the release as release/${NEW_VERSION}."
-git tag release/${NEW_VERSION}
+git tag REL.ETHFW.J7.0${NEW_VERSION}
 
 # Push changes if desired
 echo    "You have created a new release tag."
