@@ -86,9 +86,7 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#ethfw_c_ug_switch">Integrated Switch</a></li>
-<li class="level1"><a href="#ethfw_c_ug_fw_architecture">EthFw</a></li>
-<li class="level1"><a href="#ethfw_c_ug_ethfw_demos">EthFw Demos</a><ul><li class="level2"><a href="#ethfw_depend_eg">EthFw Basic Switching Application</a></li>
+<ul><li class="level1"><a href="#ethfw_c_ug_ethfw_demos">EthFw Demos</a><ul><li class="level2"><a href="#ethfw_depend_eg">EthFw Basic Switching Application</a></li>
 </ul>
 </li>
 <li class="level1"><a href="#ethfw_c_ug_features_list">Supported Features</a></li>
@@ -141,22 +139,8 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <li class="level1"><a href="#ethfw_rev_history">Document Revision History</a></li>
 </ul>
 </div>
-<div class="textblock"><h1><a class="anchor" id="ethfw_c_ug_switch"></a>
-Integrated Switch</h1>
-<p>SoC's, such as J721E, integrate an Ethernet Switch as an chip-in-chip. The combined features of SOC and Switch IP (CPSW9G) can allow Ethernet switch to function continuously enabling unaffected switching on external ports regardless of the state of the rest of the device.</p>
-<div class="image">
-<img src="j7_switch_for_replacement_of_external_switch.png" alt="j7_switch_for_replacement_of_external_switch.png"/>
-<div class="caption">
-J721E Switch as a replacement to external switch</div></div>
- <hr/>
- <h1><a class="anchor" id="ethfw_c_ug_fw_architecture"></a>
-EthFw</h1>
-<p>The Ethernet Firmware is TI RTOS based application for configuration of Ethernet switch. The package contains remote configuration server, resource management library, switch resident protocols, proxy layers to handle local and remote API calls and demonstration applications (EthFw Demos). The switch software uses PDK CPSW and other drivers for respective IP configuration. Its is expected to be hosted on Cortex R5F in Main Domain.</p>
-<div class="image">
-<img src="switch_software_stack.png" alt="switch_software_stack.png"/>
-<div class="caption">
-Ethernet Switch Software Architecture</div></div>
-<p> <a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
+<div class="textblock"><p>This user guide describes EthFw feature list along with steps to build and run EthFw demo applications.</p>
+<p>For additional information about EthFw refer to <a class="el" href="index.html#ethfw_c_ug_switch">EthFw Introduction</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_c_ug_ethfw_demos"></a>
 EthFw Demos</h1>
@@ -225,7 +209,7 @@ CPSW LLD</h4>
 <h3><a class="anchor" id="ethfw_depend_ndk"></a>
 NDK</h3>
 <p>The Network Developer's Kit (NDK) is a platform for development of network enabled applications on TI embedded processors.</p>
-<p>NDK provides the TCP/IP stack which used in EthFw for running local TCP/IP applications and for running switch resident protocols like telnet and EAPoL, as shown in the Ethernet Switch Software Architecture diagram in the <a class="el" href="ethfw_c_ug_top.html#ethfw_c_ug_fw_architecture">EthFw</a> section.</p>
+<p>NDK provides the TCP/IP stack which used in EthFw for running local TCP/IP applications and for running switch resident protocols like telnet and EAPoL, as shown in the Ethernet Switch Software Architecture diagram in the <a class="el" href="index.html#ethfw_c_ug_fw_architecture">Ethernet Firmware Software Stack</a> section.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h2><a class="anchor" id="ethfw_instal_ccs"></a>
@@ -496,6 +480,8 @@ Document Revision History</h1>
 <th>Revision </th><th>Date </th><th>Author </th><th>Description  </th></tr>
 <tr>
 <td>0.1 </td><td>01 Apr 2019 </td><td>Prasad J, Misael Lopez </td><td>Created for v.0.08.00 </td></tr>
+<tr>
+<td>0.2 </td><td>02 Apr 2019 </td><td>Prasad J </td><td>0.8 Docs review meeting fixes </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a> </p>
 </div></div><!-- contents -->

@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
-<title>Ethernet Firmware: Main Page</title>
+<title>Ethernet Firmware: Introduction</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -82,10 +82,41 @@ $(document).ready(function(){initNavTree('index.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Ethernet Firmware Documentation</div>  </div>
+<div class="title">Introduction </div>  </div>
 </div><!--header-->
 <div class="contents">
-</div><!-- contents -->
+<div class="toc"><h3>Table of Contents</h3>
+<ul><li class="level1"><a href="#ethfw_c_ug_switch">Integrated Switch</a></li>
+<li class="level1"><a href="#ethfw_c_ug_fw_architecture">Ethernet Firmware Software Stack</a></li>
+<li class="level1"><a href="#ethfw_main_rev_history">Document Revision History</a></li>
+</ul>
+</div>
+<div class="textblock"><h1><a class="anchor" id="ethfw_c_ug_switch"></a>
+Integrated Switch</h1>
+<p>SoC's, such as J721E, integrate an Ethernet Switch as an chip-in-chip. The combined features of SOC and Switch IP (CPSW9G) can allow Ethernet switch to function continuously enabling unaffected switching on external ports regardless of the state of the rest of the device.</p>
+<div class="image">
+<img src="j7_switch_for_replacement_of_external_switch.png" alt="j7_switch_for_replacement_of_external_switch.png"/>
+<div class="caption">
+J721E Switch as a replacement to external switch</div></div>
+ <hr/>
+ <h1><a class="anchor" id="ethfw_c_ug_fw_architecture"></a>
+Ethernet Firmware Software Stack</h1>
+<p>The Ethernet Firmware is TI RTOS based application for configuration of Ethernet switch. The package contains remote configuration server, resource management library, switch resident protocols, proxy layers to handle local and remote API calls and demonstration applications (EthFw Demos). The switch software uses PDK CPSW and other drivers for respective IP configuration. Its is expected to be hosted on Cortex R5F in Main Domain.</p>
+<div class="image">
+<img src="switch_software_stack.png" alt="switch_software_stack.png"/>
+<div class="caption">
+Ethernet Switch Software Architecture</div></div>
+ <hr/>
+ <h1><a class="anchor" id="ethfw_main_rev_history"></a>
+Document Revision History</h1>
+<hr/>
+<table class="doxtable">
+<tr>
+<th>Revision </th><th>Date </th><th>Author </th><th>Description  </th></tr>
+<tr>
+<td>0.1 </td><td>02 Apr 2019 </td><td>Prasad J, Misael Lopez </td><td>Added as per 0.8 Docs review meeting </td></tr>
+</table>
+</div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- HTML footer for doxygen 1.8.11-->
 <!-- start footer part -->

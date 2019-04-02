@@ -1,9 +1,12 @@
 var NAVTREE =
 [
   [ "Ethernet Firmware", "index.html", [
+    [ "Introduction", "index.html", [
+      [ "Integrated Switch", "index.html#ethfw_c_ug_switch", null ],
+      [ "Ethernet Firmware Software Stack", "index.html#ethfw_c_ug_fw_architecture", null ],
+      [ "Document Revision History", "index.html#ethfw_main_rev_history", null ]
+    ] ],
     [ "User Guide", "ethfw_c_ug_top.html", [
-      [ "Integrated Switch", "ethfw_c_ug_top.html#ethfw_c_ug_switch", null ],
-      [ "EthFw", "ethfw_c_ug_top.html#ethfw_c_ug_fw_architecture", null ],
       [ "EthFw Demos", "ethfw_c_ug_top.html#ethfw_c_ug_ethfw_demos", [
         [ "EthFw Basic Switching Application", "ethfw_c_ug_top.html#ethfw_depend_eg", null ]
       ] ],

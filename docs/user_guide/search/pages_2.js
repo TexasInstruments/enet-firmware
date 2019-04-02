@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ti_20disclaimer',['TI Disclaimer',['../TI_DISCLAIMER.html',1,'']]]
+  ['layer_2d2_20switching',['Layer-2 Switching',['../demo_l2_switching_top.html',1,'demo_top']]]
 ];
