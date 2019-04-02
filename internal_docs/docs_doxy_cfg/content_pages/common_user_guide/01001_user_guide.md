@@ -1,30 +1,11 @@
 # User Guide {#ethfw_c_ug_top}
 
+This user guide describes EthFw feature list along with steps to build and run
+EthFw demo applications.
+
+For additional information about EthFw refer to [EthFw Introduction](@ref ethfw_c_ug_switch)
+
 [TOC]
-
-# Integrated Switch {#ethfw_c_ug_switch}
-
-SoC's, such as J721E, integrate an Ethernet Switch as an chip-in-chip. The
-combined features of SOC and Switch IP (CPSW9G) can allow Ethernet switch to
-function continuously enabling unaffected switching on external ports regardless
-of the state of the rest of the device.
-
-![](j7_switch_for_replacement_of_external_switch.png "J721E Switch as a replacement to external switch")
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# EthFw {#ethfw_c_ug_fw_architecture}
-
-The Ethernet Firmware is TI RTOS based application for configuration of
-Ethernet switch. The package contains remote configuration server, resource management
-library, switch resident protocols, proxy layers to handle local and remote API calls
-and demonstration applications (EthFw Demos).
-The switch software uses PDK CPSW and other drivers for respective IP configuration.
-Its is expected to be hosted on Cortex R5F in Main Domain.
-
-![](switch_software_stack.png "Ethernet Switch Software Architecture")
-
-[Back To Top](@ref ethfw_c_ug_top)
-
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Demos {#ethfw_c_ug_ethfw_demos}
@@ -455,5 +436,6 @@ Jacinto 7     | J721E            | -
 Revision | Date          | Author                 | Description
 ---------|---------------|------------------------|----------------------
 0.1      | 01 Apr 2019   | Prasad J, Misael Lopez | Created for v.0.08.00
+0.2      | 02 Apr 2019   | Prasad J               | 0.8 Docs review meeting fixes
 
 [Back To Top](@ref ethfw_c_ug_top)
