@@ -70,10 +70,14 @@ Not applicable.
 -# Locate the Python-based scripts provided along with the source code of this
    application. It can be found at `./scripts/vlab_switch_test/switch_logic_9g.py`
 -# Add scripts to VLAB PATH. Refer to VLAB user guide for further details on
-   adding to VLAB PATH
+   adding to VLAB PATH. Following are some ways to add scripts path to VLAB_PATH.
 
        set_preferences(vlab_path=["<ethfw_xx_yy_zz_bb>/scripts/vlab_switch_test"])
 
+       vlab.path+=["<ethfw_xx_yy_zz_bb>/scripts/vlab_switch_test"]
+
+-# You can copy the scripts into VLAB launch directory in case don't want to
+   update VLAB path.
 -# Install Code Composer Studio and setup a <b>Target Configuration</b> for
    use with VLAB
 
