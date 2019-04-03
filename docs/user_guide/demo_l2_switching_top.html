@@ -156,8 +156,11 @@ Steps to run</h2>
 Pre-requisites</h3>
 <ol type="1">
 <li>Locate the Python-based scripts provided along with the source code of this application. It can be found at <code>./scripts/vlab_switch_test/switch_logic_9g.py</code></li>
-<li>Add scripts to VLAB PATH. Refer to VLAB user guide for further details on adding to VLAB PATH <pre class="fragment">set_preferences(vlab_path=["&lt;ethfw_xx_yy_zz_bb&gt;/scripts/vlab_switch_test"])
+<li>Add scripts to VLAB PATH. Refer to VLAB user guide for further details on adding to VLAB PATH. Following are some ways to add scripts path to VLAB_PATH. <pre class="fragment">set_preferences(vlab_path=["&lt;ethfw_xx_yy_zz_bb&gt;/scripts/vlab_switch_test"])
+
+vlab.path+=["&lt;ethfw_xx_yy_zz_bb&gt;/scripts/vlab_switch_test"]
 </pre></li>
+<li>You can copy the scripts into VLAB launch directory in case don't want to update VLAB path.</li>
 <li>Install Code Composer Studio and setup a <b>Target Configuration</b> for use with VLAB</li>
 </ol>
 <h3><a class="anchor" id="demo_l2_switching_steps"></a>
