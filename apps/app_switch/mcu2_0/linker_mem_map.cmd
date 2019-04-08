@@ -70,8 +70,8 @@ MEMORY
     R5F_TCMA                 (    X ) : ORIGIN = 0x00000000 , LENGTH = 0x00008000
     /* R5F_TCMB0 [ size 32.00 KB ] */
     R5F_TCMB0                ( RWIX ) : ORIGIN = 0x41010000 , LENGTH = 0x00008000
-    /* DDR for MCU2_1 for code/data [ size 64.00 MB ] */
-    DDR_MCU2_1               ( RWIX ) : ORIGIN = 0x8D000000 , LENGTH = 0x01000000
+    /* DDR for MCU2_0 for code/data [ size 64.00 MB ] */
+    DDR_MCU2_0               ( RWIX ) : ORIGIN = 0x89000000 , LENGTH = 0x01000000
     /* Memory for remote core logging [ size 256.00 KB ] */
     APP_LOG_MEM                       : ORIGIN = 0x90000000 , LENGTH = 0x00040000
     /* Memory for TI OpenVX shared memory. MUST be non-cached or cache-coherent [ size 15.75 MB ] */

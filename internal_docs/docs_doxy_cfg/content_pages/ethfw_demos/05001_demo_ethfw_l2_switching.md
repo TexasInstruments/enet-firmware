@@ -103,15 +103,15 @@ Not applicable.
 
    ![](demo_l2_switching_steps_2.png "Launch CCS Target Configuration")
 
--# In Code Composer Studio, select <b>pulsar0_cr5f_1_proxy</b> from the list of
+-# In Code Composer Studio, select <b>pulsar0_cr5f_0_proxy</b> from the list of
    cores in the <b>Debug</b> panel
 
-   ![](demo_l2_switching_steps_3.png "pulsar0_cr5f_1_proxy")
+   ![](demo_l2_switching_steps_3.png "pulsar0_cr5f_0_proxy")
 
 -# Go to the <b>Run</b> menu and then select <b>Load</b> -> <b>Load Program</b>
 
 -# In the <b>Load Program</b> window, browse the EthFw Layer-2 switching application binary.
-   It can be found at ethfw_0_08_00_01/out/J721E/R5F/SYSBIOS/debug/ethfw_app_switch_tirtos_mcu_2_1.xer5f
+   It can be found at ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/ethfw_app_switch_tirtos_mcu_2_0.xer5f
 
    ![](demo_l2_switching_steps_4.png "Loading the demo application binary")
 
@@ -124,11 +124,11 @@ Not applicable.
 
        run()
 
--# In Code Composer Studio, resume <b>pulsar0_cr5f_1_proxy</b> core by selecting it
+-# In Code Composer Studio, resume <b>pulsar0_cr5f_0_proxy</b> core by selecting it
    from the list of cores in the <b>Debug</b> panel, and then select <b>Run</b> ->
    <b>Resume</b> or just hitting F8
 
-   ![](demo_l2_switching_steps_6.png "Resume MCU2_1 core")
+   ![](demo_l2_switching_steps_6.png "Resume MCU2_0 core")
 
 -# In VLAB, verify that VLAB's <b>mcu_island_uart0</b> terminal displays all ports
    with MAC addresses as follows:
@@ -183,8 +183,8 @@ Below is a sample log from the execution of this demo application.
     C7X model based on Loki ver. 04.7.373 (clock: 50.000000 MHz)
     Debug server (CCS) started on port 23456
     Simulation paused at 0 s (delta 3)
-    WARNING: break point will only be enabled when 'pulsar0_cr5f_1_proxy' completes its current execution block
-    WARNING: break point requested by external debugger will only be enabled when 'pulsar0_cr5f_1_proxy' completes its current execution block
+    WARNING: break point will only be enabled when 'pulsar0_cr5f_0_proxy' completes its current execution block
+    WARNING: break point requested by external debugger will only be enabled when 'pulsar0_cr5f_0_proxy' completes its current execution block
     VLAB> run()
     ARM Core Model: WARNING - Simulation code-translation cache failed to gain DMI for PC=0x00000000. Simulation performance will be reduced.
     VLAB> load("switch_logic_9g.py")
