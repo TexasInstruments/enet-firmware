@@ -163,7 +163,7 @@ void     CpswApp_addAleEntry(uint8_t macAddr[], uint32_t portNum);
 /*                            Global Variables                                */
 /* ========================================================================== */
 /* Broadcast address */
-uint8_t                bcastAddr[ETH_MAC_ADDR_LEN] =
+static uint8_t                bcastAddr[ETH_MAC_ADDR_LEN] =
 {
     0xffU, 0xffU, 0xffU, 0xffU, 0xffU, 0xffU
 };
@@ -205,13 +205,13 @@ int32_t CpswApp_loopbackTest(CpswApp_ClkHandle clkhandle, uint32_t iteration)
         CpswAppUtils_print("Failed to open CPSW: %d\n", status);
     }
 
-    /* Open legacy DMA driver */
+    /* Open CPSW DMA driver */
     if (status == CPSW_SOK)
     {
         status = CpswApp_openDma();
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("Failed to open legacy DMA: %d\n", status);
+            CpswAppUtils_print("Failed to open CPSW DMA: %d\n", status);
         }
     }
 
@@ -278,7 +278,7 @@ int32_t CpswApp_loopbackTest(CpswApp_ClkHandle clkhandle, uint32_t iteration)
 
     if (status == CPSW_SOK)
     {
-        /* Close legacy DMA driver */
+        /* Close CPSW DMA driver */
         CpswApp_closeDma();
         /* Close CPSW */
         CpswApp_closeCpsw();
@@ -736,43 +736,60 @@ int32_t CpswApp_openDma(void)
     return status;
 }
 
-void CpswApp_closeDma(void)
+void CpswApp_freeQs(CpswDma_PktInfoQ *pFqPktInfoQ, CpswDma_PktInfoQ *pCqPktInfoQ)
 {
-    CpswDma_PktInfoQ rxReadyQ;
     CpswDma_PktInfo *pktInfo;
-    int32_t          status;
-    uint32_t         rxReadyCnt, i;
+    uint32_t         pktCnt, i;
 
-    /* Retrieve any CPSW packets which are ready */
-    status = CpswDma_retrieveRxPackets(gCpswLpbkAppObj.hRxFlow, &rxReadyQ);
-    CpswAppUtils_assert ( status == CPSW_SOK );
-
-    rxReadyCnt = CpswUtils_getQCount(&rxReadyQ) ;
-
+    pktCnt = CpswUtils_getQCount(pCqPktInfoQ) ;
     /* Free all retrieved packets from DMA */
-    /* TODO - How do we free packets in teardown ring? */
-    for (i=0U; i<rxReadyCnt; i++)
+    for (i=0U; i<pktCnt; i++)
     {
-        pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&rxReadyQ);
+        pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(pCqPktInfoQ);
         CpswMemUtils_freeEthPktFxn(pktInfo);
     }
 
-    /* Close RX channel */
-    status = CpswDma_closeRxFlow(gCpswLpbkAppObj.hRxFlow);
-    Cpsw_rmFreeFlowIndex(gCpswLpbkAppObj.hCpsw, gCpswLpbkAppObj.rxFlowIdx);
+    pktCnt = CpswUtils_getQCount(pFqPktInfoQ) ;
+    /* Free all retrieved packets from DMA */
+    for (i=0U; i<pktCnt; i++)
+    {
+        pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(pFqPktInfoQ);
+        CpswMemUtils_freeEthPktFxn(pktInfo);
+    }
+}
+
+void CpswApp_closeDma(void)
+{
+    CpswDma_PktInfoQ fqPktInfoQ, cqPktInfoQ;
+    int32_t          status;
+
+    /* Close RX Flow */
+    status = CpswDma_closeRxFlow(gCpswLpbkAppObj.hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+    if (status == CPSW_SOK)
+    {
+        Cpsw_rmFreeFlowIndex(gCpswLpbkAppObj.hCpsw, gCpswLpbkAppObj.rxFlowIdx);
+        CpswApp_freeQs(&fqPktInfoQ, &cqPktInfoQ);
+    }
+    else
+    {
+        CpswAppUtils_print("CpswDma_closeRxFlow() failed: %d\n", status);
+    }
 
     /* Close TX channel */
     status += CpswDma_disableTxEvent(gCpswLpbkAppObj.hTxCh);
-    status += CpswDma_closeTxCh(gCpswLpbkAppObj.hTxCh);
-
-    if (status != CPSW_SOK)
+    status = CpswDma_closeTxCh(gCpswLpbkAppObj.hTxCh, &fqPktInfoQ, &cqPktInfoQ);
+    if (status == CPSW_SOK)
     {
-        CpswAppUtils_print(
-            "CpswApp_closeDma() failed: %d\n", status);
+        CpswApp_freeQs(&fqPktInfoQ, &cqPktInfoQ);
+    }
+    else
+    {
+        CpswAppUtils_print("CpswDma_closeTxCh() failed: %d\n", status);
     }
 
     CpswMemUtils_deInit();
 }
+
 
 void CpswApp_addAleEntry(uint8_t macAddr[], uint32_t portNum)
 {
