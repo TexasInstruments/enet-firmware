@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Description>
+  <!-- Number of characters per line -->
+  <LineLength>200</LineLength>
+
+  <!-- Number of whitespaces allowed before semicolor -->
+  <SemicolonSpace>0</SemicolonSpace>
+
+  <!-- The file should not have any tabulations -->
+  <Tabs>0</Tabs>
+
+  <!-- The number of extra spaces at the end of the line should not exceed a certain number -->
+  <Spaces>0</Spaces>
+
+  <!-- Indentation (4 spaces). Doesn't work properly with Allman style -->
+  <!--
+  <Indent>
+    <type>SPACE</type>
+    <size>4</size>
+    <noHeader>false</noHeader>
+    <allowBlockLine>false</allowBlockLine>
+  </Indent>
+  -->
+
+  <Comments>
+    <begin>/*</begin>
+    <middle> * </middle>
+    <end> */</end>
+    <emptyLineBeforeClass>true</emptyLineBeforeClass>
+    <checkWrongComment>true</checkWrongComment>
+    <checkMissingComment>true</checkMissingComment>
+  </Comments>
+
+  <Header>
+    <location>../../../../../ethswitchfw/internal_docs/scripts/dev/cpsw_header.h</location>
+    <checkSpacesEndOfLine>false</checkSpacesEndOfLine>
+    <cvsFormat>false</cvsFormat>
+  </Header>
+
+  <EmptyLines>1</EmptyLines>
+
+  <!-- Spaces before and after an operation ('=' is not counted as one) -->
+  <Operator>
+    <spaceBefore>1</spaceBefore>
+    <spaceAfter>1</spaceAfter>
+  </Operator>
+
+  <!-- Struct variable prefix -->
+  <Struct>
+    <regex>^(\*p[A-Z]|[a-z])</regex>
+  </Struct>
+
+  <!-- Typedef prefix -->
+  <Typedefs>
+    <regex>^[*]*(Cpsw|Ndk2Cpsw)(|App|AppUtils|Ale|Cpts|Dma|HostPort|MacPort|Port|Mdio|Osal|Phy|Stats|Soc|Trace|Utils)_[A-Z]</regex>
+    <alignment>false</alignment>
+  </Typedefs>
+
+  <!-- Function name prefix -->
+  <Functions>
+    <regex>^[*]*(Cpsw|Ndk2Cpsw)(|App|AppUtils|Ale|Cpts|Dma|HostPort|MacPort|Port|Mdio|Osal|Phy|Stats|Soc|Trace|Utils)_[a-z]</regex>
+    <length>350</length>
+  </Functions>
+
+  <!-- Makes no difference in C code -->
+  <InternalVariables>[0-9]</InternalVariables>
+
+  <!-- Detects extra blank lines at EOF -->
+  <EndOfFileNewLine>1</EndOfFileNewLine>
+
+  <!-- Does not appear to have any effect -->
+  <VariablePerLine>1</VariablePerLine>
+
+  <!-- Detects more than one sentence per line -->
+  <StatementPerLine>
+    <maxNumber>1</maxNumber>
+    <checkInline>0</checkInline>
+  </StatementPerLine>
+</Description>
