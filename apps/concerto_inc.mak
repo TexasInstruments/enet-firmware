@@ -14,8 +14,8 @@ XDC_INCLUDE_PACKAGES_PATH    += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
 ifeq ($(TARGET_PLATFORM),J721E)
     ifeq (${TARGET_CPU},R5F)
     XDC_PLATFORM = ti.platforms.cortexR:J7ES
-    else 
-	    ifeq (${TARGET_CPU},A72)
+    else
+        ifeq (${TARGET_CPU},A72)
         XDC_PLATFORM = ti.platforms.cortexA:J7ES
         endif
     endif
@@ -23,8 +23,8 @@ else
     ifeq ($(TARGET_PLATFORM),AM65XX)
         ifeq (${TARGET_CPU},R5F)
         XDC_PLATFORM = ti.platforms.cortexR:AM65X
-        else 
-		    ifeq (${TARGET_CPU},A53)
+        else
+            ifeq (${TARGET_CPU},A53)
             XDC_PLATFORM = ti.platforms.cortexA:AM65X
             endif
         endif
@@ -43,24 +43,28 @@ IDIRS       += $(PDK_PATH)/packages
 LDIRS += $(PDK_PATH)/packages/ti/osal/lib/tirtos/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/csl/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/board/lib/${TARGET_BOARD_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(PDK_PATH)/packages/ti/drv/i2c/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/uart/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/cpsw/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(PDK_PATH)/packages/ti/drv/cpsw/lib/${TARGET_BOARD_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/udma/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/sciclient/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
+
 
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_utils_console_io
 
 ifeq (${TARGET_CPU},R5F)
-ADDITIONAL_STATIC_LIBS += ti.board.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += nimucpsw.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += cpsw_apputils.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += cpsw.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += udma.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += sciclient.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += ti.csl.ae$(call lowercase,$(TARGET_CPU))
-ADDITIONAL_STATIC_LIBS += ti.osal.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += ti.board.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += nimucpsw.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += cpsw_apputils.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += cpsw.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += udma.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += sciclient.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += ti.drv.i2c.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += ti.csl.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += ti.osal.ae$(call lowercase,$(TARGET_CPU))
 else
     CORTEX_A_LIB_SUFFIX := $(if $(filter $(TARGET_BUILD),debug),g,)
     ifneq (,$(filter ${TARGET_CPU},A72 A53))
@@ -70,6 +74,7 @@ else
     ADDITIONAL_STATIC_LIBS += cpsw.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += udma.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += sciclient.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.drv.i2c.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.uart.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.csl.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.osal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
@@ -78,6 +83,7 @@ endif
 
 
 PDK_SOC_LIST += $(TARGET_PLATFORM)
+PDK_LIB_RULES += i2c
 PDK_LIB_RULES += osal_tirtos
 PDK_LIB_RULES += udma
 PDK_LIB_RULES += csl
@@ -87,7 +93,3 @@ PDK_LIB_RULES += nimucpsw
 PDK_LIB_RULES += cpsw_apputils
 PDK_LIB_RULES += uart
 PDK_LIB_RULES += board
-
-
-
-
