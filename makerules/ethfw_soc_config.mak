@@ -25,7 +25,7 @@ J721E_ISA_CORE_COUNT += A72:1
 J721E_ISA_CORE_COUNT += C66:2
 J721E_ISA_CORE_COUNT += C71:1
 J721E_CORE_LIST      := c6x_1 c6x_2 c7x_1 mcu1_0 mcu2_0 mcu2_1 mcu3_0 mpu1_0
-J721E_BOARD          := j721e_sim
+J721E_BOARD          := j721e_evm
 
 #AM65XX SOC Configuration
 AM65XX_ISA_CORE_COUNT := R5F:1
