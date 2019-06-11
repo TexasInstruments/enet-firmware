@@ -202,9 +202,11 @@ static uint8_t gAppTskStackMain[APP_TSK_STACK_MAIN]
 static Task_Handle task;
 
 static Cpsw_MacPort gCpswMainAppMacPorts[] = {
+#if defined(SOC_AM65XX)
     CPSW_MAC_PORT_0,
-#if defined(SOC_J721E)
+#elif defined(SOC_J721E)
     CPSW_MAC_PORT_1,
+    CPSW_MAC_PORT_0,
     CPSW_MAC_PORT_2,
     CPSW_MAC_PORT_3,
 #endif
