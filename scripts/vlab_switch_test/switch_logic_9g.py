@@ -32,7 +32,7 @@ lock = threading.Lock()
 def create_frame(src=None, dest=None):
     # Create an Ethernet frame for one of the nodes to transmit (we only care about
     # the MAC addresses, so we don't bother to set the payload)
-    tx_frame  = EthernetFrame(200)
+    tx_frame  = EthernetFrame(random.randrange(64,1500))
     tx_frame.SetSourceAddress(mac_addr[src])
     tx_frame.SetDestAddress(mac_addr[dest])
          
