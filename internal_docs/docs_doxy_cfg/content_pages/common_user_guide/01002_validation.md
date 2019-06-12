@@ -2,8 +2,11 @@
 
 [TOC]
 
+For 0.85 release no validation reports are included.
+
 # Introduction {#val_intro}
 
+<!-- 0_85_BINARY_RELEASE
 Sections below lists various validation reports that are included in the release.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -15,3 +18,4 @@ Sections below lists various validation reports that are included in the release
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Performance Measurements {#val_perform_measurements}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+-->

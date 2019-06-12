@@ -10,9 +10,10 @@ For additional information about EthFw refer to [EthFw Introduction](@ref ethfw_
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Demos {#ethfw_c_ug_ethfw_demos}
 
-Demonstrates usage of software provided for EthFw. These peripheral/board
-level sample/demo examples demonstrates the capabilities of the Ethernet Switch
-exploiting the IP features.
+
+EthFw Demos showcases usage and integration of EthFw to use & configure CPSW9G IP
+in the Jacinto 7 devices. These peripheral/board level sample/demo examples
+demonstrates the capabilities of the CPSW9G IP features & EthFw.
 
 Listed below are some of the key applications.
 Demo         | Comments
@@ -20,11 +21,11 @@ Demo         | Comments
 L2 Switching | Configures Switch to enable switching between its external ports
 
 
-## EthFw Basic Switching Application {#ethfw_depend_eg}
-The Layer-2 switch application demonstrates basic switching capabilities of the
-CPSW switch in Jacinto 7 devices.
+## EthFw Switching & TCP/IP Apps Demo {#ethfw_depend_eg}
+This demo showcases switching capabilities of the J721E integrated Ethernet Switch
+(CPSW9G) for features like VLAN, Multicast etc. This demo also showcases TI NDK (TCP/IP) integration into EthFw. In this demo we showcase usage of HTTP server.
 
-For further information, please refer to the @ref demo_l2_switching_top demo
+For further information, please refer to the @ref demo_l2_switching_ndk_top demo
 application documentation.
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -33,9 +34,12 @@ application documentation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Supported Features {#ethfw_c_ug_features_list}
 
-Feature      | Comments
--------------|--------------
-L2 Switching | Support for configuration of switch to enable L2 Switching between external ports
+Feature         | Comments
+----------------|--------------
+L2 Switching    | Support for configuration of switch to enable L2 Switching between external ports
+VLAN            | Support for creating and deleting VLAN
+Multicast       | Support for enabling/disabling multicast
+NDK Integration | Integration of TCP/IP stack enabling TCP, UDP, HTTP apps
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -57,18 +61,24 @@ vs running demo applications only).
 ## Hardware Dependencies {#ethfw_depend_hw}
 
 EthFw is supported on the boards/EVM listed below
-- @ref ethfw_depend_vlab_j721e
+- @ref ethfw_depend_evm_j721e
+- @ref ethfw_depend_evm_gesi_j721e
+### J721E EVM {#ethfw_depend_evm_j721e}
+![](J7EVM_CPSW_TopView.png "J721E EVM connections")
+### J721E EVM GESI Expansion Board {#ethfw_depend_evm_gesi_j721e}
+![](GESI_Board.png "J721E EVM GESI Board Top View")
+![](GESI_RJ45_SideView.png "J721E EVM GESI Board connections")
 
-
-### J721E VLAB {#ethfw_depend_vlab_j721e}
-
-Please refer to the SDK VLAB Description for details about installation & getting started
-of VLAB.
+<!-- 0_85_BINARY_RELEASE
+Please refer to the SDK Description for details about installation
+& getting started of J721E EVM.
+-->
 
 [Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Software Dependencies {#ethfw_depend_sw}
+<!-- 0_85_BINARY_RELEASE
 
 Below listed dependencies are part of Processor SDK package.
 
@@ -88,7 +98,6 @@ APIs. CSL also provides peripheral base addresses, register offset, C macros to 
 peripheral registers.
 
 EthFw uses CSL to determine peripheral addresses and program peripheral registers.
-
 
 #### UDMA {#ethfw_depend_pdk_udma}
 Unified DMA (UDMA) is an integral part of the Jacinto 7 devices and is in charge of
@@ -112,6 +121,7 @@ and for running switch resident protocols like telnet and EAPoL, as shown in the
 Ethernet Switch Software Architecture diagram in the @ref ethfw_c_ug_fw_architecture
 section.
 
+-->
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -124,9 +134,9 @@ to develop and debug embedded applications.
 For more information, please visit Code Composer Studio product
 [page](http://www.ti.com/tool/ccstudio).
 
-* [Download](http://processors.wiki.ti.com/index.php/Download_CCS)
+* Download Link - [Download](http://processors.wiki.ti.com/index.php/Download_CCS)
 
-### J721E {#ethfw_instal_ccs_gel_setup}
+### Setup for J721E EVM {#ethfw_instal_ccs_gel_setup}
 -# Supported CCS version is detailed in SDK Release Notes
 
    ![](ccs_version.png "Code Composer Studio version")
@@ -136,15 +146,16 @@ For more information, please visit Code Composer Studio product
 
    ![](ccs_emulation_packs.png "Code Composer Studio Emulation Packs")
 
+-#  Creating a Target Configuration File
 
-#### Creating a Target Configuration File
+    1. In Code Composer Studio, go to the **File** menu and select **New** ->
+       **Target Configuration File**
 
--# In Code Composer Studio, go to the **File** menu and select **New** ->
-   **Target Configuration File**
--# Name the Target Configuration file as **J7ES_VLAB.ccxml** and click **Finish**
--# Set the **Connection** to **ASTC VLAB** and set the **Board or Device** to
-   **VLAB Connection driver (J7ES, ARM cores only)** as show in the following
-   figure.
+    2. Name the Target Configuration file as **J7ES_EVM.ccxml** and click **Finish**
+    3. Select the Connection to JTAG emulator which you have connected to J721E
+       EVM. For on board emulator use connection as "Texas Instruments XDS110 USB
+       Debug Probe"
+    4. Set the **Connection** to **JACINTO721E**.
 
 ![](ccs_target_configuration.png "Creating CCS Target Configuration File")
 
@@ -158,7 +169,7 @@ For more information, please visit Code Composer Studio product
 EthFw software is an add-on package, and it's provided as an archive file (tarball).
 
 * Untar the package tarball into SDK base folder, the expected directory structure
-  is as show below ([J721E](@ref mcuw_post_install_j721e)).
+  is as show below ([J721E](@ref ethfw_post_install_j721e)).
 
       tar -zxvf ethfw_xx_yy_zz_bb.tgz
 
@@ -166,11 +177,6 @@ EthFw software is an add-on package, and it's provided as an archive file (tarba
   directory as shown:
 
       mv ethfw_xx_yy_zz_bb ~/ti/.
-
-## J721E {#mcuw_post_install_j721e}
-
-![](c_ug_install_dir_top.png "Directory structure post installation")
-
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -184,6 +190,8 @@ note that this is an indicative snap-shot. Modules could be added/modified.
 The top-level EthFw makefile as well as the auxiliary makefiles for build flags
 (**ethfw_build_flags.mak**) and build paths (**ethfw_tools_path.mak**)
 can be found at the EthFw top-level directory.
+
+## Post Install Directory Structure {#ethfw_post_install_j721e}
 
 ![](c_ug_dir_top.png "Top Level Directory Structure")
 
@@ -220,10 +228,10 @@ Refer to @ref demo_top section for a full list of EthFw demo applications.
 [Back To Top](@ref ethfw_c_ug_top)
 
 
+<!-- 0_85_BINARY_RELEASE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Build {#ethfw_build_top}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 EthFw employs Concerto make based build mechanism. When building on Windows based machine,
 tool such as [Cygwin](https://www.cygwin.com/) could be used.
 
@@ -330,7 +338,7 @@ and/or reconfigured via linker command files.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
-
+-->
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Running Examples {#ethfw_run_eg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -437,5 +445,6 @@ Revision | Date          | Author                 | Description
 ---------|---------------|------------------------|----------------------
 0.1      | 01 Apr 2019   | Prasad J, Misael Lopez | Created for v.0.08.00
 0.2      | 02 Apr 2019   | Prasad J               | 0.8 Docs review meeting fixes
+0.3      | 12 June 2019  | Prasad J               | Updates for EVM demo (.85 release)
 
 [Back To Top](@ref ethfw_c_ug_top)

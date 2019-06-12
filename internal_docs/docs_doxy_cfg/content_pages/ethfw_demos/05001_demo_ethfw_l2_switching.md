@@ -1,4 +1,4 @@
-# Layer-2 Switching {#demo_l2_switching_top}
+# Layer-2 Switching & TCP/IP Apps{#demo_l2_switching_ndk_top}
 
 [TOC]
 
@@ -6,23 +6,51 @@
 # Introduction {#demo_l2_switching_intro}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-This application demonstrates basic Layer-2 switching among the ports in the
-CPSW switch. The traffic forwarding process among the ports don't require
-CPU involved or DMA bandwidth as everything is completely handled by
+This application demonstrates basic Layer-2 switching with VLAN, multicast among the ports in the
+Ethernet switch (CPSW9G) in the J721E device. The traffic forwarding process among the
+ports don't require CPU involved or DMA bandwidth as everything is completely handled by
 CPSW hardware.
 
-This application runs on the VLAB simulator for J721E CPSW 9G peripheral.
-A Python-based script is provided to generate Ethernet frames which are
-injected to the external ports of the CPSW switch. The source and
-destination ports are randomly chosen in order to guarantee that all ports
-of the switch are properly verified for frame transmission and reception.
+The intention behind this demo is to show the switching capabilities of the J721E
+integrated Ethernet Switch (CPSW9G) as well as the software developed which includes
+CPSW LLD (low level driver for CPSW IP), TI NDK (TCP/IP) integration and Ethernet Switch firmware application.
+
+Below are top-level features of demonstrated -
+
+ - Basic L2 Switching
+ - Switching with VLAN
+ - Multicast switching
+ - HTTP server
+ - Send/Receive apps over TCP/UDP
+
+The Ethernet Firmware demo application is in charge of -
+
+ - Opening the CPSW modules like ALE, MAC ports, host port and UDMA
+ - Opening & configuring the 4 x MAC ports along with corresponding PHYs present in the GESI expansion board at RGMII 1Gbps mode.
+ - Initializing NDK stack.
+ - Configuring the HTTP & TCP/IP data servers.
+
+This application runs on the J721E EVM with GESI (Gateway/Ethernet Switch/Industrial Expansion Board) board.
+The demo application has a HTTP server hosting a web page which can be accessed by any device connected to the
+CPSW switch. The demo application also supports a basic serial terminal-based control interface to
+enable/disable/configure features like VLAN, multicast, rate-limiting.
+
+A video streaming application (Ex - Plex Media Server, VLC) can be used to demonstrate Ethernet packet switching functionality between multiple PCs. The media server will run on one PC and the client will be the accessed from another PC which are connected via GESI board. The media server can be accessed via web interface, so any laptop connected to the switch should be able to access it.
+
+The switching demo uses www.plex.tv media server for showing video streaming.
+
+    Note: Please check licensing information & terms of usage of plex.tv media server and make sure it
+    adheres your organizations policy before using and configuring it.
+
+The IP address of J721E EVM is used to access the TCP/IP demo webpage from any device connected to the CPSW switch.
 
 ![](demo_l2_switching_diagram.png "Layer-2 Switching Application Diagram")
 
-The following diagram shows interaction of J721E VLAB model, the VLAB test
-script and the Layer-2 switching application.
+Below diagram shows connections for video streaming connections.
+![](demo_l2_switching_connections.png "Layer-2 Switching Demo connections diagram")
 
-![](demo_l2_switching_diagram2.png "Layer-2 Switching Application in VLAB")
+    Note: The IP addresses in above diagram can change based on your network configuration.
+    Also use of Ubuntu laptop is not needed if DHCP server is available in your network.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Dependencies {#demo_l2_switching_depend}
@@ -38,17 +66,7 @@ This application depends on multiple components and are detailed in sections bel
           control path of the CPSW switch, as well as the interface to send and
           receive Ethernet frames to/from CPSW's host port
 
-[Back To Top](@ref demo_l2_switching_top)
-
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Flow Chart {#demo_l2_switching_flowchart}
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-![](demo_l2_switching_flowchart.png "Layer-2 Switching Flow Chart")
-
-[Back To Top](@ref demo_l2_switching_top)
-
+[Back To Top](@ref demo_l2_switching_ndk_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Compile Time Configurations {#demo_l2_switching_demo_cfg}
@@ -56,7 +74,7 @@ This application depends on multiple components and are detailed in sections bel
 
 Not applicable.
 
-[Back To Top](@ref demo_l2_switching_top)
+[Back To Top](@ref demo_l2_switching_ndk_top)
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -67,83 +85,69 @@ Not applicable.
 
 ### Pre-requisites {#demo_l2_switching_steps_prerequisites}
 
--# Locate the Python-based scripts provided along with the source code of this
-   application. It can be found at `./scripts/vlab_switch_test/switch_logic_9g.py`
--# Add scripts to VLAB PATH. Refer to VLAB user guide for further details on
-   adding to VLAB PATH. Following are some ways to add scripts path to VLAB_PATH.
-
-       set_preferences(vlab_path=["<ethfw_xx_yy_zz_bb>/scripts/vlab_switch_test"])
-
-       vlab.path+=["<ethfw_xx_yy_zz_bb>/scripts/vlab_switch_test"]
-
--# You can copy the scripts into VLAB launch directory in case don't want to
-   update VLAB path.
+ # PC Set up
 -# Install Code Composer Studio and setup a <b>Target Configuration</b> for
-   use with VLAB
+   use with J721E EVM.(refer to @ref ethfw_instal_ccs)
+-# Connect the emulator to the PC.
 
+### PC Set up {#demo_pc_setup_steps}
+-# Plex server set up
+    1. Install Plex Media Server. The Ubuntu/Windows installation executable and instructions
+       can be found in their webpage.
+    2. Once setup, the media server will be started every time that the PC is powered on.
+    3. Add video samples to the Library as needed.
+
+-# Connect your laptops/PCs as per connection diagram shown above. Make sure you
+   don't use PORT0 as it is not functional on GESI board.
+-# Configure each laptop for static IP configuration. Configure laptop running plex server at
+  192.168.1.101 and other laptop in 192.168.1.102. The J721E is configured for static IP
+  192.168.1.100
+  For configuring the static IP below can be refereed.
+  https://www.howtogeek.com/howto/19249/how-to-assign-a-static-ip-address-in-xp-vista-or-windows-7/
 
 ### Steps {#demo_l2_switching_steps}
-
--# Start VLAB using the following command
-
-       load("<ethfw_xx_yy_zz_bb>/scripts/vlab_switch_test/run_switch_logic_9g.py")
-
--# Verify that the status of all cores in the <b>Status</b> panel are in loaded
-   state as shown in picture below:
-
-   ![](demo_l2_switching_steps_1.png "VLAB Status: all cores in loaded state")
-
--# Enable the UART terminal in order to get application messages sent to the
-   UART port. Run below command in the VLAB terminal:
-
-       vlab.display_terminal(vlab.terminal.mcu_island_usart0);
 
 -# Open Code Composer Studio and launch the Target Configuration previously
    setup (refer to @ref demo_l2_switching_steps_prerequisites)
 
    ![](demo_l2_switching_steps_2.png "Launch CCS Target Configuration")
 
--# In Code Composer Studio, select <b>pulsar0_cr5f_0_proxy</b> from the list of
+-# Go to the <b>View</b> menu and then select <b>Scripting Console </b>
+-# Run the launch.js script provided in ethfw_xx_xx_xx/tools/ on scripting console to load and execute DMSC firmware binary. This step can take considerable time as it configures PLL etc. in the SOC via GEL files and configures DDR.
+
+   ![](launch_dss_script.png "Launch script")
+
+   After script completes execution you should see below in Debug window
+
+   ![](launch_dss_script_complete.png "Launch script Complete")
+
+-# In Code Composer Studio, select <b>MAIN_Cortex_R5_0_0</b> from the list of
    cores in the <b>Debug</b> panel
 
-   ![](demo_l2_switching_steps_3.png "pulsar0_cr5f_0_proxy")
+   ![](demo_l2_switching_steps_3.png "MAIN_Cortex_R5_0_0")
 
 -# Go to the <b>Run</b> menu and then select <b>Load</b> -> <b>Load Program</b>
 
 -# In the <b>Load Program</b> window, browse the EthFw Layer-2 switching application binary.
-   It can be found at ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/ethfw_app_switch_tirtos_mcu_2_0.xer5f
+   It can be found at ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/ethfw_app_ndk_switch_tirtos_mcu_2_0.xer5f
 
    ![](demo_l2_switching_steps_4.png "Loading the demo application binary")
 
--# Resume all other cores by selecting each of them from the list of cores in
-   CCS' <b>Debug</b> panel, and then <b>Run</b> -> <b>Resume</b> or just hitting F8
+-# Go to the <b>Run</b> menu and then select <b>Resume</b> to start executing demo binary.
 
-   ![](demo_l2_switching_steps_5.png "Resume all other cores")
+-# Once you see the IP address printed on console and all links detected by demo application. Run Plex client using below command
 
--# In VLAB, run the following command from VLAB terminal:
+    http://192.168.1.101:32400/web
 
-       run()
+    ![](PlexClient.png "PlexClient.PNG")
 
--# In Code Composer Studio, resume <b>pulsar0_cr5f_0_proxy</b> core by selecting it
-   from the list of cores in the <b>Debug</b> panel, and then select <b>Run</b> ->
-   <b>Resume</b> or just hitting F8
+### HTTP Client Page (http://192.168.1.100)
+The following is snapshot of webpage loaded when client accesses HTTP server on J721E EVM.
+![](tcpipdemopage.png "TCP/IP HTTP Server Landing Page")
 
-   ![](demo_l2_switching_steps_6.png "Resume MCU2_0 core")
+-# Please refer to the @ref demo_l2_switching_output section for sample EVM test logs
 
--# In VLAB, verify that VLAB's <b>mcu_island_uart0</b> terminal displays all ports
-   with MAC addresses as follows:
-
-   ![](demo_l2_switching_steps_7.png "VLAB UART0 terminal displaying ports and MAC addresses")
-
--# In VLAB, run the Python-based demo script from the VLAB terminal. This script
-   will generate and inject Ethernet frames in the external ports of the
-   CPSW switch
-
-       load("switch_logic_9g.py")
-
--# Please refer to the @ref demo_l2_switching_output section for sample VLAB test logs
-
-[Back To Top](@ref demo_l2_switching_top)
+[Back To Top](@ref demo_l2_switching_ndk_top)
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -153,101 +157,7 @@ Below is a sample log from the execution of this demo application.
 
 ### UART Console Logs
 
-    Cpsw Loopback app: Iteration 0
-    =================================
-    CPSW_9G Test on MAIN NAVSS
-    Host MAC address: 00:10:20:30:40:50
-    port: 1 Mac address: 02:00:00:00:00:00
-    port: 2 Mac address: 04:00:00:00:00:00
-    port: 3 Mac address: 06:00:00:00:00:00
-    port: 4 Mac address: 08:00:00:00:00:00
-    port: 5 Mac address: 0a:00:00:00:00:00
-    port: 6 Mac address: 0c:00:00:00:00:00
-    port: 7 Mac address: 0e:00:00:00:00:00
-    port: 8 Mac address: 10:00:00:00:00:00
-    initQs() txFreePktInfoQ initialized with 128 pkts
-
-### VLAB Console Logs
-
-    VLAB 2.4.6
-    Copyright (c) VLAB Works Pty Ltd, 2008-2018. All Rights Reserved.
-    VLAB> load(u"/home/a0132233/vlab-works/utilities/simulator/astc/run_switch_logic_9g.py")
-
-    Keystone Virtual Platform Toolbox (J7ES) 0.14.5-snapshot17
-
-
-    Fast Models [11.2.37 (Dec 11 2017)]
-    Copyright 2000-2017 ARM Limited.
-    All Rights Reserved.
-
-    C7X model based on Loki ver. 04.7.373 (clock: 50.000000 MHz)
-    Debug server (CCS) started on port 23456
-    Simulation paused at 0 s (delta 3)
-    WARNING: break point will only be enabled when 'pulsar0_cr5f_0_proxy' completes its current execution block
-    WARNING: break point requested by external debugger will only be enabled when 'pulsar0_cr5f_0_proxy' completes its current execution block
-    VLAB> run()
-    ARM Core Model: WARNING - Simulation code-translation cache failed to gain DMI for PC=0x00000000. Simulation performance will be reduced.
-    VLAB> load("switch_logic_9g.py")
-    tx_status: True
-    receive_flushed: True
-    Port1 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    Port2 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    Port3 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    Port4 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    Port5 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    Port6 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    Port7 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    Port8 received: EthernetFrame(0xffffffffffff, 0x1020304050, 518) :-)
-    receive flush done
-    Port4 -> Port5: EthernetFrame(0xa0000000000, 0x80000000000, 200)
-    Port5 received: EthernetFrame(0xa0000000000, 0x80000000000, 200) :-)
-    Port5 -> Port2: EthernetFrame(0x40000000000, 0xa0000000000, 200)
-    Port2 received: EthernetFrame(0x40000000000, 0xa0000000000, 200) :-)
-    Port7 -> Port2: EthernetFrame(0x40000000000, 0xe0000000000, 200)
-    Port2 received: EthernetFrame(0x40000000000, 0xe0000000000, 200) :-)
-    Port4 -> Port1: EthernetFrame(0x20000000000, 0x80000000000, 200)
-    Port1 received: EthernetFrame(0x20000000000, 0x80000000000, 200) :-)
-    Port6 -> Port4: EthernetFrame(0x80000000000, 0xc0000000000, 200)
-    Port4 received: EthernetFrame(0x80000000000, 0xc0000000000, 200) :-)
-    Port5 -> Port2: EthernetFrame(0x40000000000, 0xa0000000000, 200)
-    Port2 received: EthernetFrame(0x40000000000, 0xa0000000000, 200) :-)
-    Port2 -> Port3: EthernetFrame(0x60000000000, 0x40000000000, 200)
-    Port3 received: EthernetFrame(0x60000000000, 0x40000000000, 200) :-)
-    Port2 -> Port3: EthernetFrame(0x60000000000, 0x40000000000, 200)
-    Port3 received: EthernetFrame(0x60000000000, 0x40000000000, 200) :-)
-    Port2 -> Port4: EthernetFrame(0x80000000000, 0x40000000000, 200)
-    Port4 received: EthernetFrame(0x80000000000, 0x40000000000, 200) :-)
-    Port3 -> Port4: EthernetFrame(0x80000000000, 0x60000000000, 200)
-    Port4 received: EthernetFrame(0x80000000000, 0x60000000000, 200) :-)
-    Port4 -> Port2: EthernetFrame(0x40000000000, 0x80000000000, 200)
-    Port2 received: EthernetFrame(0x40000000000, 0x80000000000, 200) :-)
-    Port7 -> Port1: EthernetFrame(0x20000000000, 0xe0000000000, 200)
-    Port1 received: EthernetFrame(0x20000000000, 0xe0000000000, 200) :-)
-    Port7 -> Port3: EthernetFrame(0x60000000000, 0xe0000000000, 200)
-    Port3 received: EthernetFrame(0x60000000000, 0xe0000000000, 200) :-)
-    Port2 -> Port1: EthernetFrame(0x20000000000, 0x40000000000, 200)
-    Port1 received: EthernetFrame(0x20000000000, 0x40000000000, 200) :-)
-    Port5 -> Port1: EthernetFrame(0x20000000000, 0xa0000000000, 200)
-    Port1 received: EthernetFrame(0x20000000000, 0xa0000000000, 200) :-)
-    Port5 -> Port2: EthernetFrame(0x40000000000, 0xa0000000000, 200)
-    Port2 received: EthernetFrame(0x40000000000, 0xa0000000000, 200) :-)
-    Port7 -> Port6: EthernetFrame(0xc0000000000, 0xe0000000000, 200)
-    Port6 received: EthernetFrame(0xc0000000000, 0xe0000000000, 200) :-)
-    Port2 -> Port5: EthernetFrame(0xa0000000000, 0x40000000000, 200)
-    Port5 received: EthernetFrame(0xa0000000000, 0x40000000000, 200) :-)
-    Port1 -> Port7: EthernetFrame(0xe0000000000, 0x20000000000, 200)
-    Transmit Done
-    Port7 received: EthernetFrame(0xe0000000000, 0x20000000000, 200) :-)
-    No frame to receive
-    Receive Done
-    Done
-
-
-Ethernet frames in the tests are generated randomly, so the output may be different
-in reader's test logs.
-
-[Back To Top](@ref demo_l2_switching_top)
-
+[Back To Top](@ref demo_l2_switching_ndk_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Document Revision History {#demo_l2_switching_rev_history}
@@ -256,3 +166,4 @@ in reader's test logs.
 Revision | Date          | Author                 | Description
 ---------|---------------|------------------------|----------------------
 0.1      | 01 Apr 2019   | Prasad J, Misael Lopez | Created for v.0.08.00
+0.2      | 12 June 2019  | Prasad J               | Updates for EVM demo (.85 release)
