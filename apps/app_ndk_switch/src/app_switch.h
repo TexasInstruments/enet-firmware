@@ -95,7 +95,7 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-int32_t CpswApp_secondFlowTest(uint32_t iteration);
+void CpswApp_createUartMenuTask(void);
 
 void CpswAppIf_getHandles(CpswAppIf_HandleInfo *handleInfo);
 

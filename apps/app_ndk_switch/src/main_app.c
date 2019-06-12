@@ -150,8 +150,6 @@ typedef struct
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-static void  CpswApp_createSecondFlowTask(void);
-static Void secondFlowTaskFxn(UArg a0, UArg a1);
 static uint32_t CpswApp_getNavSSInstanceId(Cpsw_Type cpswType);
 static void CpswApp_setAleConfig(CpswAle_Config *aleConfig);
 static void CpswApp_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
@@ -195,12 +193,6 @@ static HANDLE hOob = 0;
 
 char *VerStr = "NIMU CPSW Example";
 
-/* Test application stack */
-static uint8_t gAppTskStackMain[APP_TSK_STACK_MAIN]
-                                __attribute__((aligned(32)));
-
-static Task_Handle task;
-
 static Cpsw_MacPort gCpswMainAppMacPorts[] = {
 #if defined(SOC_AM65XX)
     CPSW_MAC_PORT_0,
@@ -237,12 +229,10 @@ int main(void)
                             MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
 
     CpswAppUtils_print("=======================================================\n");
-    CpswAppUtils_print ("           CPSW MULTI RX-FLOW & MULTI TX APP          \n");
+    CpswAppUtils_print ("           CPSW L2 Switching APP          \n");
     CpswAppUtils_print("=======================================================\n");
 
     status = CpswApp_init();
-
-    CpswApp_createSecondFlowTask();
 
     if (status != CPSW_SOK)
     {
@@ -250,38 +240,12 @@ int main(void)
         CpswAppUtils_assert(status == CPSW_SOK);
     }
 
+    CpswApp_createUartMenuTask();
+
     /* does not return */
     BIOS_start();
 
     return(0);
-}
-
-static void CpswApp_createSecondFlowTask(void)
-{
-    Task_Params params;
-    Error_Block eb;
-
-    Error_init(&eb);
-
-    /* Initialize the task params. Set the task priority higher than the
-     * default priority (1) */
-    Task_Params_init(&params);
-    params.priority  = 2U;
-    params.stack     = gAppTskStackMain;
-    params.stackSize = sizeof(gAppTskStackMain);
-    task = Task_create(secondFlowTaskFxn, &params, &eb);
-    if (task == NULL)
-    {
-        BIOS_exit(0);
-    }
-}
-
-static Void secondFlowTaskFxn(UArg a0, UArg a1)
-{
-    uint8_t i = 0;
-
-    /* Run the Second Flow test */
-    CpswApp_secondFlowTest(i);
 }
 
 static uint32_t CpswApp_getNavSSInstanceId(Cpsw_Type cpswType)
@@ -398,16 +362,6 @@ static int32_t CpswApp_init(void)
 
 void CpswApp_deInit(void)
 {
-    while (Task_getMode(task) != Task_Mode_TERMINATED)
-    {
-        Task_sleep(10);
-    }
-
-    if (Task_deleteTerminatedTasks == FALSE)
-    {
-        Task_delete(&task);
-    }
-
     CpswAppUtils_udmaclose(gCpswMainAppObj.hUdmaDrv);
 
     memset(&gCpswMainAppObj, 0U, sizeof(CpswMain_AppObj));

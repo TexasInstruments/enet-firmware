@@ -61,9 +61,9 @@
  */
 
 /*!
- * \file     app_secondflow.c
+ * \file     app_switch.c
  *
- * \brief    This file contains the app_secondflow test implementation.
+ * \brief    This file contains the app_switch test implementation.
  */
 
 /* ========================================================================== */
@@ -98,7 +98,6 @@
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
-#define TEST_LEN                    (500U)
 #define APP_TSK_STACK_UART          (10U * 1024U)
 
 #define APP_MENU_OPTION_VLAN        (1U)
@@ -157,35 +156,14 @@ typedef struct
 
 static void CpswApp_addUnicastAddressEntry(uint8_t macAddr[],
                                            uint32_t portNum);
-static void CpswApp_addClasifierEntry(uint8_t srcMacAddr[],
-                                      uint32_t flowId);
 static void CpswApp_showAleTableAndPolicer(void);
-static int32_t CpswApp_pktRxTx(void);
-static int32_t CpswSwitchApp_getRxTxHandle(void);
-static uint32_t CpswApp_retrieveFreeTxPkts(void);
-static uint32_t CpswApp_receivePkts(void);
-static void CpswApp_createUartMenuTask(void);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
 
-/* Broadcast address */
-static uint8_t bcastAddr[ETH_MAC_ADDR_LEN] =
-{
-    0xffU, 0xffU, 0xffU, 0xffU, 0xffU, 0xffU
-};
-
-/* Src Mac address for flow 1*/
-static uint8_t flowAddr1[ETH_MAC_ADDR_LEN] =
-{
-    0x80U, 0xcdU, 0xefU, 0xfeU, 0xdcU, 0xbaU
-};
-
-static Task_Handle taskUartMenu;
-
 /* Switch menu 0 string */
-static const char gCpswSwitchMenu[] =
+static const char gCpswAppSwitchMenu[] =
 {
     "\r\n================================================="
     "\r\n                   Switch Options                "
@@ -206,84 +184,6 @@ CpswApp_Obj gCpswSwitchAppObj;
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-
-int32_t CpswApp_secondFlowTest(uint32_t iteration)
-{
-    CpswAppIf_HandleInfo handleInfo;
-    CpswDma_PktInfoQ fqPktInfoQ;
-    CpswDma_PktInfoQ cqPktInfoQ;
-    int32_t status;
-
-    /* Get CPSW & UDMA Drv Handle */
-    CpswAppIf_getHandles(&handleInfo);
-
-    gCpswSwitchAppObj.hCpsw = handleInfo.hCpsw;
-    gCpswSwitchAppObj.hUdmaDrv = handleInfo.hUdmaDrv;
-    gCpswSwitchAppObj.cpswType = handleInfo.cpswType;
-
-    if (gCpswSwitchAppObj.hCpsw  == NULL)
-    {
-        status = CPSW_EFAIL;
-        CpswAppUtils_print("Failed to open CPSW: %d\n", status);
-        CpswAppUtils_assert(gCpswSwitchAppObj.hCpsw == NULL);
-    }
-
-    if (gCpswSwitchAppObj.hUdmaDrv == NULL)
-    {
-        status = CPSW_EFAIL;
-        CpswAppUtils_print("Failed to Get UDMA Handle: %d\n", status);
-        CpswAppUtils_assert(gCpswSwitchAppObj.hUdmaDrv == NULL);
-    }
-
-    CpswApp_createUartMenuTask();
-
-    status = CpswSwitchApp_getRxTxHandle();
-
-    if (status == CPSW_SOK)
-    {
-        status = CpswApp_pktRxTx();
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print("Failed to enable host port: %d\n", status);
-        }
-    }
-
-    /* Close RX Flow */
-    status = CpswDma_closeRxFlow(gCpswSwitchAppObj.hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
-    if (status == CPSW_SOK)
-    {
-        Cpsw_rmFreeFlowIndex(gCpswSwitchAppObj.hCpsw, gCpswSwitchAppObj.rxFlowIdx);
-        CpswAppUtils_freeQs(&fqPktInfoQ, &cqPktInfoQ);
-    }
-    else
-    {
-        CpswAppUtils_print("CpswDma_closeRxFlow() failed: %d\n", status);
-    }
-
-    /* Close TX channel */
-    status = CpswDma_disableTxEvent(gCpswSwitchAppObj.hTxCh);
-    status = CpswDma_closeTxCh(gCpswSwitchAppObj.hTxCh, &fqPktInfoQ, &cqPktInfoQ);
-    if (status == CPSW_SOK)
-    {
-        CpswAppUtils_freeQs(&fqPktInfoQ, &cqPktInfoQ);
-    }
-    else
-    {
-        CpswAppUtils_print("CpswDma_closeTxCh() failed: %d\n", status);
-    }
-
-    if (status == CPSW_SOK)
-    {
-        CpswAppIf_releaseHandles(gCpswSwitchAppObj.cpswType);
-        CpswAppUtils_print("Cpsw Flow 1 application completed\n");
-    }
-    else
-    {
-        CpswAppUtils_print("Cpsw Flow 1 application failed to complete\n");
-    }
-
-    return 0;
-}
 
 void CpswApp_rxIsrFxn(Udma_EventHandle eventHandle,
                       uint32_t         eventType,
@@ -619,9 +519,32 @@ static void CpswApp_getMacAddr(uint8_t macAddr[])
     }
 }
 
-static Void UartMenuTskFxn(UArg a0, UArg a1)
+static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
 {
     bool runflag = true;
+    CpswAppIf_HandleInfo handleInfo;
+    int32_t status = CPSW_EFAIL;
+
+    /* Get CPSW & UDMA Drv Handle */
+    CpswAppIf_getHandles(&handleInfo);
+
+    gCpswSwitchAppObj.hCpsw = handleInfo.hCpsw;
+    gCpswSwitchAppObj.hUdmaDrv = handleInfo.hUdmaDrv;
+    gCpswSwitchAppObj.cpswType = handleInfo.cpswType;
+
+    if (gCpswSwitchAppObj.hCpsw  == NULL)
+    {
+        status = CPSW_EFAIL;
+        CpswAppUtils_print("Failed to open CPSW: %d\n", status);
+        CpswAppUtils_assert(gCpswSwitchAppObj.hCpsw == NULL);
+    }
+
+    if (gCpswSwitchAppObj.hUdmaDrv == NULL)
+    {
+        status = CPSW_EFAIL;
+        CpswAppUtils_print("Failed to Get UDMA Handle: %d\n", status);
+        CpswAppUtils_assert(gCpswSwitchAppObj.hUdmaDrv == NULL);
+    }
 
     while(runflag)
     {
@@ -633,7 +556,7 @@ static Void UartMenuTskFxn(UArg a0, UArg a1)
         int32_t choice = 0U;
 
         Task_sleep(1000 * 10);
-        CpswAppUtils_print("%s", gCpswSwitchMenu);
+        CpswAppUtils_print("%s", gCpswAppSwitchMenu);
         UART_scanFmt("%d", &choice);
 
         switch(choice)
@@ -711,10 +634,11 @@ static Void UartMenuTskFxn(UArg a0, UArg a1)
     }
 }
 
-static void CpswApp_createUartMenuTask(void)
+void CpswApp_createUartMenuTask(void)
 {
     Task_Params params;
     Error_Block eb;
+    static Task_Handle uartMenuHandle;
 
     Error_init(&eb);
 
@@ -724,118 +648,11 @@ static void CpswApp_createUartMenuTask(void)
     params.priority  = 2U;
     params.stack     = gAppTskStackUart;
     params.stackSize = sizeof(gAppTskStackUart);
-    taskUartMenu = Task_create(UartMenuTskFxn, &params, &eb);
-    if (taskUartMenu == NULL)
+    uartMenuHandle = Task_create(CpswApp_uartMenuTskFxn, &params, &eb);
+    if (uartMenuHandle == NULL)
     {
         BIOS_exit(0);
     }
-}
-
-static void CpswApp_setTxChPrms(CpswDma_OpenTxChPrms *pTxChPrms)
-{
-    pTxChPrms->cpswInstance = gCpswSwitchAppObj.cpswType;
-    pTxChPrms->hUdmaDrv     = gCpswSwitchAppObj.hUdmaDrv;
-
-    /* TODO this should be taken from CPSW RM */
-    pTxChPrms->chNum               = CPSW_DMA_TX_CH_NUM(1);
-
-    pTxChPrms->ringMemAllocFxn     = &CpswAppMemUtils_allocRingMemFxn;
-    pTxChPrms->ringMemFreeFxn      = &CpswAppMemUtils_freeRingMemFxn;
-
-    pTxChPrms->numTxPkts           = CPSW_APPMEMUTILS_NUM_TX_PKTS;
-    pTxChPrms->disableCacheOpsFlag = false;
-
-    pTxChPrms->dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
-    pTxChPrms->dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
-
-    pTxChPrms->udmaEvtCfg.eventCb     = &CpswApp_txIsrFxn;
-    pTxChPrms->udmaEvtCfg.hEventCbArg = &gCpswSwitchAppObj.hTxCh;
-
-    pTxChPrms->hCallbackArg        = &gCpswSwitchAppObj.hTxCh;
-}
-
-static void CpswApp_setRxflowPrms(CpswDma_OpenRxFlowPrms *pRxFlowPrms)
-{
-    pRxFlowPrms->cpswInstance           = gCpswSwitchAppObj.cpswType;
-    pRxFlowPrms->hUdmaDrv               = gCpswSwitchAppObj.hUdmaDrv;
-
-    pRxFlowPrms->ringMemAllocFxn        = &CpswAppMemUtils_allocRingMemFxn;
-    pRxFlowPrms->ringMemFreeFxn         = &CpswAppMemUtils_freeRingMemFxn;
-
-    pRxFlowPrms->udmaEvtCfg.eventCb     = &CpswApp_rxIsrFxn;
-    pRxFlowPrms->udmaEvtCfg.hEventCbArg = &gCpswSwitchAppObj.hRxFlow;
-
-    pRxFlowPrms->numRxPkts              = CPSW_APPMEMUTILS_NUM_RX_PKTS;
-    pRxFlowPrms->maxPktLength           = CPSW_APPMEMUTILS_LARGE_POOL_PKT_SIZE;
-
-    pRxFlowPrms->disableCacheOpsFlag    = false;
-    pRxFlowPrms->dmaDescAllocFxn        = &CpswAppMemUtils_allocDmaDescFxn;
-    pRxFlowPrms->dmaDescFreeFxn         = &CpswAppMemUtils_freeDmaDescFxn;
-
-    pRxFlowPrms->hCallbackArg           = &gCpswSwitchAppObj.hRxFlow;
-
-}
-
-static void CpswApp_initTxFreePktQ(void)
-{
-    CpswDma_PktInfo *pktInfo;
-    uint32_t i;
-
-    /* Initialize all queues */
-    CpswUtils_initQ(&gCpswSwitchAppObj.txFreePktInfoQ);
-
-    /* Initialize TX EthPkts and queue them to txFreePktInfoQ */
-    for (i = 0U; i < CPSWAPPUTILS_ARRAY_SIZE(gCpswSwitchAppObj.txFreePktInfo); i++)
-    {
-        pktInfo = &gCpswSwitchAppObj.txFreePktInfo[i];
-
-        CpswDma_pktInfoInit(pktInfo);
-
-        memset (&pktInfo->node, 0U, sizeof(pktInfo->node));
-        pktInfo->bufPtr     = (uint8_t *) &gCpswSwitchAppObj.txBufMem[i][0U];
-        pktInfo->orgBufLen  = ETH_MAX_FRAME_LEN;
-        pktInfo->userBufLen = ETH_MAX_FRAME_LEN;
-        pktInfo->appPriv    = NULL;
-
-        CpswUtils_enQ(&gCpswSwitchAppObj.txFreePktInfoQ, &pktInfo->node);
-    }
-
-    CpswAppUtils_print("initQs() txFreePktInfoQ initialized with %d pkts\n",
-                       CpswUtils_getQCount(&gCpswSwitchAppObj.txFreePktInfoQ));
-}
-
-static void CpswApp_initRxReadyPktQ(void)
-{
-    CpswDma_PktInfoQ rxReadyQ;
-    CpswDma_PktInfo *pPktInfo;
-    uint32_t i;
-    int32_t status;
-
-    CpswUtils_initQ(&gCpswSwitchAppObj.rxFreeQ);
-    CpswUtils_initQ(&rxReadyQ);
-
-    for (i = 0U; i < CPSW_APPMEMUTILS_NUM_RX_PKTS; i++)
-    {
-        pPktInfo = CpswAppMemUtils_allocEthPktFxn(&gCpswSwitchAppObj,
-                                                  CPSW_APPMEMUTILS_LARGE_POOL_PKT_SIZE,
-                                                  UDMA_CACHELINE_ALIGNMENT);
-        CpswAppUtils_assert(pPktInfo != NULL);
-        CpswUtils_enQ(&gCpswSwitchAppObj.rxFreeQ, &pPktInfo->node);
-    }
-
-    /* Retrieve any CPSW packets which are ready */
-    status = CpswDma_retrieveRxPackets(gCpswSwitchAppObj.hRxFlow, &rxReadyQ);
-    CpswAppUtils_assert(status == CPSW_SOK);
-
-    /* There should not be any packet with DMA during init */
-    CpswAppUtils_assert(CpswUtils_getQCount(&rxReadyQ) == 0U);
-
-    CpswAppUtils_submitRxPackets(gCpswSwitchAppObj.hRxFlow,
-                                 &gCpswSwitchAppObj.rxFreeQ);
-
-    /* Assert here as during init no. of DMA descriptors should be equal to
-     * no. of free Ethernet buffers available with app */
-    CpswAppUtils_assert( 0U == CpswUtils_getQCount(&gCpswSwitchAppObj.rxFreeQ));
 }
 
 static void CpswApp_addUnicastAddressEntry(uint8_t macAddr[],
@@ -863,36 +680,6 @@ static void CpswApp_addUnicastAddressEntry(uint8_t macAddr[],
     }
 }
 
-static void CpswApp_addClasifierEntry(uint8_t srcMacAddr[],
-                                      uint32_t flowId)
-{
-    Cpsw_IoctlPrms prms;
-    CpswAle_SetPolicerEntryOutArgs setPolicerEntryOutArgs;
-    CpswAle_SetPolicerEntryInArgs setPolicerEntryInArgs;
-    int32_t status;
-
-    setPolicerEntryInArgs.policerMatch.policerMatchEnableMask = CPSW_ALE_POLICER_MATCH_MACSRC;
-    memcpy(&setPolicerEntryInArgs.policerMatch.srcMacAddr.addr[0U],
-           srcMacAddr,
-           sizeof(setPolicerEntryInArgs.policerMatch.srcMacAddr.addr));
-    setPolicerEntryInArgs.policerMatch.srcMacAddr.vlanId = 0U;
-    setPolicerEntryInArgs.threadIdEnable = true;
-    setPolicerEntryInArgs.threadId = flowId;
-    setPolicerEntryInArgs.peakRateInBitsPerSec = 0U;
-    setPolicerEntryInArgs.commitRateInBitsPerSec = 0U;
-
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerEntryInArgs, &setPolicerEntryOutArgs);
-
-    status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-    if (status != CPSW_SOK)
-    {
-        CpswAppUtils_print("addClasifierEntry() CPSW_ALE_IOCTL_SET_POLICER failed: %d\n",
-                           status);
-    }
-
-    CpswApp_addUnicastAddressEntry(srcMacAddr, 1U);
-}
-
 static void CpswApp_showAleTableAndPolicer(void)
 {
     Cpsw_IoctlPrms prms;
@@ -915,219 +702,4 @@ static void CpswApp_showAleTableAndPolicer(void)
     }
 }
 
-static int32_t CpswSwitchApp_getRxTxHandle(void)
-{
-    CpswDma_OpenTxChPrms cpswTxChCfg;
-    CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
-    int32_t status = CPSW_SOK;
 
-    /* Open the CPSW TX channel  */
-    CpswApp_initTxFreePktQ();
-
-    /* Set configuration parameters */
-    CpswDma_initTxChParams(&cpswTxChCfg);
-    CpswApp_setTxChPrms(&cpswTxChCfg);
-    gCpswSwitchAppObj.hTxCh = CpswDma_openTxCh(&cpswTxChCfg);
-    if (NULL != gCpswSwitchAppObj.hTxCh)
-    {
-        status = CpswDma_enableTxEvent(gCpswSwitchAppObj.hTxCh);
-        if (CPSW_SOK != status)
-        {
-            CpswAppUtils_print("getRxTxHandle() failed enable TX event: %d\n", status);
-            status = CPSW_EFAIL;
-        }
-    }
-    else
-    {
-        CpswAppUtils_print("getRxTxHandle() failed to open TX channel\n");
-        status = CPSW_EFAIL;
-    }
-
-    /* Open the CPSW RX flow */
-    if (status == CPSW_SOK)
-    {
-        CpswDma_initRxFlowParams(&cpswRxFlowCfg);
-        CpswApp_setRxflowPrms(&cpswRxFlowCfg);
-        cpswRxFlowCfg.flowIdx = Cpsw_rmAllocFlowIndex(gCpswSwitchAppObj.hCpsw);
-
-        gCpswSwitchAppObj.hRxFlow = CpswDma_openRxFlow(&cpswRxFlowCfg);
-        if (NULL == gCpswSwitchAppObj.hRxFlow)
-        {
-            CpswAppUtils_print("getRxTxHandle() failed to open RX flow\n");
-            Cpsw_rmFreeFlowIndex(gCpswSwitchAppObj.hCpsw,
-                                 cpswRxFlowCfg.flowIdx);
-            CpswAppUtils_assert (NULL != gCpswSwitchAppObj.hRxFlow);
-        }
-        else
-        {
-            /* Save flow idx */
-            gCpswSwitchAppObj.rxFlowIdx = cpswRxFlowCfg.flowIdx;
-
-            /* Submit all ready RX buffers to DMA.*/
-            CpswApp_initRxReadyPktQ();
-        }
-    }
-
-    if (status == CPSW_SOK)
-    {
-        CpswApp_addClasifierEntry(&flowAddr1[0U], gCpswSwitchAppObj.rxFlowIdx);
-    }
-
-    return status;
-}
-
-static int32_t CpswApp_pktRxTx(void)
-{
-    CpswDma_PktInfoQ txSubmitQ;
-    CpswDma_PktInfo *pktInfo;
-    EthFrame *frame;
-    uint32_t loopCntr;
-    uint32_t txRetrievePktCnt = 0U;
-    uint32_t rxReadyCnt;
-    int32_t status = CPSW_SOK;
-
-    /* Transmit a single packet */
-    CpswUtils_initQ(&txSubmitQ);
-
-    /* Send one packet from host to all external ports */
-    pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&gCpswSwitchAppObj.txFreePktInfoQ);
-    if (NULL != pktInfo)
-    {
-        /* Fill the TX Eth frame with test content */
-        frame = (EthFrame *) pktInfo->bufPtr;
-        memcpy(frame->hdr.dstMac, bcastAddr, ETH_MAC_ADDR_LEN);
-        memcpy(frame->hdr.srcMac, &gCpswSwitchAppObj.hostMacAddr[0U], ETH_MAC_ADDR_LEN);
-        frame->hdr.etherType = htons(ETHERTYPE_EXPERIMENTAL1);
-        memset(&frame->payload[0U], (uint8_t) (0xA5), TEST_LEN);
-        pktInfo->userBufLen = TEST_LEN + sizeof (EthFrameHeader);
-        pktInfo->appPriv = &gCpswSwitchAppObj;
-
-        /* Enqueue the packet for later transmission */
-        CpswUtils_enQ(&txSubmitQ, &pktInfo->node);
-
-        status = CpswAppUtils_submitTxPackets(gCpswSwitchAppObj.hTxCh,
-                                              &txSubmitQ);
-        /* Retrieve TX free packets */
-        if (status == CPSW_SOK)
-        {
-            while (txRetrievePktCnt != 1U)
-            {
-                //TODO this is not failure as HW is busy sending packets, we
-                // need to wait and again call retrieve packets
-                Task_sleep(1);
-                txRetrievePktCnt += CpswApp_retrieveFreeTxPkts();
-#if DEBUG
-                CpswAppUtils_print("pktRxTx() failed to retrieve consumed TX packets: %d\n", status);
-#endif
-            }
-        }
-        else
-        {
-            CpswAppUtils_print("pktRxTx() failed to submit TX packet: %d\n", status);
-        }
-    }
-    else
-    {
-        CpswAppUtils_print("pktRxTx() failed to dequeue free TX packet\n");
-    }
-
-    loopCntr = 1U;
-    while(loopCntr)
-    {
-        /* Sleep so that other flow gets scheduled */
-        Task_sleep(1);
-
-        /* Get the packets received so far */
-        rxReadyCnt = CpswApp_receivePkts();
-        if (rxReadyCnt > 0U)
-        {
-            /* Consume the received packets and release them */
-            pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&gCpswSwitchAppObj.rxReadyQ);
-            while (NULL != pktInfo)
-            {
-                /* Consume the packet by just printing its content */
-                frame = (EthFrame *)pktInfo->bufPtr;
-#ifdef ENABLE_PRINTFRAME
-                CpswAppUtils_printFrame(frame,
-                                        pktInfo->userBufLen - sizeof(EthFrameHeader));
-#endif
-                /* Release the received packet */
-                CpswUtils_enQ(&gCpswSwitchAppObj.rxFreeQ, &pktInfo->node);
-                pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&gCpswSwitchAppObj.rxReadyQ);
-            }
-
-            /*Submit now processed buffers */
-            if (status == CPSW_SOK)
-            {
-                CpswAppUtils_submitRxPackets(gCpswSwitchAppObj.hRxFlow,
-                                             &gCpswSwitchAppObj.rxFreeQ);
-            }
-
-            CpswAppUtils_print("Received %d packets\n", rxReadyCnt);
-        }
-    }
-
-    return status;
-}
-
-static uint32_t CpswApp_retrieveFreeTxPkts(void)
-{
-    CpswDma_PktInfoQ txFreeQ;
-    CpswDma_PktInfo *pktInfo;
-    uint32_t txFreeQCnt = 0U;
-    int32_t status;
-
-    CpswUtils_initQ(&txFreeQ);
-
-    /* Retrieve any CPSW packets that may be free now */
-    status = CpswDma_retrieveTxDonePackets(gCpswSwitchAppObj.hTxCh, &txFreeQ);
-    if (status == CPSW_SOK)
-    {
-        txFreeQCnt = CpswUtils_getQCount(&txFreeQ);
-
-        pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&txFreeQ);
-        while (NULL != pktInfo)
-        {
-            CpswUtils_enQ(&gCpswSwitchAppObj.txFreePktInfoQ, &pktInfo->node);
-
-            pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&txFreeQ);
-        }
-    }
-    else
-    {
-        CpswAppUtils_print("retrieveFreeTxPkts() failed to retrieve pkts: %d\n", status);
-    }
-
-    return txFreeQCnt;
-}
-
-static uint32_t CpswApp_receivePkts(void)
-{
-    CpswDma_PktInfoQ rxReadyQ;
-    CpswDma_PktInfo *pktInfo;
-    uint32_t rxReadyCnt = 0U;
-    int32_t status;
-
-    CpswUtils_initQ(&rxReadyQ);
-
-    /* Retrieve any CPSW packets which are ready */
-    status = CpswDma_retrieveRxPackets(gCpswSwitchAppObj.hRxFlow, &rxReadyQ);
-    if (status == CPSW_SOK)
-    {
-        rxReadyCnt = CpswUtils_getQCount(&rxReadyQ);
-        /* Queue the received packet to rxReadyQ and pass new ones from rxFreeQ
-        **/
-        pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&rxReadyQ);
-        while (pktInfo != NULL)
-        {
-            CpswUtils_enQ(&gCpswSwitchAppObj.rxReadyQ, &pktInfo->node);
-            pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&rxReadyQ);
-        }
-    }
-    else
-    {
-        CpswAppUtils_print("receivePkts() failed to retrieve pkts: %d\n", status);
-    }
-
-    return rxReadyCnt;
-}
