@@ -150,7 +150,6 @@ typedef struct
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-static uint32_t CpswApp_getNavSSInstanceId(Cpsw_Type cpswType);
 static void CpswApp_setAleConfig(CpswAle_Config *aleConfig);
 static void CpswApp_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
                                  Cpsw_MacPort macPort);
@@ -228,6 +227,9 @@ int main(void)
     CpswAppUtils_setMacMode(gCpswMainAppObj.cpswType,
                             MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
 
+    CpswAppUtils_enableClocks(gCpswMainAppObj.cpswType,
+                  MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
+
     CpswAppUtils_print("=======================================================\n");
     CpswAppUtils_print ("           CPSW L2 Switching APP          \n");
     CpswAppUtils_print("=======================================================\n");
@@ -246,11 +248,6 @@ int main(void)
     BIOS_start();
 
     return(0);
-}
-
-static uint32_t CpswApp_getNavSSInstanceId(Cpsw_Type cpswType)
-{
-    return (CPSW_2G == cpswType) ? UDMA_INST_ID_MCU_0 : UDMA_INST_ID_MAIN_0;
 }
 
 static void CpswApp_setAleConfig(CpswAle_Config *aleConfig)
@@ -309,6 +306,7 @@ static void CpswApp_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
         linkConfig->speed     = CPSW_SPEED_AUTO;
         linkConfig->duplexity = CPSW_DUPLEX_AUTO;
     }
+
 }
 
 static int32_t CpswApp_init(void)
@@ -330,8 +328,7 @@ static int32_t CpswApp_init(void)
     cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
 
     /* Open UDMA */
-    gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(gCpswMainAppObj.cpswType,
-                                                     CpswApp_getNavSSInstanceId(gCpswMainAppObj.cpswType));
+    gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(gCpswMainAppObj.cpswType);
 
     cpswMcmCfg.pCpswCfg = &cpswCfg;
     cpswMcmCfg.cpswType = gCpswMainAppObj.cpswType;
@@ -454,3 +451,5 @@ void netCloseHook()
     DaemonFree(hEcho);
 #endif
 }
+
+/* end of file */

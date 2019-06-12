@@ -173,6 +173,7 @@ static const char gCpswAppSwitchMenu[] =
     "\r\n 2. Enable/Disable Multicast"
     "\r\n 3. Enable/Disable Rate Limiting "
     "\r\n 4. Enable/Disable InterVLAN "
+    "\r\n 5. Print ALE & Policer Table "
     "\r\n Enter your choice: "
     "\r\n"
 };

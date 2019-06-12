@@ -49,6 +49,7 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/cpsw/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_
 LDIRS += $(PDK_PATH)/packages/ti/drv/cpsw/lib/${TARGET_BOARD_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/udma/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/sciclient/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(PDK_PATH)/packages/ti/drv/pm/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 
 
 STATIC_LIBS += app_utils_mem
@@ -65,6 +66,7 @@ ifeq (${TARGET_CPU},R5F)
      ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(call lowercase,$(TARGET_CPU))
      ADDITIONAL_STATIC_LIBS += ti.csl.ae$(call lowercase,$(TARGET_CPU))
      ADDITIONAL_STATIC_LIBS += ti.osal.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += pm_lib.ae$(call lowercase,$(TARGET_CPU))
 else
     CORTEX_A_LIB_SUFFIX := $(if $(filter $(TARGET_BUILD),debug),g,)
     ifneq (,$(filter ${TARGET_CPU},A72 A53))
@@ -78,12 +80,14 @@ else
     ADDITIONAL_STATIC_LIBS += ti.drv.uart.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.csl.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.osal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += pm_lib.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     endif
 endif
 
 
 PDK_SOC_LIST += $(TARGET_PLATFORM)
 PDK_LIB_RULES += i2c
+PDK_LIB_RULES += pm_lib
 PDK_LIB_RULES += osal_tirtos
 PDK_LIB_RULES += udma
 PDK_LIB_RULES += csl
