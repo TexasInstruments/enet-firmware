@@ -79,6 +79,7 @@
 
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/utils/Load.h>
 
 #include <ti/osal/osal.h>
 #include <ti/drv/uart/UART_stdio.h>
@@ -556,6 +557,7 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
         int32_t choice = 0U;
 
         Task_sleep(1000 * 10);
+        CpswAppUtils_print("CPU Load: %u %%\n", Load_getCPULoad());
         CpswAppUtils_print("%s", gCpswAppSwitchMenu);
         UART_scanFmt("%d", &choice);
 
