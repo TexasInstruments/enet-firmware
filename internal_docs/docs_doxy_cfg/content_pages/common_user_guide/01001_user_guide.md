@@ -127,40 +127,14 @@ section.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## IDE (CCS) {#ethfw_instal_ccs}
-Code Composer Studio is an integrated development environment (IDE) that supports
-TI's Microcontroller and Embedded Processors portfolio. It provides useful tools
-to develop and debug embedded applications.
 
-For more information, please visit Code Composer Studio product
-[page](http://www.ti.com/tool/ccstudio).
+-# Install Code Composer Studio and setup a <b>Target Configuration</b> for
+   use with J721E EVM.(refer to @ref ccs_setup_top)
 
-* Download Link - [Download](http://processors.wiki.ti.com/index.php/Download_CCS)
-
-### Setup for J721E EVM {#ethfw_instal_ccs_gel_setup}
--# Supported CCS version is detailed in SDK Release Notes
-
-   ![](ccs_version.png "Code Composer Studio version")
-
--# Install the CCS Emulation Packs for J7 and J7ES. After installation the
-   following versions should be listed
-
-   ![](ccs_emulation_packs.png "Code Composer Studio Emulation Packs")
-
--#  Creating a Target Configuration File
-
-    1. In Code Composer Studio, go to the **File** menu and select **New** ->
-       **Target Configuration File**
-
-    2. Name the Target Configuration file as **J7ES_EVM.ccxml** and click **Finish**
-    3. Select the Connection to JTAG emulator which you have connected to J721E
-       EVM. For on board emulator use connection as "Texas Instruments XDS110 USB
-       Debug Probe"
-    4. Set the **Connection** to **JACINTO721E**.
-
-![](ccs_target_configuration.png "Creating CCS Target Configuration File")
+-# Refer to the instructions in @ref ccs_setup_top section for Code Code Composer
+   and emulation packs installation as well as Target Configuration File creation.
 
 [Back To Top](@ref ethfw_c_ug_top)
-
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Installation Steps {#ethfw_instal_steps}
@@ -343,15 +317,6 @@ and/or reconfigured via linker command files.
 # Running Examples {#ethfw_run_eg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-## IDE {#ethfw_run_ccs}
-
-Refer to the instructions in @ref ethfw_instal_ccs section for Code Code Composer
-and emulation packs installation as well as Target Configuration File creation.
-
-[Back To Top](@ref ethfw_c_ug_top)
-
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Load Example Binaries {#ethfw_run_ccs_load_binary}
 
 Refer to @ref demo_top section for a full list of EthFw demo applications.

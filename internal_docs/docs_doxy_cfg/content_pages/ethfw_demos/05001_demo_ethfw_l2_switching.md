@@ -107,33 +107,7 @@ Not applicable.
 
 ### Steps {#demo_l2_switching_steps}
 
--# Open Code Composer Studio and launch the Target Configuration previously
-   setup (refer to @ref demo_l2_switching_steps_prerequisites)
-
-   ![](demo_l2_switching_steps_2.png "Launch CCS Target Configuration")
-
--# Go to the <b>View</b> menu and then select <b>Scripting Console </b>
--# Run the launch.js script provided in ethfw_xx_xx_xx/tools/ on scripting console to load and execute DMSC firmware binary. This step can take considerable time as it configures PLL etc. in the SOC via GEL files and configures DDR.
-
-   ![](launch_dss_script.png "Launch script")
-
-   After script completes execution you should see below in Debug window
-
-   ![](launch_dss_script_complete.png "Launch script Complete")
-
--# In Code Composer Studio, select <b>MAIN_Cortex_R5_0_0</b> from the list of
-   cores in the <b>Debug</b> panel
-
-   ![](demo_l2_switching_steps_3.png "MAIN_Cortex_R5_0_0")
-
--# Go to the <b>Run</b> menu and then select <b>Load</b> -> <b>Load Program</b>
-
--# In the <b>Load Program</b> window, browse the EthFw Layer-2 switching application binary.
-   It can be found at ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/ethfw_app_ndk_switch_tirtos_mcu_2_0.xer5f
-
-   ![](demo_l2_switching_steps_4.png "Loading the demo application binary")
-
--# Go to the <b>Run</b> menu and then select <b>Resume</b> to start executing demo binary.
+-# For loading L2 Switching application binaries through CCS on J721E, please refer @ref load_example_binaries_on_j7 section.
 
 -# Once you see the IP address printed on console and all links detected by demo application. Run Plex client using below command
 
