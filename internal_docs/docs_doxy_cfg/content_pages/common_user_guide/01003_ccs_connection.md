@@ -15,16 +15,15 @@ For more information, please visit Code Composer Studio product
 
 * Download Link - [Download](http://processors.wiki.ti.com/index.php/Download_CCS)
 
+-# Supported CCS version for J721E EVM is detailed is below
+
+   ![](ccs_version.png "Code Composer Studio version")
+
 [Back To Top](@ref ccs_setup_top)
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Setup for J721E EVM {#ethfw_instal_ccs_gel_setup}
-
--# Supported CCS version is detailed in SDK Release Notes
-
-   ![](ccs_version.png "Code Composer Studio version")
-
 
 -# Install the CCS Emulation Packs for J721E. After installation the
    following versions should be listed
@@ -33,7 +32,7 @@ For more information, please visit Code Composer Studio product
 
 
 
--# Download and Untar CCS J721E device support pack in **C:\\ti\\ccs_version\\ccs_base** folder.
+-# Download and Untar CCS J721E device support pack in **C:\\ti\\ccs_version\\ccs\\ccs_base** folder.
 
    * Download Link on CDDS - [https://cdds.ext.ti.com/ematrix/common/emxTree.jsp?objectId=28670.42872.6575.16089&fromContent=true]
 
@@ -48,7 +47,7 @@ For more information, please visit Code Composer Studio product
 -# Name the Target Configuration file as **J7ES_EVM.ccxml** and click **Finish**
 -# Select the Connection to JTAG emulator which you have connected to J721E EVM.
    For on board emulator use connection as "Texas Instruments XDS110 USB Debug Probe"
--# Set the **Connection** to **JACINTO721E**.
+-# Set Board or Device to **JACINTO721E**.
 
 ![](ccs_target_configuration.png "Creating CCS Target Configuration File")
 
@@ -62,10 +61,16 @@ For more information, please visit Code Composer Studio product
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Load Example Binaries on J721E {#load_example_binaries_on_j7}
 
+  Note: Please configure EVM in NOBOOT mode for connecting and loading binaries
+        via CCS. As EthFw demos are run via CCS, please configure J721E EVM in
+        NOBOOT mode.
+
 -# Open Code Composer Studio and launch the Target Configuration previously setup
 
    ![](demo_l2_switching_steps_2.png "Launch CCS Target Configuration")
 
+-# Go to the <b>View</b> Target configurations and launch a target configuration
+   is done by right clicking on it.
 -# Go to the <b>View</b> menu and then select <b>Scripting Console </b>
 -# Run the launch.js script provided in gateway_demos/ccs_tools/ccsLoadDmsc/j721e/
    on scripting console to load and execute DMSC firmware binary.
@@ -82,10 +87,10 @@ For more information, please visit Code Composer Studio product
 
    ![](demo_l2_switching_steps_3.png "MAIN_Cortex_R5_0_0")
 
--# Go to the <b>Run</b> menu and then select <b>Load</b> -> <b>Load Program</b>
+-# Go to the <b>Run</b> menu and then select <b>Load</b> -> <b>Select Program to Load</b>
 
 -# In the <b>Load Program</b> window, browse the EthFw Layer-2 switching application binary.
-   It can be found at gateway_demos/l2_switching/binaries/J721E/R5F/SYSBIOS/debug/ethfw_app_ndk_switch_tirtos_mcu_2_0.xer5f
+   It can be found at gateway_demos/l2_switching/binaries/debug/ethfw_app_ndk_switch_tirtos_mcu_2_0.xer5f
 
    ![](demo_l2_switching_steps_4.png "Loading the demo application binary")
 

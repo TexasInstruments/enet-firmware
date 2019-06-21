@@ -335,6 +335,16 @@ Delete the complete `ethfw_xx_yy_zz_bb` folder.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Known issues {#ethfw_known_issues}
+
+JIRA ID       | Issue Summary | Workaround
+--------------|---------------|------------
+PROC_BRDS-658 |MAC PORT 0 packet drop seen of Rx/Tx - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J7 EVM. This port is labelled as PRG1_RGMII1_B (image below) | Don’t connect this port
+PROC_BRDS-659 | J7 Ethernet expansion board causing interference in the GESI MDIO PHYs - QSGMII expansion board is causing instabilities in the MDIO bus.| Remove ETH expansion board to avoid interference.
+
+
+[Back To Top](@ref ethfw_known_issues)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Compiler Flags used {#ethfw_cflag}
@@ -413,3 +423,4 @@ Revision | Date          | Author                 | Description
 0.3      | 12 June 2019  | Prasad J               | Updates for EVM demo (.85 release)
 
 [Back To Top](@ref ethfw_c_ug_top)
+(@ref ethfw_c_ug_top)
