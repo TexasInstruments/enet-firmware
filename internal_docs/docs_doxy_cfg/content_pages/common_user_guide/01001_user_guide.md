@@ -368,7 +368,6 @@ Flag                       | Description
 `-D=R5F="R5F"`             | Identifies the core type as ARM R5F
 `-D=ARCH_32`               | Identifies the architecture as 32-bit
 `-D=SYSBIOS`               | Identifies as TI RTOS operating system build
-`-D=SIMULATOR`             | Identifies that build is for simulator
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -393,7 +392,6 @@ Flag                       | Description
 `-D=R5F="R5F"`             | Identifies the core type as ARM R5F
 `-D=ARCH_32`               | Identifies the architecture as 32-bit
 `-D=SYSBIOS`               | Identifies as TI RTOS operating system build
-`-D=SIMULATOR`             | Identifies that build is for simulator
 
 
 [Back To Top](@ref ethfw_c_ug_top)

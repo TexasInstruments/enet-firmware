@@ -34,7 +34,7 @@ For more information, please visit Code Composer Studio product
 
 -# Download and Untar CCS J721E device support pack in **C:\\ti\\ccs_version\\ccs\\ccs_base** folder.
 
-   * Download Link on CDDS - [https://cdds.ext.ti.com/ematrix/common/emxTree.jsp?objectId=28670.42872.6575.16089&fromContent=true]
+   * Please contact your local FAE for chip support package link details.
 
 
 [Back To Top](@ref ccs_setup_top)
