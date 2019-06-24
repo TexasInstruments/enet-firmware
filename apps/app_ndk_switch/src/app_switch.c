@@ -520,6 +520,16 @@ static void CpswApp_getMacAddr(uint8_t macAddr[])
     }
 }
 
+static Void CpswApp_cpuLoadTask(UArg a0, UArg a1)
+{
+    while (true)
+    {
+        //TODO Add task load and more granular load support
+        CpswAppUtils_print("CPU Load: %u%%\n", Load_getCPULoad());
+        Task_sleep(5000U);
+    }
+}
+
 static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
 {
     bool runflag = true;
@@ -556,8 +566,6 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
         uint32_t vlanId, portmask, isEnable, rate;
         int32_t choice = 0U;
 
-        Task_sleep(1000 * 10);
-        CpswAppUtils_print("CPU Load: %u %%\n", Load_getCPULoad());
         CpswAppUtils_print("%s", gCpswAppSwitchMenu);
         UART_scanFmt("%d", &choice);
 
@@ -640,7 +648,7 @@ void CpswApp_createUartMenuTask(void)
 {
     Task_Params params;
     Error_Block eb;
-    static Task_Handle uartMenuHandle;
+    static Task_Handle hUartMenuTask, hCpuLoadTask;
 
     Error_init(&eb);
 
@@ -650,8 +658,17 @@ void CpswApp_createUartMenuTask(void)
     params.priority  = 2U;
     params.stack     = gAppTskStackUart;
     params.stackSize = sizeof(gAppTskStackUart);
-    uartMenuHandle = Task_create(CpswApp_uartMenuTskFxn, &params, &eb);
-    if (uartMenuHandle == NULL)
+    hUartMenuTask = Task_create(CpswApp_uartMenuTskFxn, &params, &eb);
+    if (hUartMenuTask == NULL)
+    {
+        BIOS_exit(0);
+    }
+
+    Task_Params_init(&params);
+    params.instance->name = "CPU_LOAD";
+    params.priority = 1U;
+    hCpuLoadTask = Task_create(CpswApp_cpuLoadTask, &params, &eb);
+    if (hCpuLoadTask == NULL)
     {
         BIOS_exit(0);
     }
