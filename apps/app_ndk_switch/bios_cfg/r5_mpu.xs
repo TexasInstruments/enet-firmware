@@ -81,6 +81,8 @@
  * | 5  | 0x70000000   | 8MB  | T  | MSMC Ram - Cachable                       | F  | RW at PL 1          | 0x0  |
  * |----|--------------|------|----|-------------------------------------------|----|---------------------|------|
  * | 6  | 0x80000000   | 2GB  | T  | Write-Back, Write-Alloc, Non-Shareable    | F  | RW at PL 1          | 0x0  |
+ * |----|--------------|------|----|-------------------------------------------|----|---------------------|------|
+ * | 6  | 0xA2000000   | 32MB | T  | Write-Back, Write-Alloc, Non-Shareable    | F  | RW at PL 1          | 0x0  |
  *  -------------------------------------------------------------------------------------------------------------
  */
 
@@ -174,3 +176,13 @@ attrs.accPerm = 1;          /* RW at PL1 */
 attrs.tex = 1;
 attrs.subregionDisableMask = 0;
 MPU.setRegionMeta(6, 0x80000000, MPU.RegionSize_2G, attrs);
+
+attrs.enable = true;
+attrs.bufferable = true;
+attrs.cacheable = true;
+attrs.shareable = false;
+attrs.noExecute = false;
+attrs.accPerm = 1;          /* RW at PL1 */
+attrs.tex = 1;
+attrs.subregionDisableMask = 0;
+MPU.setRegionMeta(6, 0xA2000000, MPU.RegionSize_32M, attrs);
