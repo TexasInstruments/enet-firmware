@@ -121,34 +121,6 @@ typedef struct
 
     /* UDMA driver handle */
     Udma_DrvHandle       hUdmaDrv;
-
-    /* UDMA RX flow handle */
-    CpswDma_RxFlowHandle hRxFlow;
-
-    /* RX flow index */
-    uint32_t             rxFlowIdx;
-
-    /* RX free queue */
-    CpswDma_PktInfoQ     rxFreeQ;
-
-    /* RX ready queue */
-    CpswDma_PktInfoQ     rxReadyQ;
-
-    /* UDMA TX channel handle */
-    CpswDma_TxChHandle   hTxCh;
-
-    /* TX free queue */
-    CpswDma_PktInfoQ     txFreePktInfoQ;
-
-    /* TX Eth packet memory */
-    uint8_t              txBufMem[CPSW_APPMEMUTILS_NUM_TX_PKTS][CPSWAPPUTILS_ALIGN(ETH_MAX_FRAME_LEN)]
-                                __attribute__((aligned(UDMA_CACHELINE_ALIGNMENT)));
-
-    /* TX DMA packet info memory */
-    CpswDma_PktInfo      txFreePktInfo[CPSW_APPMEMUTILS_NUM_TX_PKTS];
-
-    /* Host port address */
-    uint8_t              hostMacAddr[ETH_MAC_ADDR_LEN];
 } CpswApp_Obj;
 
 /* ========================================================================== */
@@ -186,16 +158,6 @@ CpswApp_Obj gCpswSwitchAppObj;
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-
-void CpswApp_rxIsrFxn(Udma_EventHandle eventHandle,
-                      uint32_t         eventType,
-                      void            *appData)
-{}
-
-void CpswApp_txIsrFxn(Udma_EventHandle eventHandle,
-                      uint32_t         eventType,
-                      void            *appData)
-{}
 
 void CpswApp_setVLANentry(uint32_t vlanId,
                           uint32_t vlanMemberMask,

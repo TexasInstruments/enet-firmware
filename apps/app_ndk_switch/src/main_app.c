@@ -154,6 +154,7 @@ static void CpswApp_setAleConfig(CpswAle_Config *aleConfig);
 static void CpswApp_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
                                  Cpsw_MacPort macPort);
 static int32_t CpswApp_init(void);
+void CpswApp_deInit(void);
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -353,6 +354,7 @@ static int32_t CpswApp_init(void)
     CpswAppUtils_printMacAddr(&gCpswMainAppObj.hostMacAddr[0U]);
 
     gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType] = CpswMcm_init(&cpswMcmCfg);
+    CpswAppUtils_assert (NULL != gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType]);
 
     return status;
 }
