@@ -222,6 +222,10 @@ int main(void)
 {
     int32_t status;
 
+    /* Set ccsHaltFlag to 1 for halting core for CCS connection */
+    volatile uint32_t ccsHaltFlag = 0U;
+    while(ccsHaltFlag);
+
     CpswAppBoardUtils_init();
     CpswAppUtils_print("Board_init success\n");
 
