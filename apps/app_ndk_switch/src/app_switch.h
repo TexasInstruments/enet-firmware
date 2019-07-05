@@ -97,10 +97,6 @@ extern "C" {
 
 void CpswApp_createUartMenuTask(void);
 
-void CpswAppIf_getHandles(CpswAppIf_HandleInfo *handleInfo);
-
-void CpswAppIf_releaseHandles(Cpsw_Type cpswType);
-
 /* ========================================================================== */
 /*                       Static Function Definitions                          */
 /* ========================================================================== */

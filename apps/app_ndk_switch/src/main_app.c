@@ -127,11 +127,18 @@
 
 typedef struct
 {
+    /* Core Id */
+    uint32_t coreId;
+
     /* CPSW instance type */
     Cpsw_Type cpswType;
 
     /* MAC ports */
     Cpsw_MacPort *macPorts;
+
+    /* Master port on which NIMU will poll for link
+     * Note - This will get removed once NIMU dependency on port is resolved */
+    Cpsw_MacPort masterPort;
 
     /* Number of MAC ports */
     uint32_t numMacPorts;
@@ -207,8 +214,10 @@ static Cpsw_MacPort gCpswMainAppMacPorts[] = {
 static CpswMain_AppObj gCpswMainAppObj = {
 #if defined(SOC_AM65XX)
     .cpswType = CPSW_2G,
+    .masterPort = CPSW_MAC_PORT_0,
 #elif defined(SOC_J721E)
     .cpswType = CPSW_9G,
+    .masterPort = CPSW_MAC_PORT_1,
 #endif
     .macPorts = gCpswMainAppMacPorts,
     .numMacPorts = CPSWAPPUTILS_ARRAY_SIZE(gCpswMainAppMacPorts),
@@ -220,34 +229,18 @@ static CpswMain_AppObj gCpswMainAppObj = {
 
 int main(void)
 {
-    int32_t status;
-
     /* Set ccsHaltFlag to 1 for halting core for CCS connection */
     volatile uint32_t ccsHaltFlag = 0U;
     while(ccsHaltFlag);
 
     CpswAppBoardUtils_init();
-    CpswAppUtils_print("Board_init success\n");
-
-    CpswAppUtils_setMacMode(gCpswMainAppObj.cpswType,
-                            MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
 
     CpswAppUtils_enableClocks(gCpswMainAppObj.cpswType,
-                  MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
+                              MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
 
     CpswAppUtils_print("=======================================================\n");
     CpswAppUtils_print ("           CPSW L2 Switching APP          \n");
     CpswAppUtils_print("=======================================================\n");
-
-    status = CpswApp_init();
-
-    if (status != CPSW_SOK)
-    {
-        CpswAppUtils_print("Failed to open CPSW: %d\n", status);
-        CpswAppUtils_assert(status == CPSW_SOK);
-    }
-
-    CpswApp_createUartMenuTask();
 
     /* does not return */
     BIOS_start();
@@ -328,18 +321,22 @@ static int32_t CpswApp_init(void)
     cpswCfg.hostPortConfig.removeCrc      = true;
     cpswCfg.hostPortConfig.padShortPacket = true;
     cpswCfg.hostPortConfig.passCrcErrors  = true;
+    cpswCfg.resourcePartitionConfig.isDefaultRmPartition = true;
+    cpswCfg.resourcePartitionConfig.rmPartitionPrms      = NULL;
+
     CpswApp_setAleConfig(&cpswCfg.aleConfig);
 
     cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
 
     /* Open UDMA */
     gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(gCpswMainAppObj.cpswType);
+    cpswCfg.dmaConfig.hUdmaDrv = gCpswMainAppObj.hUdmaDrv;
 
-    cpswMcmCfg.pCpswCfg = &cpswCfg;
-    cpswMcmCfg.cpswType = gCpswMainAppObj.cpswType;
-    cpswMcmCfg.hUdmaDrv = gCpswMainAppObj.hUdmaDrv;
+    cpswMcmCfg.pCpswCfg     = &cpswCfg;
+    cpswMcmCfg.cpswType     = gCpswMainAppObj.cpswType;
     cpswMcmCfg.setMacConfig = CpswApp_initLinkArgs;
-    cpswMcmCfg.numMacPorts = gCpswMainAppObj.numMacPorts;
+    cpswMcmCfg.numMacPorts  = gCpswMainAppObj.numMacPorts;
+    cpswMcmCfg.periodicTaskPeriod = CPSW_PHY_FSM_TICK_PERIOD_MS; /* msecs */
 
     memcpy(&cpswMcmCfg.macPortList[0U],
            gCpswMainAppObj.macPorts,
@@ -347,11 +344,11 @@ static int32_t CpswApp_init(void)
 
     /* First MAC port in the array gives the host address */
     status = CpswSoc_getMacAddr(gCpswMainAppObj.cpswType,
-                                gCpswMainAppObj.macPorts[0],
-                                &cpswCfg.aleConfig.macAddr[0][0]);
+                       gCpswMainAppObj.macPorts[0],
+                       &cpswCfg.aleConfig.macAddr[0]);
 
     memcpy(&gCpswMainAppObj.hostMacAddr[0U],
-           &cpswCfg.aleConfig.macAddr[0][0],
+           &cpswCfg.aleConfig.macAddr[0],
            ETH_MAC_ADDR_LEN);
 
     CpswAppUtils_print("Host MAC address: ");
@@ -372,30 +369,38 @@ void CpswApp_deInit(void)
 
 void CpswAppIf_getHandles(CpswAppIf_HandleInfo *handleInfo)
 {
-    CpswMcm_HandleInfo McmHandleInfo;
     int32_t status;
 
     if (gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType] == NULL)
     {
         status = CpswApp_init();
+        handleInfo->isDefaultFlow = true;
+
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("CpswAppIf_getHandles() failed to init app: %d", status);
+            CpswAppUtils_print("Failed to open CPSW: %d\n", status);
             CpswAppUtils_assert(status == CPSW_SOK);
         }
     }
+    else
+    {
+        handleInfo->isDefaultFlow = false;
+    }
 
-    CpswMcm_getHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType],
-                      &McmHandleInfo);
+    CpswMcm_getHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType], (CpswMcm_HandleInfo *)handleInfo);
 
-    handleInfo->hCpsw = McmHandleInfo.hCpsw;
-    handleInfo->hUdmaDrv = McmHandleInfo.hUdmaDrv;
-    handleInfo->cpswType = gCpswMainAppObj.cpswType;
+    handleInfo->printFxnCb = &CpswAppUtils_print;
 }
 
-void CpswAppIf_releaseHandles(Cpsw_Type cpswType)
+
+void CpswAppIf_releaseHandles(void)
 {
-    CpswMcm_releaseHandle(gCpswMainAppObj.hMcm[cpswType]);
+    CpswMcm_releaseHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType]);
+}
+
+Cpsw_MacPort CpswAppIf_getMacPortNum(void)
+{
+    return (Cpsw_MacPort)gCpswMainAppObj.masterPort;
 }
 
 void stackInitHook(void* hCfg)
@@ -428,6 +433,11 @@ void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
              (uint8_t)ipAddrHex&0xFF);
 
     CpswAppUtils_print("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
+
+    /* Not that CPSW is initialized, create UART menu task for user configuration */
+    /* Note - We can't call this function from any other tasks as it calls CpswAppIf_getHandles
+     *        function but doesn't handle open of flows/tx channels */
+    CpswApp_createUartMenuTask();
 }
 
 void netOpenHook()

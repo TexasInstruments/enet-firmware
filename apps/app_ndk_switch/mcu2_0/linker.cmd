@@ -28,7 +28,6 @@ SECTIONS
         *(.text:CpswDma_retrieveTxDonePackets*)
         *(.text:CpswDma_ringDequeue*)
         *(.text:CpswDma_ringEnqueue*)
-        *(.text:CpswDma_rxFlowIdxInit*)
         *(.text:CpswDma_submitPkts*)
         *(.text:CpswDma_submitRxPackets*)
         *(.text:CpswDma_submitTxReadyPackets*)

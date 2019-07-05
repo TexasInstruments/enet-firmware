@@ -113,8 +113,8 @@
 
 typedef struct
 {
-    /* CPSW instance type */
-    Cpsw_Type            cpswType;
+    /* Core Id */
+    uint32_t coreId;
 
     /* CPSW driver handle */
     Cpsw_Handle          hCpsw;
@@ -184,7 +184,10 @@ void CpswApp_setVLANentry(uint32_t vlanId,
         vlanEntry.vlanIdInfo.outerVlanFlag = FALSE;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &vlanEntry, &vlanOutInfo);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_ADD_VLAN,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("setAleEntry() CPSW_ALE_IOCTL_ADD_VLAN failed: %d\n", status);
@@ -194,7 +197,10 @@ void CpswApp_setVLANentry(uint32_t vlanId,
         getVlanInArgs.outerVlanFlag = FALSE;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getVlanInArgs, &getVlanOutArgs);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_LOOKUP_VLAN, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_LOOKUP_VLAN,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("setVLANentry() failed CPSW_ALE_IOCTL_LOOKUP_VLAN: %d\n", status);
@@ -219,7 +225,10 @@ void CpswApp_setVLANentry(uint32_t vlanId,
         getVlanInArgs.outerVlanFlag = FALSE;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getVlanInArgs, &getVlanOutArgs);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_LOOKUP_VLAN, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_LOOKUP_VLAN,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("setVLANentry() CPSW_ALE_IOCTL_LOOKUP_VLAN failed: %d\n", status);
@@ -227,7 +236,10 @@ void CpswApp_setVLANentry(uint32_t vlanId,
         else
         {
             CPSW_IOCTL_SET_IN_ARGS(&prms, &getVlanInArgs);
-            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_REMOVE_VLAN, &prms);
+            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                                gCpswSwitchAppObj.coreId,
+                                CPSW_ALE_IOCTL_REMOVE_VLAN,
+                                &prms);
             if (status != CPSW_SOK)
             {
                 CpswAppUtils_print("setVLANentry() CPSW_ALE_IOCTL_REMOVE_VLAN failed: %d\n", status);
@@ -263,7 +275,10 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
         setMcastInArgs.info.numIgnBits = 0;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setMcastInArgs, &setMcastOutArgs);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_ADD_MULTICAST, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_ADD_MULTICAST,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("setAleMulticastEntry() CPSW_ALE_IOCTL_ADD_MULTICAST failed: %d\n", status);
@@ -274,7 +289,10 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
             getMcastInArgs.vlanId = vlanId;
             CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getMcastInArgs, &getMcastOutArgs);
 
-            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_LOOKUP_MULTICAST, &prms);
+            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                                gCpswSwitchAppObj.coreId,
+                                CPSW_ALE_IOCTL_LOOKUP_MULTICAST,
+                                &prms);
             if (status == CPSW_SOK)
             {
                 CpswAppUtils_print("Added the Multicast entry successfully\n");
@@ -287,7 +305,10 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
         getMcastInArgs.vlanId = vlanId;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getMcastInArgs, &getMcastOutArgs);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_LOOKUP_MULTICAST, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_LOOKUP_MULTICAST,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("Multicast entry doesn't exist\n");
@@ -295,7 +316,10 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
         else
         {
             CPSW_IOCTL_SET_IN_ARGS(&prms, &getMcastInArgs);
-            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                                gCpswSwitchAppObj.coreId,
+                                CPSW_ALE_IOCTL_REMOVE_ADDR,
+                                &prms);
             if(status == CPSW_SOK)
             {
                 CpswAppUtils_print("Removed the Multicast entry successfully\n");
@@ -325,20 +349,23 @@ static void CpswApp_setPolicerEntryRateLimit(uint8_t portNum,
                                                                   CPSW_ALE_POLICER_MATCH_MACDST);
         setPolicerInArgs.policerMatch.portNum                  = portNum;
         setPolicerInArgs.policerMatch.portIsTrunk              = FALSE;
-        memcpy(&setPolicerInArgs.policerMatch.srcMacAddr.addr[0U],
+        memcpy(&setPolicerInArgs.policerMatch.srcMacAddr.addr.addr[0U],
                srcMacAddr,
-               sizeof(setPolicerInArgs.policerMatch.srcMacAddr.addr));
-        setPolicerInArgs.policerMatch.srcMacAddr.vlanId = 0;
-        memcpy(&setPolicerInArgs.policerMatch.dstMacAddr.addr[0U],
+               sizeof(setPolicerInArgs.policerMatch.srcMacAddr.addr.addr));
+        setPolicerInArgs.policerMatch.srcMacAddr.addr.vlanId = 0;
+        memcpy(&setPolicerInArgs.policerMatch.dstMacAddr.addr.addr[0U],
                dstMacAddr,
-               sizeof(setPolicerInArgs.policerMatch.dstMacAddr.addr));
-        setPolicerInArgs.policerMatch.dstMacAddr.vlanId = 0;
+               sizeof(setPolicerInArgs.policerMatch.dstMacAddr.addr.addr));
+        setPolicerInArgs.policerMatch.dstMacAddr.addr.vlanId = 0;
         setPolicerInArgs.threadIdEnable                        = FALSE;
         setPolicerInArgs.peakRateInBitsPerSec                  = rate;
         setPolicerInArgs.commitRateInBitsPerSec                = 5000000U;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_SET_POLICER,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("setPolicerEntryRateLimit() CPSW_ALE_IOCTL_SET_POLICER failed: %d\n",
@@ -350,17 +377,20 @@ static void CpswApp_setPolicerEntryRateLimit(uint8_t portNum,
                                                      CPSW_ALE_POLICER_MATCH_MACDST);
         getPolicerInArgs.portNum                  = portNum;
         getPolicerInArgs.portIsTrunk              = FALSE;
-        memcpy(&getPolicerInArgs.srcMacAddr.addr[0U],
+        memcpy(&getPolicerInArgs.srcMacAddr.addr.addr[0U],
                srcMacAddr,
-               sizeof(getPolicerInArgs.srcMacAddr.addr));
-        getPolicerInArgs.srcMacAddr.vlanId = 0U;
-        memcpy(&getPolicerInArgs.dstMacAddr.addr[0U],
+               sizeof(getPolicerInArgs.srcMacAddr.addr.addr));
+        getPolicerInArgs.srcMacAddr.addr.vlanId = 0U;
+        memcpy(&getPolicerInArgs.dstMacAddr.addr.addr[0U],
                dstMacAddr,
-               sizeof(getPolicerInArgs.dstMacAddr.addr));
-        getPolicerInArgs.dstMacAddr.vlanId = 0U;
+               sizeof(getPolicerInArgs.dstMacAddr.addr.addr));
+        getPolicerInArgs.dstMacAddr.addr.vlanId = 0U;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getPolicerInArgs, &getPolicerOutArgs);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_GET_POLICER, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_GET_POLICER,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("setPolicerEntryRateLimit() CPSW_ALE_IOCTL_GET_POLICER failed: %d\n",
@@ -408,18 +438,21 @@ static void CpswApp_setPolicerEntryRateLimit(uint8_t portNum,
                                                      CPSW_ALE_POLICER_MATCH_MACDST);
         getPolicerInArgs.portNum                  = portNum;
         getPolicerInArgs.portIsTrunk              = FALSE;
-        memcpy(&getPolicerInArgs.srcMacAddr.addr[0U],
+        memcpy(&getPolicerInArgs.srcMacAddr.addr.addr[0U],
                srcMacAddr,
-               sizeof(getPolicerInArgs.srcMacAddr.addr));
-        getPolicerInArgs.srcMacAddr.vlanId = 0U;
-        memcpy(&getPolicerInArgs.dstMacAddr.addr[0U],
+               sizeof(getPolicerInArgs.srcMacAddr.addr.addr));
+        getPolicerInArgs.srcMacAddr.addr.vlanId = 0U;
+        memcpy(&getPolicerInArgs.dstMacAddr.addr.addr[0U],
                dstMacAddr,
-               sizeof(getPolicerInArgs.dstMacAddr.addr));
-        getPolicerInArgs.dstMacAddr.vlanId = 0U;
+               sizeof(getPolicerInArgs.dstMacAddr.addr.addr));
+        getPolicerInArgs.dstMacAddr.addr.vlanId = 0U;
 
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getPolicerInArgs, &getPolicerOutArgs);
 
-        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_GET_POLICER, &prms);
+        status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                            gCpswSwitchAppObj.coreId,
+                            CPSW_ALE_IOCTL_GET_POLICER,
+                            &prms);
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("setPolicerEntryRateLimit() CPSW_ALE_IOCTL_GET_POLICER failed: %d\n",
@@ -432,18 +465,21 @@ static void CpswApp_setPolicerEntryRateLimit(uint8_t portNum,
                                                                      CPSW_ALE_POLICER_MATCH_MACDST);
             delPolicerInArgs.policerMatch.portNum = portNum;
             delPolicerInArgs.policerMatch.portIsTrunk = FALSE;
-            memcpy(&delPolicerInArgs.policerMatch.srcMacAddr.addr[0U],
+            memcpy(&delPolicerInArgs.policerMatch.srcMacAddr.addr.addr[0U],
                    srcMacAddr,
-                   sizeof(delPolicerInArgs.policerMatch.srcMacAddr));
-            delPolicerInArgs.policerMatch.srcMacAddr.vlanId = 0U;
-            memcpy(&delPolicerInArgs.policerMatch.dstMacAddr.addr[0U],
+                   sizeof(delPolicerInArgs.policerMatch.srcMacAddr.addr));
+            delPolicerInArgs.policerMatch.srcMacAddr.addr.vlanId = 0U;
+            memcpy(&delPolicerInArgs.policerMatch.dstMacAddr.addr.addr[0U],
                    dstMacAddr,
-                   sizeof(delPolicerInArgs.policerMatch.dstMacAddr));
-            delPolicerInArgs.policerMatch.dstMacAddr.vlanId = 0U;
-            delPolicerInArgs.delAleEntry = TRUE;
+                   sizeof(delPolicerInArgs.policerMatch.dstMacAddr.addr));
+            delPolicerInArgs.policerMatch.dstMacAddr.addr.vlanId = 0U;
+            delPolicerInArgs.delAleEntryMask = 0U; /* FIXME */
             CPSW_IOCTL_SET_IN_ARGS(&prms, &getPolicerInArgs);
 
-            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+            status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                                gCpswSwitchAppObj.coreId,
+                                CPSW_ALE_IOCTL_DEL_POLICER,
+                                &prms);
             if (status != CPSW_SOK)
             {
                 CpswAppUtils_print("setPolicerEntryRateLimit() CPSW_ALE_IOCTL_DEL_POLICER failed: %d\n",
@@ -504,7 +540,7 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
 
     gCpswSwitchAppObj.hCpsw = handleInfo.hCpsw;
     gCpswSwitchAppObj.hUdmaDrv = handleInfo.hUdmaDrv;
-    gCpswSwitchAppObj.cpswType = handleInfo.cpswType;
+    gCpswSwitchAppObj.coreId = handleInfo.coreId;
 
     if (gCpswSwitchAppObj.hCpsw  == NULL)
     {
@@ -654,7 +690,10 @@ static void CpswApp_addUnicastAddressEntry(uint8_t macAddr[],
     setUcastInArgs.info.ageable = false;
     CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_ADD_UNICAST, &prms);
+    status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                        gCpswSwitchAppObj.coreId,
+                        CPSW_ALE_IOCTL_ADD_UNICAST,
+                        &prms);
     if (status != CPSW_SOK)
     {
         CpswAppUtils_print("addUnicastAddressEntry() CPSW_ALE_IOCTL_ADD_UNICAST failed: %d\n",
@@ -668,7 +707,10 @@ static void CpswApp_showAleTableAndPolicer(void)
     int32_t status;
 
     CPSW_IOCTL_SET_NO_ARGS(&prms);
-    status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
+    status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                        gCpswSwitchAppObj.coreId,
+                        CPSW_ALE_IOCTL_DUMP_TABLE,
+                        &prms);
     if (status != CPSW_SOK)
     {
         CpswAppUtils_print("showAleTableAndPolicer() CPSW_ALE_IOCTL_DUMP_TABLE failed: %d\n",
@@ -676,7 +718,10 @@ static void CpswApp_showAleTableAndPolicer(void)
     }
 
     CPSW_IOCTL_SET_NO_ARGS(&prms);
-    status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms);
+    status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
+                        gCpswSwitchAppObj.coreId,
+                        CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES,
+                        &prms);
     if (status != CPSW_SOK)
     {
         CpswAppUtils_print("showAleTableAndPolicer() CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES failed: %d\n",
