@@ -83,7 +83,8 @@ include makerules/makefile_ndk.mak
 #Due to bug in NDK needs patch to build .
 #DIsabling NDK build for now
 #Add ndk and ndk_clean dependent rules for ethfw_all/ethfw_all_clean once NDK bug is fixed
-ethfw_all: pdk_custom_libs all
+depend:: pdk_custom_libs
+ethfw_all: all
 ethfw_all_clean: pdk_custom_libs_clean clean scrub
 
 
