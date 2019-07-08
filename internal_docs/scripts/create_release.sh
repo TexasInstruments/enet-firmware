@@ -183,7 +183,7 @@ if [ "$OLD_VERSION_MAJOR" == "$NEW_VERSION_MAJOR" ] && [ "$OLD_VERSION_MINOR" ==
 else
     # For new major_minor version
     PATCH=0
-    BUILD=0
+    BUILD=1
 fi
 NEW_VERSION_PATCH=$(printf "%02d" $PATCH)
 NEW_VERSION_BUILD=$(printf "%02d" $BUILD)
