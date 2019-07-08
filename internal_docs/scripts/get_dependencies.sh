@@ -12,7 +12,7 @@ function install_xdc()
     if [ -d "xdctools_${version}" ]; then
         echo "XDCTools already installed."
     else
-        version_numonly=$(echo ${version} | sed 's/\_core//g')
+        version_numonly=$(echo ${version} | sed 's/\_core//g' | sed 's/\_eng//g')
         if [ ! -f xdctools_${version}_linux.zip ]; then
             wget --no-proxy -nc http://www.sanb.design.ti.com/tisb_releases/XDCtools/${version_numonly}/exports/xdccore/xdctools_${version}_linux.zip
         else
@@ -52,12 +52,12 @@ function install_bios_k3()
     if [ -d "bios_${version}" ]; then
         echo "SYS/BIOS already installed."
     else
-        if [ ! -f bios_${version}-k3.zip ]; then
-            wget --no-proxy -nc http://bangsdowebsvr01.india.ti.com/PROCESSOR_SDK_RTOS_AUTOMOTIVE/J7PRESI_00_05_00_00/exports/bios_${version}-k3.zip
+        if [ ! -f bios_${version}.zip ]; then
+            wget --no-proxy -nc http://bangsdowebsvr01.india.ti.com/PROCESSOR_SDK_RTOS_AUTOMOTIVE/swdownloads/bios_${version}.zip
         else
-            echo "bios_${version}-k3.zip already exists, not re-downloading."
+            echo "bios_${version}.zip already exists, not re-downloading."
         fi
-        unzip -q bios_${version}-k3.zip
+        unzip -q bios_${version}.zip
     fi
 }
 
