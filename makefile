@@ -9,6 +9,7 @@ include makerules/ethfw_soc_config.mak
 DIRECTORIES :=
 DIRECTORIES += utils
 DIRECTORIES += apps
+DIRECTORIES += ethremotecfg
 
 TARGET_COMBOS :=
 
@@ -86,5 +87,8 @@ include makerules/makefile_ndk.mak
 .NOTPARALLEL:
 ethfw_all: pdk all
 ethfw_app_ndk_switch_tirtos: pdk_custom_libs ethfw_app_ndk_switch_tirtos_mcu_2_0
+remoteswitchcfg_all: | pdk_custom_libs remotedevicefw app_remoteswitchcfg_client app_remoteswitchcfg_server
 ethfw_all_clean: pdk_custom_libs_clean clean scrub
-
+remotedevicefw:
+	make -C ${REMOTE_DEVICE_PATH} -f Makefile lib_remote_device_client
+	make -C ${REMOTE_DEVICE_PATH} -f Makefile lib_remote_device

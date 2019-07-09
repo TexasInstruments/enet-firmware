@@ -2,6 +2,12 @@ TARGET_CPU_FOLDER := $(call lowercase,$(TARGET_CPU))
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 TARGET_BOARD_FOLDER := $(call lowercase,${$(TARGET_PLATFORM)_BOARD})
 CPU_ID_FOLDER       := $(strip $(if $(filter $(call lowercase,${CPU_ID}),mpu1),mpu1_0,$(call lowercase,${CPU_ID})))
+ifeq ($(TARGET_PLATFORM),J721E)
+REMOTE_DEVICE_SOC_FOLDER := J7
+else
+REMOTE_DEVICE_SOC_FOLDER := 
+endif
+
 
 
 XDC_INCLUDE_PACKAGES_PATH    += $(NDK_PATH)/packages
@@ -43,6 +49,8 @@ IDIRS       += $(NDK_PATH)/packages
 IDIRS       += $(XDCTOOLS_PATH)/packages
 IDIRS       += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
 IDIRS       += $(PDK_PATH)/packages
+IDIRS       += $(REMOTE_DEVICE_PATH)
+IDIRS       += $(ETHFW_PATH)
 
 LDIRS += $(PDK_PATH)/packages/ti/osal/lib/tirtos/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/csl/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
@@ -54,7 +62,8 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/cpsw/lib/${TARGET_BOARD_FOLDER}/${CPU_ID_FO
 LDIRS += $(PDK_PATH)/packages/ti/drv/udma/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/sciclient/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/pm/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
-
+LDIRS += $(PDK_PATH)/packages/ti/drv/ipc/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(REMOTE_DEVICE_PATH)/out/${REMOTE_DEVICE_SOC_FOLDER}/${TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
 
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_utils_console_io
@@ -65,6 +74,7 @@ ifeq (${TARGET_CPU},R5F)
      ADDITIONAL_STATIC_LIBS += cpsw_apputils.ae$(call lowercase,$(TARGET_CPU))
      ADDITIONAL_STATIC_LIBS += cpsw.ae$(call lowercase,$(TARGET_CPU))
      ADDITIONAL_STATIC_LIBS += udma.ae$(call lowercase,$(TARGET_CPU))
+     ADDITIONAL_STATIC_LIBS += ipc.ae$(call lowercase,$(TARGET_CPU))
      ADDITIONAL_STATIC_LIBS += sciclient.ae$(call lowercase,$(TARGET_CPU))
      ADDITIONAL_STATIC_LIBS += ti.drv.i2c.ae$(call lowercase,$(TARGET_CPU))
      ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(call lowercase,$(TARGET_CPU))
@@ -79,6 +89,7 @@ else
     ADDITIONAL_STATIC_LIBS += cpsw_apputils.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += cpsw.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += udma.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ipc.ae$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += sciclient.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.i2c.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.uart.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
@@ -101,3 +112,4 @@ PDK_LIB_RULES += nimucpsw
 PDK_LIB_RULES += cpsw_apputils
 PDK_LIB_RULES += uart
 PDK_LIB_RULES += board
+PDK_LIB_RULES += ipc
