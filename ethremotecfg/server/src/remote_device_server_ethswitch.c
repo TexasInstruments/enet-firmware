@@ -67,7 +67,7 @@
 #include <ti/osal/TaskP.h>
 #include <ti/osal/SemaphoreP.h>
 
-#include <protocol/rpmsg-kdrv-transport-demo.h>
+#include <protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <server-rtos/include/app_log.h>
 #include <server-rtos/include/app_queue.h>
 #include <server-rtos/include/app_remote_device.h>
@@ -147,13 +147,13 @@ static rdevEthSwitchServerInstanceState_t *rdevEthSwitchServerDataFindDeviceId(u
 
 static int32_t rdevEthSwitchServerHandlePingRequest(rdevEthSwitchServerInstanceState_t *inst,
         app_remote_device_channel_t *channel, uint32_t request_id,
-        struct rpmsg_kdrv_demodev_ping_request *req)
+        struct rpmsg_kdrv_ethswitch_ping_request *req)
 {
     void *value;
     int32_t ret = 0;
     rdevEthSwitchServerMessage_t *msg;
     struct rpmsg_kdrv_device_header *dev_hdr;
-    struct rpmsg_kdrv_demodev_ping_response *resp;
+    struct rpmsg_kdrv_ethswitch_ping_response *resp;
 
     if(ret == 0) {
         ret = appQueueGet(&gRdevEthSwitchServerState.message_pool, &value);
@@ -172,10 +172,10 @@ static int32_t rdevEthSwitchServerHandlePingRequest(rdevEthSwitchServerInstanceS
         msg->channel = inst->channel;
 
         dev_hdr = (struct rpmsg_kdrv_device_header *)(&msg->data[0]);
-        resp = (struct rpmsg_kdrv_demodev_ping_response *)(DEVHDR_2_MSG(dev_hdr));
+        resp = (struct rpmsg_kdrv_ethswitch_ping_response *)(DEVHDR_2_MSG(dev_hdr));
 
-        resp->header.message_type = RPMSG_KDRV_TP_DEMODEV_PING_RESPONSE;
-        memcpy(&resp->data[0], &req->data[0], RPMSG_KDRV_TP_DEMODEV_MESSAGE_DATA_LEN);
+        resp->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_PING_RESPONSE;
+        memcpy(&resp->data[0], &req->data[0], RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN);
 
         ret = appQueuePut(&gRdevEthSwitchServerState.send_queue, msg);
         if(ret != 0)
@@ -193,7 +193,7 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
         uint32_t request_id, void *data, uint32_t len)
 {
     rdevEthSwitchServerInstanceState_t *inst;
-    struct rpmsg_kdrv_demodev_message_header *hdr = data;
+    struct rpmsg_kdrv_ethswitch_message_header *hdr = data;
     int32_t ret = 0;
 
     SemaphoreP_pend(gRdevEthSwitchServerState.lock_sem, SemaphoreP_WAIT_FOREVER);
@@ -215,9 +215,9 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
 
     if(ret == 0) {
         switch(hdr->message_type) {
-            case RPMSG_KDRV_TP_DEMODEV_PING_REQUEST:
+            case RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST:
                 ret = rdevEthSwitchServerHandlePingRequest(inst, channel, request_id,
-                        (struct rpmsg_kdrv_demodev_ping_request *)data);
+                        (struct rpmsg_kdrv_ethswitch_ping_request *)data);
                 break;
             default:
                 appLogPrintf("%s: unidentified request\n", __func__);
@@ -230,7 +230,7 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
 }
 
 static int32_t rdevEthSwitchServerHandleC2sMessage(rdevEthSwitchServerInstanceState_t *inst,
-        app_remote_device_channel_t *channel, struct rpmsg_kdrv_demodev_c2s_message *req)
+        app_remote_device_channel_t *channel, struct rpmsg_kdrv_ethswitch_c2s_message *req)
 {
     int32_t ret = 0;
 
@@ -246,7 +246,7 @@ static int32_t rdevEthSwitchServerMessage(uint32_t device_id, app_remote_device_
         void *data, uint32_t len)
 {
     rdevEthSwitchServerInstanceState_t *inst;
-    struct rpmsg_kdrv_demodev_message_header *hdr = data;
+    struct rpmsg_kdrv_ethswitch_message_header *hdr = data;
     int32_t ret = 0;
 
     SemaphoreP_pend(gRdevEthSwitchServerState.lock_sem, SemaphoreP_WAIT_FOREVER);
@@ -268,9 +268,9 @@ static int32_t rdevEthSwitchServerMessage(uint32_t device_id, app_remote_device_
 
     if(ret == 0) {
         switch(hdr->message_type) {
-            case RPMSG_KDRV_TP_DEMODEV_C2S_MESSAGE:
+            case RPMSG_KDRV_TP_ETHSWITCH_C2S_MESSAGE:
                 ret = rdevEthSwitchServerHandleC2sMessage(inst, channel,
-                        (struct rpmsg_kdrv_demodev_c2s_message *)data);
+                        (struct rpmsg_kdrv_ethswitch_c2s_message *)data);
                 break;
             default:
                 appLogPrintf("%s: unidentified request\n", __func__);
@@ -338,7 +338,7 @@ static int32_t rdevEthSwitchServerConnect(uint32_t device_id, app_remote_device_
 
 static uint32_t rdevEthSwitchServerFillPrivData(uint32_t device_id, void *priv_data, uint32_t avail_len)
 {
-    struct rpmsg_kdrv_demodev_device_data *demo_data = (struct rpmsg_kdrv_demodev_device_data *)priv_data;
+    struct rpmsg_kdrv_ethswitch_device_data *demo_data = (struct rpmsg_kdrv_ethswitch_device_data *)priv_data;
     rdevEthSwitchServerInstanceState_t *inst;
     int32_t ret = 0;
 
@@ -353,7 +353,7 @@ static uint32_t rdevEthSwitchServerFillPrivData(uint32_t device_id, void *priv_d
     }
 
     if(ret == 0) {
-        memcpy(&demo_data->charString[0], &inst->inst_prm.data[0], min(avail_len, min(ETHREMOTECFG_SERVER_MAX_DATA_LEN, RPMSG_KDRV_TP_DEMODEV_DEVICE_DATA_LEN)));
+        memcpy(&demo_data->charString[0], &inst->inst_prm.data[0], min(avail_len, min(ETHREMOTECFG_SERVER_MAX_DATA_LEN, RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN)));
     }
 
     SemaphoreP_post(gRdevEthSwitchServerState.lock_sem);
@@ -381,7 +381,7 @@ static void rdevEthSwitchServerMessageMonitorTaskFn(void *arg0, void *arg1)
     void *value;
     rdevEthSwitchServerMessage_t *msg;
     struct rpmsg_kdrv_device_header *dev_hdr;
-    struct rpmsg_kdrv_demodev_s2c_message *resp;    
+    struct rpmsg_kdrv_ethswitch_s2c_message *resp;    
     rdevEthSwitchServerInstanceState_t *inst = (rdevEthSwitchServerInstanceState_t *)arg0;
     int32_t ret = 0;
 
@@ -411,10 +411,10 @@ static void rdevEthSwitchServerMessageMonitorTaskFn(void *arg0, void *arg1)
             msg->channel = inst->channel;
 
             dev_hdr = (struct rpmsg_kdrv_device_header *)(&msg->data[0]);
-            resp = (struct rpmsg_kdrv_demodev_s2c_message *)(DEVHDR_2_MSG(dev_hdr));
+            resp = (struct rpmsg_kdrv_ethswitch_s2c_message *)(DEVHDR_2_MSG(dev_hdr));
 
-            resp->header.message_type = RPMSG_KDRV_TP_DEMODEV_S2C_MESSAGE;
-            snprintf((char *)&resp->data[0], RPMSG_KDRV_TP_DEMODEV_MESSAGE_DATA_LEN, "S2C-message-%u", inst->num_incoming_message);
+            resp->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_S2C_MESSAGE;
+            snprintf((char *)&resp->data[0], RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN, "S2C-message-%u", inst->num_incoming_message);
 
             ret = appQueuePut(&gRdevEthSwitchServerState.send_queue, msg);
             if(ret != 0)
