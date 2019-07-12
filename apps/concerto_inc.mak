@@ -8,7 +8,7 @@ else
 REMOTE_DEVICE_SOC_FOLDER := 
 endif
 
-
+DEFS+=CPU_$(CPU_ID)
 
 XDC_INCLUDE_PACKAGES_PATH    += $(NDK_PATH)/packages
 #Include posix header file from sysbios package for TI compilers

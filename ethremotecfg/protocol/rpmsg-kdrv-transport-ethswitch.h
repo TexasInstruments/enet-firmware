@@ -1,0 +1,363 @@
+/*
+ *
+ * Copyright (c) 2017 Texas Instruments Incorporated
+ *
+ * All rights reserved not granted herein.
+ *
+ * Limited License.
+ *
+ * Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
+ * license under copyrights and patents it now or hereafter owns or controls to make,
+ * have made, use, import, offer to sell and sell ("Utilize") this software subject to the
+ * terms herein.  With respect to the foregoing patent license, such license is granted
+ * solely to the extent that any such patent is necessary to Utilize the software alone.
+ * The patent license shall not apply to any combinations which include this software,
+ * other than combinations with devices manufactured by or for TI ("TI Devices").
+ * No hardware patent is licensed hereunder.
+ *
+ * Redistributions must preserve existing copyright notices and reproduce this license
+ * (including the above copyright notice and the disclaimer and (if applicable) source
+ * code license limitations below) in the documentation and/or other materials provided
+ * with the distribution
+ *
+ * Redistribution and use in binary form, without modification, are permitted provided
+ * that the following conditions are met:
+ *
+ * *       No reverse engineering, decompilation, or disassembly of this software is
+ * permitted with respect to any software provided in binary form.
+ *
+ * *       any redistribution and use are licensed by TI for use only with TI Devices.
+ *
+ * *       Nothing shall obligate TI to provide you with source code for the software
+ * licensed and provided to you in object code.
+ *
+ * If software source code is provided to you, modification and redistribution of the
+ * source code are permitted provided that the following conditions are met:
+ *
+ * *       any redistribution and use of the source code, including any resulting derivative
+ * works, are licensed by TI for use only with TI Devices.
+ *
+ * *       any redistribution and use of any object code compiled from the source code
+ * and any resulting derivative works, are licensed by TI for use only with TI Devices.
+ *
+ * Neither the name of Texas Instruments Incorporated nor the names of its suppliers
+ *
+ * may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * DISCLAIMER.
+ *
+ * THIS SOFTWARE IS PROVIDED BY TI AND TI'S LICENSORS "AS IS" AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL TI AND TI'S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+
+#ifndef __RPMSG_KDRV_TRANSPORT_ETHSWITCH_H__
+#define __RPMSG_KDRV_TRANSPORT_ETHSWITCH_H__
+
+#include <protocol/rpmsg-kdrv-transport-common.h>
+
+enum rpmsg_kdrv_ethswitch_message_type {
+    RPMSG_KDRV_TP_ETHSWITCH_ATTACH,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC,
+    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC,
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_TX,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_RX,
+    RPMSG_KDRV_TP_ETHSWITCH_DETACH,
+    RPMSG_KDRV_TP_ETHSWITCH_IOCTL,
+    RPMSG_KDRV_TP_ETHSWITCH_REGWR,
+    RPMSG_KDRV_TP_ETHSWITCH_REGRD,
+    RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST,
+    RPMSG_KDRV_TP_ETHSWITCH_PING_RESPONSE,
+    RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY,
+    RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY,
+    RPMSG_KDRV_TP_ETHSWITCH_MAX,
+};
+
+enum rpmsg_kdrv_ethswitch_cpsw_type {
+    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G,
+    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G,
+    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAX,
+};
+
+/*
+ * Response status codes
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK     (0)
+#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EAGAIN (-1)
+#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL  (-2)
+
+
+/*
+ * Maximum length of demo device data
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN     (32)
+
+/*
+ * Maximum length of demo device message data
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN    (128)
+
+/*
+ * Maximum length of input arguments for IOCTL
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN    (128)
+
+/*
+ * Maximum length of output arguments for IOCTL
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN    (128)
+
+
+/*
+ * Number of priorities supported by CPSW
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM   (8)
+
+/*
+ * MAC Address length in octets
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN          (6)
+
+/*
+ * message header for demo device
+ */
+struct rpmsg_kdrv_ethswitch_message_header {
+    /* enum: rpmsg_kdrv_ethswitch_message_type */
+    u8 message_type;
+} __packed;
+
+/*
+ * Common structure used for all ETHSWITCH config command request msgs except attach
+ */
+struct rpmsg_kdrv_ethswitch_common_request_info {
+    /* unique handle returned by ATTACH  */
+    u64 id;
+    /* Core specific key returned by attach */
+    u32 coreKey;
+} __packed;
+
+/*
+ * Common header used for all ETHSWITCH config commands response msgs
+ */
+struct rpmsg_kdrv_ethswitch_common_response_info {
+    /* Status of request */
+    s32 status;
+} __packed;
+
+/*
+ * RPMSG_KDRV_TP_ETHSWITCH_ATTACH cmd client request
+ */
+struct rpmsg_kdrv_ethswitch_attach_request {
+    /* message header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /* enum: rpmsg_kdrv_ethswitch_cpsw_type  */
+    u8 cpswType;
+} __packed;
+
+/*
+ * RPMSG_KDRV_TP_ETHSWITCH_ATTACH cmd server response
+ */
+struct rpmsg_kdrv_ethswitch_attach_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    /* unique handle used by all further CMDs  */
+    u64 id;
+    /* Core specific key to indicate attached core */
+    u32 coreKey;
+    /* MTU of rx packet */
+    u32 rxMtu;
+    /* MTU of tx packet per priority */
+    u32 txMtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+    /* Flag indicating if Tx Checksum offload is enabled */
+    u8  txCSumEnabled;
+} __packed;
+
+
+/*
+ * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX,
+ * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX,
+ * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC,
+ * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULT
+ * cmd 
+ */
+struct rpmsg_kdrv_ethswitch_alloc_request {
+    /* message header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+} __packed;
+
+struct rpmsg_kdrv_ethswitch_alloc_rx_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    /*! Rx Flow Base or Start index*/
+    u32 startIdx;
+    /*! Allocated flow's index (offset from startIdx)*/
+    u32 allocFlowIdx;
+} __packed;
+
+struct rpmsg_kdrv_ethswitch_alloc_tx_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    /*! Tx PSIL Peer destination thread id which should be paired with the
+      * Tx UDMA channel
+      */
+    u32 txCpswPsilDstId;
+} __packed;
+
+struct rpmsg_kdrv_ethswitch_alloc_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    /*! Rx Flow Base or Start index*/
+    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+} __packed;
+
+struct rpmsg_kdrv_ethswitch_register_mac_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /*! Flow's index associated with the mac address to be registered in ALE */
+    u32 flowIdx;
+} __packed;
+
+struct rpmsg_kdrv_ethswitch_register_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_unregister_mac_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+} __packed;
+
+struct rpmsg_kdrv_ethswitch_unregister_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_free_mac_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_free_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_free_tx_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u32 txId;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_free_tx_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_free_rx_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u32 rxId;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_free_rx_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_detach_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_detach_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ioctl_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u32    cmd;
+    u32    inargslen;
+    u8     inargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN];
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ioctl_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    u32    outargslen;
+    u8     outargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN];
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_regwr_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u32    regaddr;
+    u32    regval;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_regwr_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_regrd_request {
+    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u32    regaddr;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_regrd_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    u32    regval;
+}  __packed;
+
+/*
+ * per-device data for ethswitch device
+ */
+struct rpmsg_kdrv_ethswitch_device_data {
+    /* Does the device send all vsyncs? */
+    u8 charString[RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN];
+} __packed;
+
+
+/* demo device ping request - always client to server */
+struct rpmsg_kdrv_ethswitch_ping_request {
+    /* message header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /* ping data */
+    u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
+} __packed;
+
+/* demo device ping response - always server to client */
+struct rpmsg_kdrv_ethswitch_ping_response {
+    /* message header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /* ping data */
+    u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
+} __packed;
+
+/* demo device server to client one-way message */
+struct rpmsg_kdrv_ethswitch_s2c_notify {
+    /* message header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /* message data */
+    u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
+} __packed;
+
+/* demo device client to server one-way message */
+struct rpmsg_kdrv_ethswitch_c2s_notify {
+    /* message header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /* message data */
+    u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
+} __packed;
+
+#endif

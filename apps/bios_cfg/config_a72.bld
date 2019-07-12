@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2017 Texas Instruments Incorporated
+ * Copyright (c) 2019 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -60,74 +60,5 @@
  *
  */
 
-#ifndef __ETHREMOTECFG_SERVER_H__
-#define __ETHREMOTECFG_SERVER_H__
-
-/**
- * \defgroup group_vision_apps_utils_remote_disp Remote Demo APIs
- *
- * \brief This section contains APIs for Remote Demo framework
- *
- * \ingroup group_libs
- *
- * @{
- */
-
-/** \brief Max length of remote demo exported name */
-#define ETHREMOTECFG_SERVER_MAX_NAME_LEN         (128)
-
-/** \brief Max number of remote demo instances */
-#define ETHREMOTECFG_SERVER_MAX_INSTANCES        (4)
-
-/** \brief Max length of remote demo data */
-#define ETHREMOTECFG_SERVER_MAX_DATA_LEN        (128)
-
-#define ETHREMOTEDEVICE_DEVICE_NAME "ethswitch-device-0"
-
-#define ETHREMOTEDEVICE_DEVICE_DATA "ethswitch-device-0-data"
-
-/**
- * \brief Remote demo instance initialization parameters
- */
-typedef struct rdevEthSwitchServerInstPrm_s {
-    uint32_t host_id; /**< Host Id that should connect to this device */
-    uint8_t name[ETHREMOTECFG_SERVER_MAX_NAME_LEN]; /**< Exported name */
-    uint8_t data[ETHREMOTECFG_SERVER_MAX_DATA_LEN]; /**< Exported device data */
-} rdevEthSwitchServerInstPrm_t;
-
-/**
- * \brief Remote demo device initialization parameters
- */
-typedef struct rdevEthSwitchServerInitPrm_s {
-    uint32_t num_instances; /**< Number of instances */
-    rdevEthSwitchServerInstPrm_t inst_prm[ETHREMOTECFG_SERVER_MAX_INSTANCES]; /**< List of instances */
-    uint32_t rpmsg_buf_size; /**< Max transport packet size */
-} rdevEthSwitchServerInitPrm_t;
-
-
-/**
- * \brief Set Remote Demo device init parameters to default state
- *
- * Recommend to call this API before callnig rdevEthSwitchServerInit.
- *
- * \param prm [out] Parameters set to default
- */
-static void rdevEthSwitchServerInitPrmSetDefault(rdevEthSwitchServerInitPrm_t *prm)
-{
-    memset(prm, 0, sizeof(*prm));
-
-    prm->rpmsg_buf_size = 256;
-    prm->num_instances = 0;
-}
-
-/**
- * \brief Initialize remote demo module
- *
- * \param prm [in] Initialization parameters
- *
- * \return 0 on success, else failure
- */
-int32_t rdevEthSwitchServerInit(rdevEthSwitchServerInitPrm_t *prm);
-
-#endif
+var A53F           = xdc.useModule('gnu.targets.arm.A53F');
 

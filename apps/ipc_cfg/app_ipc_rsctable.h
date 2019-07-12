@@ -46,50 +46,34 @@
 extern "C" {
 #endif
 
+#if defined(CPU_c7x_1)
+#define BUILD_C7X_1
+#endif
+
+#include <xdc/runtime/System.h>
 #include <ti/drv/ipc/include/ipc_rsctypes.h>
+#include <apps/ipc_cfg/app_mem_map.h>
 
-#define R5F_MEM_RPMSG_VRING0     0xA0000000
-#define R5F_MEM_RPMSG_VRING1     0xA0010000
-#define MCU1_0_R5F_MEM_RPMSG_VRING0    0xA0000000
-#define MCU1_0_R5F_MEM_RPMSG_VRING1    0xA0010000
-#define MCU1_1_R5F_MEM_RPMSG_VRING0    0xA1000000
-#define MCU1_1_R5F_MEM_RPMSG_VRING1    0xA1010000
-#define MCU2_0_R5F_MEM_RPMSG_VRING0    0xA2000000
-#define MCU2_0_R5F_MEM_RPMSG_VRING1    0xA2010000
-#define MCU2_1_R5F_MEM_RPMSG_VRING0    0xA3000000
-#define MCU2_1_R5F_MEM_RPMSG_VRING1    0xA3010000
-#define MCU3_0_R5F_MEM_RPMSG_VRING0    0xA4000000
-#define MCU3_0_R5F_MEM_RPMSG_VRING1    0xA4010000
-#define MCU3_1_R5F_MEM_RPMSG_VRING0    0xA5000000
-#define MCU3_1_R5F_MEM_RPMSG_VRING1    0xA5010000
-#define C66X_1_MEM_RPMSG_VRING0        0xA7000000 /* Different than expected for caching */
-#define C66X_1_MEM_RPMSG_VRING1        0xA7010000
-#define C66X_2_MEM_RPMSG_VRING0        0xA6000000 /* Different than expected for caching */
-#define C66X_2_MEM_RPMSG_VRING1        0xA6010000
-#define C7X_1_MEM_RPMSG_VRING0         0xA8000000
-#define C7X_1_MEM_RPMSG_VRING1         0xA8010000
+#define RPMSG_VRING_SIZE   (0x10000)
 
-#define SZ_1M                          0x00100000
-
-#define R5F_MEM_IPC_VRING_SIZE  SZ_1M
-
-#define R5F_NUM_ENTRIES 2
-
-/*
- * Assign fixed RAM addresses to facilitate a fixed MMU table.
- * PHYS_MEM_IPC_VRING & PHYS_MEM_IPC_DATA MUST be together.
- */
-/* See CMA BASE addresses in Linux side: arch/arm/mach-omap2/remoteproc.c */
-#define PHYS_MEM_IPC_VRING        0xA0000000
-#define MCU1_0_PHYS_MEM_IPC_VRING 0xA0000000
-#define MCU1_1_PHYS_MEM_IPC_VRING 0xA1000000
-#define MCU2_0_PHYS_MEM_IPC_VRING 0xA2000000
-#define MCU2_1_PHYS_MEM_IPC_VRING 0xA3000000
-#define MCU3_0_PHYS_MEM_IPC_VRING 0xA4000000
-#define MCU3_1_PHYS_MEM_IPC_VRING 0xA5000000
-#define C66X_1_PHYS_MEM_IPC_VRING 0xA7000000 /* Different than expected for caching purpose */
-#define C66X_2_PHYS_MEM_IPC_VRING 0xA6000000 /* Different than expected for caching purpose */
-#define C7X_1_PHYS_MEM_IPC_VRING  0xA8000000
+#define MCU1_0_R5F_MEM_RPMSG_VRING0    (DDR_MCU1_0_IPC_ADDR)
+#define MCU1_0_R5F_MEM_RPMSG_VRING1    (DDR_MCU1_0_IPC_ADDR + RPMSG_VRING_SIZE)
+#define MCU1_1_R5F_MEM_RPMSG_VRING0    (DDR_MCU1_1_IPC_ADDR)
+#define MCU1_1_R5F_MEM_RPMSG_VRING1    (DDR_MCU1_1_IPC_ADDR + RPMSG_VRING_SIZE)
+#define MCU2_0_R5F_MEM_RPMSG_VRING0    (DDR_MCU2_0_IPC_ADDR)
+#define MCU2_0_R5F_MEM_RPMSG_VRING1    (DDR_MCU2_0_IPC_ADDR + RPMSG_VRING_SIZE)
+#define MCU2_1_R5F_MEM_RPMSG_VRING0    (DDR_MCU2_1_IPC_ADDR)
+#define MCU2_1_R5F_MEM_RPMSG_VRING1    (DDR_MCU2_1_IPC_ADDR + RPMSG_VRING_SIZE)
+#define MCU3_0_R5F_MEM_RPMSG_VRING0    (DDR_MCU3_0_IPC_ADDR)
+#define MCU3_0_R5F_MEM_RPMSG_VRING1    (DDR_MCU3_0_IPC_ADDR + RPMSG_VRING_SIZE)
+#define MCU3_1_R5F_MEM_RPMSG_VRING0    (DDR_MCU3_1_IPC_ADDR)
+#define MCU3_1_R5F_MEM_RPMSG_VRING1    (DDR_MCU3_1_IPC_ADDR + RPMSG_VRING_SIZE)
+#define C66X_1_MEM_RPMSG_VRING0        (DDR_C66x_1_IPC_ADDR)
+#define C66X_1_MEM_RPMSG_VRING1        (DDR_C66x_1_IPC_ADDR + RPMSG_VRING_SIZE)
+#define C66X_2_MEM_RPMSG_VRING0        (DDR_C66x_2_IPC_ADDR)
+#define C66X_2_MEM_RPMSG_VRING1        (DDR_C66x_2_IPC_ADDR + RPMSG_VRING_SIZE)
+#define C7X_1_MEM_RPMSG_VRING0         (DDR_C7x_1_IPC_ADDR)
+#define C7X_1_MEM_RPMSG_VRING1         (DDR_C7x_1_IPC_ADDR  + RPMSG_VRING_SIZE)
 
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,
@@ -125,9 +109,9 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section 
     /* rpmsg vdev entry */
     {
         TYPE_VDEV, VIRTIO_ID_RPMSG, 0,
-#if defined (BUILD_C66X_1) || defined (BUILD_C66X_2)
+#if defined (CPU_c6x_1) || defined (CPU_c6x_2)
         RPMSG_C66_DSP_FEATURES, 0, 0, 0, 2, { 0, 0 },
-#elif defined (BUILD_C7X_1)
+#elif defined (CPU_c7x_1)
         RPMSG_C7X_DSP_FEATURES, 0, 0, 0, 2, { 0, 0 },
 #else
         RPMSG_R5F_C0_FEATURES, 0, 0, 0, 2, { 0, 0 },
@@ -135,46 +119,50 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section 
         /* no config data */
     },
     /* the two vrings */
-#if defined (BUILD_MCU1_0)
+#if defined (CPU_mcu1_0)
     { MCU1_0_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
     { MCU1_0_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_MCU1_1)
+#elif defined (CPU_mcu1_1)
     { MCU1_1_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
     { MCU1_1_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_MCU2_0)
+#elif defined (CPU_mcu2_0)
     { MCU2_0_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
     { MCU2_0_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_MCU2_1)
+#elif defined (CPU_mcu2_1)
     { MCU2_1_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
     { MCU2_1_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_MCU3_0)
+#elif defined (CPU_mcu3_0)
     { MCU3_0_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
     { MCU3_0_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_MCU3_1)
+#elif defined (CPU_mcu3_1)
     { MCU3_1_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
     { MCU3_1_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_C66X_1)
+#elif defined (CPU_c6x_1)
     { C66X_1_MEM_RPMSG_VRING0, 4096, C66_RPMSG_VQ0_SIZE, 1, 0 },
     { C66X_1_MEM_RPMSG_VRING1, 4096, C66_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_C66X_2)
+#elif defined (CPU_c6x_2)
     { C66X_2_MEM_RPMSG_VRING0, 4096, C66_RPMSG_VQ0_SIZE, 1, 0 },
     { C66X_2_MEM_RPMSG_VRING1, 4096, C66_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (BUILD_C7X_1)
+#elif defined (CPU_c7x_1)
     { C7X_1_MEM_RPMSG_VRING0, 4096, C7X_RPMSG_VQ0_SIZE, 1, 0 },
     { C7X_1_MEM_RPMSG_VRING1, 4096, C7X_RPMSG_VQ1_SIZE, 2, 0 },
 #else
-    { R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
-    { R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#endif
+    #error CPU_<cpu name> not defined
+#endif 
 
     {
-#ifdef BUILD_C7X_1
+#ifdef CPU_c7x_1
         (TRACE_INTS_VER1 | TYPE_TRACE), TRACEBUFADDR, 0x80000, 0, "trace:r5f0",
 #else
         (TRACE_INTS_VER0 | TYPE_TRACE), TRACEBUFADDR, 0x80000, 0, "trace:r5f0",
 #endif
     },
 };
+
+void *appGetIpcResourceTable()
+{
+    return (void*)&ti_ipc_remoteproc_ResourceTable;
+}
 
 
 #ifdef __cplusplus

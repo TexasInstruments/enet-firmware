@@ -65,7 +65,7 @@
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
 #include <ti/osal/osal.h>
-#include <protocol/rpmsg-kdrv-transport-ethswitch.h>
+#include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <client-rtos/remote-device.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
 
@@ -73,7 +73,7 @@
 uint32_t rdevEthSwitchClient_printText(void *priv, void *data)
 {
     struct rpmsg_kdrv_device_header *hdr = (struct rpmsg_kdrv_device_header *)data;
-    struct rpmsg_kdrv_ethswitch_s2c_message *msg = (struct rpmsg_kdrv_ethswitch_s2c_message *)(&hdr[1]);
+    struct rpmsg_kdrv_ethswitch_s2c_notify *msg = (struct rpmsg_kdrv_ethswitch_s2c_notify *)(&hdr[1]);
     System_printf("%s: message (hdr = %u) %s\n", __func__, msg->header.message_type, msg->data);
     return 0;
 }
@@ -87,11 +87,11 @@ int32_t rdevEthSwitchClient_sendText(uint32_t device_id, char *text)
 {
     uint8_t data[512];
     struct rpmsg_kdrv_device_header *hdr = (struct rpmsg_kdrv_device_header *)data;
-    struct rpmsg_kdrv_ethswitch_c2s_message *msg = (struct rpmsg_kdrv_ethswitch_c2s_message *)(&hdr[1]);
+    struct rpmsg_kdrv_ethswitch_c2s_notify *msg = (struct rpmsg_kdrv_ethswitch_c2s_notify *)(&hdr[1]);
     int32_t ret;
 
     memset(&data[0], 0, 512);
-    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_C2S_MESSAGE;
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY;
     snprintf((char *)&msg->data[0], RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN, "%s", text);
     ret = appRemoteDeviceSendMessage(device_id, data, sizeof(*hdr) + sizeof(*msg), NULL, rdevEthSwitchClientFreeMsg);
     return ret;

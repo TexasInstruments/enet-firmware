@@ -67,7 +67,7 @@
 #include <ti/osal/TaskP.h>
 #include <ti/osal/SemaphoreP.h>
 
-#include <protocol/rpmsg-kdrv-transport-ethswitch.h>
+#include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <server-rtos/include/app_log.h>
 #include <server-rtos/include/app_queue.h>
 #include <server-rtos/include/app_remote_device.h>
@@ -230,7 +230,7 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
 }
 
 static int32_t rdevEthSwitchServerHandleC2sMessage(rdevEthSwitchServerInstanceState_t *inst,
-        app_remote_device_channel_t *channel, struct rpmsg_kdrv_ethswitch_c2s_message *req)
+        app_remote_device_channel_t *channel, struct rpmsg_kdrv_ethswitch_c2s_notify *req)
 {
     int32_t ret = 0;
 
@@ -268,9 +268,9 @@ static int32_t rdevEthSwitchServerMessage(uint32_t device_id, app_remote_device_
 
     if(ret == 0) {
         switch(hdr->message_type) {
-            case RPMSG_KDRV_TP_ETHSWITCH_C2S_MESSAGE:
+            case RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY:
                 ret = rdevEthSwitchServerHandleC2sMessage(inst, channel,
-                        (struct rpmsg_kdrv_ethswitch_c2s_message *)data);
+                        (struct rpmsg_kdrv_ethswitch_c2s_notify *)data);
                 break;
             default:
                 appLogPrintf("%s: unidentified request\n", __func__);
@@ -381,7 +381,7 @@ static void rdevEthSwitchServerMessageMonitorTaskFn(void *arg0, void *arg1)
     void *value;
     rdevEthSwitchServerMessage_t *msg;
     struct rpmsg_kdrv_device_header *dev_hdr;
-    struct rpmsg_kdrv_ethswitch_s2c_message *resp;    
+    struct rpmsg_kdrv_ethswitch_s2c_notify *resp;    
     rdevEthSwitchServerInstanceState_t *inst = (rdevEthSwitchServerInstanceState_t *)arg0;
     int32_t ret = 0;
 
@@ -411,9 +411,9 @@ static void rdevEthSwitchServerMessageMonitorTaskFn(void *arg0, void *arg1)
             msg->channel = inst->channel;
 
             dev_hdr = (struct rpmsg_kdrv_device_header *)(&msg->data[0]);
-            resp = (struct rpmsg_kdrv_ethswitch_s2c_message *)(DEVHDR_2_MSG(dev_hdr));
+            resp = (struct rpmsg_kdrv_ethswitch_s2c_notify *)(DEVHDR_2_MSG(dev_hdr));
 
-            resp->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_S2C_MESSAGE;
+            resp->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY;
             snprintf((char *)&resp->data[0], RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN, "S2C-message-%u", inst->num_incoming_message);
 
             ret = appQueuePut(&gRdevEthSwitchServerState.send_queue, msg);

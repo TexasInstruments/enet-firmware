@@ -76,13 +76,14 @@
 #include <server-rtos/remote-device.h>
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
 
-#include "ipc_rsctable.h"
+#include <apps/ipc_cfg/app_ipc_rsctable.h>
 
 #define IPC_RPMESSAGE_OBJ_SIZE  256
 #define VQ_BUF_SIZE             2048
 #define REMOTE_DEVICE_ENDPT     26
 #define RPMSG_DATA_SIZE         (256*512 + IPC_RPMESSAGE_OBJ_SIZE)
-#define VRING_BASE_ADDRESS      0xAA000000
+#define VRING_BASE_ADDRESS      0xBA000000
+#define VRING_BUFFER_SIZE       0x02000000
 
 static uint8_t g_monitorStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 static uint8_t g_rdevStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
@@ -98,10 +99,10 @@ static SemaphoreP_Handle g_rdev_init_wait_sem;
 static SemaphoreP_Handle g_ipc_init_wait_sem;
 static SemaphoreP_Handle g_rdev_start_sem;
 
-static uint32_t selfProcId = IPC_MCU2_1;
+static uint32_t selfProcId = IPC_MCU2_0;
 static uint32_t gRemoteProc[] =
 {
-    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0, IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2, IPC_C7X_1
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1, IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2, IPC_C7X_1
 };
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc)/sizeof(uint32_t);
 
@@ -167,13 +168,13 @@ static Void ipc_init(UArg a0, UArg a1)
             Ipc_mpGetSelfName());
 
 
-    Ipc_loadResourceTable((void*)&ti_ipc_remoteproc_ResourceTable);
+    Ipc_loadResourceTable(appGetIpcResourceTable());
 
     /* Step2 : Initialize Virtio */
     vqParam.vqObjBaseAddr = (void*)&sysVqBuf[0];
     vqParam.vqBufSize     = numProc * Ipc_getVqObjMemoryRequiredPerCore();
     vqParam.vringBaseAddr = (void*)VRING_BASE_ADDRESS;
-    vqParam.vringBufSize  = IPC_VRING_BUFFER_SIZE;
+    vqParam.vringBufSize  = VRING_BUFFER_SIZE;
     vqParam.timeoutCnt    = 100;  /* Wait for counts */
     Ipc_initVirtIO(&vqParam);
 
@@ -224,14 +225,14 @@ static Void remotedev_init(UArg a0, UArg a1)
     remote_ethswitch_init_prm.num_instances = 1;
 
     inst = &remote_ethswitch_init_prm.inst_prm[0];
-    inst->host_id = IPC_MCU2_0;
+    inst->host_id = IPC_MCU2_1;
     {
         snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME);
         snprintf((char *)&inst->data[0], ETHREMOTECFG_SERVER_MAX_DATA_LEN, ETHREMOTEDEVICE_DEVICE_DATA);
     }
 
     rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
-    System_printf("Remote demo device (core : mcu2_1) .....\r\n");
+    System_printf("Remote demo device (core : mcu2_0) .....\r\n");
 
     SemaphoreP_post(g_rdev_init_wait_sem);
 }

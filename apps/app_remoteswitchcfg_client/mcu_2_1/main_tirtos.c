@@ -73,17 +73,18 @@
 
 #include <ti/drv/ipc/ipc.h>
 
-#include <protocol/rpmsg-kdrv-transport-ethswitch.h>
+#include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <client-rtos/remote-device.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
 
-#include "ipc_rsctable.h"
+#include <apps/ipc_cfg/app_ipc_rsctable.h>
 
 #define IPC_RPMESSAGE_OBJ_SIZE  256
 #define VQ_BUF_SIZE             2048
 #define REMOTE_DEVICE_ENDPT     26
 #define RPMSG_DATA_SIZE         (256*512 + IPC_RPMESSAGE_OBJ_SIZE)
-#define VRING_BASE_ADDRESS      0xAA000000
+#define VRING_BASE_ADDRESS      0xBA000000
+#define VRING_BUFFER_SIZE       0x02000000
 
 static uint8_t g_monitorStackBuf[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
@@ -131,10 +132,10 @@ __attribute__ ((aligned(8192)))
     static SemaphoreP_Handle g_ipc_init_wait_sem;
     static SemaphoreP_Handle g_rdev_start_sem;
 
-    static uint32_t selfProcId = IPC_MCU2_0;
+    static uint32_t selfProcId = IPC_MCU2_1;
     static uint32_t gRemoteProc[] =
 {
-    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1, IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2, IPC_C7X_1
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0, IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2, IPC_C7X_1
 };
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc)/sizeof(uint32_t);
 
@@ -253,7 +254,7 @@ static Void monitorAndUnlockRdev(UArg a0, UArg a1)
 
     if(ret == 0) {
         System_printf("Registered a device name = %s, data = %s, id = %u, type = %u\n",
-                "mcu2_1-demo-device-0", prm.data, prm.device_id, prm.device_type);
+                "mcu2_0-ethswitch-0", prm.data, prm.device_id, prm.device_type);
     }
 
     startMessageAndRequestLoop(prm.device_id);
@@ -273,13 +274,13 @@ static Void ipc_init(UArg a0, UArg a1)
             Ipc_mpGetSelfName());
 
 
-    Ipc_loadResourceTable((void*)&ti_ipc_remoteproc_ResourceTable);
+    Ipc_loadResourceTable(appGetIpcResourceTable());
 
     /* Step2 : Initialize Virtio */
     vqParam.vqObjBaseAddr = (void*)&sysVqBuf[0];
     vqParam.vqBufSize     = numProc * Ipc_getVqObjMemoryRequiredPerCore();
     vqParam.vringBaseAddr = (void*)VRING_BASE_ADDRESS;
-    vqParam.vringBufSize  = IPC_VRING_BUFFER_SIZE;
+    vqParam.vringBufSize  = VRING_BUFFER_SIZE;
     vqParam.timeoutCnt    = 100;  /* Wait for counts */
     Ipc_initVirtIO(&vqParam);
 
@@ -316,10 +317,10 @@ static Void remotedev_init(UArg a0, UArg a1)
     remote_dev_init_prm.remote_endpt = REMOTE_DEVICE_ENDPT;
     remote_dev_init_prm.wait_sem = g_rdev_start_sem;
     remote_dev_init_prm.num_cores = 1;
-    remote_dev_init_prm.cores[0] = IPC_MCU2_1;
+    remote_dev_init_prm.cores[0] = IPC_MCU2_0;
 
     appRemoteDeviceInit(&remote_dev_init_prm);
-    System_printf("Remote device (core : mcu2_0) .....\r\n");
+    System_printf("Remote device (core : mcu2_1) .....\r\n");
 
 }
 

@@ -1,20 +1,21 @@
-ifeq ($(BUILD_CPU_MCU2_0),yes)
+ifeq ($(BUILD_CPU_MCU2_1),yes)
 ifeq ($(TARGET_CPU),R5F)
 
-CPU_ID=mcu2_0
+CPU_ID=mcu2_1
 
 TARGET      := app_remoteswitchcfg_client
 TARGETTYPE  := exe 
 
-XDC_BLD_FILE = $($(_MODULE)_SDIR)/mcu2_0.bld
-XDC_CFG_FILE = $($(_MODULE)_SDIR)/mcu2_0.cfg
-XDC_INCLUDE_PACKAGES_PATH    = $($(_MODULE)_SDIR)/../bios_cfg/
+XDC_BLD_FILE = $($(_MODULE)_SDIR)/../../bios_cfg/config_r5f.bld
+XDC_CFG_FILE = $($(_MODULE)_SDIR)/mcu2_1.cfg
+XDC_INCLUDE_PACKAGES_PATH    = $($(_MODULE)_SDIR)/../../bios_cfg/
 XDC_IDIRS     = $(subst $(SPACE),;,${XDC_INCLUDE_PACKAGES_PATH})
 
 CSOURCES    := main_tirtos.c
 
 
-LINKER_CMD_FILES +=  $($(_MODULE)_SDIR)/mcu2_0.lds
+LINKER_CMD_FILES =  $($(_MODULE)_SDIR)/linker_mem_map.cmd
+LINKER_CMD_FILES +=  $($(_MODULE)_SDIR)/linker.cmd
 
 
 SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
