@@ -222,13 +222,20 @@ static Void remotedev_init(UArg a0, UArg a1)
     rdevEthSwitchServerInitPrmSetDefault(&remote_ethswitch_init_prm);
 
     remote_ethswitch_init_prm.rpmsg_buf_size = 256;
-    remote_ethswitch_init_prm.num_instances = 1;
+    remote_ethswitch_init_prm.num_instances = 2;
 
     inst = &remote_ethswitch_init_prm.inst_prm[0];
     inst->host_id = IPC_MCU2_1;
     {
-        snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME);
-        snprintf((char *)&inst->data[0], ETHREMOTECFG_SERVER_MAX_DATA_LEN, ETHREMOTEDEVICE_DEVICE_DATA);
+        snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1);
+        snprintf((char *)&inst->data[0], ETHREMOTECFG_SERVER_MAX_DATA_LEN, ETHREMOTEDEVICE_DEVICE_DATA_MCU_2_1);
+    }
+
+    inst = &remote_ethswitch_init_prm.inst_prm[1];
+    inst->host_id = IPC_MPU1_0;
+    {
+        snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0);
+        snprintf((char *)&inst->data[0], ETHREMOTECFG_SERVER_MAX_DATA_LEN, ETHREMOTEDEVICE_DEVICE_DATA_MPU_1_0);
     }
 
     rdevEthSwitchServerInit(&remote_ethswitch_init_prm);

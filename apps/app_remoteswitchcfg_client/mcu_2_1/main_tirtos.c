@@ -237,7 +237,7 @@ static Void monitorAndUnlockRdev(UArg a0, UArg a1)
     SemaphoreP_post(g_rdev_start_sem);
 
 
-    sprintf(prm.device_name, ETHREMOTEDEVICE_DEVICE_NAME);
+    sprintf(prm.device_name, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1);
     prm.cbHandler = rdevEthSwitchClient_printText;
     while(TRUE) {
         ret = rdevEthSwitchClient_connect(&prm);

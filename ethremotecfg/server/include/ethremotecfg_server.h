@@ -82,9 +82,13 @@
 /** \brief Max length of remote demo data */
 #define ETHREMOTECFG_SERVER_MAX_DATA_LEN        (128)
 
-#define ETHREMOTEDEVICE_DEVICE_NAME "ethswitch-device-0"
+#define ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1 "mcu_2_1_ethswitch-device-0"
 
-#define ETHREMOTEDEVICE_DEVICE_DATA "ethswitch-device-0-data"
+#define ETHREMOTEDEVICE_DEVICE_DATA_MCU_2_1 "mcu_2_1_ethswitch-device-0-data"
+
+#define ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0 "mpu_1_0_ethswitch-device-0"
+
+#define ETHREMOTEDEVICE_DEVICE_DATA_MPU_1_0 "mpu_1_0_ethswitch-device-0-data"
 
 /**
  * \brief Remote demo instance initialization parameters
