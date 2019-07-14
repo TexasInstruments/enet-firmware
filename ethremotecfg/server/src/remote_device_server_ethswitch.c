@@ -72,12 +72,13 @@
 #include <server-rtos/include/app_queue.h>
 #include <server-rtos/include/app_remote_device.h>
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
+#include <ti/drv/cpsw/cpsw.h>
 
 #define ETHREMOTECFG_SERVER_MAX_MESSAGES         (32)
 #define ETHREMOTECFG_SERVER_MAX_PACKET_SIZE      (512)
 
 #define g_sender_tsk_stack_size                 (0x2000)
-#define g_message_monitor_tsk_stack_size                 (0x2000)
+#define g_message_monitor_tsk_stack_size        (0x2000)
 
 #define ETHREMOTECFG_SERVER_ASSERT_SUCCESS(x)  { if((x)!=0) while(1); }
 #define DEVHDR_2_MSG(x) ((void *)(((struct rpmsg_kdrv_device_header *)(x)) + 1))
@@ -145,15 +146,14 @@ static rdevEthSwitchServerInstanceState_t *rdevEthSwitchServerDataFindDeviceId(u
     return inst;
 }
 
-static int32_t rdevEthSwitchServerHandlePingRequest(rdevEthSwitchServerInstanceState_t *inst,
-        app_remote_device_channel_t *channel, uint32_t request_id,
-        struct rpmsg_kdrv_ethswitch_ping_request *req)
+static int32_t rdevEthSwitchServerAllocInitRespMsg(const rdevEthSwitchServerInstanceState_t *inst,
+                                                   uint32_t respSize,
+                                                   uint32_t request_id,
+                                                   rdevEthSwitchServerMessage_t **pMsg)
 {
-    void *value;
     int32_t ret = 0;
+    void *value;
     rdevEthSwitchServerMessage_t *msg;
-    struct rpmsg_kdrv_device_header *dev_hdr;
-    struct rpmsg_kdrv_ethswitch_ping_response *resp;
 
     if(ret == 0) {
         ret = appQueueGet(&gRdevEthSwitchServerState.message_pool, &value);
@@ -163,30 +163,416 @@ static int32_t rdevEthSwitchServerHandlePingRequest(rdevEthSwitchServerInstanceS
 
     if(ret == 0) {
         msg = (rdevEthSwitchServerMessage_t *)value;
-        memset(msg, 0, sizeof(*msg) + sizeof(*dev_hdr) + sizeof(*resp));
+        memset(msg, 0, sizeof(*msg) + sizeof(struct rpmsg_kdrv_device_header) + respSize);
 
         msg->request_id = request_id;
-        msg->message_size = sizeof(*resp);
+        msg->message_size = respSize;
         msg->device_id = inst->device_id;
         msg->is_response = TRUE;
         msg->channel = inst->channel;
-
-        dev_hdr = (struct rpmsg_kdrv_device_header *)(&msg->data[0]);
-        resp = (struct rpmsg_kdrv_ethswitch_ping_response *)(DEVHDR_2_MSG(dev_hdr));
-
-        resp->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_PING_RESPONSE;
-        memcpy(&resp->data[0], &req->data[0], RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN);
-
-        ret = appQueuePut(&gRdevEthSwitchServerState.send_queue, msg);
-        if(ret != 0)
-            appLogPrintf("%s: Could not queue message for transmission\n", __func__);
     }
-
-    if(ret == 0)
-        SemaphoreP_post(gRdevEthSwitchServerState.send_sem);
-
+    
+    if (ret == 0) {
+        *pMsg = msg;
+    }
     return ret;
 }
+static void * rdevEthSwitchServerMsg2Resp(rdevEthSwitchServerMessage_t *msg)
+{
+    struct rpmsg_kdrv_device_header *dev_hdr;
+
+    dev_hdr = (struct rpmsg_kdrv_device_header *)(&msg->data[0]);
+    return  (DEVHDR_2_MSG(dev_hdr));
+}
+
+static int32_t rdevEthSwitchServerSendMsg(rdevEthSwitchServerMessage_t *msg)
+{
+    int32_t ret = 0;
+
+    ret = appQueuePut(&gRdevEthSwitchServerState.send_queue, msg);
+    if(ret != 0)
+    {
+        appLogPrintf("%s: Could not queue message for transmission\n", __func__);
+    }
+    if(ret == 0)
+    {
+        SemaphoreP_post(gRdevEthSwitchServerState.send_sem);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandlePingRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                    app_remote_device_channel_t *channel, 
+                                                    uint32_t request_id,
+                                                    union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                    rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_ping_response *resp;
+    struct rpmsg_kdrv_ethswitch_ping_request *req = &reqMsg->ping_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        /* No callbacks for ping.Handled in server itself */
+        (void)cb;
+        memcpy(&resp->data[0], &req->data[0], RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+
+
+
+static int32_t rdevEthSwitchServerHandleAttachRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                      app_remote_device_channel_t *channel, 
+                                                      uint32_t request_id,
+                                                      union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                      rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_attach_request *req = &reqMsg->attach_req;
+    struct rpmsg_kdrv_ethswitch_attach_response *resp;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->attach_handler(inst->inst_prm.host_id,req->cpsw_type, resp);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleAllocTxRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                       app_remote_device_channel_t *channel, 
+                                                       uint32_t request_id,
+                                                       union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                       rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_alloc_request *req = &reqMsg->alloc_req;
+    struct rpmsg_kdrv_ethswitch_alloc_tx_response *resp;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->alloc_tx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);;
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+
+
+static int32_t rdevEthSwitchServerHandleAllocDefaultFlow(rdevEthSwitchServerInstanceState_t *inst,
+                                                         app_remote_device_channel_t *channel, 
+                                                         uint32_t request_id,
+                                                         union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                         rdevEthSwitchServerCbFxn_t * cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_alloc_rx_default_response *resp;
+    struct rpmsg_kdrv_ethswitch_alloc_request *req = &reqMsg->alloc_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->alloc_rx_default_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+
+static int32_t rdevEthSwitchServerHandleAllocRxRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                       app_remote_device_channel_t *channel, 
+                                                       uint32_t request_id,
+                                                       union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                       rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_alloc_rx_response *resp;
+    struct rpmsg_kdrv_ethswitch_alloc_request *req = &reqMsg->alloc_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->alloc_rx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleAllocMacRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                        app_remote_device_channel_t *channel, 
+                                                        uint32_t request_id,
+                                                        union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                        rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_alloc_mac_response *resp;
+    struct rpmsg_kdrv_ethswitch_alloc_request *req = &reqMsg->alloc_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->alloc_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+
+static int32_t rdevEthSwitchServerHandleRegisterMac(rdevEthSwitchServerInstanceState_t *inst,
+                                                    app_remote_device_channel_t *channel, 
+                                                    uint32_t request_id,
+                                                    union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                    rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_register_mac_response *resp;
+    struct rpmsg_kdrv_ethswitch_register_mac_request *req = &reqMsg->register_mac_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->register_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->mac_address, req->flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleUnRegisterMac(rdevEthSwitchServerInstanceState_t *inst,
+                                                      app_remote_device_channel_t *channel, 
+                                                      uint32_t request_id,
+                                                      union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                      rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_unregister_mac_response *resp;
+    struct rpmsg_kdrv_ethswitch_unregister_mac_request *req = &reqMsg->unregister_mac_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->unregister_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->mac_address, req->flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleUnRegisterDefaultFlow(rdevEthSwitchServerInstanceState_t *inst,
+                                                              app_remote_device_channel_t *channel, 
+                                                              uint32_t request_id,
+                                                              union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                              rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_unregister_rx_default_response *resp;
+    struct rpmsg_kdrv_ethswitch_unregister_rx_default_request *req = &reqMsg->unregister_rx_default_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->unregister_rx_default_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->default_flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+
+static int32_t rdevEthSwitchServerHandleFreeTx(rdevEthSwitchServerInstanceState_t *inst,
+                                               app_remote_device_channel_t *channel, 
+                                               uint32_t request_id,
+                                               union rdevEthSwitchServerMessageList_u *reqMsg,
+                                               rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_free_tx_response *resp;
+    struct rpmsg_kdrv_ethswitch_free_tx_request *req = &reqMsg->free_tx_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->free_tx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->tx_cpsw_psil_dst_id);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleFreeMac(rdevEthSwitchServerInstanceState_t *inst,
+                                               app_remote_device_channel_t *channel, 
+                                               uint32_t request_id,
+                                               union rdevEthSwitchServerMessageList_u *reqMsg,
+                                               rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_free_mac_response *resp;
+    struct rpmsg_kdrv_ethswitch_free_mac_request *req = &reqMsg->free_mac_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->free_mac_handler (inst->inst_prm.host_id,req->info.id,req->info.core_key, req->mac_address);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+
+static int32_t rdevEthSwitchServerHandleFreeRx(rdevEthSwitchServerInstanceState_t *inst,
+                                               app_remote_device_channel_t *channel, 
+                                               uint32_t request_id,
+                                               union rdevEthSwitchServerMessageList_u *reqMsg,
+                                               rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_free_rx_response *resp;
+    struct rpmsg_kdrv_ethswitch_free_rx_request *req = &reqMsg->free_rx_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->free_rx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->alloc_flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleDetach(rdevEthSwitchServerInstanceState_t *inst,
+                                               app_remote_device_channel_t *channel, 
+                                               uint32_t request_id,
+                                               union rdevEthSwitchServerMessageList_u *reqMsg,
+                                               rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_detach_response *resp;
+    struct rpmsg_kdrv_ethswitch_detach_request *req = &reqMsg->detach_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->detach_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleRegRd(rdevEthSwitchServerInstanceState_t *inst,
+                                              app_remote_device_channel_t *channel, 
+                                              uint32_t request_id,
+                                              union rdevEthSwitchServerMessageList_u *reqMsg,
+                                              rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_regrd_response *resp;
+    struct rpmsg_kdrv_ethswitch_regrd_request *req = &reqMsg->regrd_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->regrd_handler(inst->inst_prm.host_id,req->regaddr, &resp->regval);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleRegWr(rdevEthSwitchServerInstanceState_t *inst,
+                                              app_remote_device_channel_t *channel, 
+                                              uint32_t request_id,
+                                              union rdevEthSwitchServerMessageList_u *reqMsg,
+                                              rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_regwr_response *resp;
+    struct rpmsg_kdrv_ethswitch_regwr_request *req = &reqMsg->regwr_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->regwr_handler(inst->inst_prm.host_id,req->regaddr,req->regval,&resp->regval);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleIoctl(rdevEthSwitchServerInstanceState_t *inst,
+                                              app_remote_device_channel_t *channel, 
+                                              uint32_t request_id,
+                                              union rdevEthSwitchServerMessageList_u *reqMsg,
+                                              rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_ioctl_response *resp;
+    struct rpmsg_kdrv_ethswitch_ioctl_request *req = &reqMsg->ioctl_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->ioctl_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->cmd, req->inargs, req->inargs_len, resp->outargs, resp->outargs_len);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInstanceState_t *inst,
+                                                         app_remote_device_channel_t *channel, 
+                                                         uint32_t request_id,
+                                                         union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                         rdevEthSwitchServerCbFxn_t *cb);
+
+rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
+{
+    [RPMSG_KDRV_TP_ETHSWITCH_ATTACH] = &rdevEthSwitchServerHandleAttachRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX] = &rdevEthSwitchServerHandleAllocTxRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX] = &rdevEthSwitchServerHandleAllocRxRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW] = &rdevEthSwitchServerHandleAllocDefaultFlow,
+    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC] = &rdevEthSwitchServerHandleAllocMacRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC] = &rdevEthSwitchServerHandleRegisterMac,
+    [RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC] = &rdevEthSwitchServerHandleUnRegisterMac,
+    [RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW] = &rdevEthSwitchServerHandleUnRegisterDefaultFlow,
+    [RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC] = &rdevEthSwitchServerHandleFreeMac,
+    [RPMSG_KDRV_TP_ETHSWITCH_FREE_TX] = &rdevEthSwitchServerHandleFreeTx,
+    [RPMSG_KDRV_TP_ETHSWITCH_FREE_RX] = &rdevEthSwitchServerHandleFreeRx,
+    [RPMSG_KDRV_TP_ETHSWITCH_DETACH] = &rdevEthSwitchServerHandleDetach,
+    [RPMSG_KDRV_TP_ETHSWITCH_IOCTL] = &rdevEthSwitchServerHandleIoctl,
+    [RPMSG_KDRV_TP_ETHSWITCH_REGWR] = &rdevEthSwitchServerHandleRegWr,
+    [RPMSG_KDRV_TP_ETHSWITCH_REGRD] = &rdevEthSwitchServerHandleRegRd,
+    [RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST] = &rdevEthSwitchServerHandlePingRequest,
+};
 
 
 static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_channel_t *channel,
@@ -214,14 +600,20 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
     }
 
     if(ret == 0) {
-        switch(hdr->message_type) {
-            case RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST:
-                ret = rdevEthSwitchServerHandlePingRequest(inst, channel, request_id,
-                        (struct rpmsg_kdrv_ethswitch_ping_request *)data);
-                break;
-            default:
-                appLogPrintf("%s: unidentified request\n", __func__);
-                ret = -1;
+        if ((hdr->message_type < CPSW_UTILS_ARRAYSIZE(rdevEthSwitchServerRequestHandlers))
+            &&
+            (rdevEthSwitchServerRequestHandlers[hdr->message_type] != NULL)) 
+        {
+            ret = rdevEthSwitchServerRequestHandlers[hdr->message_type](inst, 
+                              channel, 
+                              request_id,
+                              (union rdevEthSwitchServerMessageList_u *)data,
+                              &gRdevEthSwitchServerState.prm.cb);
+        }
+        else
+        {
+            appLogPrintf("%s: unidentified request\n", __func__);
+            ret = -1;
         }
     }
 
@@ -229,8 +621,8 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
     return ret;
 }
 
-static int32_t rdevEthSwitchServerHandleC2sMessage(rdevEthSwitchServerInstanceState_t *inst,
-        app_remote_device_channel_t *channel, struct rpmsg_kdrv_ethswitch_c2s_notify *req)
+static int32_t rdevEthSwitchServerHandleC2SNotify(rdevEthSwitchServerInstanceState_t *inst,
+                                                  app_remote_device_channel_t *channel, struct rpmsg_kdrv_ethswitch_c2s_notify *req)
 {
     int32_t ret = 0;
 
@@ -269,7 +661,7 @@ static int32_t rdevEthSwitchServerMessage(uint32_t device_id, app_remote_device_
     if(ret == 0) {
         switch(hdr->message_type) {
             case RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY:
-                ret = rdevEthSwitchServerHandleC2sMessage(inst, channel,
+                ret = rdevEthSwitchServerHandleC2SNotify(inst, channel,
                         (struct rpmsg_kdrv_ethswitch_c2s_notify *)data);
                 break;
             default:
@@ -353,7 +745,7 @@ static uint32_t rdevEthSwitchServerFillPrivData(uint32_t device_id, void *priv_d
     }
 
     if(ret == 0) {
-        memcpy(&demo_data->charString[0], &inst->inst_prm.data[0], min(avail_len, min(ETHREMOTECFG_SERVER_MAX_DATA_LEN, RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN)));
+        memcpy(&demo_data->char_string[0], &inst->inst_prm.data[0], min(avail_len, min(ETHREMOTECFG_SERVER_MAX_DATA_LEN, RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN)));
     }
 
     SemaphoreP_post(gRdevEthSwitchServerState.lock_sem);
@@ -661,6 +1053,8 @@ int32_t rdevEthSwitchServerInit(rdevEthSwitchServerInitPrm_t *prm)
     SemaphoreP_Params sem_params;
     char err_str[128];
 
+    CPSW_UTILS_COMPILETIME_ASSERT(sizeof(union rdevEthSwitchServerMessageList_u) <= 
+                                  ETHREMOTECFG_SERVER_MAX_PACKET_SIZE);
     if(ret == 0) {
         /* validate params. */
         ret = rdevEthSwitchServerValidateInitPrm(prm, err_str, 128);

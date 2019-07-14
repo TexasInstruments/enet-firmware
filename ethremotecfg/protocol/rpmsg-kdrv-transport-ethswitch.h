@@ -74,6 +74,7 @@ enum rpmsg_kdrv_ethswitch_message_type {
     RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC,
     RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC,
     RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC,
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW,
     RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC,
     RPMSG_KDRV_TP_ETHSWITCH_FREE_TX,
     RPMSG_KDRV_TP_ETHSWITCH_FREE_RX,
@@ -82,7 +83,6 @@ enum rpmsg_kdrv_ethswitch_message_type {
     RPMSG_KDRV_TP_ETHSWITCH_REGWR,
     RPMSG_KDRV_TP_ETHSWITCH_REGRD,
     RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST,
-    RPMSG_KDRV_TP_ETHSWITCH_PING_RESPONSE,
     RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY,
     RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY,
     RPMSG_KDRV_TP_ETHSWITCH_MAX,
@@ -148,7 +148,7 @@ struct rpmsg_kdrv_ethswitch_common_request_info {
     /* unique handle returned by ATTACH  */
     u64 id;
     /* Core specific key returned by attach */
-    u32 coreKey;
+    u32 core_key;
 } __packed;
 
 /*
@@ -166,7 +166,7 @@ struct rpmsg_kdrv_ethswitch_attach_request {
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
     /* enum: rpmsg_kdrv_ethswitch_cpsw_type  */
-    u8 cpswType;
+    u8 cpsw_type;
 } __packed;
 
 /*
@@ -177,13 +177,13 @@ struct rpmsg_kdrv_ethswitch_attach_response {
     /* unique handle used by all further CMDs  */
     u64 id;
     /* Core specific key to indicate attached core */
-    u32 coreKey;
+    u32 core_key;
     /* MTU of rx packet */
-    u32 rxMtu;
+    u32 rx_mtu;
     /* MTU of tx packet per priority */
-    u32 txMtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+    u32 tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
     /* Flag indicating if Tx Checksum offload is enabled */
-    u8  txCSumEnabled;
+    u8  tx_csum_enabled;
 } __packed;
 
 
@@ -203,31 +203,40 @@ struct rpmsg_kdrv_ethswitch_alloc_request {
 struct rpmsg_kdrv_ethswitch_alloc_rx_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Rx Flow Base or Start index*/
-    u32 startIdx;
+    u32 start_idx;
     /*! Allocated flow's index (offset from startIdx)*/
-    u32 allocFlowIdx;
+    u32 alloc_flow_idx;
 } __packed;
+
+struct rpmsg_kdrv_ethswitch_alloc_rx_default_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    /*! Rx Flow Base or Start index*/
+    u32 start_idx;
+    /*! Allocated flow's index (offset from startIdx)*/
+    u32 alloc_flow_idx;
+} __packed;
+
 
 struct rpmsg_kdrv_ethswitch_alloc_tx_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Tx PSIL Peer destination thread id which should be paired with the
       * Tx UDMA channel
       */
-    u32 txCpswPsilDstId;
+    u32 tx_cpsw_psil_dst_id;
 } __packed;
 
 struct rpmsg_kdrv_ethswitch_alloc_mac_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Rx Flow Base or Start index*/
-    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 } __packed;
 
 struct rpmsg_kdrv_ethswitch_register_mac_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     /*! Flow's index associated with the mac address to be registered in ALE */
-    u32 flowIdx;
+    u32 flow_idx;
 } __packed;
 
 struct rpmsg_kdrv_ethswitch_register_mac_response {
@@ -235,9 +244,10 @@ struct rpmsg_kdrv_ethswitch_register_mac_response {
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_unregister_mac_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    u32 flow_idx;
 } __packed;
 
 struct rpmsg_kdrv_ethswitch_unregister_mac_response {
@@ -245,9 +255,9 @@ struct rpmsg_kdrv_ethswitch_unregister_mac_response {
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_free_mac_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    u8 macAddress[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_free_mac_response {
@@ -255,19 +265,29 @@ struct rpmsg_kdrv_ethswitch_free_mac_response {
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_free_tx_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    u32 txId;
+    u32 tx_cpsw_psil_dst_id;
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_free_tx_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_free_rx_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
+struct rpmsg_kdrv_ethswitch_unregister_rx_default_request {
+    struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    u32 rxId;
+    u32 default_flow_idx;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_unregister_rx_default_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_free_rx_request {
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u32 alloc_flow_idx;
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_free_rx_response {
@@ -275,7 +295,7 @@ struct rpmsg_kdrv_ethswitch_free_rx_response {
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_detach_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
 }  __packed;
 
@@ -284,33 +304,33 @@ struct rpmsg_kdrv_ethswitch_detach_response {
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_ioctl_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     u32    cmd;
-    u32    inargslen;
+    u32    inargs_len;
     u8     inargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN];
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_ioctl_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-    u32    outargslen;
+    u32    outargs_len;
     u8     outargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN];
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_regwr_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
-    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     u32    regaddr;
     u32    regval;
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_regwr_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
+    /*! Updated register value */
+    u32    regval;
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_regrd_request {
-    struct rpmsg_kdrv_ethswitch_message_header hdr;
-    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    struct rpmsg_kdrv_ethswitch_message_header header;
     u32    regaddr;
 }  __packed;
 
@@ -324,7 +344,7 @@ struct rpmsg_kdrv_ethswitch_regrd_response {
  */
 struct rpmsg_kdrv_ethswitch_device_data {
     /* Does the device send all vsyncs? */
-    u8 charString[RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN];
+    u8 char_string[RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN];
 } __packed;
 
 
@@ -338,8 +358,6 @@ struct rpmsg_kdrv_ethswitch_ping_request {
 
 /* demo device ping response - always server to client */
 struct rpmsg_kdrv_ethswitch_ping_response {
-    /* message header */
-    struct rpmsg_kdrv_ethswitch_message_header header;
     /* ping data */
     u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
 } __packed;

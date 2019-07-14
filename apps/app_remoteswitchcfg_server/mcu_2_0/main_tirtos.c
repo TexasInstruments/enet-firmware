@@ -77,6 +77,9 @@
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
 
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
+#include <ti/drv/cpsw/cpsw.h>
 
 #define IPC_RPMESSAGE_OBJ_SIZE  256
 #define VQ_BUF_SIZE             2048
@@ -105,6 +108,7 @@ static uint32_t gRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1, IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2, IPC_C7X_1
 };
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc)/sizeof(uint32_t);
+static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl;
 
 void appLogPrintf(const char *format, ...)
 {
@@ -112,6 +116,7 @@ void appLogPrintf(const char *format, ...)
 
     va_start(args, format);
     System_vprintf(format, args);
+    CpswAppUtils_print(format, args);
     va_end(args);
 }
 
@@ -223,6 +228,7 @@ static Void remotedev_init(UArg a0, UArg a1)
 
     remote_ethswitch_init_prm.rpmsg_buf_size = 256;
     remote_ethswitch_init_prm.num_instances = 2;
+    remote_ethswitch_init_prm.cb = appRdevEthSwitchServerCbFxnTbl;
 
     inst = &remote_ethswitch_init_prm.inst_prm[0];
     inst->host_id = IPC_MCU2_1;
@@ -252,6 +258,7 @@ static Void taskFxn(UArg a0, UArg a1)
     Task_Params monitor_taskParams;
     SemaphoreP_Params sem_params;
 
+    CpswAppBoardUtils_init();
     SemaphoreP_Params_init(&sem_params);
     sem_params.mode = SemaphoreP_Mode_BINARY;
     g_ipc_init_wait_sem = SemaphoreP_create(0, &sem_params);
@@ -305,4 +312,224 @@ int main(void)
 
     return(0);
 }
+
+uintptr_t gCpswHandle;
+
+static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,uint8_t cpsw_type, struct rpmsg_kdrv_ethswitch_attach_response *resp)
+{
+    uint32_t i;
+    
+    CpswAppUtils_print("Function:%s,HostId:%u,CpswType:%u\n",__func__,host_id, cpsw_type);
+    resp->rx_mtu = 1024;
+    resp->tx_csum_enabled = false;
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(resp->tx_mtu); i++)
+    {
+        resp->tx_mtu[i] = 1024;
+    }
+    resp->id = (uint64_t) &gCpswHandle;
+    resp->core_key = host_id | 0xABCD0000;
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+}
+
+static int32_t app_ethrdev_srv_cb_alloc_tx_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_tx_response * resp)
+{
+    const CpswSoc_Config *socCfg;
+
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, handle, core_key);
+
+    socCfg = CpswSoc_getConfig(CPSW_9G);
+    resp->tx_cpsw_psil_dst_id = socCfg->txChPeerThreadId;
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+static int32_t app_ethrdev_srv_cb_alloc_rx_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_rx_response * resp)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, handle, core_key);
+
+    resp->start_idx = 174;
+    resp->alloc_flow_idx = 0;
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+static int32_t app_ethrdev_srv_cb_alloc_rx_default_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_rx_default_response * resp)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, handle, core_key);
+
+    resp->start_idx = 174;
+    resp->alloc_flow_idx = 2;
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+static int32_t app_ethrdev_srv_cb_alloc_mac_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key,struct rpmsg_kdrv_ethswitch_alloc_mac_response * resp)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, handle, core_key);
+
+    CpswSoc_getMacAddr(CPSW_9G,CPSW_MAC_PORT_1,resp->mac_address);
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+static int32_t app_ethrdev_srv_cb_register_mac_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, u8 *mac_address, uint32_t flow_idx)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u\n",
+                       __func__,
+                       host_id, 
+                       handle, 
+                       core_key, 
+                       mac_address[0],
+                       mac_address[1],
+                       mac_address[2],
+                       mac_address[3],
+                       mac_address[4],
+                       mac_address[5],
+                       flow_idx);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+static int32_t app_ethrdev_srv_cb_unregister_mac_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, u8 *mac_address, uint32_t flow_idx)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u\n",
+                       __func__,
+                       host_id, 
+                       handle, 
+                       core_key, 
+                       mac_address[0],
+                       mac_address[1],
+                       mac_address[2],
+                       mac_address[3],
+                       mac_address[4],
+                       mac_address[5],
+                       flow_idx);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+static int32_t app_ethrdev_srv_cb_unregister_rx_default_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t flow_idx)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x\n",__func__,host_id, handle, core_key, flow_idx);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+
+static int32_t app_ethrdev_srv_cb_free_tx_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t tx_cpsw_psil_dst_id)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, TxId:%x\n",__func__,host_id, handle, core_key, tx_cpsw_psil_dst_id);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+
+static int32_t app_ethrdev_srv_cb_free_rx_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t alloc_flow_idx)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, RxId:%x\n",__func__,host_id, handle, core_key, alloc_flow_idx);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+
+
+static int32_t app_ethrdev_srv_cb_free_mac_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key,  u8 *mac_address)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x\n",
+                       __func__,
+                       host_id, 
+                       handle, 
+                       core_key, 
+                       mac_address[0],
+                       mac_address[1],
+                       mac_address[2],
+                       mac_address[3],
+                       mac_address[4],
+                       mac_address[5]);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+
+
+static int32_t app_ethrdev_srv_cb_detach_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, handle, core_key);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+
+static int32_t app_ethrdev_srv_cb_ioctl_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key, u32 cmd, const u8 *inargs, u32 inargs_len, u8 *outargs, uint32_t outargs_len)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Cmd:%x,InArgsLen:%u, OutArgsLen:%u \n",__func__,host_id, handle, core_key,cmd,inargs_len, outargs_len);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+
+static int32_t app_ethrdev_srv_cb_regwr_handler(uint32_t host_id, uint32_t regaddr, uint32_t regval,uint32_t *pRegval)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u, RegAddr:%p, RegVal:%x \n",__func__,host_id, regaddr, regval);
+    
+    CSL_REG32_WR(regaddr, regval);
+    
+    *pRegval = CSL_REG32_RD(regaddr);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+
+}
+
+
+static int32_t app_ethrdev_srv_cb_regrd_handler(uint32_t host_id, uint32_t regaddr, uint32_t *pRegval)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u, RegAddr:%p \n",__func__,host_id, regaddr);
+
+    *pRegval = CSL_REG32_RD(regaddr);
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+}
+
+static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl = 
+{
+    .attach_handler = app_ethrdev_srv_cb_attach_handler,
+    .alloc_tx_handler = app_ethrdev_srv_cb_alloc_tx_handler,
+    .alloc_rx_handler = app_ethrdev_srv_cb_alloc_rx_handler,
+    .alloc_rx_default_handler = app_ethrdev_srv_cb_alloc_rx_default_handler,
+    .alloc_mac_handler = app_ethrdev_srv_cb_alloc_mac_handler,
+    .register_mac_handler = app_ethrdev_srv_cb_register_mac_handler,
+    .unregister_mac_handler = app_ethrdev_srv_cb_unregister_mac_handler,
+    .unregister_rx_default_handler = app_ethrdev_srv_cb_unregister_rx_default_handler,
+    .free_tx_handler = app_ethrdev_srv_cb_free_tx_handler,
+    .free_rx_handler = app_ethrdev_srv_cb_free_rx_handler,
+    .free_mac_handler = app_ethrdev_srv_cb_free_mac_handler,
+    .detach_handler = app_ethrdev_srv_cb_detach_handler,
+    .ioctl_handler = app_ethrdev_srv_cb_ioctl_handler,
+    .regwr_handler = app_ethrdev_srv_cb_regwr_handler,
+    .regrd_handler = app_ethrdev_srv_cb_regrd_handler,
+};
+
+
+
+
+
 

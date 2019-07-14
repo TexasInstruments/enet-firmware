@@ -78,6 +78,8 @@
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
 
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
+#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
 
 #define IPC_RPMESSAGE_OBJ_SIZE  256
 #define VQ_BUF_SIZE             2048
@@ -183,25 +185,273 @@ static void messageLoopFn(UArg a0, UArg a1)
     while(TRUE) {
         snprintf(msgText, sizeof(msgText), "ping-message %d", cnt);
         System_printf("%s: sending message\n", __func__);
-        rdevEthSwitchClient_sendText(device_id, msgText);
+        rdevEthSwitchClient_sendNotify(device_id, msgText);
         Task_sleep(10);
         cnt++;
     }
 }
 
+static void rdevEthSwitchApp_printStatsNonZero(const char *pcString, uint64_t statVal)
+{
+    if (0U != statVal)
+    {
+        System_printf(pcString, statVal);
+    }
+}
+
+static void rdevEthSwitchApp_printStatsWithIdxNonZero(const char *pcString,
+                                                  uint32_t idx,
+                                                  uint64_t statVal)
+{
+    if (0U != statVal)
+    {
+        System_printf(pcString, idx, statVal);
+    }
+}
+
+static void rdevEthSwitchApp_printMacPortStats9G(CpswStats_MacPort_9g *st)
+{
+    uint_fast32_t i;
+
+    rdevEthSwitchApp_printStatsNonZero("  rxGoodFrames            = %llu\n",st->rxGoodFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxBcastFrames            = %llu\n",st->rxBcastFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxMcastFrames            = %llu\n",st->rxMcastFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxPauseFrames            = %llu\n",st->rxPauseFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxCrcErrors            = %llu\n",st->rxCrcErrors);
+    rdevEthSwitchApp_printStatsNonZero("  rxAlignCodeErrors            = %llu\n",st->rxAlignCodeErrors);
+    rdevEthSwitchApp_printStatsNonZero("  rxOversizedFrames            = %llu\n",st->rxOversizedFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxJabberFrames            = %llu\n",st->rxJabberFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxUndersizedFrames            = %llu\n",st->rxUndersizedFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxFragments            = %llu\n",st->rxFragments);
+    rdevEthSwitchApp_printStatsNonZero("  aleDrop            = %llu\n",st->aleDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleOverrunDrop            = %llu\n",st->aleOverrunDrop);
+    rdevEthSwitchApp_printStatsNonZero("  rxOctets            = %llu\n",st->rxOctets);
+    rdevEthSwitchApp_printStatsNonZero("  txGoodFrames            = %llu\n",st->txGoodFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txBcastFrames            = %llu\n",st->txBcastFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txMcastFrames            = %llu\n",st->txMcastFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txPauseFrames            = %llu\n",st->txPauseFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txDeferredFrames            = %llu\n",st->txDeferredFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txCollisionFrames            = %llu\n",st->txCollisionFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txSingleCollFrames            = %llu\n",st->txSingleCollFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txMultipleCollFrames            = %llu\n",st->txMultipleCollFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txExcessiveCollFrames            = %llu\n",st->txExcessiveCollFrames);
+    rdevEthSwitchApp_printStatsNonZero("  txLateCollFrames            = %llu\n",st->txLateCollFrames);
+    rdevEthSwitchApp_printStatsNonZero("  rxIPGError            = %llu\n",st->rxIPGError);
+    rdevEthSwitchApp_printStatsNonZero("  txCarrierSenseErrors            = %llu\n",st->txCarrierSenseErrors);
+    rdevEthSwitchApp_printStatsNonZero("  txOctets            = %llu\n",st->txOctets);
+    rdevEthSwitchApp_printStatsNonZero("  octetsFrames64            = %llu\n",st->octetsFrames64);
+    rdevEthSwitchApp_printStatsNonZero("  octetsFrames65to127            = %llu\n",st->octetsFrames65to127);
+    rdevEthSwitchApp_printStatsNonZero("  octetsFrames128to255            = %llu\n",st->octetsFrames128to255);
+    rdevEthSwitchApp_printStatsNonZero("  octetsFrames256to511            = %llu\n",st->octetsFrames256to511);
+    rdevEthSwitchApp_printStatsNonZero("  octetsFrames512to1023            = %llu\n",st->octetsFrames512to1023);
+    rdevEthSwitchApp_printStatsNonZero("  octetsFrames1024            = %llu\n",st->octetsFrames1024);
+    rdevEthSwitchApp_printStatsNonZero("  netOctets            = %llu\n",st->netOctets);
+    rdevEthSwitchApp_printStatsNonZero("  rxBottomOfFifoDrop            = %llu\n",st->rxBottomOfFifoDrop);
+    rdevEthSwitchApp_printStatsNonZero("  portMaskDrop            = %llu\n",st->portMaskDrop);
+    rdevEthSwitchApp_printStatsNonZero("  rxTopOfFifoDrop            = %llu\n",st->rxTopOfFifoDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleRateLimitDrop            = %llu\n",st->aleRateLimitDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleVidIngressDrop            = %llu\n",st->aleVidIngressDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleDAEqSADrop            = %llu\n",st->aleDAEqSADrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleBlockDrop            = %llu\n",st->aleBlockDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleSecureDrop            = %llu\n",st->aleSecureDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleAuthDrop            = %llu\n",st->aleAuthDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleUnknownUcast            = %llu\n",st->aleUnknownUcast);
+    rdevEthSwitchApp_printStatsNonZero("  aleUnknownUcastBcnt            = %llu\n",st->aleUnknownUcastBcnt);
+    rdevEthSwitchApp_printStatsNonZero("  aleUnknownMcast            = %llu\n",st->aleUnknownMcast);
+    rdevEthSwitchApp_printStatsNonZero("  aleUnknownMcastBcnt            = %llu\n",st->aleUnknownMcastBcnt);
+    rdevEthSwitchApp_printStatsNonZero("  aleUnknownBcast            = %llu\n",st->aleUnknownBcast);
+    rdevEthSwitchApp_printStatsNonZero("  aleUnknownBcastBcnt            = %llu\n",st->aleUnknownBcastBcnt);
+    rdevEthSwitchApp_printStatsNonZero("  alePolicyMatch            = %llu\n",st->alePolicyMatch);
+    rdevEthSwitchApp_printStatsNonZero("  alePolicyMatchRed            = %llu\n",st->alePolicyMatchRed);
+    rdevEthSwitchApp_printStatsNonZero("  alePolicyMatchYellow            = %llu\n",st->alePolicyMatchYellow);
+    rdevEthSwitchApp_printStatsNonZero("  aleMultSADrop            = %llu\n",st->aleMultSADrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleDualVlanDrop            = %llu\n",st->aleDualVlanDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleLenErrorDrop            = %llu\n",st->aleLenErrorDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleIpNextHdrDrop            = %llu\n",st->aleIpNextHdrDrop);
+    rdevEthSwitchApp_printStatsNonZero("  aleIPv4FragDrop            = %llu\n",st->aleIPv4FragDrop);
+    rdevEthSwitchApp_printStatsNonZero("  ietRxAssemblyErr            = %llu\n",st->ietRxAssemblyErr);
+    rdevEthSwitchApp_printStatsNonZero("  ietRxAssemblyOk            = %llu\n",st->ietRxAssemblyOk);
+    rdevEthSwitchApp_printStatsNonZero("  ietRxSmdError            = %llu\n",st->ietRxSmdError);
+    rdevEthSwitchApp_printStatsNonZero("  ietRxFrag            = %llu\n",st->ietRxFrag);
+    rdevEthSwitchApp_printStatsNonZero("  ietTxHold            = %llu\n",st->ietTxHold);
+    rdevEthSwitchApp_printStatsNonZero("  ietTxFrag            = %llu\n",st->ietTxFrag);
+    rdevEthSwitchApp_printStatsNonZero("  txMemProtectError            = %llu\n",st->txMemProtectError);
+
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPri); i++)
+    {
+        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPri[%u]              = %llu\n",i,st->enetPnTxPri[i]);
+    }
+
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPriBcnt); i++)
+    {
+        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPriBcnt[%u]          = %llu\n",i,st->enetPnTxPriBcnt[i]);
+    }
+
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPriBcnt); i++)
+    {
+        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPriDrop[%u]          = %llu\n",i,st->enetPnTxPriBcnt[i]);
+    }
+
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPriBcnt); i++)
+    {
+        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPriDropBcnt[%u]      = %llu\n",i,st->enetPnTxPriBcnt[i]);
+    }
+}
+
+uint32_t gRegWrAddr = 0xDEADBEEF;
+uint32_t gRegRdAddr = 0x00C0FFEE;
+
 static void requestLoopFn(UArg a0, UArg a1)
 {
     uint32_t cnt = 0;
-    char     msgText[512];
-    uint8_t resp[512];
-    uint32_t resp_len;
     uint32_t device_id = (uint32_t)a0;
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_mtu;
+    uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+    uint8_t  tx_csum_enabled;
+    uint32_t tx_id;
+    uint32_t rx_flow_startidx, rx_flow_allocidx, rx_default_flow_allocidx;
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    int32_t  ret;
+    
 
     while(TRUE) {
-        snprintf(msgText, sizeof(msgText), "ping-request %d", cnt);
-        System_printf("%s: sending request\n", __func__);
-        rdevEthSwitchClient_sendPing(device_id, msgText, resp, sizeof(resp), &resp_len);
-        System_printf("%s: respose %s\n", __func__, resp);
+        switch (cnt % 16)
+        {
+            case 0:
+            {
+                char     msgText[512];
+                char     resp[512];
+
+                memset(resp, 0, sizeof(resp));
+                snprintf(msgText, sizeof(msgText), "ping-request %d", cnt);
+                System_printf("%s: sending ping request\n", __func__);
+                ret = rdevEthSwitchClient_sendping(device_id, msgText, strlen(msgText), resp, sizeof(resp));
+                if (0 == ret)
+                {
+                    System_printf("%s: respose %s\n", __func__, resp);
+                }
+                break;
+            }
+            case 1:
+            {
+                ret = rdevEthSwitchClient_attach(device_id, RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G, &id, &core_key, &rx_mtu, tx_mtu, CPSW_UTILS_ARRAYSIZE(tx_mtu),&tx_csum_enabled);
+                if (0 == ret)
+                {
+                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",__func__,(uintptr_t)(id & 0xFFFFFFFFU), core_key, rx_mtu, tx_mtu[0], tx_mtu[1],tx_mtu[2],tx_mtu[3], tx_mtu[4], tx_mtu[5],tx_mtu[6],tx_mtu[7],tx_csum_enabled);
+                }
+                break;
+            }
+            case 2:
+            {
+                ret = rdevEthSwitchClient_alloctx(device_id, id, core_key, &tx_id);
+                if (0 == ret)
+                {
+                    System_printf("Function:%s,Txid:%u\n",__func__,tx_id);
+                }
+                break;
+            }
+            case 3:
+            {
+                ret = rdevEthSwitchClient_allocrx(device_id, id, core_key, &rx_flow_startidx, &rx_flow_allocidx);
+                if (0 == ret)
+                {
+                    System_printf("Function:%s,RxStartId:%u, RxAllocId:%u\n",__func__,rx_flow_startidx, rx_flow_allocidx);
+                }
+                break;
+            }
+            case 4:
+            {
+                ret = rdevEthSwitchClient_allocrxdefault(device_id, id, core_key, &rx_flow_startidx, &rx_default_flow_allocidx);
+                if (0 == ret)
+                {
+                    System_printf("Function:%s,RxStartId:%u, RxAllocId:%u\n",__func__,rx_flow_startidx, rx_default_flow_allocidx);
+                }
+                break;
+            }
+            case 5:
+            {
+                ret = rdevEthSwitchClient_allocmac(device_id, id, core_key, mac_address, CPSW_UTILS_ARRAYSIZE(mac_address));
+                if (0 == ret)
+                {
+                    System_printf("Function:%s,mac_address:%2x:%2x:%2x:%2x:%2x:%2x, RxAllocId:%u \n",__func__,mac_address[0],mac_address[1],mac_address[2],mac_address[3],mac_address[4],mac_address[5]);
+                }
+                break;
+            }
+            case 6:
+            {
+                ret = rdevEthSwitchClient_registermac(device_id, id, core_key, rx_flow_allocidx, mac_address);
+                break;
+            }
+            case 7:
+            {
+                ret = rdevEthSwitchClient_unregistermac(device_id, id, core_key, rx_flow_allocidx, mac_address);
+                break;
+            }
+            case 8:
+            {
+                ret = rdevEthSwitchClient_unregisterrxdefault(device_id, id, core_key, rx_default_flow_allocidx);
+                break;
+            }
+            case 9:
+            {
+                ret = rdevEthSwitchClient_freemac(device_id, id, core_key, mac_address);
+                break;
+            }
+            case 10:
+            {
+                ret = rdevEthSwitchClient_freetx(device_id, id, core_key, tx_id);
+                break;
+            }
+            case 11:
+            {
+                ret = rdevEthSwitchClient_freerx(device_id, id, core_key, rx_flow_allocidx);
+                break;
+            }
+            case 12:
+            {
+                ret = rdevEthSwitchClient_detach(device_id, id, core_key);
+                break;
+            }
+            case 13:
+            {
+                CpswStats_GenericMacPortInArgs inArgs;
+                CpswStats_PortStats portStats;
+                uint32_t outargs_len;
+
+                inArgs.portNum = CPSW_MAC_PORT_0;
+                ret = rdevEthSwitchClient_ioctl(device_id, id, core_key,CPSW_STATS_IOCTL_GET_MACPORT_STATS, &inArgs, sizeof(inArgs), &portStats, sizeof(portStats), &outargs_len);
+                if (0 == ret)
+                {
+                    CpswStats_MacPort_9g *st;
+
+                    st = (CpswStats_MacPort_9g *)&portStats;
+                    rdevEthSwitchApp_printMacPortStats9G(st);
+                }
+                break;
+            }
+            case 14:
+            {
+                uint32_t postWriteVal;
+                ret = rdevEthSwitchClient_regwr(device_id, (uint32_t)&gRegWrAddr, 0xBABEFACE, &postWriteVal);
+                if (0 == ret)
+                {
+                    CpswAppUtils_assert(postWriteVal == 0xBABEFACE);
+                }
+                break;
+            }
+            case 15:
+            {
+                uint32_t regRdVal;
+                ret = rdevEthSwitchClient_regrd(device_id, (uint32_t)&gRegRdAddr, &regRdVal);
+                if (0 == ret)
+                {
+                    CpswAppUtils_assert(regRdVal == gRegRdAddr);
+                }
+                break;
+            }
+        }
         cnt++;
     }
 }
