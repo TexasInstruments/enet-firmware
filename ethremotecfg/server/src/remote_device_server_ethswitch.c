@@ -548,11 +548,56 @@ static int32_t rdevEthSwitchServerHandleIoctl(rdevEthSwitchServerInstanceState_t
     return ret;
 }
 
+static int32_t rdevEthSwitchServerHandleIPV4MacRegisterRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                             app_remote_device_channel_t *channel, 
+                                                             uint32_t request_id,
+                                                             union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                             rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request *req = &reqMsg->ipv4_register_mac_req;
+    struct rpmsg_kdrv_ethswitch_ipv4_register_mac_response *resp = &reqMsg->ipv4_register_mac_res;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->ipv4_register_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key,req->mac_address, req->ipv4_addr);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleIPV6MacRegisterRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                             app_remote_device_channel_t *channel, 
+                                                             uint32_t request_id,
+                                                             union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                             rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request *req = &reqMsg->ipv6_register_mac_req;
+    struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response *resp = &reqMsg->ipv6_register_mac_res;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->ipv6_register_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key,req->mac_address, req->ipv6_addr);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
+
+
 typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInstanceState_t *inst,
                                                          app_remote_device_channel_t *channel, 
                                                          uint32_t request_id,
                                                          union rdevEthSwitchServerMessageList_u *reqMsg,
                                                          rdevEthSwitchServerCbFxn_t *cb);
+
 
 rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
 {
@@ -572,6 +617,9 @@ rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
     [RPMSG_KDRV_TP_ETHSWITCH_REGWR] = &rdevEthSwitchServerHandleRegWr,
     [RPMSG_KDRV_TP_ETHSWITCH_REGRD] = &rdevEthSwitchServerHandleRegRd,
     [RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST] = &rdevEthSwitchServerHandlePingRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER] = &rdevEthSwitchServerHandleIPV4MacRegisterRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER] = &rdevEthSwitchServerHandleIPV6MacRegisterRequest,
+
 };
 
 

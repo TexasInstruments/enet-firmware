@@ -108,8 +108,8 @@ typedef int32_t (*ethrdev_srv_cb_alloc_tx_handler_t) (uint32_t host_id,uint64_t 
 typedef int32_t (*ethrdev_srv_cb_alloc_rx_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_rx_response * resp);
 typedef int32_t (*ethrdev_srv_cb_alloc_rx_default_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_rx_default_response * resp);
 typedef int32_t (*ethrdev_srv_cb_alloc_mac_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key,struct rpmsg_kdrv_ethswitch_alloc_mac_response * resp);
-typedef int32_t (*ethrdev_srv_cb_register_mac_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, u8 *mac_address, uint32_t flow_idx);
-typedef int32_t (*ethrdev_srv_cb_unregister_mac_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, u8 *mac_address, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_register_mac_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_unregister_mac_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint32_t flow_idx);
 typedef int32_t (*ethrdev_srv_cb_unregister_rx_default_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t flow_idx);
 typedef int32_t (*ethrdev_srv_cb_free_tx_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t tx_cpsw_psil_dst_id);
 typedef int32_t (*ethrdev_srv_cb_free_rx_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t alloc_flow_idx);
@@ -118,6 +118,8 @@ typedef int32_t (*ethrdev_srv_cb_detach_handler_t) (uint32_t host_id,uint64_t ha
 typedef int32_t (*ethrdev_srv_cb_ioctl_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, u32 cmd, const u8 *inargs, u32 inargs_len, u8 *outargs, uint32_t outargs_len);
 typedef int32_t (*ethrdev_srv_cb_regwr_handler_t) (uint32_t host_id, uint32_t regaddr, uint32_t regval,uint32_t *pRegval);
 typedef int32_t (*ethrdev_srv_cb_regrd_handler_t) (uint32_t host_id, uint32_t regaddr, uint32_t *pRegval);
+typedef int32_t (*ethrdev_srv_cb_register_ipv4_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_addr);
+typedef int32_t (*ethrdev_srv_cb_register_ipv6_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_addr);
 
 typedef struct rdevEthSwitchServerCbFxn_s
 {
@@ -136,6 +138,8 @@ typedef struct rdevEthSwitchServerCbFxn_s
     ethrdev_srv_cb_ioctl_handler_t          ioctl_handler;
     ethrdev_srv_cb_regwr_handler_t          regwr_handler;
     ethrdev_srv_cb_regrd_handler_t          regrd_handler;
+    ethrdev_srv_cb_register_ipv4_mac_handler_t ipv4_register_mac_handler;
+    ethrdev_srv_cb_register_ipv6_mac_handler_t ipv6_register_mac_handler;
 } rdevEthSwitchServerCbFxn_t;
 
 
@@ -184,6 +188,10 @@ typedef union rdevEthSwitchServerMessageList_u {
     struct rpmsg_kdrv_ethswitch_device_data device_data;
     struct rpmsg_kdrv_ethswitch_ping_request ping_req;
     struct rpmsg_kdrv_ethswitch_ping_response ping_res;
+    struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request  ipv4_register_mac_req;
+    struct rpmsg_kdrv_ethswitch_ipv4_register_mac_response  ipv4_register_mac_res;
+    struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request  ipv6_register_mac_req;
+    struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response  ipv6_register_mac_res;
     struct rpmsg_kdrv_ethswitch_s2c_notify s2c_notify;
     struct rpmsg_kdrv_ethswitch_c2s_notify c2s_notify;
 } __packed rdevEthSwitchServerMessageList_t;

@@ -160,7 +160,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
             *id = attach_reponse.rdevEthSwitchMsg.attach_res.id;
             *core_key = attach_reponse.rdevEthSwitchMsg.attach_res.core_key;
             *rx_mtu = attach_reponse.rdevEthSwitchMsg.attach_res.rx_mtu;
-            *tx_csum_enabled = attach_reponse.rdevEthSwitchMsg.attach_res.tx_csum_enabled;
+            *tx_csum_enabled = ((attach_reponse.rdevEthSwitchMsg.attach_res.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0);
             if (tx_mtu_array_size >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu))
             {
                 uint32_t i;
@@ -625,6 +625,60 @@ int32_t rdevEthSwitchClient_sendping(uint32_t device_id, char *ping_msg, uint32_
 }
 
 
+int32_t rdevEthSwitchClient_ipv4arpregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_address)
+{
+    rdevEthSwitchClientMessageList_t clientMsg; 
+    struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request *msg = &clientMsg.rdevEthSwitchMsg.ipv4_register_mac_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t ipv4_register_mac_response;
+
+    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    memcpy(msg->mac_address, mac_address, sizeof(msg->mac_address));
+    memcpy(msg->ipv4_addr, ipv4_address, sizeof(msg->ipv4_addr));
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &ipv4_register_mac_response, sizeof(ipv4_register_mac_response), &respMsgSize);
+    if (ret == 0)
+    {
+        CpswAppUtils_assert(respMsgSize == (sizeof(ipv4_register_mac_response.hdr) + sizeof(ipv4_register_mac_response.rdevEthSwitchMsg.ipv4_register_mac_res)));
+        if (ipv4_register_mac_response.rdevEthSwitchMsg.ipv4_register_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+    return ret;
+}
+
+
+int32_t rdevEthSwitchClient_ipv6arpregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_address)
+{
+    rdevEthSwitchClientMessageList_t clientMsg; 
+    struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request *msg = &clientMsg.rdevEthSwitchMsg.ipv6_register_mac_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t ipv6_register_mac_response;
+
+    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    memcpy(msg->mac_address, mac_address, sizeof(msg->mac_address));
+    memcpy(msg->ipv6_addr, ipv6_address, sizeof(msg->ipv6_addr));
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &ipv6_register_mac_response, sizeof(ipv6_register_mac_response), &respMsgSize);
+    if (ret == 0)
+    {
+        CpswAppUtils_assert(respMsgSize == (sizeof(ipv6_register_mac_response.hdr) + sizeof(ipv6_register_mac_response.rdevEthSwitchMsg.ipv6_register_mac_res)));
+        if (ipv6_register_mac_response.rdevEthSwitchMsg.ipv6_register_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+    return ret;
+}
 
 
 

@@ -134,21 +134,21 @@ static void rpmsg_vdevMonitorFxn(UArg arg0, UArg arg1)
     status = Ipc_lateVirtioCreate(IPC_MPU1_0);
     if(status != IPC_SOK)
     {
-        System_printf("%s: Ipc_lateVirtioCreate failed\n", __func__);
+        CpswAppUtils_print("%s: Ipc_lateVirtioCreate failed\n", __func__);
         return;
     }
 
     status = RPMessage_lateInit(IPC_MPU1_0);
     if(status != IPC_SOK)
     {
-        System_printf("%s: RPMessage_lateInit failed\n", __func__);
+        CpswAppUtils_print("%s: RPMessage_lateInit failed\n", __func__);
         return;
     }
 
     status = appRemoteDeviceLateAnnounce(IPC_MPU1_0);
     if(status != IPC_SOK)
     {
-        System_printf("%s: RPMessage_announce() failed\n", __func__);
+        CpswAppUtils_print("%s: RPMessage_announce() failed\n", __func__);
     }
 }
 
@@ -169,7 +169,7 @@ static Void ipc_init(UArg a0, UArg a1)
     /* Step1 : Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gRemoteProc[0]);
 
-    System_printf("IPC_echo_test (core : %s) .....\r\n",
+    CpswAppUtils_print("IPC_echo_test (core : %s) .....\r\n",
             Ipc_mpGetSelfName());
 
 
@@ -222,7 +222,7 @@ static Void remotedev_init(UArg a0, UArg a1)
     remote_dev_init_prm.wait_sem = g_rdev_start_sem;
 
     appRemoteDeviceInit(&remote_dev_init_prm);
-    System_printf("Remote device (core : mcu2_1) .....\r\n");
+    CpswAppUtils_print("Remote device (core : mcu2_1) .....\r\n");
 
     rdevEthSwitchServerInitPrmSetDefault(&remote_ethswitch_init_prm);
 
@@ -245,7 +245,7 @@ static Void remotedev_init(UArg a0, UArg a1)
     }
 
     rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
-    System_printf("Remote demo device (core : mcu2_0) .....\r\n");
+    CpswAppUtils_print("Remote demo device (core : mcu2_0) .....\r\n");
 
     SemaphoreP_post(g_rdev_init_wait_sem);
 }
@@ -321,7 +321,7 @@ static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,uint8_t cpsw_
     
     CpswAppUtils_print("Function:%s,HostId:%u,CpswType:%u\n",__func__,host_id, cpsw_type);
     resp->rx_mtu = 1024;
-    resp->tx_csum_enabled = false;
+    resp->features = 0;
     for (i = 0; i < CPSW_UTILS_ARRAYSIZE(resp->tx_mtu); i++)
     {
         resp->tx_mtu[i] = 1024;
@@ -509,6 +509,63 @@ static int32_t app_ethrdev_srv_cb_regrd_handler(uint32_t host_id, uint32_t regad
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
+static int32_t app_ethrdev_srv_cb_register_ipv4_mac_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_addr)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%x:%x:%x:%x\n",
+                       __func__,
+                       host_id, 
+                       handle, 
+                       core_key, 
+                       mac_address[0],
+                       mac_address[1],
+                       mac_address[2],
+                       mac_address[3],
+                       mac_address[4],
+                       mac_address[5],
+                       ipv4_addr[0],
+                       ipv4_addr[1],
+                       ipv4_addr[2],
+                       ipv4_addr[3]);
+
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+}
+
+
+static int32_t app_ethrdev_srv_cb_register_ipv6_mac_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_addr)
+{
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv6Addr:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x\n",
+                       __func__,
+                       host_id, 
+                       handle, 
+                       core_key, 
+                       mac_address[0],
+                       mac_address[1],
+                       mac_address[2],
+                       mac_address[3],
+                       mac_address[4],
+                       mac_address[5],
+                       ipv6_addr[0],
+                       ipv6_addr[1],
+                       ipv6_addr[2],
+                       ipv6_addr[3],
+                       ipv6_addr[4],
+                       ipv6_addr[5],
+                       ipv6_addr[6],
+                       ipv6_addr[7],
+                       ipv6_addr[8],
+                       ipv6_addr[9],
+                       ipv6_addr[10],
+                       ipv6_addr[11],
+                       ipv6_addr[12],
+                       ipv6_addr[13],
+                       ipv6_addr[14],
+                       ipv6_addr[15]);
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+}
+
+
 static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl = 
 {
     .attach_handler = app_ethrdev_srv_cb_attach_handler,
@@ -526,6 +583,8 @@ static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl =
     .ioctl_handler = app_ethrdev_srv_cb_ioctl_handler,
     .regwr_handler = app_ethrdev_srv_cb_regwr_handler,
     .regrd_handler = app_ethrdev_srv_cb_regrd_handler,
+    .ipv4_register_mac_handler = app_ethrdev_srv_cb_register_ipv4_mac_handler,
+    .ipv6_register_mac_handler = app_ethrdev_srv_cb_register_ipv6_mac_handler,
 };
 
 

@@ -451,6 +451,19 @@ static void requestLoopFn(UArg a0, UArg a1)
                 }
                 break;
             }
+            case 16:
+            {
+                uint8_t  ipv4Addr[] = {172,24,168,221};
+                ret = rdevEthSwitchClient_ipv4arpregister(device_id, id, core_key, mac_address, ipv4Addr);
+                break;
+            }
+            case 17:
+            {
+                uint8_t  ipv6Addr[] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xA,0xB,0xC,0xD,0xE,0xF,0x10};
+                ret = rdevEthSwitchClient_ipv6arpregister(device_id, id, core_key, mac_address, ipv6Addr);
+                break;
+            }
+
         }
         cnt++;
     }

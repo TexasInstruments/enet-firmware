@@ -67,25 +67,30 @@
 #include <protocol/rpmsg-kdrv-transport-common.h>
 
 enum rpmsg_kdrv_ethswitch_message_type {
-    RPMSG_KDRV_TP_ETHSWITCH_ATTACH,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC,
-    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC,
-    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC,
-    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW,
-    RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC,
-    RPMSG_KDRV_TP_ETHSWITCH_FREE_TX,
-    RPMSG_KDRV_TP_ETHSWITCH_FREE_RX,
-    RPMSG_KDRV_TP_ETHSWITCH_DETACH,
-    RPMSG_KDRV_TP_ETHSWITCH_IOCTL,
-    RPMSG_KDRV_TP_ETHSWITCH_REGWR,
-    RPMSG_KDRV_TP_ETHSWITCH_REGRD,
-    RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST,
-    RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY,
-    RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY,
-    RPMSG_KDRV_TP_ETHSWITCH_MAX,
+    RPMSG_KDRV_TP_ETHSWITCH_ATTACH                  = 0x00,
+    RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT              = 0x01,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX                = 0x02,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX                = 0x03,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW    = 0x04,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC               = 0x05,
+    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC            = 0x06,
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC          = 0x07,
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW  = 0x08,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC                = 0x09,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_TX                 = 0x0A,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_RX                 = 0x0B,
+    RPMSG_KDRV_TP_ETHSWITCH_DETACH                  = 0x0C,
+    RPMSG_KDRV_TP_ETHSWITCH_IOCTL                   = 0x0D,
+    RPMSG_KDRV_TP_ETHSWITCH_REGWR                   = 0x0E,
+    RPMSG_KDRV_TP_ETHSWITCH_REGRD                   = 0x0F,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER       = 0x10,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER       = 0x11,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER     = 0x12,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_UNREGISTER     = 0x13,
+    RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST            = 0x14,
+    RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY              = 0x15,
+    RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY              = 0x16,
+    RPMSG_KDRV_TP_ETHSWITCH_MAX                     = 0x17,
 };
 
 enum rpmsg_kdrv_ethswitch_cpsw_type {
@@ -94,12 +99,14 @@ enum rpmsg_kdrv_ethswitch_cpsw_type {
     RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAX,
 };
 
+
 /*
  * Response status codes
  */
-#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK     (0)
-#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EAGAIN (-1)
-#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL  (-2)
+#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK       (0)
+#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EAGAIN   (-1)
+#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL    (-2)
+#define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EACCESS  (-3)
 
 
 /*
@@ -132,6 +139,18 @@ enum rpmsg_kdrv_ethswitch_cpsw_type {
  * MAC Address length in octets
  */
 #define RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN          (6)
+
+/*
+ * IPv4 Address length in octets
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN         (4)
+
+/*
+ * IPv6 Address length in octets
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN         (16)
+
+#define RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM      (1 << 0)
 
 /*
  * message header for demo device
@@ -182,8 +201,47 @@ struct rpmsg_kdrv_ethswitch_attach_response {
     u32 rx_mtu;
     /* MTU of tx packet per priority */
     u32 tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+    /* Feature bitmask based on defines RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx */
+    u32 features;
+} __packed;
+
+/*
+ * RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT cmd client request
+ */
+struct rpmsg_kdrv_ethswitch_attach_extended_request {
+    /* message header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /* enum: rpmsg_kdrv_ethswitch_cpsw_type  */
+    u8 cpsw_type;
+} __packed;
+
+/*
+ * RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT cmd server response
+ */
+struct rpmsg_kdrv_ethswitch_attach_extended_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+    /* unique handle used by all further CMDs  */
+    u64 id;
+    /* Core specific key to indicate attached core */
+    u32 core_key;
+    /* MTU of rx packet */
+    u32 rx_mtu;
+    /* MTU of tx packet per priority */
+    u32 tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
     /* Flag indicating if Tx Checksum offload is enabled */
     u8  tx_csum_enabled;
+    /*! Rx Flow Base or Start index*/
+    u32 start_idx;
+    /*! Allocated flow's index (offset from startIdx)*/
+    u32 alloc_flow_idx;
+    /*! Tx PSIL Peer destination thread id which should be paired with the
+      * Tx UDMA channel
+      */
+    u32 tx_cpsw_psil_dst_id;
+    /*! Mac address allocated */
+    u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+
+
 } __packed;
 
 
@@ -227,7 +285,7 @@ struct rpmsg_kdrv_ethswitch_alloc_tx_response {
 
 struct rpmsg_kdrv_ethswitch_alloc_mac_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-    /*! Rx Flow Base or Start index*/
+    /*! Mac address allocated */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 } __packed;
 
@@ -338,6 +396,68 @@ struct rpmsg_kdrv_ethswitch_regrd_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     u32    regval;
 }  __packed;
+
+struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request {
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Mac address associated with the IP address which should be added to 
+     *  the ARP table
+     */
+    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /*! IPv4 address  */
+    uint8_t ipv4_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request {
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Mac address associated with the IP address which should be added to 
+     *  the ARP table
+     */
+    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /*! IPv6 address */
+    uint8_t ipv6_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
+}  __packed;
+
+
+struct rpmsg_kdrv_ethswitch_ipv4_register_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request {
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Mac address associated with the IP address which should be added to 
+     *  the ARP table
+     */
+    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /*! IPv4 address  */
+    uint8_t ipv4_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_request {
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Mac address associated with the IP address which should be added to 
+     *  the ARP table
+     */
+    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /*! IPv6 address */
+    uint8_t ipv6_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
 
 /*
  * per-device data for ethswitch device

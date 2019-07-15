@@ -77,6 +77,8 @@ typedef struct rdevEthSwitchClientInitPrms_s {
 
 int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms);
 int32_t rdevEthSwitchClient_sendping(uint32_t device_id, char *ping_msg, uint32_t ping_len, char *respMsg, uint32_t respMaxLen);
+int32_t rdevEthSwitchClient_ipv6arpregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_address);
+int32_t rdevEthSwitchClient_ipv4arpregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_address);
 int32_t rdevEthSwitchClient_regrd(uint32_t device_id, uint32_t regaddr, uint32_t *pregval);
 int32_t rdevEthSwitchClient_regwr(uint32_t device_id, 
                                   uint32_t regaddr,
