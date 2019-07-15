@@ -91,7 +91,7 @@
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_multiclientmanager.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
 
 #include "app_switch.h"
 

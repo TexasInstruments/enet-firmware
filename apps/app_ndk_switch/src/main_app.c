@@ -96,7 +96,7 @@
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils_cfg.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_multiclientmanager.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
 #include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
 #include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
@@ -239,7 +239,7 @@ int main(void)
                               MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
 
     CpswAppUtils_print("=======================================================\n");
-    CpswAppUtils_print ("           CPSW L2 Switching APP          \n");
+    CpswAppUtils_print ("           EthFw L2 Switching APP          \n");
     CpswAppUtils_print("=======================================================\n");
 
     /* does not return */
@@ -367,14 +367,15 @@ void CpswApp_deInit(void)
     memset(&gCpswMainAppObj, 0U, sizeof(CpswMain_AppObj));
 }
 
-void CpswAppIf_getHandles(CpswAppIf_HandleInfo *handleInfo)
+void CpswAppIf_getHandles(CpswAppIf_HandleInfo *pAppIfHandleInfo)
 {
     int32_t status;
+    CpswMcm_HandleInfo handleInfo;
 
     if (gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType] == NULL)
     {
         status = CpswApp_init();
-        handleInfo->isDefaultFlow = true;
+        pAppIfHandleInfo->isDefaultFlow = true;
 
         if (status != CPSW_SOK)
         {
@@ -384,14 +385,21 @@ void CpswAppIf_getHandles(CpswAppIf_HandleInfo *handleInfo)
     }
     else
     {
-        handleInfo->isDefaultFlow = false;
+        pAppIfHandleInfo->isDefaultFlow = false;
     }
 
-    CpswMcm_getHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType], (CpswMcm_HandleInfo *)handleInfo);
+    CpswMcm_getHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType], &handleInfo);
 
-    handleInfo->printFxnCb = &CpswAppUtils_print;
+    pAppIfHandleInfo->hCpsw         = handleInfo.hCpsw;
+    pAppIfHandleInfo->hUdmaDrv      = handleInfo.hUdmaDrv;
+    pAppIfHandleInfo->coreId        = handleInfo.coreId;
+    pAppIfHandleInfo->coreKey       = handleInfo.coreKey;
+    pAppIfHandleInfo->hostPortRxMtu = handleInfo.hostPortRxMtu;
+    memcpy (&pAppIfHandleInfo->txMtu[0U], &handleInfo.txMtu[0U],
+                            CPSW_UTILS_ARRAYSIZE(pAppIfHandleInfo->txMtu));
+
+    pAppIfHandleInfo->printFxnCb    = &CpswAppUtils_print;
 }
-
 
 void CpswAppIf_releaseHandles(void)
 {
