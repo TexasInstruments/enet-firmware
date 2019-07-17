@@ -86,11 +86,12 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#ethfw_c_ug_ethfw_demos">EthFw Demos</a><ul><li class="level2"><a href="#ethfw_depend_eg">EthFw Basic Switching Application</a></li>
+<ul><li class="level1"><a href="#ethfw_c_ug_ethfw_demos">EthFw Demos</a><ul><li class="level2"><a href="#ethfw_depend_eg">EthFw Switching &amp; TCP/IP Apps Demo</a></li>
 </ul>
 </li>
 <li class="level1"><a href="#ethfw_c_ug_features_list">Supported Features</a></li>
-<li class="level1"><a href="#ethfw_instal_top">Dependencies</a><ul><li class="level2"><a href="#ethfw_depend_hw">Hardware Dependencies</a><ul><li class="level3"><a href="#ethfw_depend_vlab_j721e">J721E VLAB</a></li>
+<li class="level1"><a href="#ethfw_instal_top">Dependencies</a><ul><li class="level2"><a href="#ethfw_depend_hw">Hardware Dependencies</a><ul><li class="level3"><a href="#ethfw_depend_evm_j721e">J721E EVM</a></li>
+<li class="level3"><a href="#ethfw_depend_evm_gesi_j721e">J721E EVM GESI Expansion Board</a></li>
 </ul>
 </li>
 <li class="level2"><a href="#ethfw_depend_sw">Software Dependencies</a><ul><li class="level3"><a href="#ethfw_depend_pdk">PDK</a><ul><li class="level4"><a href="#ethfw_depend_pdk_csl">CSL</a></li>
@@ -101,15 +102,12 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <li class="level3"><a href="#ethfw_depend_ndk">NDK</a></li>
 </ul>
 </li>
-<li class="level2"><a href="#ethfw_instal_ccs">IDE (CCS)</a><ul><li class="level3"><a href="#ethfw_instal_ccs_gel_setup">J721E</a></li>
+<li class="level2"><a href="#ethfw_instal_ccs">IDE (CCS)</a></li>
 </ul>
 </li>
-</ul>
-</li>
-<li class="level1"><a href="#ethfw_instal_steps">Installation Steps</a><ul><li class="level2"><a href="#mcuw_post_install_j721e">J721E</a></li>
-</ul>
-</li>
-<li class="level1"><a href="#ethfw_dir">Directory Structure</a><ul><li class="level2"><a href="#ethfw_dir_utils">Utilities Directory Structure</a></li>
+<li class="level1"><a href="#ethfw_instal_steps">Installation Steps</a></li>
+<li class="level1"><a href="#ethfw_dir">Directory Structure</a><ul><li class="level2"><a href="#ethfw_post_install_j721e">Post Install Directory Structure</a></li>
+<li class="level2"><a href="#ethfw_dir_utils">Utilities Directory Structure</a></li>
 <li class="level2"><a href="#ethfw_dir_demo">Demo Aplication Sources Directory Structure</a></li>
 <li class="level2"><a href="#ethfw_dir_switch_demos">EthFw Demonstration Applications</a></li>
 </ul>
@@ -126,11 +124,11 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <li class="level2"><a href="#ethfw_build_eg_linker">Examples Linker File (Select memory location to hold example binary)</a></li>
 </ul>
 </li>
-<li class="level1"><a href="#ethfw_run_eg">Running Examples</a><ul><li class="level2"><a href="#ethfw_run_ccs">IDE</a></li>
-<li class="level2"><a href="#ethfw_run_ccs_load_binary">Load Example Binaries</a></li>
+<li class="level1"><a href="#ethfw_run_eg">Running Examples</a><ul><li class="level2"><a href="#ethfw_run_ccs_load_binary">Load Example Binaries</a></li>
 </ul>
 </li>
 <li class="level1"><a href="#ethfw_uninstall">Un Installation</a></li>
+<li class="level1"><a href="#ethfw_known_issues">Known issues</a></li>
 <li class="level1"><a href="#ethfw_cflag">Compiler Flags used</a><ul><li class="level2"><a href="#ethfw_cflag_debug">Demo Application - Profile: Debug</a></li>
 <li class="level2"><a href="#ethfw_cflag_release">Demo Application - Profile: Release</a></li>
 </ul>
@@ -144,7 +142,7 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <hr/>
  <h1><a class="anchor" id="ethfw_c_ug_ethfw_demos"></a>
 EthFw Demos</h1>
-<p>Demonstrates usage of software provided for EthFw. These peripheral/board level sample/demo examples demonstrates the capabilities of the Ethernet Switch exploiting the IP features.</p>
+<p>EthFw Demos showcases usage and integration of EthFw to use &amp; configure CPSW9G IP in the Jacinto 7 devices. These peripheral/board level sample/demo examples demonstrates the capabilities of the CPSW9G IP features &amp; EthFw.</p>
 <p>Listed below are some of the key applications. </p><table class="doxtable">
 <tr>
 <th>Demo </th><th>Comments  </th></tr>
@@ -152,9 +150,9 @@ EthFw Demos</h1>
 <td>L2 Switching </td><td>Configures Switch to enable switching between its external ports </td></tr>
 </table>
 <h2><a class="anchor" id="ethfw_depend_eg"></a>
-EthFw Basic Switching Application</h2>
-<p>The Layer-2 switch application demonstrates basic switching capabilities of the CPSW switch in Jacinto 7 devices.</p>
-<p>For further information, please refer to the <a class="el" href="demo_l2_switching_top.html">Layer-2 Switching</a> demo application documentation.</p>
+EthFw Switching &amp; TCP/IP Apps Demo</h2>
+<p>This demo showcases switching capabilities of the J721E integrated Ethernet Switch (CPSW9G) for features like VLAN, Multicast etc. This demo also showcases TI NDK (TCP/IP) integration into EthFw. In this demo we showcase usage of HTTP server.</p>
+<p>For further information, please refer to the <a class="el" href="demo_l2_switching_ndk_top.html">Layer-2 Switching &amp; TCP/IP Apps</a> demo application documentation.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_c_ug_features_list"></a>
@@ -164,6 +162,12 @@ Supported Features</h1>
 <th>Feature </th><th>Comments  </th></tr>
 <tr>
 <td>L2 Switching </td><td>Support for configuration of switch to enable L2 Switching between external ports </td></tr>
+<tr>
+<td>VLAN </td><td>Support for creating and deleting VLAN </td></tr>
+<tr>
+<td>Multicast </td><td>Support for enabling/disabling multicast </td></tr>
+<tr>
+<td>NDK Integration </td><td>Integration of TCP/IP stack enabling TCP, UDP, HTTP apps </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
@@ -180,11 +184,27 @@ Dependencies</h1>
  <h2><a class="anchor" id="ethfw_depend_hw"></a>
 Hardware Dependencies</h2>
 <p>EthFw is supported on the boards/EVM listed below</p><ul>
-<li><a class="el" href="ethfw_c_ug_top.html#ethfw_depend_vlab_j721e">J721E VLAB</a></li>
+<li><a class="el" href="ethfw_c_ug_top.html#ethfw_depend_evm_j721e">J721E EVM</a></li>
+<li><a class="el" href="ethfw_c_ug_top.html#ethfw_depend_evm_gesi_j721e">J721E EVM GESI Expansion Board</a></li>
 </ul>
-<h3><a class="anchor" id="ethfw_depend_vlab_j721e"></a>
-J721E VLAB</h3>
-<p>Please refer to the SDK VLAB Description for details about installation &amp; getting started of VLAB.</p>
+<h3><a class="anchor" id="ethfw_depend_evm_j721e"></a>
+J721E EVM</h3>
+<div class="image">
+<img src="J7EVM_CPSW_TopView.png" alt="J7EVM_CPSW_TopView.png"/>
+<div class="caption">
+J721E EVM connections</div></div>
+ <h3><a class="anchor" id="ethfw_depend_evm_gesi_j721e"></a>
+J721E EVM GESI Expansion Board</h3>
+<div class="image">
+<img src="GESI_Board.jpg" alt="GESI_Board.jpg"/>
+<div class="caption">
+J721E EVM GESI Board Top View</div></div>
+<p> There are four RGMII PHYs in the J721E GESI board as show in the following image. They will be referred to as <b>MAC Port 0</b>, <b>MAC Port 1</b>, <b>MAC Port 2</b> and <b>MAC Port 3</b> thoughout this document.</p>
+<div class="image">
+<img src="GESI_RJ45_SideView.png" alt="GESI_RJ45_SideView.png"/>
+<div class="caption">
+J721E EVM GESI Board connections</div></div>
+<p> Please refer to the SDK Description for details about installation and getting started of J721E EVM.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h2><a class="anchor" id="ethfw_depend_sw"></a>
@@ -214,61 +234,30 @@ NDK</h3>
 <hr/>
  <h2><a class="anchor" id="ethfw_instal_ccs"></a>
 IDE (CCS)</h2>
-<p>Code Composer Studio is an integrated development environment (IDE) that supports TI's Microcontroller and Embedded Processors portfolio. It provides useful tools to develop and debug embedded applications.</p>
-<p>For more information, please visit Code Composer Studio product <a href="http://www.ti.com/tool/ccstudio">page</a>.</p>
-<ul>
-<li><a href="http://processors.wiki.ti.com/index.php/Download_CCS">Download</a></li>
-</ul>
-<h3><a class="anchor" id="ethfw_instal_ccs_gel_setup"></a>
-J721E</h3>
 <ol type="1">
-<li><p class="startli">Supported CCS version is detailed in SDK Release Notes</p>
-<div class="image">
-<img src="ccs_version.png" alt="ccs_version.png"/>
-<div class="caption">
-Code Composer Studio version</div></div>
-</li>
-<li><p class="startli">Install the CCS Emulation Packs for J7 and J7ES. After installation the following versions should be listed</p>
-<div class="image">
-<img src="ccs_emulation_packs.png" alt="ccs_emulation_packs.png"/>
-<div class="caption">
-Code Composer Studio Emulation Packs</div></div>
-</li>
+<li>Install Code Composer Studio and setup a <b>Target Configuration</b> for use with J721E EVM.(refer to <a class="el" href="ccs_setup_top.html">CCS setup</a>)</li>
+<li>Refer to the instructions in <a class="el" href="ccs_setup_top.html">CCS setup</a> section for Code Code Composer and emulation packs installation as well as Target Configuration File creation.</li>
 </ol>
-<h4>Creating a Target Configuration File</h4>
-<ol type="1">
-<li>In Code Composer Studio, go to the <b>File</b> menu and select <b>New</b> -&gt; <b>Target Configuration File</b></li>
-<li>Name the Target Configuration file as <b>J7ES_VLAB.ccxml</b> and click <b>Finish</b></li>
-<li>Set the <b>Connection</b> to <b>ASTC VLAB</b> and set the <b>Board or Device</b> to <b>VLAB Connection driver (J7ES, ARM cores only)</b> as show in the following figure.</li>
-</ol>
-<div class="image">
-<img src="ccs_target_configuration.png" alt="ccs_target_configuration.png"/>
-<div class="caption">
-Creating CCS Target Configuration File</div></div>
-<p> <a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
+<p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_instal_steps"></a>
 Installation Steps</h1>
 <hr/>
 <p>EthFw software is an add-on package, and it's provided as an archive file (tarball).</p>
 <ul>
-<li>Untar the package tarball into SDK base folder, the expected directory structure is as show below (<a class="el" href="ethfw_c_ug_top.html#mcuw_post_install_j721e">J721E</a>). <pre class="fragment">tar -zxvf ethfw_xx_yy_zz_bb.tgz
+<li>Untar the package tarball into SDK base folder, the expected directory structure is as show below (<a class="el" href="ethfw_c_ug_top.html#ethfw_post_install_j721e">J721E</a>). <pre class="fragment">tar -zxvf ethfw_xx_yy_zz_bb.tgz
 </pre></li>
 <li>In case EthFw was installed in a different directory, one could move the complete directory as shown: <pre class="fragment">mv ethfw_xx_yy_zz_bb ~/ti/.
 </pre></li>
 </ul>
-<h2><a class="anchor" id="mcuw_post_install_j721e"></a>
-J721E</h2>
-<div class="image">
-<img src="c_ug_install_dir_top.png" alt="c_ug_install_dir_top.png"/>
-<div class="caption">
-Directory structure post installation</div></div>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_dir"></a>
 Directory Structure</h1>
 <p>Post installation of EthFw, the following directory would be created. Please note that this is an indicative snap-shot. Modules could be added/modified.</p>
 <p>The top-level EthFw makefile as well as the auxiliary makefiles for build flags (<b>ethfw_build_flags.mak</b>) and build paths (<b>ethfw_tools_path.mak</b>) can be found at the EthFw top-level directory.</p>
+<h2><a class="anchor" id="ethfw_post_install_j721e"></a>
+Post Install Directory Structure</h2>
 <div class="image">
 <img src="c_ug_dir_top.png" alt="c_ug_dir_top.png"/>
 <div class="caption">
@@ -302,7 +291,7 @@ EthFw Demonstration Applications</h2>
  <h1><a class="anchor" id="ethfw_build_top"></a>
 Build</h1>
 <hr/>
-<p>EthFw employs Concerto make based build mechanism. When building on Windows based machine, tool such as <a href="https://www.cygwin.com/">Cygwin</a> could be used.</p>
+<p> EthFw employs Concerto make based build mechanism. When building on Windows based machine, tool such as <a href="https://www.cygwin.com/">Cygwin</a> could be used.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h2><a class="anchor" id="ethfw_build_setup_env"></a>
@@ -363,15 +352,10 @@ Examples Linker File (Select memory location to hold example binary)</h2>
  <h1><a class="anchor" id="ethfw_run_eg"></a>
 Running Examples</h1>
 <hr/>
-<h2><a class="anchor" id="ethfw_run_ccs"></a>
-IDE</h2>
-<p>Refer to the instructions in <a class="el" href="ethfw_c_ug_top.html#ethfw_instal_ccs">IDE (CCS)</a> section for Code Code Composer and emulation packs installation as well as Target Configuration File creation.</p>
-<p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
-<hr/>
- <h2><a class="anchor" id="ethfw_run_ccs_load_binary"></a>
+<h2><a class="anchor" id="ethfw_run_ccs_load_binary"></a>
 Load Example Binaries</h2>
 <p>Refer to <a class="el" href="demo_top.html">EthFw Demo Applications</a> section for a full list of EthFw demo applications.</p>
-<p>For detailed steps to load and run the L2 Switching application, please refer to its <a class="el" href="demo_l2_switching_top.html#demo_l2_switching_steps_top">Steps to run</a> section.</p>
+<p>For detailed steps to load and run the L2 Switching application, please refer to its <a class="el" href="demo_l2_switching_ndk_top.html#demo_l2_switching_setup_cfg">Test Setup</a> section.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_uninstall"></a>
@@ -379,6 +363,18 @@ Un Installation</h1>
 <hr/>
 <p>Delete the complete <code>ethfw_xx_yy_zz_bb</code> folder.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
+<hr/>
+ <h1><a class="anchor" id="ethfw_known_issues"></a>
+Known issues</h1>
+<table class="doxtable">
+<tr>
+<th>JIRA ID </th><th>Issue Summary </th><th>Workaround  </th></tr>
+<tr>
+<td>PROC_BRDS-658 </td><td>MAC PORT 0 packet drop seen of Rx/Tx - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J7 EVM. This port is labelled as PRG1_RGMII1_B (image below) </td><td>Don’t connect this port </td></tr>
+<tr>
+<td>PROC_BRDS-659 </td><td>J7 Ethernet expansion board causing interference in the GESI MDIO PHYs - QSGMII expansion board is causing instabilities in the MDIO bus.</td><td>Remove ETH expansion board to avoid interference. </td></tr>
+</table>
+<p><a class="el" href="ethfw_c_ug_top.html#ethfw_known_issues">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_cflag"></a>
 Compiler Flags used</h1>
@@ -416,8 +412,6 @@ Demo Application - Profile: Debug</h2>
 <td><code>-D=ARCH_32</code> </td><td>Identifies the architecture as 32-bit </td></tr>
 <tr>
 <td><code>-D=SYSBIOS</code> </td><td>Identifies as TI RTOS operating system build </td></tr>
-<tr>
-<td><code>-D=SIMULATOR</code> </td><td>Identifies that build is for simulator </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
@@ -456,8 +450,6 @@ Demo Application - Profile: Release</h2>
 <td><code>-D=ARCH_32</code> </td><td>Identifies the architecture as 32-bit </td></tr>
 <tr>
 <td><code>-D=SYSBIOS</code> </td><td>Identifies as TI RTOS operating system build </td></tr>
-<tr>
-<td><code>-D=SIMULATOR</code> </td><td>Identifies that build is for simulator </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
@@ -482,8 +474,12 @@ Document Revision History</h1>
 <td>0.1 </td><td>01 Apr 2019 </td><td>Prasad J, Misael Lopez </td><td>Created for v.0.08.00 </td></tr>
 <tr>
 <td>0.2 </td><td>02 Apr 2019 </td><td>Prasad J </td><td>0.8 Docs review meeting fixes </td></tr>
+<tr>
+<td>0.3 </td><td>12 Jun 2019 </td><td>Prasad J </td><td>Updates for EVM demo (.85 release) </td></tr>
+<tr>
+<td>0.4 </td><td>17 Jul 2019 </td><td>Misael Lopez </td><td>Updates for v.0.09.00 </td></tr>
 </table>
-<p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a> </p>
+<p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a> (<a class="el" href="ethfw_c_ug_top.html">User Guide</a>) </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- HTML footer for doxygen 1.8.11-->

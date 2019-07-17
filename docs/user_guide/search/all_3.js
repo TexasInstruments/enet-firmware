@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['introduction',['Introduction',['../index.html',1,'']]]
+  ['ethfw_20demo_20applications',['EthFw Demo Applications',['../demo_top.html',1,'']]]
 ];

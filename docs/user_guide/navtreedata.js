@@ -8,12 +8,13 @@ var NAVTREE =
     ] ],
     [ "User Guide", "ethfw_c_ug_top.html", [
       [ "EthFw Demos", "ethfw_c_ug_top.html#ethfw_c_ug_ethfw_demos", [
-        [ "EthFw Basic Switching Application", "ethfw_c_ug_top.html#ethfw_depend_eg", null ]
+        [ "EthFw Switching & TCP/IP Apps Demo", "ethfw_c_ug_top.html#ethfw_depend_eg", null ]
       ] ],
       [ "Supported Features", "ethfw_c_ug_top.html#ethfw_c_ug_features_list", null ],
       [ "Dependencies", "ethfw_c_ug_top.html#ethfw_instal_top", [
         [ "Hardware Dependencies", "ethfw_c_ug_top.html#ethfw_depend_hw", [
-          [ "J721E VLAB", "ethfw_c_ug_top.html#ethfw_depend_vlab_j721e", null ]
+          [ "J721E EVM", "ethfw_c_ug_top.html#ethfw_depend_evm_j721e", null ],
+          [ "J721E EVM GESI Expansion Board", "ethfw_c_ug_top.html#ethfw_depend_evm_gesi_j721e", null ]
         ] ],
         [ "Software Dependencies", "ethfw_c_ug_top.html#ethfw_depend_sw", [
           [ "PDK", "ethfw_c_ug_top.html#ethfw_depend_pdk", [
@@ -23,14 +24,11 @@ var NAVTREE =
           ] ],
           [ "NDK", "ethfw_c_ug_top.html#ethfw_depend_ndk", null ]
         ] ],
-        [ "IDE (CCS)", "ethfw_c_ug_top.html#ethfw_instal_ccs", [
-          [ "J721E", "ethfw_c_ug_top.html#ethfw_instal_ccs_gel_setup", null ]
-        ] ]
+        [ "IDE (CCS)", "ethfw_c_ug_top.html#ethfw_instal_ccs", null ]
       ] ],
-      [ "Installation Steps", "ethfw_c_ug_top.html#ethfw_instal_steps", [
-        [ "J721E", "ethfw_c_ug_top.html#mcuw_post_install_j721e", null ]
-      ] ],
+      [ "Installation Steps", "ethfw_c_ug_top.html#ethfw_instal_steps", null ],
       [ "Directory Structure", "ethfw_c_ug_top.html#ethfw_dir", [
+        [ "Post Install Directory Structure", "ethfw_c_ug_top.html#ethfw_post_install_j721e", null ],
         [ "Utilities Directory Structure", "ethfw_c_ug_top.html#ethfw_dir_utils", null ],
         [ "Demo Aplication Sources Directory Structure", "ethfw_c_ug_top.html#ethfw_dir_demo", null ],
         [ "EthFw Demonstration Applications", "ethfw_c_ug_top.html#ethfw_dir_switch_demos", null ]
@@ -48,10 +46,10 @@ var NAVTREE =
         [ "Examples Linker File (Select memory location to hold example binary)", "ethfw_c_ug_top.html#ethfw_build_eg_linker", null ]
       ] ],
       [ "Running Examples", "ethfw_c_ug_top.html#ethfw_run_eg", [
-        [ "IDE", "ethfw_c_ug_top.html#ethfw_run_ccs", null ],
         [ "Load Example Binaries", "ethfw_c_ug_top.html#ethfw_run_ccs_load_binary", null ]
       ] ],
       [ "Un Installation", "ethfw_c_ug_top.html#ethfw_uninstall", null ],
+      [ "Known issues", "ethfw_c_ug_top.html#ethfw_known_issues", null ],
       [ "Compiler Flags used", "ethfw_c_ug_top.html#ethfw_cflag", [
         [ "Demo Application - Profile: Debug", "ethfw_c_ug_top.html#ethfw_cflag_debug", null ],
         [ "Demo Application - Profile: Release", "ethfw_c_ug_top.html#ethfw_cflag_release", null ]
@@ -59,12 +57,12 @@ var NAVTREE =
       [ "Supported Device Families", "ethfw_c_ug_top.html#ethfw_supported_family", null ],
       [ "Document Revision History", "ethfw_c_ug_top.html#ethfw_rev_history", null ]
     ] ],
-    [ "Validation", "val_notes_mainpage.html", [
-      [ "Introduction", "val_notes_mainpage.html#val_intro", null ],
-      [ "HIS Metric Report", "val_notes_mainpage.html#val_his_rep", null ],
-      [ "KW Static Analysis Report", "val_notes_mainpage.html#val_kw_rep", null ],
-      [ "EthFw Unit Test Reports", "val_notes_mainpage.html#val_unit_rep", null ],
-      [ "Performance Measurements", "val_notes_mainpage.html#val_perform_measurements", null ]
+    [ "Validation", "val_notes_mainpage.html", null ],
+    [ "CCS setup", "ccs_setup_top.html", [
+      [ "Download and Install CCS", "ccs_setup_top.html#ethfw_download_instal_ccs", null ],
+      [ "Setup for J721E EVM", "ccs_setup_top.html#ethfw_instal_ccs_gel_setup", null ],
+      [ "Creating a Target Configuration File", "ccs_setup_top.html#ethfw_target_config", null ],
+      [ "Load Example Binaries on J721E", "ccs_setup_top.html#load_example_binaries_on_j7", null ]
     ] ],
     [ "EthFw Demo Applications", "demo_top.html", "demo_top" ],
     [ "TI Disclaimer", "TI_DISCLAIMER.html", null ]
