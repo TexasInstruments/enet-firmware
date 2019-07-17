@@ -83,8 +83,8 @@ include makerules/makefile_ndk.mak
 #Due to bug in NDK needs patch to build .
 #DIsabling NDK build for now
 #Add ndk and ndk_clean dependent rules for ethfw_all/ethfw_all_clean once NDK bug is fixed
-depend:: pdk_custom_libs
-ethfw_all: all
-ethfw_app_ndk_switch_tirtos: | pdk_custom_libs ethfw_app_ndk_switch_tirtos_mcu_2_0
+.NOTPARALLEL:
+ethfw_all: pdk all
+ethfw_app_ndk_switch_tirtos: pdk_custom_libs ethfw_app_ndk_switch_tirtos_mcu_2_0
 ethfw_all_clean: pdk_custom_libs_clean clean scrub
 

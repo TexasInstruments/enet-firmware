@@ -23,6 +23,8 @@ BUILD_CPU_MCU2_1?=no
 BUILD_CPU_MCU3_1?=no
 BUILD_SOC_LIST ?= J721E
 
+# PDK build board
+PDK_BUILD_BOARD ?= j721e_evm
 
 # Build TI-RTOS only binaries
 BUILD_APP_TIRTOS?=yes
