@@ -10,12 +10,11 @@ Code Composer Studio is an integrated development environment (IDE) that support
 TI's Microcontroller and Embedded Processors portfolio. It provides useful tools
 to develop and debug embedded applications.
 
-For more information, please visit Code Composer Studio product
-[page](http://www.ti.com/tool/ccstudio).
+Please visit Code Composer Studio product [page](http://www.ti.com/tool/ccstudio)
+for more information or visit the CCS Downloads
+[page](http://software-dl.ti.com/ccs/esd/documents/ccs_downloads.html).
 
-* Download Link - [Download](http://processors.wiki.ti.com/index.php/Download_CCS)
-
--# Supported CCS version for J721E EVM is detailed is below
+Supported CCS version for J721E EVM is 9.0.1.00004 as shown below.
 
    ![](ccs_version.png "Code Composer Studio version")
 
@@ -32,7 +31,7 @@ For more information, please visit Code Composer Studio product
 
 
 
--# Download and Untar CCS J721E device support pack in **C:\\ti\\ccs_version\\ccs\\ccs_base** folder.
+-# Download and untar CCS J721E device support pack in **C:\\ti\\ccs_version\\ccs\\ccs_base** folder.
 
    * Please contact your local FAE for chip support package link details.
 

@@ -63,22 +63,27 @@ vs running demo applications only).
 EthFw is supported on the boards/EVM listed below
 - @ref ethfw_depend_evm_j721e
 - @ref ethfw_depend_evm_gesi_j721e
+
 ### J721E EVM {#ethfw_depend_evm_j721e}
 ![](J7EVM_CPSW_TopView.png "J721E EVM connections")
+
 ### J721E EVM GESI Expansion Board {#ethfw_depend_evm_gesi_j721e}
-![](GESI_Board.png "J721E EVM GESI Board Top View")
+
+![](GESI_Board.jpg "J721E EVM GESI Board Top View")
+
+There are four RGMII PHYs in the J721E GESI board as show in the following image.
+They will be referred to as **MAC Port 0**, **MAC Port 1**, **MAC Port 2** and
+**MAC Port 3** thoughout this document.
+
 ![](GESI_RJ45_SideView.png "J721E EVM GESI Board connections")
 
-<!-- 0_85_BINARY_RELEASE
-Please refer to the SDK Description for details about installation
-& getting started of J721E EVM.
--->
+Please refer to the SDK Description for details about installation and getting
+started of J721E EVM.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Software Dependencies {#ethfw_depend_sw}
-<!-- 0_85_BINARY_RELEASE
 
 Below listed dependencies are part of Processor SDK package.
 
@@ -121,7 +126,6 @@ and for running switch resident protocols like telnet and EAPoL, as shown in the
 Ethernet Switch Software Architecture diagram in the @ref ethfw_c_ug_fw_architecture
 section.
 
--->
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -202,7 +206,6 @@ Refer to @ref demo_top section for a full list of EthFw demo applications.
 [Back To Top](@ref ethfw_c_ug_top)
 
 
-<!-- 0_85_BINARY_RELEASE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Build {#ethfw_build_top}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -312,7 +315,6 @@ and/or reconfigured via linker command files.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
--->
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Running Examples {#ethfw_run_eg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -322,7 +324,7 @@ and/or reconfigured via linker command files.
 Refer to @ref demo_top section for a full list of EthFw demo applications.
 
 For detailed steps to load and run the L2 Switching application, please refer
-to its @ref demo_l2_switching_steps_top section.
+to its @ref demo_l2_switching_setup_cfg section.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -418,7 +420,8 @@ Revision | Date          | Author                 | Description
 ---------|---------------|------------------------|----------------------
 0.1      | 01 Apr 2019   | Prasad J, Misael Lopez | Created for v.0.08.00
 0.2      | 02 Apr 2019   | Prasad J               | 0.8 Docs review meeting fixes
-0.3      | 12 June 2019  | Prasad J               | Updates for EVM demo (.85 release)
+0.3      | 12 Jun 2019   | Prasad J               | Updates for EVM demo (.85 release)
+0.4      | 17 Jul 2019   | Misael Lopez           | Updates for v.0.09.00
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)

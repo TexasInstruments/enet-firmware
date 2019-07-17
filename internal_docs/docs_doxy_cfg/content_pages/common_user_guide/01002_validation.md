@@ -2,11 +2,11 @@
 
 [TOC]
 
-For 0.85 release no validation reports are included.
+No validation reports are included for 0.9 release.
 
+<!-- 0_9_RELEASE
 # Introduction {#val_intro}
 
-<!-- 0_85_BINARY_RELEASE
 Sections below lists various validation reports that are included in the release.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
