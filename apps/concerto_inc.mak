@@ -13,7 +13,11 @@ XDC_INCLUDE_PACKAGES_PATH    += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
 
 ifeq ($(TARGET_PLATFORM),J721E)
     ifeq (${TARGET_CPU},R5F)
-    XDC_PLATFORM = ti.platforms.cortexR:J7ES
+        ifneq (,$(filter ${CPU_ID},mcu_1_0 mcu_1_1))
+            XDC_PLATFORM = ti.platforms.cortexR:J7ES_MCU
+        else
+            XDC_PLATFORM = ti.platforms.cortexR:J7ES_MAIN
+        endif
     else
         ifeq (${TARGET_CPU},A72)
         XDC_PLATFORM = ti.platforms.cortexA:J7ES
