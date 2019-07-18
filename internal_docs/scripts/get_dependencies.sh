@@ -189,7 +189,7 @@ echo "Current directory: `pwd`"
 install_ndk ${OLD_NDK}
 install_ns ${OLD_NS}
 install_bios ${OLD_BIOS_AM65XX}
-install_bios_k3 ${OLD_BIOS_J721E}
+install_bios ${OLD_BIOS_J721E}
 install_xdc ${OLD_XDC}
 install_linaro_gcc_linux ${OLD_GCC_ARCH64}
 install_linaro_gcc_baremetal ${OLD_GCC_ARCH64}
