@@ -37,8 +37,8 @@ GCC_SYSBIOS_ARM_ROOT ?= $(PSDK_PATH)/gcc-linaro-7.2.1-2017.11-x86_64_aarch64-elf
 endif
 
 BIOS_PATH_AM65XX ?= $(PSDK_PATH)/bios_6_75_02_00
-BIOS_PATH_J721E ?= $(PSDK_PATH)/bios_6_76_01_08_eng
-XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_3_55_01_14_core_eng
+BIOS_PATH_J721E ?= $(PSDK_PATH)/bios_6_76_02_00_eng
+XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_3_60_00_12_core_eng
 NDK_PATH ?= $(PSDK_PATH)/ndk_3_60_00_13
 NS_PATH  ?= $(PSDK_PATH)/ns_2_60_00_07
 CTOOLSLIB_PATH ?= $(PSDK_PATH)/ctoolslib
