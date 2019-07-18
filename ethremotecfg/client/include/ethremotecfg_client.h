@@ -77,8 +77,9 @@ typedef struct rdevEthSwitchClientInitPrms_s {
 
 int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms);
 int32_t rdevEthSwitchClient_sendping(uint32_t device_id, char *ping_msg, uint32_t ping_len, char *respMsg, uint32_t respMaxLen);
-int32_t rdevEthSwitchClient_ipv6arpregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_address);
-int32_t rdevEthSwitchClient_ipv4arpregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_address);
+int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id, uint64_t id, uint32_t core_key,uint8_t *ipv4_address);
+int32_t rdevEthSwitchClient_ipv6macregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_address);
+int32_t rdevEthSwitchClient_ipv4macregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_address);
 int32_t rdevEthSwitchClient_regrd(uint32_t device_id, uint32_t regaddr, uint32_t *pregval);
 int32_t rdevEthSwitchClient_regwr(uint32_t device_id, 
                                   uint32_t regaddr,
@@ -91,8 +92,7 @@ int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
                                   void *inargs, 
                                   uint32_t inargs_len, 
                                   void *outargs, 
-                                  uint32_t outargs_max_len ,
-                                  uint32_t *outargs_len);
+                                  uint32_t outargs_len);
 int32_t rdevEthSwitchClient_detach(uint32_t device_id, uint64_t id, uint32_t core_key);
 int32_t rdevEthSwitchClient_freerx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t alloc_flow_idx);
 int32_t rdevEthSwitchClient_freetx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t tx_cpsw_psil_dst_id);
@@ -114,7 +114,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint8_t  *tx_csum_enabled);
 
 
-int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id, char *text);
+int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id, u64 id, u32 core_key, enum rpmsg_kdrv_ethswitch_client_notify_type notify_id, uint8_t *notify_info, uint32_t notify_info_len);
 uint32_t rdevEthSwitchClient_printText(void *priv, void *data);
 
 

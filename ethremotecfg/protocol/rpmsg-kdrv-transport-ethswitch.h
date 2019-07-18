@@ -100,6 +100,11 @@ enum rpmsg_kdrv_ethswitch_cpsw_type {
 };
 
 
+enum rpmsg_kdrv_ethswitch_client_notify_type {
+    RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS,
+    RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_MAX,
+};
+
 /*
  * Response status codes
  */
@@ -228,8 +233,8 @@ struct rpmsg_kdrv_ethswitch_attach_extended_response {
     u32 rx_mtu;
     /* MTU of tx packet per priority */
     u32 tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
-    /* Flag indicating if Tx Checksum offload is enabled */
-    u8  tx_csum_enabled;
+    /* Feature bitmask based on defines RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx */
+    u32 features;
     /*! Rx Flow Base or Start index*/
     u32 start_idx;
     /*! Allocated flow's index (offset from startIdx)*/
@@ -367,11 +372,11 @@ struct rpmsg_kdrv_ethswitch_ioctl_request {
     u32    cmd;
     u32    inargs_len;
     u8     inargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN];
+    u32    outargs_len;
 }  __packed;
 
 struct rpmsg_kdrv_ethswitch_ioctl_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-    u32    outargs_len;
     u8     outargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN];
 }  __packed;
 
@@ -431,10 +436,6 @@ struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response {
 struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request {
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    /*! Mac address associated with the IP address which should be added to 
-     *  the ARP table
-     */
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     /*! IPv4 address  */
     uint8_t ipv4_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
 }  __packed;
@@ -442,10 +443,6 @@ struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request {
 struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_request {
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    /*! Mac address associated with the IP address which should be added to 
-     *  the ARP table
-     */
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     /*! IPv6 address */
     uint8_t ipv6_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
 }  __packed;
@@ -494,8 +491,13 @@ struct rpmsg_kdrv_ethswitch_s2c_notify {
 struct rpmsg_kdrv_ethswitch_c2s_notify {
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /* enum: enum rpmsg_kdrv_ethswitch_client_notify_type */
+    u8 notifyid;
+    /* filled length of notify info */
+    u32 notify_info_len;
     /* message data */
-    u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
+    u8 notify_info[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
 } __packed;
 
 #endif

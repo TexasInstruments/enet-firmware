@@ -23,7 +23,7 @@ SECTIONS
         *(*:ti_sysbios_family_arm_MPU*)
     }    >> R5F_TCMB0
 
-    /*
+    
     .text_fast {
         *(.text:CpswDma_retrieveRxPackets*)
         *(.text:CpswDma_retrieveTxDonePackets*)
@@ -56,7 +56,7 @@ SECTIONS
         *(.text:Udma_ringDequeueRaw*)
         *(.text:Udma_virtToPhyFxn*)
      }     > DDR_MCU2_0
-     */
+     
      .irqStackSection
     {
        *(*:ti_sysbios_family_arm_v7r_keystone3_Hwi_Module_State_0_irqStack__A)
@@ -81,13 +81,13 @@ SECTIONS
 
     /* For NDK packet memory, we need to map this sections before .bss*/
     /* For NDK packet memory, we need to map this sections before .bss*/
-    /*
+    
     .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    */
+    
     .bss        : {} align(4)       > DDR_MCU2_0
     .far        : {} align(4)       > DDR_MCU2_0
     .boardcfg_data        : {} palign(128)           > DDR_MCU2_0

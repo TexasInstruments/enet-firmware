@@ -120,6 +120,9 @@ typedef int32_t (*ethrdev_srv_cb_regwr_handler_t) (uint32_t host_id, uint32_t re
 typedef int32_t (*ethrdev_srv_cb_regrd_handler_t) (uint32_t host_id, uint32_t regaddr, uint32_t *pRegval);
 typedef int32_t (*ethrdev_srv_cb_register_ipv4_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_addr);
 typedef int32_t (*ethrdev_srv_cb_register_ipv6_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_addr);
+typedef int32_t (*ethrdev_srv_cb_unregister_ipv4_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *ipv4_addr);
+typedef int32_t (*ethrdev_srv_cb_unregister_ipv6_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *ipv6_addr);
+typedef void    (*ethrdev_srv_cb_client_notify_handler_t)(uint32_t host_id,uint64_t handle,uint32_t core_key, enum rpmsg_kdrv_ethswitch_client_notify_type  notifyid, uint8_t *notify_info, uint32_t notify_info_len);
 
 typedef struct rdevEthSwitchServerCbFxn_s
 {
@@ -140,6 +143,9 @@ typedef struct rdevEthSwitchServerCbFxn_s
     ethrdev_srv_cb_regrd_handler_t          regrd_handler;
     ethrdev_srv_cb_register_ipv4_mac_handler_t ipv4_register_mac_handler;
     ethrdev_srv_cb_register_ipv6_mac_handler_t ipv6_register_mac_handler;
+    ethrdev_srv_cb_unregister_ipv4_mac_handler_t ipv4_unregister_mac_handler;
+    ethrdev_srv_cb_unregister_ipv6_mac_handler_t ipv6_unregister_mac_handler;
+    ethrdev_srv_cb_client_notify_handler_t       client_notify_handler;
 } rdevEthSwitchServerCbFxn_t;
 
 
@@ -192,6 +198,8 @@ typedef union rdevEthSwitchServerMessageList_u {
     struct rpmsg_kdrv_ethswitch_ipv4_register_mac_response  ipv4_register_mac_res;
     struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request  ipv6_register_mac_req;
     struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response  ipv6_register_mac_res;
+    struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request ipv4_unregister_mac_req;
+    struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_response ipv4_unregister_mac_res;
     struct rpmsg_kdrv_ethswitch_s2c_notify s2c_notify;
     struct rpmsg_kdrv_ethswitch_c2s_notify c2s_notify;
 } __packed rdevEthSwitchServerMessageList_t;

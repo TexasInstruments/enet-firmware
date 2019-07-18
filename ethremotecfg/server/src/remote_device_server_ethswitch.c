@@ -79,8 +79,10 @@
 
 #define g_sender_tsk_stack_size                 (0x2000)
 #define g_message_monitor_tsk_stack_size        (0x2000)
+static volatile bool grdevEthSwitchAssertLoop = true;
 
-#define ETHREMOTECFG_SERVER_ASSERT_SUCCESS(x)  { if((x)!=0) while(1); }
+#define ETHREMOTECFG_SERVER_ASSERT_SUCCESS(x)  { if((x)!=0) while(grdevEthSwitchAssertLoop); }
+#define ETHREMOTECFG_SERVER_ASSERT(x) {if((x)==false) while(grdevEthSwitchAssertLoop); }
 #define DEVHDR_2_MSG(x) ((void *)(((struct rpmsg_kdrv_device_header *)(x)) + 1))
 
 typedef struct rdevEthSwitchServerInstanceState_s {
@@ -218,6 +220,7 @@ static int32_t rdevEthSwitchServerHandlePingRequest(rdevEthSwitchServerInstanceS
         resp = rdevEthSwitchServerMsg2Resp(msg);
         /* No callbacks for ping.Handled in server itself */
         (void)cb;
+        //appLogPrintf("%s: Ping request data (0-3):%x:%x:%x:%x\n", "rdevEthSwitchServerHandlePingRequest", (uint32_t)req->data[0], (uint32_t)req->data[1], (uint32_t)req->data[2], (uint32_t)req->data[3]);
         memcpy(&resp->data[0], &req->data[0], RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
@@ -542,7 +545,17 @@ static int32_t rdevEthSwitchServerHandleIoctl(rdevEthSwitchServerInstanceState_t
     if(ret == 0) 
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->ioctl_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->cmd, req->inargs, req->inargs_len, resp->outargs, resp->outargs_len);
+        if (req->outargs_len <= sizeof(resp->outargs))
+        {
+            resp->info.status =  cb->ioctl_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->cmd, req->inargs, req->inargs_len, resp->outargs, req->outargs_len);
+        }
+        else
+        {
+            appLogPrintf("rdevEthSwitchServerHandleIoctl failed as outargs len exceeds max supported outargs len. Cmd:%x, OutArgsLen:%u, MacOutArgsLen:%u",
+                         req->cmd, req->outargs_len, sizeof(resp->outargs));
+            resp->info.status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+        
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
@@ -590,6 +603,28 @@ static int32_t rdevEthSwitchServerHandleIPV6MacRegisterRequest(rdevEthSwitchServ
     return ret;
 }
 
+static int32_t rdevEthSwitchServerHandleUnRegisterIPv4Mac(rdevEthSwitchServerInstanceState_t *inst,
+                                                      app_remote_device_channel_t *channel, 
+                                                      uint32_t request_id,
+                                                      union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                      rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_response *resp;
+    struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request *req = &reqMsg->ipv4_unregister_mac_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->ipv4_unregister_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->ipv4_addr);
+        
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
+
 
 
 typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInstanceState_t *inst,
@@ -598,27 +633,30 @@ typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInst
                                                          union rdevEthSwitchServerMessageList_u *reqMsg,
                                                          rdevEthSwitchServerCbFxn_t *cb);
 
+#define RPMSG_KDRV_TP_ETHSWITCH_REQUEST_FIRST (RPMSG_KDRV_TP_ETHSWITCH_ATTACH)
+#define RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(id) ((id) - RPMSG_KDRV_TP_ETHSWITCH_REQUEST_FIRST)
 
 rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
 {
-    [RPMSG_KDRV_TP_ETHSWITCH_ATTACH] = &rdevEthSwitchServerHandleAttachRequest,
-    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX] = &rdevEthSwitchServerHandleAllocTxRequest,
-    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX] = &rdevEthSwitchServerHandleAllocRxRequest,
-    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW] = &rdevEthSwitchServerHandleAllocDefaultFlow,
-    [RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC] = &rdevEthSwitchServerHandleAllocMacRequest,
-    [RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC] = &rdevEthSwitchServerHandleRegisterMac,
-    [RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC] = &rdevEthSwitchServerHandleUnRegisterMac,
-    [RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW] = &rdevEthSwitchServerHandleUnRegisterDefaultFlow,
-    [RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC] = &rdevEthSwitchServerHandleFreeMac,
-    [RPMSG_KDRV_TP_ETHSWITCH_FREE_TX] = &rdevEthSwitchServerHandleFreeTx,
-    [RPMSG_KDRV_TP_ETHSWITCH_FREE_RX] = &rdevEthSwitchServerHandleFreeRx,
-    [RPMSG_KDRV_TP_ETHSWITCH_DETACH] = &rdevEthSwitchServerHandleDetach,
-    [RPMSG_KDRV_TP_ETHSWITCH_IOCTL] = &rdevEthSwitchServerHandleIoctl,
-    [RPMSG_KDRV_TP_ETHSWITCH_REGWR] = &rdevEthSwitchServerHandleRegWr,
-    [RPMSG_KDRV_TP_ETHSWITCH_REGRD] = &rdevEthSwitchServerHandleRegRd,
-    [RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST] = &rdevEthSwitchServerHandlePingRequest,
-    [RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER] = &rdevEthSwitchServerHandleIPV4MacRegisterRequest,
-    [RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER] = &rdevEthSwitchServerHandleIPV6MacRegisterRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ATTACH)] = &rdevEthSwitchServerHandleAttachRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX)] = &rdevEthSwitchServerHandleAllocTxRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX)] = &rdevEthSwitchServerHandleAllocRxRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW)] = &rdevEthSwitchServerHandleAllocDefaultFlow,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC)] = &rdevEthSwitchServerHandleAllocMacRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC)] = &rdevEthSwitchServerHandleRegisterMac,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC)] = &rdevEthSwitchServerHandleUnRegisterMac,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW)] = &rdevEthSwitchServerHandleUnRegisterDefaultFlow,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC)] = &rdevEthSwitchServerHandleFreeMac,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_FREE_TX)] = &rdevEthSwitchServerHandleFreeTx,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_FREE_RX)] = &rdevEthSwitchServerHandleFreeRx,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_DETACH)] = &rdevEthSwitchServerHandleDetach,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IOCTL)] = &rdevEthSwitchServerHandleIoctl,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGWR)] = &rdevEthSwitchServerHandleRegWr,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGRD)] = &rdevEthSwitchServerHandleRegRd,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST)] = &rdevEthSwitchServerHandlePingRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER)] = &rdevEthSwitchServerHandleIPV4MacRegisterRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER)] = &rdevEthSwitchServerHandleIPV6MacRegisterRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER)] = &rdevEthSwitchServerHandleUnRegisterIPv4Mac,
 
 };
 
@@ -648,11 +686,12 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
     }
 
     if(ret == 0) {
-        if ((hdr->message_type < CPSW_UTILS_ARRAYSIZE(rdevEthSwitchServerRequestHandlers))
+        ETHREMOTECFG_SERVER_ASSERT((int32_t)hdr->message_type >= (int32_t)RPMSG_KDRV_TP_ETHSWITCH_REQUEST_FIRST);
+        if ((RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(hdr->message_type) < CPSW_UTILS_ARRAYSIZE(rdevEthSwitchServerRequestHandlers))
             &&
-            (rdevEthSwitchServerRequestHandlers[hdr->message_type] != NULL)) 
+            (rdevEthSwitchServerRequestHandlers[RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(hdr->message_type)] != NULL)) 
         {
-            ret = rdevEthSwitchServerRequestHandlers[hdr->message_type](inst, 
+            ret = rdevEthSwitchServerRequestHandlers[RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(hdr->message_type)](inst, 
                               channel, 
                               request_id,
                               (union rdevEthSwitchServerMessageList_u *)data,
@@ -669,18 +708,27 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id, app_remote_device_
     return ret;
 }
 
-static int32_t rdevEthSwitchServerHandleC2SNotify(rdevEthSwitchServerInstanceState_t *inst,
-                                                  app_remote_device_channel_t *channel, struct rpmsg_kdrv_ethswitch_c2s_notify *req)
+static void rdevEthSwitchServerHandleC2SNotify(rdevEthSwitchServerInstanceState_t *inst,
+                                               app_remote_device_channel_t *channel,
+                                               union rdevEthSwitchServerMessageList_u *notifyMsg,
+                                               rdevEthSwitchServerCbFxn_t *cb)
 {
-    int32_t ret = 0;
+    struct rpmsg_kdrv_ethswitch_c2s_notify *notifymsg = &notifyMsg->c2s_notify;
 
-    if(ret == 0) {
-        inst->num_incoming_message++;
-        SemaphoreP_post(inst->message_sem);
-    }
-
-    return ret;
+    cb->client_notify_handler(inst->inst_prm.host_id,notifymsg->info.id,notifymsg->info.core_key, (enum rpmsg_kdrv_ethswitch_client_notify_type)notifymsg->notifyid, notifymsg->notify_info, notifymsg->notify_info_len);
 }
+
+typedef void (*rdevEthSwitchServerHandleNotifyFxn_t)(rdevEthSwitchServerInstanceState_t *inst,
+                                                     app_remote_device_channel_t *channel, 
+                                                     union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                     rdevEthSwitchServerCbFxn_t *cb);
+
+#define RPMSG_KDRV_TP_ETHSWITCH_NOTIFY_FIRST (RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY)
+#define RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(id) ((id) - RPMSG_KDRV_TP_ETHSWITCH_NOTIFY_FIRST)
+rdevEthSwitchServerHandleNotifyFxn_t rdevEthSwitchServerNotifyHandlers[] =
+{
+    [RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY)] = &rdevEthSwitchServerHandleC2SNotify,
+};
 
 static int32_t rdevEthSwitchServerMessage(uint32_t device_id, app_remote_device_channel_t *channel,
         void *data, uint32_t len)
@@ -707,14 +755,22 @@ static int32_t rdevEthSwitchServerMessage(uint32_t device_id, app_remote_device_
     }
 
     if(ret == 0) {
-        switch(hdr->message_type) {
-            case RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY:
-                ret = rdevEthSwitchServerHandleC2SNotify(inst, channel,
-                        (struct rpmsg_kdrv_ethswitch_c2s_notify *)data);
-                break;
-            default:
-                appLogPrintf("%s: unidentified request\n", __func__);
-                ret = -1;
+        ETHREMOTECFG_SERVER_ASSERT(hdr->message_type >= RPMSG_KDRV_TP_ETHSWITCH_NOTIFY_FIRST);
+        if ((RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(hdr->message_type) < CPSW_UTILS_ARRAYSIZE(rdevEthSwitchServerNotifyHandlers))
+            &&
+            (rdevEthSwitchServerNotifyHandlers[RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(hdr->message_type)] != NULL)) 
+        {
+            rdevEthSwitchServerNotifyHandlers[RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(hdr->message_type)](inst, 
+                              channel, 
+                              (union rdevEthSwitchServerMessageList_u *)data,
+                              &gRdevEthSwitchServerState.prm.cb);
+            inst->num_incoming_message++;
+            SemaphoreP_post(inst->message_sem);
+        }
+        else
+        {
+            appLogPrintf("%s: unidentified request\n", __func__);
+            ret = -1;
         }
     }
 
