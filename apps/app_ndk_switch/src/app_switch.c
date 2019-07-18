@@ -117,10 +117,14 @@ typedef struct
     uint32_t coreId;
 
     /* CPSW driver handle */
-    Cpsw_Handle          hCpsw;
+    Cpsw_Handle hCpsw;
 
     /* UDMA driver handle */
-    Udma_DrvHandle       hUdmaDrv;
+    Udma_DrvHandle hUdmaDrv;
+
+    /* Flag to enable/disable CPU load prints on UART menu */
+    bool printCpuLoad;
+
 } CpswApp_Obj;
 
 /* ========================================================================== */
@@ -528,8 +532,12 @@ static Void CpswApp_cpuLoadTask(UArg a0, UArg a1)
 {
     while (true)
     {
-        //TODO Add task load and more granular load support
-        CpswAppUtils_print("CPU Load: %u%%\n", Load_getCPULoad());
+        if (gCpswSwitchAppObj.printCpuLoad)
+        {
+            //TODO Add task load and more granular load support
+            CpswAppUtils_print("CPU Load: %u%%\n", Load_getCPULoad());
+        }
+
         Task_sleep(5000U);
     }
 }
@@ -546,6 +554,7 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
     gCpswSwitchAppObj.hCpsw = handleInfo.hCpsw;
     gCpswSwitchAppObj.hUdmaDrv = handleInfo.hUdmaDrv;
     gCpswSwitchAppObj.coreId = handleInfo.coreId;
+    gCpswSwitchAppObj.printCpuLoad = true;
 
     if (gCpswSwitchAppObj.hCpsw  == NULL)
     {
@@ -573,6 +582,9 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
         CpswAppUtils_print("\n\rEthFw: BOARD IP: %s", gIpAddrStr);
         CpswAppUtils_print("%s", gCpswAppSwitchMenu);
         UART_scanFmt("%d", &choice);
+
+        /* Disable CPU load print to avoid cluttering of user options */
+        gCpswSwitchAppObj.printCpuLoad = false;
 
         switch(choice)
         {
@@ -635,7 +647,8 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
                 break;
 
             case APP_MENU_OPTION_INTERVLAN:
-                CpswAppUtils_print("\n InterVLAN is currently not implemented\n");
+                CpswAppUtils_print("\n InterVLAN not supported in demo, \
+                                        refer to CPSW LLD tests for feature enablement\n");
                 break;
 
             case APP_MENU_OPTION_SHOW_ALE:
@@ -645,6 +658,8 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
             default:
                 break;
         }
+
+        gCpswSwitchAppObj.printCpuLoad = true;
 
     }
 }
