@@ -260,8 +260,9 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
     Cpsw_IoctlPrms prms;
     CpswAle_AddEntryOutArgs setMcastOutArgs;
     CpswAle_SetMcastEntryInArgs setMcastInArgs;
-    CpswAle_MacAddrInfo getMcastInArgs;
-    CpswAle_GetMcastEntryOutArgs getMcastOutArgs;
+    CpswAle_GetMcastEntryInArgs     getMcastInArgs;
+    CpswAle_GetMcastEntryOutArgs    getMcastOutArgs;
+
     int32_t status;
 
     memcpy(&setMcastInArgs.addr.addr[0], macAddr, sizeof(setMcastInArgs.addr.addr));
@@ -285,8 +286,9 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
         }
         else
         {
-            memcpy(&getMcastInArgs.addr[0U], macAddr, sizeof(getMcastInArgs.addr));
-            getMcastInArgs.vlanId = vlanId;
+            memcpy(&getMcastInArgs.addr.addr[0], macAddr, CPSW_MAC_ADDR_LEN);
+            getMcastInArgs.addr.vlanId = vlanId;
+            getMcastInArgs.numIgnBits = 0;
             CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getMcastInArgs, &getMcastOutArgs);
 
             status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
@@ -301,8 +303,9 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
     }
     else
     {
-        memcpy(&getMcastInArgs.addr[0U], macAddr, sizeof(getMcastInArgs.addr));
-        getMcastInArgs.vlanId = vlanId;
+        memcpy(&getMcastInArgs.addr.addr[0], macAddr, CPSW_MAC_ADDR_LEN);
+        getMcastInArgs.addr.vlanId = vlanId;
+        getMcastInArgs.numIgnBits = 0;
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &getMcastInArgs, &getMcastOutArgs);
 
         status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
@@ -315,7 +318,7 @@ void CpswApp_setAleMulticastEntry(uint8_t macAddr[],
         }
         else
         {
-            CPSW_IOCTL_SET_IN_ARGS(&prms, &getMcastInArgs);
+            CPSW_IOCTL_SET_IN_ARGS(&prms, &getMcastInArgs.addr);
             status = Cpsw_ioctl(gCpswSwitchAppObj.hCpsw,
                                 gCpswSwitchAppObj.coreId,
                                 CPSW_ALE_IOCTL_REMOVE_ADDR,
