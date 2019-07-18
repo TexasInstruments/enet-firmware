@@ -200,6 +200,8 @@ static HANDLE hOob = 0;
 
 char *VerStr = "NIMU CPSW Example";
 
+char gIpAddrStr[20] = "0.0.0.0";
+
 static Cpsw_MacPort gCpswMainAppMacPorts[] = {
 #if defined(SOC_AM65XX)
     CPSW_MAC_PORT_0,
@@ -431,16 +433,10 @@ void stackDeleteHook(void* hCfg)
 void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
 {
     volatile uint32_t ipAddrHex = 0U;
-    char ipAddr[20];
 
-    ipAddrHex = ntohl(IPAddr);
-    snprintf(ipAddr, 17, "%d.%d.%d.%d\n",
-             (uint8_t)(ipAddrHex>>24)&0xFF,
-             (uint8_t)(ipAddrHex>>16)&0xFF,
-             (uint8_t)(ipAddrHex>>8)&0xFF,
-             (uint8_t)ipAddrHex&0xFF);
+    NtIPN2Str(IPAddr, gIpAddrStr);
 
-    CpswAppUtils_print("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
+    CpswAppUtils_print("\nCPSW NIMU application, IP address I/F 1: %s\n\r", gIpAddrStr);
 
     /* Not that CPSW is initialized, create UART menu task for user configuration */
     /* Note - We can't call this function from any other tasks as it calls CpswAppIf_getHandles

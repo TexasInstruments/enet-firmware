@@ -155,6 +155,8 @@ static uint8_t gAppTskStackUart[APP_TSK_STACK_UART] __attribute__((aligned(32)))
 
 CpswApp_Obj gCpswSwitchAppObj;
 
+extern char gIpAddrStr[20];
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -568,6 +570,7 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
         uint32_t vlanId, portmask, isEnable, rate;
         int32_t choice = 0U;
 
+        CpswAppUtils_print("\n\rEthFw: BOARD IP: %s", gIpAddrStr);
         CpswAppUtils_print("%s", gCpswAppSwitchMenu);
         UART_scanFmt("%d", &choice);
 
