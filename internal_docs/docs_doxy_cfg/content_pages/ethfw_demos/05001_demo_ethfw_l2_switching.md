@@ -61,7 +61,7 @@ Below diagram shows connections for video streaming connections.
 
 > **Note:** The IP addresses in above diagram can change based on your network
 > configuration. Also use of Ubuntu laptop is not required if DHCP server is
-> available in your network.
+> available in your network or if using static IP addresses.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Dependencies {#demo_l2_switching_depend}
@@ -94,33 +94,20 @@ Not applicable.
 # Test Setup {#demo_l2_switching_setup_cfg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-## Pre-requisites {#demo_l2_switching_steps_prerequisites}
+## Pre-requisites {#demo_l2_switching_prerequisites}
 
--# Install Code Composer Studio and setup a <b>Target Configuration</b> for
-   use with J721E EVM. Refer to @ref ethfw_instal_ccs
--# Plex server set up
-    1. Install Plex Media Server. The Ubuntu/Windows installation executable
-       and instructions can be found in their [website](https://www.plex.tv/)
-    2. Once setup, the media server will be started every time that the PC is
-       powered on
-    3. Add video samples to the Library as needed
+### Plex server set up {#demo_l2_switching_prereq_plextv}
 
-## Steps {#demo_l2_switching_steps}
+-# Install Plex Media Server. The Ubuntu/Windows installation executable
+   and instructions can be found in their [website](https://www.plex.tv/)
+-# Once setup, the media server will be started every time that the PC is
+   powered on.
+-# Add video samples to the Library as needed.
 
--# Connect the emulator to the PC
+### Setting static IPs {#demo_l2_switching_static_ips}
 
--# Connect the laptops/PCs as per demo connections diagram above
-     * **Important:** DHCP server must be connected to **MAC Port 1**
-     * **Note:** Do not connect any device to **MAC Port 0** as it may not be
-       functional, please refer to the @ref ethfw_known_issues sections for
-       further details
-
--# **Optional** - If DHCP server is not available in the Linux PC as shown in
-   the connection diagram above, it's recommended to connect **MAC Port 1**
-   to a wider network running DHCP
-
--# **Optional** - Above connection diagram assumed DHCP, but it's also possible
-   to set IPs statically. If so, configure the connected devices as follows:
+-# As depicted in the previous connections diagram, the static IPs for all
+   devices required in this demo can be set as follows:
     Device                            |  IP address
     --------------------------------- | -------------
     Laptop running Plex client        | 192.168.1.201
@@ -132,19 +119,97 @@ Not applicable.
    * Refer to the following
      [website](https://www.howtogeek.com/howto/19249/how-to-assign-a-static-ip-address-in-xp-vista-or-windows-7/)
      for suggested instructions about static IP configuration under a Windows
-     environment
+     environment.
+
+-# **Optional** - If static IP configuration is not possible, a local DHCP
+   server can be setup in a Linux PC as shown in the connections diagram above.
+   Otherwise, it's also possible to connect the **MAC Port 1** to a wider
+   network running DHCP.
+
+
+## CCS Boot {#demo_l2_switching_CCS}
+
+### Prerequisites {#demo_l2_switchin_CCS_prereqs}
+
+Install Code Composer Studio and setup a <b>Target Configuration</b> for use
+with J721E EVM. Refer to @ref ethfw_instal_ccs.
+
+### Steps {#demo_l2_switching_CCS_steps}
+
+-# Connect a micro USB cable to JTAG port of J721E_EVM. The XDS110 JTAG
+   connector is labeled `XDS110` (J3).
+
+-# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM. It's
+   labeled `UART` (J44).
+
+-# Set EVM's DIP switches `SW8` and `SW9` for no-boot mode:
+   * SW8 = 10001000
+   * SW9 = 01110000
+
+-# Open up a serial terminal for UART2 communication. This terminal will show
+   logs from MCU2_0 core where the demo application runs.
+   * Set serial parameters to: 115200 8N1.
+   * Set hardware and software flow control to "No".
+   * Below figure shows serial parameters set in Minicom.
+
+     ![](demo_l2_switching_minicom.png "Serial Port Settings in Minicom")
+
+-# Power on the J721E EVM board. Ensure that SD card is not present or QSPI
+   flashed.
+
+-# Connect the laptops/PCs as per demo connections diagram above.
+   * **Important:** DHCP server (if required) must be connected to
+     **MAC Port 1**.
+   * **Note:** Do not connect any device to **MAC Port 0** as it may not be
+     functional, please refer to the @ref ethfw_known_issues sections for
+     further details
 
 -# For loading L2 Switching application binaries through CCS on J721E, please
-   refer to @ref load_example_binaries_on_j7 section
-
--# Once you see the IP address printed on console and all links detected by demo
-   application. Run Plex client by accessing the following address using your
-   favorite web browser: http://192.168.1.202:32400/web
-
-![](PlexClient.png "Plex client interface")
+   refer to @ref load_example_binaries_on_j7 section.
 
 
-### HTTP Client Page (http://192.168.1.203)
+## SD Card Boot {#demo_l2_switching_sdcard}
+
+### Steps {#demo_l2_switching_sdcard_steps}
+
+-# Create a bootable SD card with Linux bootloader, kernel and filesystem.
+   For details about SD card creation, refer to the Processor SDK Linux
+   Automotive User's Guide.
+
+-# Copy the CAN/Eth gateway demo application to the **firmware** directory of
+   Linux filesystem in SD card:
+
+       cp <SDK_INSTALL_PATH>/binary/gatewayapp/bin/j721e_evm/gatewayapp_mcu2_0_release.xer5f <MOUNT>/rootfs/lib/firmware/
+
+-# Update the soft-link `j7-main-r5f0_0-fw` to point to the demo application
+   copied to SD card in the previous step:
+
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf gatewayapp_mcu2_0_release.xer5f j7-main-r5f0_0-fw
+
+-# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM. It's
+   labeled `UART` (J44).
+
+-# Set EVM's DIP switches `SW8` and `SW9` for SD card boot:
+   * SW8 = 10000010
+   * SW9 = 00000000
+
+-# Open up a serial terminal for UART0 communication. This terminal will show
+   logs from Linux bootloader and kernel.
+   * Set serial parameters to: 115200 8N1.
+
+-# Open up a serial terminal for UART2 communication. This terminal will show
+   logs from MCU2_0 core where the demo application runs.
+   * Set serial parameters to: 115200 8N1.
+   * Set hardware and software flow control to "No".
+   * Below figure shows serial parameters set in Minicom.
+
+     ![](demo_l2_switching_minicom.png "Serial Port Settings in Minicom")
+
+-# Insert SD card into slot labeled `MICRO SD` and power on the J721E EVM board.
+
+
+## HTTP Client Page (http://192.168.1.203)
 
 The following is a snapshot of webpage loaded when client accesses HTTP server
 on J721E EVM.
@@ -152,6 +217,15 @@ on J721E EVM.
 ![](tcpipdemopage.png "TCP/IP HTTP Server Landing Page")
 
 [Back To Top](@ref demo_l2_switching_ndk_top)
+
+
+## Plex TV Client
+
+Once you see the IP address printed on console and all links detected by demo
+application. Run Plex client by accessing the following address using your
+favorite web browser: http://192.168.1.202:32400/web
+
+![](PlexClient.png "Plex client interface")
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -177,8 +251,7 @@ PHY 23 is alive
 
 CPSW NIMU application, IP address I/F 1: 192.168.1.108
 
-PU Load: 1%
-=====================================
+=================================================
                    Switch Options
 =================================================
  1. Enable/Disable VLAN
