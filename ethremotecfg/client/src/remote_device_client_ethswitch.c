@@ -88,7 +88,8 @@ uint32_t rdevEthSwitchClient_printText(void *priv, void *data)
 
 static int32_t rdevEthSwitchClientFreeMsg(void *priv, void *data, uint32_t len)
 {
-    Memory_free(NULL, data, sizeof(rdevEthSwitchClientMessageList_t));;
+    Memory_free(NULL, data, sizeof(rdevEthSwitchClientMessageList_t));
+    return 0;
 }
 
 int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id, u64 id, u32 core_key, enum rpmsg_kdrv_ethswitch_client_notify_type notify_id, uint8_t *notify_info, uint32_t notify_info_len)
@@ -149,7 +150,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint32_t *rx_mtu,
                                    uint32_t tx_mtu[],
                                    uint32_t tx_mtu_array_size,
-                                   uint8_t  *tx_csum_enabled)
+                                   uint32_t  *pFeatures)
 {
     rdevEthSwitchClientMessageList_t clientMsg; 
     struct rpmsg_kdrv_ethswitch_attach_request *msg = &clientMsg.rdevEthSwitchMsg.attach_req;
@@ -170,7 +171,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
             *id = attach_reponse.rdevEthSwitchMsg.attach_res.id;
             *core_key = attach_reponse.rdevEthSwitchMsg.attach_res.core_key;
             *rx_mtu = attach_reponse.rdevEthSwitchMsg.attach_res.rx_mtu;
-            *tx_csum_enabled = ((attach_reponse.rdevEthSwitchMsg.attach_res.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0);
+            *pFeatures = attach_reponse.rdevEthSwitchMsg.attach_res.features;
             if (tx_mtu_array_size >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu))
             {
                 uint32_t i;
@@ -222,7 +223,7 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, u64 id, u32 core_key, u3
     return ret;
 }
 
-int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_startidx, uint32_t *rx_flow_allocidx)
+int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_allocidx)
 {
     rdevEthSwitchClientMessageList_t clientMsg; 
     struct rpmsg_kdrv_ethswitch_alloc_request *msg = &clientMsg.rdevEthSwitchMsg.alloc_req;
@@ -241,7 +242,6 @@ int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t co
         CpswAppUtils_assert(respMsgSize == (sizeof(alloc_rx_reponse.hdr) + sizeof(alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res)));
         if (alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
-            *rx_flow_startidx = alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res.start_idx;
             *rx_flow_allocidx = alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res.alloc_flow_idx;
         }
         else
@@ -252,7 +252,7 @@ int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t co
     return ret;
 }
 
-int32_t rdevEthSwitchClient_allocrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_startidx, uint32_t *rx_flow_allocidx)
+int32_t rdevEthSwitchClient_allocrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_allocidx)
 {
     rdevEthSwitchClientMessageList_t clientMsg; 
     struct rpmsg_kdrv_ethswitch_alloc_request *msg = &clientMsg.rdevEthSwitchMsg.alloc_req;
@@ -271,7 +271,6 @@ int32_t rdevEthSwitchClient_allocrxdefault(uint32_t device_id, uint64_t id, uint
         CpswAppUtils_assert(respMsgSize == (sizeof(alloc_rx_default_reponse.hdr) + sizeof(alloc_rx_default_reponse.rdevEthSwitchMsg.alloc_rx_default_res)));
         if (alloc_rx_default_reponse.rdevEthSwitchMsg.alloc_rx_default_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
-            *rx_flow_startidx = alloc_rx_default_reponse.rdevEthSwitchMsg.alloc_rx_default_res.start_idx;
             *rx_flow_allocidx = alloc_rx_default_reponse.rdevEthSwitchMsg.alloc_rx_default_res.alloc_flow_idx;
         }
         else

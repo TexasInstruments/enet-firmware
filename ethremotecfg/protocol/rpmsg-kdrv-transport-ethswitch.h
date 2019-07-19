@@ -235,9 +235,7 @@ struct rpmsg_kdrv_ethswitch_attach_extended_response {
     u32 tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
     /* Feature bitmask based on defines RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx */
     u32 features;
-    /*! Rx Flow Base or Start index*/
-    u32 start_idx;
-    /*! Allocated flow's index (offset from startIdx)*/
+    /*! Allocated flow's index */
     u32 alloc_flow_idx;
     /*! Tx PSIL Peer destination thread id which should be paired with the
       * Tx UDMA channel
@@ -265,17 +263,13 @@ struct rpmsg_kdrv_ethswitch_alloc_request {
 
 struct rpmsg_kdrv_ethswitch_alloc_rx_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-    /*! Rx Flow Base or Start index*/
-    u32 start_idx;
-    /*! Allocated flow's index (offset from startIdx)*/
+    /*! Allocated flow's index */
     u32 alloc_flow_idx;
 } __packed;
 
 struct rpmsg_kdrv_ethswitch_alloc_rx_default_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-    /*! Rx Flow Base or Start index*/
-    u32 start_idx;
-    /*! Allocated flow's index (offset from startIdx)*/
+    /*! Allocated flow's index */
     u32 alloc_flow_idx;
 } __packed;
 

@@ -385,6 +385,7 @@ static void rdevEthSwitchApp_printMacPortStats9G(CpswStats_MacPort_9g *st)
 uint32_t gRegWrAddr = 0xDEADBEEF;
 uint32_t gRegRdAddr = 0x00C0FFEE;
 bool freeInDetach = false;
+static volatile bool gWaitInLoop = true;
 static void requestLoopFn(UArg a0, UArg a1)
 {
     uint32_t cnt = 0;
@@ -394,9 +395,9 @@ static void requestLoopFn(UArg a0, UArg a1)
     uint32_t core_key;
     uint32_t rx_mtu;
     uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
-    uint8_t  tx_csum_enabled;
+    uint8_t  features;
     uint32_t tx_id;
-    uint32_t rx_flow_startidx, rx_flow_allocidx, rx_default_flow_allocidx;
+    uint32_t rx_flow_allocidx, rx_default_flow_allocidx;
     uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     uint8_t  ipv4Addr[] = {172,24,209,155};
     uint8_t  ipv6Addr[] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xA,0xB,0xC,0xD,0xE,0xF,0x10};
@@ -405,7 +406,7 @@ static void requestLoopFn(UArg a0, UArg a1)
     
 
     while(TRUE) {
-        switch (cnt % 8)
+        switch (cnt % 19)
         {
             case 0:
             {
@@ -424,13 +425,13 @@ static void requestLoopFn(UArg a0, UArg a1)
             }
             case 1:
             {
-                ret = rdevEthSwitchClient_attach(device_id, RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G, &id, &core_key, &rx_mtu, tx_mtu, CPSW_UTILS_ARRAYSIZE(tx_mtu),&tx_csum_enabled);
+                ret = rdevEthSwitchClient_attach(device_id, RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G, &id, &core_key, &rx_mtu, tx_mtu, CPSW_UTILS_ARRAYSIZE(tx_mtu),&features);
                 if (0 == ret)
                 {
                     rdevEthSwitchAppNotifyTskCmdInfo_t notifyTskMsg;
                     Bool mbxStatus;
 
-                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",__func__,(uintptr_t)(id & 0xFFFFFFFFU), core_key, rx_mtu, tx_mtu[0], tx_mtu[1],tx_mtu[2],tx_mtu[3], tx_mtu[4], tx_mtu[5],tx_mtu[6],tx_mtu[7],tx_csum_enabled);
+                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",__func__,(uintptr_t)(id & 0xFFFFFFFFU), core_key, rx_mtu, tx_mtu[0], tx_mtu[1],tx_mtu[2],tx_mtu[3], tx_mtu[4], tx_mtu[5],tx_mtu[6],tx_mtu[7],((features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
                     notifyTskMsg.cmd = RDEVETHSWITCHAPP_NOTIFYTSKCMD_ATTACH;
                     notifyTskMsg.handle = id;
                     notifyTskMsg.coreKey = core_key;
@@ -455,19 +456,19 @@ static void requestLoopFn(UArg a0, UArg a1)
             }
             case 3:
             {
-                ret = rdevEthSwitchClient_allocrx(device_id, id, core_key, &rx_flow_startidx, &rx_flow_allocidx);
+                ret = rdevEthSwitchClient_allocrx(device_id, id, core_key, &rx_flow_allocidx);
                 if (0 == ret)
                 {
-                    System_printf("Function:%s,RxStartId:%u, RxAllocId:%u\n",__func__,rx_flow_startidx, rx_flow_allocidx);
+                    System_printf("Function:%s,RxAllocId:%u\n",__func__,rx_flow_allocidx);
                 }
                 break;
             }
             case 4:
             {
-                ret = rdevEthSwitchClient_allocrxdefault(device_id, id, core_key, &rx_flow_startidx, &rx_default_flow_allocidx);
+                ret = rdevEthSwitchClient_allocrxdefault(device_id, id, core_key, &rx_default_flow_allocidx);
                 if (0 == ret)
                 {
-                    System_printf("Function:%s,RxStartId:%u, RxAllocId:%u\n",__func__,rx_flow_startidx, rx_default_flow_allocidx);
+                    System_printf("Function:%s,RxAllocId:%u\n",__func__,rx_default_flow_allocidx);
                 }
                 break;
             }
@@ -594,7 +595,7 @@ static void requestLoopFn(UArg a0, UArg a1)
             }
         }
         cnt++;
-        while (cnt > 8)
+        while (((cnt % 19) > 8) && gWaitInLoop)
         {
             Task_sleep(10);
         }
