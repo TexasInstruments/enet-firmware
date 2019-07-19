@@ -57,7 +57,13 @@ var NAVTREE =
       [ "Supported Device Families", "ethfw_c_ug_top.html#ethfw_supported_family", null ],
       [ "Document Revision History", "ethfw_c_ug_top.html#ethfw_rev_history", null ]
     ] ],
-    [ "Validation", "val_notes_mainpage.html", null ],
+    [ "Validation", "val_notes_mainpage.html", [
+      [ "Introduction", "val_notes_mainpage.html#val_intro", null ],
+      [ "HIS Metric Report", "val_notes_mainpage.html#val_his_rep", null ],
+      [ "KW Static Analysis Report", "val_notes_mainpage.html#val_kw_rep", null ],
+      [ "EthFw Unit Test Reports", "val_notes_mainpage.html#val_unit_rep", null ],
+      [ "Performance Measurements", "val_notes_mainpage.html#val_perform_measurements", null ]
+    ] ],
     [ "CCS setup", "ccs_setup_top.html", [
       [ "Download and Install CCS", "ccs_setup_top.html#ethfw_download_instal_ccs", null ],
       [ "Setup for J721E EVM", "ccs_setup_top.html#ethfw_instal_ccs_gel_setup", null ],
