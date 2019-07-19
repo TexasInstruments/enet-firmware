@@ -38,7 +38,7 @@ endif
 
 BIOS_PATH_AM65XX ?= $(PSDK_PATH)/bios_6_75_02_00
 BIOS_PATH_J721E ?= $(PSDK_PATH)/bios_6_76_02_00_eng
-XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_3_60_00_12_core_eng
+XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_3_55_02_22_core
 NDK_PATH ?= $(PSDK_PATH)/ndk_3_60_00_13
 NS_PATH  ?= $(PSDK_PATH)/ns_2_60_00_07
 CTOOLSLIB_PATH ?= $(PSDK_PATH)/ctoolslib
