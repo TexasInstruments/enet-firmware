@@ -133,10 +133,14 @@ $(_MODULE)_LIBRARIES:= $(foreach ldir,$($(_MODULE)_LDIRS),-L$(ldir)) \
 $(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES)
 $(_MODULE)_LDFLAGS  += $($(_MODULE)_LOPT)
 $(_MODULE)_CPLDFLAGS  = $(foreach ldf,$($(_MODULE)_LDFLAGS),-Wl,$(ldf))
-$(_MODULE)_CPLDFLAGS += -Werror -Wl,-static -Wl,--gc-sections -nostartfiles -Wl,--build-id=none
+$(_MODULE)_CPLDFLAGS += -Wl,-static -Wl,--gc-sections -nostartfiles -Wl,--build-id=none
 $(_MODULE)_CFLAGS   := -c $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS)
 $(_MODULE)_XDC_TARGET := gnu.targets.arm.A53F
 $(_MODULE)_CGT_ROOT = $(GCC_SYSBIOS_ARM_ROOT)
+
+ifeq ($(TREAT_WARNINGS_AS_ERROR), yes)
+  $(_MODULE)_CPLDFLAGS += -Werror
+endif
 
 $(_MODULE)_LINKER_CMD_FILES_OPTS:= $(foreach lcmd,$($(_MODULE)_LINKER_CMD_FILES),-Wl,-T $(lcmd))
 

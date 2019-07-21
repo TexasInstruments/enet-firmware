@@ -121,6 +121,11 @@ $(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES)
 $(_MODULE)_CFLAGS   := $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS)
 $(_MODULE)_LDFLAGS  := $($(_MODULE)_CFLAGS) -z --warn_sections --reread_libs --zero_init=on $($(_MODULE)_LINKER_CMD_FILES) --rom_model
 
+ifeq ($(TREAT_WARNINGS_AS_ERROR), yes)
+  $(_MODULE)_CFLAGS  += --emit_warnings_as_errors
+  $(_MODULE)_LDFLAGS += --emit_warnings_as_errors
+endif
+
 ###################################################
 # COMMANDS
 ###################################################

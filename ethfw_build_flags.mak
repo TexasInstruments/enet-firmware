@@ -33,6 +33,10 @@ BUILD_APP_TIRTOS_LINUX?=no
 #Build Profile
 PROFILE?=debug
 
+# Treat compiler warning as error
+# Supported Values: yes | no
+TREAT_WARNINGS_AS_ERROR ?= yes
+
 # Build a specific CPU type's based on CPU flags status defined above
 ifneq (,$(filter yes,$(BUILD_CPU_MCU1_0) $(BUILD_CPU_MCU1_1) $(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0) $(BUILD_CPU_MCU3_1)))
 BUILD_ISA_R5F=yes
