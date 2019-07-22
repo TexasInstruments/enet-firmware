@@ -395,7 +395,7 @@ static void requestLoopFn(UArg a0, UArg a1)
     uint32_t core_key;
     uint32_t rx_mtu;
     uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
-    uint8_t  features;
+    uint32_t features;
     uint32_t tx_id;
     uint32_t rx_flow_allocidx, rx_default_flow_allocidx;
     uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
