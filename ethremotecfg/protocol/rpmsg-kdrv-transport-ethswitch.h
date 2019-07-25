@@ -71,7 +71,7 @@ enum rpmsg_kdrv_ethswitch_message_type {
     RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT              = 0x01,
     RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX                = 0x02,
     RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX                = 0x03,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW    = 0x04,
+    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_RX_DEFAULTFLOW = 0x04,
     RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC               = 0x05,
     RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC            = 0x06,
     RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC          = 0x07,
@@ -267,13 +267,6 @@ struct rpmsg_kdrv_ethswitch_alloc_rx_response {
     u32 alloc_flow_idx;
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_alloc_rx_default_response {
-    struct rpmsg_kdrv_ethswitch_common_response_info info;
-    /*! Allocated flow's index */
-    u32 alloc_flow_idx;
-} __packed;
-
-
 struct rpmsg_kdrv_ethswitch_alloc_tx_response {
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Tx PSIL Peer destination thread id which should be paired with the
@@ -287,6 +280,17 @@ struct rpmsg_kdrv_ethswitch_alloc_mac_response {
     /*! Mac address allocated */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 } __packed;
+
+struct rpmsg_kdrv_ethswitch_register_rx_default_request {
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    u32    default_flow_idx;
+} __packed;
+
+struct rpmsg_kdrv_ethswitch_register_rx_default_response {
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
 
 struct rpmsg_kdrv_ethswitch_register_mac_request {
     struct rpmsg_kdrv_ethswitch_message_header header;
