@@ -50,9 +50,9 @@ Supported CCS version for J721E EVM is 9.0.1.00004 as shown below.
 
 ![](ccs_target_configuration.png "Creating CCS Target Configuration File")
 
--# Open launch.js script located at gateway_demos/ccs_tools/ccsLoadDmsc/j721e/ and change
-   - **gelFilePath** to [Install Dir]/gateway_demos/ccs_tools/J721E
-   - **pdkPath** to [Install Dir]/gateway_demos/ccs_tools/ccsLoadDmsc/j721e
+-# Open launch.js script located at below path [SDK_INSTALL_PATH]\pdk_xx_xx_xx\packages\ti\drv\sciclient\tools\ccsLoadDmsc\j721e\ and change
+   - **gelFilePath** to your GEL files in the CCS installation.
+   - **pdkPath** to [SDK_INSTALL_PATH]\pdk_xx_xx_xx\packages
 
 [Back To Top](@ref ccs_setup_top)
 
@@ -71,7 +71,7 @@ Supported CCS version for J721E EVM is 9.0.1.00004 as shown below.
 -# Go to the <b>View</b> Target configurations and launch a target configuration
    is done by right clicking on it.
 -# Go to the <b>View</b> menu and then select <b>Scripting Console </b>
--# Run the launch.js script provided in gateway_demos/ccs_tools/ccsLoadDmsc/j721e/
+-# Run the launch.js script located in the pdk_xx_xx_xx\packages\ti\drv\sciclient\tools\ccsLoadDmsc\j721e\
    on scripting console to load and execute DMSC firmware binary.
    This step can take considerable time as it configures PLL etc. in the SOC via GEL files and configures DDR.
 
@@ -89,7 +89,6 @@ Supported CCS version for J721E EVM is 9.0.1.00004 as shown below.
 -# Go to the <b>Run</b> menu and then select <b>Load</b> -> <b>Select Program to Load</b>
 
 -# In the <b>Load Program</b> window, browse the EthFw Layer-2 switching application binary.
-   It can be found at gateway_demos/l2_switching/binaries/debug/ethfw_app_ndk_switch_tirtos_mcu_2_0.xer5f
 
    ![](demo_l2_switching_steps_4.png "Loading the demo application binary")
 
