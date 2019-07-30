@@ -406,7 +406,7 @@ static void requestLoopFn(UArg a0, UArg a1)
     
 
     while(TRUE) {
-        switch (cnt % 19)
+        switch (cnt % 20)
         {
             case 0:
             {
@@ -465,43 +465,48 @@ static void requestLoopFn(UArg a0, UArg a1)
             }
             case 4:
             {
-                ret = rdevEthSwitchClient_allocrxdefault(device_id, id, core_key, &rx_default_flow_allocidx);
+                ret = rdevEthSwitchClient_allocrx(device_id, id, core_key, &rx_default_flow_allocidx);
                 if (0 == ret)
                 {
-                    System_printf("Function:%s,RxAllocId:%u\n",__func__,rx_default_flow_allocidx);
+                    System_printf("Function:%s,RxDefaultAllocId:%u\n",__func__,rx_default_flow_allocidx);
                 }
                 break;
             }
             case 5:
             {
-                ret = rdevEthSwitchClient_allocmac(device_id, id, core_key, mac_address, CPSW_UTILS_ARRAYSIZE(mac_address));
-                if (0 == ret)
-                {
-                    System_printf("Function:%s,mac_address:%2x:%2x:%2x:%2x:%2x:%2x, RxAllocId:%u \n",__func__,mac_address[0],mac_address[1],mac_address[2],mac_address[3],mac_address[4],mac_address[5]);
-                }
+                ret = rdevEthSwitchClient_registerrxdefault(device_id, id, core_key, rx_default_flow_allocidx);
                 break;
             }
             case 6:
             {
-                ret = rdevEthSwitchClient_registermac(device_id, id, core_key, rx_flow_allocidx, mac_address);
+                ret = rdevEthSwitchClient_allocmac(device_id, id, core_key, mac_address, CPSW_UTILS_ARRAYSIZE(mac_address));
+                if (0 == ret)
+                {
+                    System_printf("Function:%s,mac_address:%2x:%2x:%2x:%2x:%2x:%2x \n",__func__,mac_address[0],mac_address[1],mac_address[2],mac_address[3],mac_address[4],mac_address[5]);
+                }
                 break;
             }
             case 7:
             {
-                ret = rdevEthSwitchClient_ipv4macregister(device_id, id, core_key, mac_address, ipv4Addr);
+                ret = rdevEthSwitchClient_registermac(device_id, id, core_key, rx_flow_allocidx, mac_address);
                 break;
             }
             case 8:
             {
-                ret = rdevEthSwitchClient_ipv6macregister(device_id, id, core_key, mac_address, ipv6Addr);
+                ret = rdevEthSwitchClient_ipv4macregister(device_id, id, core_key, mac_address, ipv4Addr);
                 break;
             }
             case 9:
             {
-                ret = rdevEthSwitchClient_ipv4macunregister(device_id, id, core_key, ipv4Addr);
+                ret = rdevEthSwitchClient_ipv6macregister(device_id, id, core_key, mac_address, ipv6Addr);
                 break;
             }
             case 10:
+            {
+                ret = rdevEthSwitchClient_ipv4macunregister(device_id, id, core_key, ipv4Addr);
+                break;
+            }
+            case 11:
             {
                 CpswStats_GenericMacPortInArgs inArgs;
                 CpswStats_PortStats portStats;
@@ -518,17 +523,17 @@ static void requestLoopFn(UArg a0, UArg a1)
                 break;
             }
 
-            case 11:
+            case 12:
             {
                 ret = rdevEthSwitchClient_unregistermac(device_id, id, core_key, rx_flow_allocidx, mac_address);
                 break;
             }
-            case 12:
+            case 13:
             {
                 ret = rdevEthSwitchClient_unregisterrxdefault(device_id, id, core_key, rx_default_flow_allocidx);
                 break;
             }
-            case 13:
+            case 14:
             {
                 if (freeInDetach == false)
                 {
@@ -536,7 +541,7 @@ static void requestLoopFn(UArg a0, UArg a1)
                 }
                 break;
             }
-            case 14:
+            case 15:
             {
                 if (freeInDetach == false)
                 {
@@ -544,7 +549,7 @@ static void requestLoopFn(UArg a0, UArg a1)
                 }
                 break;
             }
-            case 15:
+            case 16:
             {
                 if (freeInDetach == false)
                 {
@@ -552,7 +557,7 @@ static void requestLoopFn(UArg a0, UArg a1)
                 }
                 break;
             }
-            case 16:
+            case 17:
             {
                 {
                     rdevEthSwitchAppNotifyTskCmdInfo_t notifyTskMsg;
@@ -573,7 +578,7 @@ static void requestLoopFn(UArg a0, UArg a1)
                 ret = rdevEthSwitchClient_detach(device_id, id, core_key);
                 break;
             }
-            case 17:
+            case 18:
             {
                 uint32_t postWriteVal;
                 ret = rdevEthSwitchClient_regwr(device_id, (uint32_t)&gRegWrAddr, 0xBABEFACE, &postWriteVal);
@@ -583,7 +588,7 @@ static void requestLoopFn(UArg a0, UArg a1)
                 }
                 break;
             }
-            case 18:
+            case 19:
             {
                 uint32_t regRdVal;
                 ret = rdevEthSwitchClient_regrd(device_id, (uint32_t)&gRegRdAddr, &regRdVal);
@@ -595,7 +600,7 @@ static void requestLoopFn(UArg a0, UArg a1)
             }
         }
         cnt++;
-        while (((cnt % 19) > 8) && gWaitInLoop)
+        while (((cnt % 20) > 8) && gWaitInLoop)
         {
             Task_sleep(10);
         }

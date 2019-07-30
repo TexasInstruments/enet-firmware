@@ -105,6 +105,8 @@
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apprm.h>
 #include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
 #include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
 
@@ -168,21 +170,20 @@ typedef struct
     /* MAC ports */
     Cpsw_MacPort *macPorts;
 
-    /* Master port on which NIMU will poll for link
-     * Note - This will get removed once NIMU dependency on port is resolved */
-    Cpsw_MacPort masterPort;
-
     /* Number of MAC ports */
     uint32_t numMacPorts;
 
     /* Multiclient manager handles */
-    CpswMcm_Handle hMcm[CPSW_COUNT];
+    CpswMcm_CmdIf  mcmCmdIf[CPSW_COUNT];
 
     /* UDMA driver handle */
     Udma_DrvHandle hUdmaDrv;
 
     /* Host port MAC address */
     uint8_t hostMacAddr[ETH_MAC_ADDR_LEN];
+
+    /* Use default rx flow */
+    bool    useDefaultRxFlow;
 } CpswMain_AppObj;
 
 /* ========================================================================== */
@@ -237,7 +238,6 @@ static Cpsw_MacPort gCpswMainAppMacPorts[] = {
     CPSW_MAC_PORT_0,
 #elif defined(SOC_J721E)
     CPSW_MAC_PORT_1,
-    CPSW_MAC_PORT_0,
     CPSW_MAC_PORT_2,
     CPSW_MAC_PORT_3,
 #endif
@@ -246,13 +246,12 @@ static Cpsw_MacPort gCpswMainAppMacPorts[] = {
 static CpswMain_AppObj gCpswMainAppObj = {
 #if defined(SOC_AM65XX)
     .cpswType = CPSW_2G,
-    .masterPort = CPSW_MAC_PORT_0,
 #elif defined(SOC_J721E)
     .cpswType = CPSW_9G,
-    .masterPort = CPSW_MAC_PORT_1,
 #endif
     .macPorts = gCpswMainAppMacPorts,
     .numMacPorts = CPSWAPPUTILS_ARRAY_SIZE(gCpswMainAppMacPorts),
+    .useDefaultRxFlow = true,
 };
 
 
@@ -517,8 +516,7 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
     cpswCfg.hostPortConfig.padShortPacket = true;
     cpswCfg.hostPortConfig.passCrcErrors  = true;
     cpswCfg.hostPortConfig.enableCsumOffload = true;
-    cpswCfg.resourcePartitionConfig.isDefaultRmPartition = true;
-    cpswCfg.resourcePartitionConfig.rmPartitionPrms      = NULL;
+    CpswAppUtils_initResourceConfig(cpswType, CpswAppSoc_getCoreId(), &cpswCfg.resourceConfig);
 
     CpswApp_setAleConfig(&cpswCfg.aleConfig);
 
@@ -538,20 +536,14 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
            gCpswMainAppObj.macPorts,
            gCpswMainAppObj.numMacPorts);
 
-    /* First MAC port in the array gives the host address */
-    status = CpswSoc_getMacAddr(cpswType,
-                       CPSW_MAC_PORT_0,
-                       &cpswCfg.aleConfig.macAddr[0]);
+    CpswAppUtils_setDefaultHostPortMacAddr(&cpswCfg.resourceConfig, cpswCfg.aleConfig.macAddr);
 
-    memcpy(&gCpswMainAppObj.hostMacAddr[0U],
-           &cpswCfg.aleConfig.macAddr[0],
-           ETH_MAC_ADDR_LEN);
+    CPSW_UTILS_ARRAY_COPY(gCpswMainAppObj.hostMacAddr, cpswCfg.aleConfig.macAddr);
 
     CpswAppUtils_print("Host MAC address: ");
     CpswAppUtils_printMacAddr(&gCpswMainAppObj.hostMacAddr[0U]);
 
-    gCpswMainAppObj.hMcm[cpswType] = CpswMcm_init(&cpswMcmCfg);
-    CpswAppUtils_assert (NULL != gCpswMainAppObj.hMcm[cpswType]);
+    status = CpswMcm_init(&cpswMcmCfg);
 
     return status;
 }
@@ -563,49 +555,105 @@ void CpswApp_deInit(void)
     memset(&gCpswMainAppObj, 0U, sizeof(CpswMain_AppObj));
 }
 
-void CpswAppIf_getHandles(CpswAppIf_HandleInfo *pAppIfHandleInfo)
+static bool CpswApp_IsAllPhyLinked(Cpsw_Handle hCpsw)
+{
+    uint32_t i;
+    bool     isPhyLinked = false;
+
+    for (i = 0; i < gCpswMainAppObj.numMacPorts; i++)
+    {
+        if (0 == i)
+        {
+            isPhyLinked = Cpsw_isPhyLinked(hCpsw, gCpswMainAppObj.macPorts[i]);
+        }
+        else
+        {
+            isPhyLinked = (isPhyLinked && Cpsw_isPhyLinked(hCpsw,  gCpswMainAppObj.macPorts[i]));
+        }
+    }
+    return isPhyLinked;
+}
+
+
+void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
+                             NimuCpswAppIf_GetHandleOutArgs *outArgs)
 {
     int32_t status;
     CpswMcm_HandleInfo handleInfo;
+    Cpsw_AttachCoreOutArgs attachInfo;
+    uint32_t coreId = CpswAppSoc_getCoreId();
+    bool useDefaultFlow = gCpswMainAppObj.useDefaultRxFlow;
+    Cpsw_Type cpswType = gCpswMainAppObj.cpswType;
 
-    if (gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType] == NULL)
+    if (gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd == NULL)
     {
-        status = CpswApp_init(gCpswMainAppObj.cpswType);
-        pAppIfHandleInfo->isDefaultFlow = true;
+        status = CpswApp_init(cpswType);
 
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("Failed to open CPSW: %d\n", status);
-            CpswAppUtils_assert(status == CPSW_SOK);
         }
+        CpswAppUtils_assert(status == CPSW_SOK);
+        CpswMcm_getCmdIf(cpswType, &gCpswMainAppObj.mcmCmdIf[cpswType]);
     }
-    else
-    {
-        pAppIfHandleInfo->isDefaultFlow = false;
-    }
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd != NULL);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxResponse != NULL);
 
-    CpswMcm_getHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType], &handleInfo);
 
-    pAppIfHandleInfo->hCpsw         = handleInfo.hCpsw;
-    pAppIfHandleInfo->hUdmaDrv      = handleInfo.hUdmaDrv;
-    pAppIfHandleInfo->coreId        = handleInfo.coreId;
-    pAppIfHandleInfo->coreKey       = handleInfo.coreKey;
-    pAppIfHandleInfo->hostPortRxMtu = handleInfo.hostPortRxMtu;
-    memcpy (&pAppIfHandleInfo->txMtu[0U], &handleInfo.txMtu[0U],
-                            CPSW_UTILS_ARRAYSIZE(pAppIfHandleInfo->txMtu));
+    CpswMcm_acquireHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType], &handleInfo);
+    CpswMcm_coreAttach(&gCpswMainAppObj.mcmCmdIf[cpswType],coreId  ,&attachInfo);
 
-    pAppIfHandleInfo->printFxnCb    = &CpswAppUtils_print;
+    CpswAppUtils_openNDKTxCh(handleInfo.hCpsw, 
+                             handleInfo.hUdmaDrv, 
+                             attachInfo.coreKey, 
+                             coreId, 
+                             &inArgs->txCfg,
+                             &outArgs->txInfo);
+
+    CpswAppUtils_openNDKRxCh(handleInfo.hCpsw, 
+                             handleInfo.hUdmaDrv, 
+                             attachInfo.coreKey, 
+                             coreId, 
+                             useDefaultFlow,
+                             &inArgs->rxCfg,
+                             &outArgs->rxInfo);
+
+    outArgs->coreId = coreId;
+    outArgs->coreKey = attachInfo.coreKey;
+    outArgs->hCpsw   = handleInfo.hCpsw;
+    outArgs->hostPortRxMtu = attachInfo.rxMtu;
+    CPSW_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
+    outArgs->hUdmaDrv = handleInfo.hUdmaDrv;
+    outArgs->printFxnCb = &CpswAppUtils_print;
+    outArgs->isPhyLinkedFxn = &CpswApp_IsAllPhyLinked;
 }
 
-
-void CpswAppIf_releaseHandles(void)
+void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
 {
-    CpswMcm_releaseHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType]);
-}
+    bool useDefaultFlow = gCpswMainAppObj.useDefaultRxFlow;
+    Cpsw_Type cpswType = gCpswMainAppObj.cpswType;
 
-Cpsw_MacPort CpswAppIf_getMacPortNum(void)
-{
-    return (Cpsw_MacPort)gCpswMainAppObj.masterPort;
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd != NULL);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxResponse != NULL);
+
+    CpswAppUtils_closeNDKTxCh(releaseInfo->hCpsw, 
+                              releaseInfo->hUdmaDrv, 
+                              releaseInfo->coreKey, 
+                              releaseInfo->coreId,
+                              &releaseInfo->txInfo,
+                              releaseInfo->freePktCbArg,
+                              releaseInfo->txFreePktCb);
+    CpswAppUtils_closeNDKRxCh(releaseInfo->hCpsw, 
+                              releaseInfo->hUdmaDrv, 
+                              releaseInfo->coreKey, 
+                              releaseInfo->coreId,
+                              useDefaultFlow,
+                              &releaseInfo->rxInfo,
+                              releaseInfo->freePktCbArg,
+                              releaseInfo->rxFreePktCb);
+
+    CpswMcm_coreDetach(&gCpswMainAppObj.mcmCmdIf[cpswType], releaseInfo->coreId, releaseInfo->coreKey);
+    CpswMcm_releaseHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType]);
 }
 
 void stackInitHook(void* hCfg)
@@ -700,14 +748,22 @@ int main(void)
 
 Cpsw_Type gCpswType;
 
-static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,uint8_t cpsw_type, struct rpmsg_kdrv_ethswitch_attach_response *resp)
+static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,
+                                                  uint8_t cpsw_type, 
+                                                  uint64_t *pId,
+                                                  uint32_t *pCoreKey,
+                                                  uint32_t *pRxMtu,
+                                                  uint32_t *pTxMtu,
+                                                  uint32_t txMtuArraySize,
+                                                  uint32_t *pFeatures)
 {
-    uint32_t i;
-    CpswMcm_HandleInfo handleInfo;
-    Cpsw_IoctlPrms        prms;
-    Cpsw_AttachCoreOutArgs attachCoreOutArgs;
     int32_t status;
+    CpswMcm_HandleInfo handleInfo;
+    Cpsw_AttachCoreOutArgs attachInfo;
+    Cpsw_IoctlPrms        prms;
     uint32_t csumOffloadFlag;
+    Cpsw_Type cpswType;
+
 
     if (cpsw_type == RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G)
     {
@@ -719,36 +775,33 @@ static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,uint8_t cpsw_
         gCpswType = CPSW_9G;
     }
     CpswAppUtils_print("Function:%s,HostId:%u,CpswType:%u\n",__func__,host_id, gCpswType);
-    if (gCpswMainAppObj.hMcm[gCpswType] == NULL)
+    cpswType = gCpswType;
+    
+    if (gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd == NULL)
     {
-        status = CpswApp_init(gCpswType);
+        status = CpswApp_init(cpswType);
 
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("Failed to open CPSW: %d\n", status);
-            CpswAppUtils_assert(status == CPSW_SOK);
         }
+        CpswAppUtils_assert(status == CPSW_SOK);
+        CpswMcm_getCmdIf(cpswType, &gCpswMainAppObj.mcmCmdIf[gCpswType]);
     }
-    CpswMcm_getHandle(gCpswMainAppObj.hMcm[gCpswType], &handleInfo);
-   
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &host_id, &attachCoreOutArgs);
-    status = Cpsw_ioctl(handleInfo.hCpsw,
-                        host_id,
-                        CPSW_IOCTL_ATTACH_CORE,
-                        &prms);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd != NULL);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxResponse != NULL);
 
-    CpswAppUtils_assert(status == CPSW_SOK);
 
-    resp->id = (uint64_t)(handleInfo.hCpsw);
-    resp->core_key = attachCoreOutArgs.coreKey;
-    resp->rx_mtu = attachCoreOutArgs.rxMtu;
-    CPSW_UTILS_COMPILETIME_ASSERT(CPSW_UTILS_ARRAYSIZE(resp->tx_mtu) == 
-                                  CPSW_UTILS_ARRAYSIZE(attachCoreOutArgs.txMtu));
-    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(resp->tx_mtu) ;i++)
-    {
-        resp->tx_mtu[i] = attachCoreOutArgs.txMtu[i];
-    }
-    resp->features = 0;
+    CpswMcm_acquireHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType], &handleInfo);
+    CpswMcm_coreAttach(&gCpswMainAppObj.mcmCmdIf[cpswType],host_id  ,&attachInfo);
+
+    *pId = (uint64_t)(handleInfo.hCpsw);
+    *pCoreKey = attachInfo.coreKey;
+    *pRxMtu = attachInfo.rxMtu;
+    CpswAppUtils_assert (txMtuArraySize == 
+                                  CPSW_UTILS_ARRAYSIZE(attachInfo.txMtu));
+    memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
+    *pFeatures = 0;
     CPSW_IOCTL_SET_OUT_ARGS(&prms,&csumOffloadFlag);
     status = Cpsw_ioctl(handleInfo.hCpsw,
                         host_id,
@@ -759,26 +812,23 @@ static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,uint8_t cpsw_
 
     if (csumOffloadFlag)
     {
-        resp->features |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM;
+        *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM;
     }
-    resp->info.status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
-static int32_t app_ethrdev_srv_cb_alloc_tx_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_tx_response * resp)
+static int32_t app_ethrdev_srv_cb_alloc_tx_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t *pTxCpswPsilDstId)
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
 
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, hCpsw, core_key);
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &core_key, &resp->tx_cpsw_psil_dst_id);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_RM_IOCTL_ALLOC_TX_CH_PEERID,
-                        &prms);
+    status = CpswAppUtils_allocTxCh(hCpsw,
+                                    core_key,
+                                    host_id,
+                                    pTxCpswPsilDstId);
 
     if (status != CPSW_SOK)
     {
@@ -789,54 +839,23 @@ static int32_t app_ethrdev_srv_cb_alloc_tx_handler (uint32_t host_id,uint64_t ha
 
 static void app_ethrdev_validate_startidx(Cpsw_Handle hCpsw, uint32_t host_id, uint32_t rxFlowStartId)
 {
-    int32_t status;
-    Cpsw_IoctlPrms prms;
     uint32_t p0FlowIdOffset;
     
-    CPSW_IOCTL_SET_OUT_ARGS(&prms, &p0FlowIdOffset);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_HOSTPORT_GET_FLOW_ID_OFFSET,
-                        &prms);
-    
-    CpswAppUtils_assert(status == CPSW_SOK);
+    p0FlowIdOffset = CpswAppUtils_getStartFlowIdx(hCpsw, host_id);
     CpswAppUtils_assert(rxFlowStartId == p0FlowIdOffset);
 }
 
-static uint32_t app_ethrdev_get_flowidoffset(Cpsw_Handle hCpsw, uint32_t host_id, uint32_t rxFlowId)
-{
-    int32_t status;
-    Cpsw_IoctlPrms prms;
-    uint32_t p0FlowIdOffset;
-    
-    CPSW_IOCTL_SET_OUT_ARGS(&prms, &p0FlowIdOffset);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_HOSTPORT_GET_FLOW_ID_OFFSET,
-                        &prms);
-    
-    CpswAppUtils_assert(status == CPSW_SOK);
-    CpswAppUtils_assert(rxFlowId >= p0FlowIdOffset);
-    return (rxFlowId - p0FlowIdOffset);
-}
 
-
-
-static int32_t app_ethrdev_srv_cb_alloc_rx_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_rx_response * resp)
+static int32_t app_ethrdev_srv_cb_alloc_rx_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t *pAllocFlowIdx)
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswRm_AllocRxFlowOutArgs allocRxFlowOutArgs;
+    uint32_t start_flow_idx, flow_idx_offset;
 
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, hCpsw, core_key);
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &core_key, &allocRxFlowOutArgs);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_RM_IOCTL_ALLOC_RX_FLOW,
-                        &prms);
+    status = CpswAppUtils_allocRxFlow(hCpsw, core_key, host_id, &start_flow_idx, &flow_idx_offset);
 
     if (status != CPSW_SOK)
     {
@@ -844,68 +863,29 @@ static int32_t app_ethrdev_srv_cb_alloc_rx_handler (uint32_t host_id,uint64_t ha
     }
     else
     {
-        app_ethrdev_validate_startidx(hCpsw,host_id,allocRxFlowOutArgs.startIdx);
-        resp->alloc_flow_idx = allocRxFlowOutArgs.freeFlowIdx + allocRxFlowOutArgs.startIdx;
+        app_ethrdev_validate_startidx(hCpsw,host_id,start_flow_idx);
+        *pAllocFlowIdx = start_flow_idx + flow_idx_offset;
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
     return status;
 }
 
-static int32_t app_ethrdev_srv_cb_alloc_rx_default_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, struct rpmsg_kdrv_ethswitch_alloc_rx_default_response * resp)
+static int32_t app_ethrdev_srv_cb_alloc_mac_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, u8 *mac_address)
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswRm_AllocRxFlowOutArgs allocRxFlowOutArgs;
+
 
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, hCpsw, core_key);
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &core_key, &allocRxFlowOutArgs);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_IOCTL_ALLOC_RX_DEFAULT_FLOW,
-                        &prms);
-
+    status = CpswAppUtils_allocMac(hCpsw, core_key, host_id, mac_address);
     if (status != CPSW_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
     {
-        app_ethrdev_validate_startidx(hCpsw,host_id,allocRxFlowOutArgs.startIdx);
-        resp->alloc_flow_idx = allocRxFlowOutArgs.freeFlowIdx + allocRxFlowOutArgs.startIdx;
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-    return status;
-}
-
-static int32_t app_ethrdev_srv_cb_alloc_mac_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key,struct rpmsg_kdrv_ethswitch_alloc_mac_response * resp)
-{
-    int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswRm_AllocMacAddrOutArgs allocMacAddrOutArgs;
-
-
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, hCpsw, core_key);
-    CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
-
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &core_key, &allocMacAddrOutArgs);
-
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_RM_IOCTL_ALLOC_MAC_ADDR,
-                        &prms);
-
-    if (status != CPSW_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        CPSW_UTILS_COMPILETIME_ASSERT(sizeof(resp->mac_address) == sizeof(allocMacAddrOutArgs.macAddr));
-        memcpy(resp->mac_address, allocMacAddrOutArgs.macAddr, sizeof(resp->mac_address));
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
     return status;
@@ -915,13 +895,10 @@ static int32_t app_ethrdev_srv_cb_register_mac_handler (uint32_t host_id,uint64_
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswAle_SetPolicerEntryOutArgs  setPolicerOutArgs;
-    CpswAle_SetPolicerEntryInArgs   setPolicerInArgs;
-    uint32_t flow_idx_offset;
+    uint32_t start_flow_idx, flow_idx_offset;
 
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
-    flow_idx_offset = app_ethrdev_get_flowidoffset(hCpsw, host_id, flow_idx);
+    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx,&start_flow_idx, &flow_idx_offset);
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
                        __func__,
                        host_id, 
@@ -936,26 +913,11 @@ static int32_t app_ethrdev_srv_cb_register_mac_handler (uint32_t host_id,uint64_
                        flow_idx,
                        flow_idx_offset);
 
-    memset(&setPolicerInArgs,0,sizeof(setPolicerInArgs));
-
-    setPolicerInArgs.policerMatch.policerMatchEnableMask   = CPSW_ALE_POLICER_MATCH_MACDST;
-    memcpy(&setPolicerInArgs.policerMatch.dstMacAddr.addr.addr[0U], mac_address,
-        sizeof (setPolicerInArgs.policerMatch.dstMacAddr.addr.addr));
-    setPolicerInArgs.policerMatch.dstMacAddr.addr.vlanId = 0;
-    setPolicerInArgs.policerMatch.dstMacAddr.egressPortNum = CPSW_ALE_HOST_PORT_NUM;
-    setPolicerInArgs.threadIdEnable                        = TRUE;
-    setPolicerInArgs.threadId                              = flow_idx_offset;
-    setPolicerInArgs.peakRateInBitsPerSec                  = 0;
-    setPolicerInArgs.commitRateInBitsPerSec                = 0;
-
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
-
-    status = Cpsw_ioctl(hCpsw,host_id, CPSW_ALE_IOCTL_SET_POLICER,
-                        &prms);
+    status = CpswAppUtils_registerDstMacRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
     if (status != CPSW_SOK)
     {
         CpswAppUtils_print(
-            "CpswApp_setPolicyEntry() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n",
+            "CpswAppUtils_registerDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n",
             status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -972,14 +934,10 @@ static int32_t app_ethrdev_srv_cb_unregister_mac_handler (uint32_t host_id,uint6
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswAle_DelPolicerEntryInArgs delPolicerInArgs;
-    CpswAle_PolicerMatchParams    policerMatchPrms;
-    CpswAle_GetPolicerEntryOutArgs policerEntryOutArgs;
-    uint32_t flow_idx_offset;
+    uint32_t start_flow_idx, flow_idx_offset;
 
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
-    flow_idx_offset = app_ethrdev_get_flowidoffset(hCpsw, host_id, flow_idx);
+    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx,&start_flow_idx, &flow_idx_offset);
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdOffset:%u\n",
                        __func__,
                        host_id, 
@@ -994,21 +952,11 @@ static int32_t app_ethrdev_srv_cb_unregister_mac_handler (uint32_t host_id,uint6
                        flow_idx,
                        flow_idx_offset);
 
-    memset(&policerMatchPrms,0,sizeof(policerMatchPrms));
-    policerMatchPrms.policerMatchEnableMask = CPSW_ALE_POLICER_MATCH_MACDST;
-    memcpy(&policerMatchPrms.dstMacAddr.addr.addr[0U], mac_address,
-        sizeof (policerMatchPrms.dstMacAddr.addr.addr));
-    policerMatchPrms.dstMacAddr.addr.vlanId = 0;
-    policerMatchPrms.dstMacAddr.egressPortNum = CPSW_ALE_HOST_PORT_NUM;
-
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &policerMatchPrms,&policerEntryOutArgs);
-
-    status = Cpsw_ioctl(hCpsw,host_id, CPSW_ALE_IOCTL_GET_POLICER,
-                        &prms);
+    status = CpswAppUtils_unregisterDstMacRxFlow(hCpsw, core_key, host_id, start_flow_idx ,flow_idx_offset, mac_address);
     if (status != CPSW_SOK)
     {
         CpswAppUtils_print(
-            "Failed CPSW_ALE_IOCTL_DEL_POLICER: %d\n",
+            "Failed CpswAppUtils_unregisterDstMacRxFlow: %d\n",
             status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -1018,96 +966,54 @@ static int32_t app_ethrdev_srv_cb_unregister_mac_handler (uint32_t host_id,uint6
     
     }
     
-    if (RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK == status)
+    return status;
+}
+
+static int32_t app_ethrdev_srv_cb_register_rx_default_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t flow_idx)
+{
+    int32_t status = CPSW_SOK;
+    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    uint32_t start_flow_idx, flow_idx_offset;
+
+    CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
+    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx,&start_flow_idx, &flow_idx_offset);
+
+    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x, FlowIdOffset:%x\n",__func__,host_id, hCpsw, core_key, flow_idx, flow_idx_offset);
+
+    status = CpswAppUtils_registerDefaultRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset);
+    if (status != CPSW_SOK)
     {
-        if ((policerEntryOutArgs.threadIdEnable == TRUE) &&
-            (policerEntryOutArgs.threadId == flow_idx_offset))
-        {
-            status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-        }
-        else
-        {
-            CpswAppUtils_print(
-                "No classifier setup with given flowid so cannot unregister\n");
-            status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-        }
+        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
-
-    if (RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK == status)
+    else
     {
-        memset(&delPolicerInArgs,0,sizeof(delPolicerInArgs));
-
-        delPolicerInArgs.policerMatch = policerMatchPrms;
-        delPolicerInArgs.delAleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_MACDST;
-
-        
-        CPSW_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
-
-        status = Cpsw_ioctl(hCpsw,host_id, CPSW_ALE_IOCTL_DEL_POLICER,
-                            &prms);
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print(
-                "CpswApp_delPolicyEntry() failed CPSW_ALE_IOCTL_DEL_POLICER: %d\n",
-                status);
-            status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-        }
-        else
-        {
-            status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-        
-        }
+        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+    
     }
     return status;
 }
+
 
 static int32_t app_ethrdev_srv_cb_unregister_rx_default_handler (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t flow_idx)
 {
     int32_t status = CPSW_SOK;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswAle_SetDefaultThreadConfigInArgs setDefaultThreadConfigInArgs;
-    uint32_t flow_idx_offset;
+    uint32_t start_flow_idx, flow_idx_offset;
 
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
-    flow_idx_offset = app_ethrdev_get_flowidoffset(hCpsw, host_id, flow_idx);
+    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx,&start_flow_idx, &flow_idx_offset);
 
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x\n",__func__,host_id, hCpsw, core_key, flow_idx);
 
-    CPSW_IOCTL_SET_OUT_ARGS(&prms, &setDefaultThreadConfigInArgs);
-
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_ALE_IOCTL_GET_DEFAULT_THREADCFG,
-                        &prms);
-
-    CpswAppUtils_assert(status == CPSW_SOK);
-    if ((setDefaultThreadConfigInArgs.defaultThreadEnable) && 
-        (setDefaultThreadConfigInArgs.threadId == flow_idx_offset))
+    status = CpswAppUtils_unregisterDefaultRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset);
+    if (status != CPSW_SOK)
     {
-        setDefaultThreadConfigInArgs.defaultThreadEnable         = TRUE;
-        /* TODO: Reserved thread should be queried and set . This is a hack to workaround RM bugs */
-        setDefaultThreadConfigInArgs.threadId                    = 1;
-        CPSW_IOCTL_SET_IN_ARGS(&prms, &setDefaultThreadConfigInArgs);
-        status = Cpsw_ioctl(hCpsw,
-                            host_id,
-                            CPSW_ALE_IOCTL_SET_DEFAULT_THREADCFG,
-                            &prms);
-        if (status != CPSW_SOK)
-        {
-            status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-        }
-        else
-        {
-            status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-        
-        }
+        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
     {
-        CpswAppUtils_print("Function:%s,Mismatch ALE Default:%u, Passed Default :%u\n",__func__,setDefaultThreadConfigInArgs.threadId,flow_idx_offset);
-
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+    
     }
     return status;
 }
@@ -1117,19 +1023,11 @@ static int32_t app_ethrdev_srv_cb_free_tx_handler(uint32_t host_id,uint64_t hand
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswRm_FreeTxChInArgs freeTxInArgs;
 
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, TxId:%x\n",__func__,host_id, hCpsw, core_key, tx_cpsw_psil_dst_id);
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
 
-    freeTxInArgs.txChNum = tx_cpsw_psil_dst_id;
-    freeTxInArgs.coreKey = core_key;
-    CPSW_IOCTL_SET_IN_ARGS(&prms, &freeTxInArgs);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_RM_IOCTL_FREE_TX_CH_PEERID,
-                        &prms);
+    status = CpswAppUtils_freeTxCh(hCpsw, core_key, host_id, tx_cpsw_psil_dst_id);
 
     if (status != CPSW_SOK)
     {
@@ -1149,21 +1047,17 @@ static int32_t app_ethrdev_srv_cb_free_rx_handler(uint32_t host_id,uint64_t hand
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswRm_FreeRxFlowInArgs freeRxInArgs;
-    uint32_t flow_idx_offset;
+    uint32_t start_flow_idx, flow_idx_offset;
 
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
-    flow_idx_offset = app_ethrdev_get_flowidoffset(hCpsw, host_id, alloc_flow_idx);
+    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, alloc_flow_idx,&start_flow_idx, &flow_idx_offset);
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, RxId:%x RxOffset:%x\n",__func__,host_id, hCpsw, core_key, alloc_flow_idx, flow_idx_offset);
 
-    freeRxInArgs.flowIdx = flow_idx_offset;
-    freeRxInArgs.coreKey  = core_key;
-    CPSW_IOCTL_SET_IN_ARGS(&prms, &freeRxInArgs);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_RM_IOCTL_FREE_RX_FLOW,
-                        &prms);
+    app_ethrdev_validate_startidx(hCpsw, host_id, start_flow_idx);
+    status = CpswAppUtils_freeRxFlow(hCpsw,
+                                     core_key,
+                                     host_id,
+                                     flow_idx_offset);
 
     if (status != CPSW_SOK)
     {
@@ -1184,8 +1078,6 @@ static int32_t app_ethrdev_srv_cb_free_mac_handler(uint32_t host_id,uint64_t han
 {
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    CpswRm_FreeMacAddrInArgs freeMacInArgs;
 
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x\n",
                        __func__,
@@ -1200,13 +1092,7 @@ static int32_t app_ethrdev_srv_cb_free_mac_handler(uint32_t host_id,uint64_t han
                        mac_address[5]);
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
 
-    freeMacInArgs.coreKey = core_key;
-    CPSW_UTILS_ARRAY_COPY(freeMacInArgs.macAddr,mac_address);
-    CPSW_IOCTL_SET_IN_ARGS(&prms, &freeMacInArgs);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_RM_IOCTL_FREE_MAC_ADDR,
-                        &prms);
+    status = CpswAppUtils_freeMac(hCpsw, core_key,  host_id, mac_address);
 
     if (status != CPSW_SOK)
     {
@@ -1225,30 +1111,20 @@ static int32_t app_ethrdev_srv_cb_free_mac_handler(uint32_t host_id,uint64_t han
 
 static int32_t app_ethrdev_srv_cb_detach_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key)
 {
-    int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
+    Cpsw_Type cpswType = gCpswType;
  
     CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n",__func__,host_id, hCpsw, core_key);
     CpswAppUtils_assert(hCpsw == Cpsw_getHandle(gCpswType));
 
-    CPSW_IOCTL_SET_IN_ARGS(&prms, &core_key);
-    status = Cpsw_ioctl(hCpsw,
-                        host_id,
-                        CPSW_IOCTL_DETACH_CORE,
-                        &prms);
 
-    if (status != CPSW_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    
-    }
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd != NULL);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxResponse != NULL);
 
-    return status;
+    CpswMcm_coreDetach(&gCpswMainAppObj.mcmCmdIf[cpswType],host_id , core_key);
+    CpswMcm_releaseHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType]);
+
+    return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
 static void app_showStats(Cpsw_Handle hCpsw, Cpsw_Type cpswType, uint32_t coreId)
@@ -1614,10 +1490,10 @@ static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl =
     .attach_handler = app_ethrdev_srv_cb_attach_handler,
     .alloc_tx_handler = app_ethrdev_srv_cb_alloc_tx_handler,
     .alloc_rx_handler = app_ethrdev_srv_cb_alloc_rx_handler,
-    .alloc_rx_default_handler = app_ethrdev_srv_cb_alloc_rx_default_handler,
     .alloc_mac_handler = app_ethrdev_srv_cb_alloc_mac_handler,
     .register_mac_handler = app_ethrdev_srv_cb_register_mac_handler,
     .unregister_mac_handler = app_ethrdev_srv_cb_unregister_mac_handler,
+    .register_rx_default_handler = app_ethrdev_srv_cb_register_rx_default_handler,
     .unregister_rx_default_handler = app_ethrdev_srv_cb_unregister_rx_default_handler,
     .free_tx_handler = app_ethrdev_srv_cb_free_tx_handler,
     .free_rx_handler = app_ethrdev_srv_cb_free_rx_handler,

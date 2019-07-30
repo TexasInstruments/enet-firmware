@@ -101,7 +101,7 @@ int32_t rdevEthSwitchClient_unregisterrxdefault(uint32_t device_id, uint64_t id,
 int32_t rdevEthSwitchClient_unregistermac(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t flow_idx, uint8_t *mac_address);
 int32_t rdevEthSwitchClient_registermac(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t flow_idx, uint8_t *mac_address);
 int32_t rdevEthSwitchClient_allocmac(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint32_t mac_address_len);
-int32_t rdevEthSwitchClient_allocrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_allocidx);
+int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t default_flow_idx);
 int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_allocidx);
 int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, u64 id, u32 core_key, u32 *tx_cpsw_psil_dst_id);
 int32_t rdevEthSwitchClient_attach(uint32_t device_id, 

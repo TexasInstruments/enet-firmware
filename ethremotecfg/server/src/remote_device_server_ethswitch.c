@@ -244,29 +244,44 @@ static int32_t rdevEthSwitchServerHandleAttachRequest(rdevEthSwitchServerInstanc
     ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
     if(ret == 0) 
     {
+        /* Declare local variable so that pointers are aligned to data type in callback functions */
+        uint64_t id;
+        uint32_t coreKey;
+        uint32_t rxMtu;
+        uint32_t txMtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+        uint32_t features;
+
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->attach_handler(inst->inst_prm.host_id,req->cpsw_type, resp);
+        resp->info.status =  cb->attach_handler(inst->inst_prm.host_id,req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, CPSW_UTILS_ARRAYSIZE(txMtu), &features);
+        resp->id = id;
+        resp->core_key = coreKey;
+        resp->rx_mtu = rxMtu;
+        CPSW_UTILS_ARRAY_COPY(resp->tx_mtu,txMtu);
+        resp->features = features;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
 }
 
-static int32_t rdevEthSwitchServerHandleAllocTxRequest(rdevEthSwitchServerInstanceState_t *inst,
-                                                       app_remote_device_channel_t *channel, 
+static int32_t rdevEthSwitchServerHandleAllocTxRequest(rdevEthSwitchServerInstanceState_t * inst,
+                                                       app_remote_device_channel_t * channel, 
                                                        uint32_t request_id,
-                                                       union rdevEthSwitchServerMessageList_u *reqMsg,
-                                                       rdevEthSwitchServerCbFxn_t *cb)
+                                                       union rdevEthSwitchServerMessageList_u * reqMsg,
+                                                       rdevEthSwitchServerCbFxn_t * cb)
 {
     int32_t ret = 0;
     rdevEthSwitchServerMessage_t *msg;
     struct rpmsg_kdrv_ethswitch_alloc_request *req = &reqMsg->alloc_req;
-    struct rpmsg_kdrv_ethswitch_alloc_tx_response *resp;
+    struct rpmsg_kdrv_ethswitch_alloc_tx_response * resp;
 
     ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
     if(ret == 0) 
     {
+        uint32_t tx_cpsw_psil_dst_id;
+
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->alloc_tx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);;
+        resp->info.status =  cb->alloc_tx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key,&tx_cpsw_psil_dst_id );
+        resp->tx_cpsw_psil_dst_id = tx_cpsw_psil_dst_id;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
@@ -274,22 +289,22 @@ static int32_t rdevEthSwitchServerHandleAllocTxRequest(rdevEthSwitchServerInstan
 
 
 
-static int32_t rdevEthSwitchServerHandleAllocDefaultFlow(rdevEthSwitchServerInstanceState_t *inst,
-                                                         app_remote_device_channel_t *channel, 
-                                                         uint32_t request_id,
-                                                         union rdevEthSwitchServerMessageList_u *reqMsg,
-                                                         rdevEthSwitchServerCbFxn_t * cb)
+static int32_t rdevEthSwitchServerHandleRegisterDefaultFlow(rdevEthSwitchServerInstanceState_t *inst,
+                                                            app_remote_device_channel_t *channel, 
+                                                            uint32_t request_id,
+                                                            union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                            rdevEthSwitchServerCbFxn_t *cb)
 {
     int32_t ret = 0;
     rdevEthSwitchServerMessage_t *msg;
-    struct rpmsg_kdrv_ethswitch_alloc_rx_default_response *resp;
-    struct rpmsg_kdrv_ethswitch_alloc_request *req = &reqMsg->alloc_req;
+    struct rpmsg_kdrv_ethswitch_register_rx_default_response *resp;
+    struct rpmsg_kdrv_ethswitch_register_rx_default_request *req = &reqMsg->register_rx_default_req;
 
     ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
     if(ret == 0) 
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->alloc_rx_default_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);
+        resp->info.status =  cb->register_rx_default_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, req->default_flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
@@ -310,18 +325,20 @@ static int32_t rdevEthSwitchServerHandleAllocRxRequest(rdevEthSwitchServerInstan
     ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
     if(ret == 0) 
     {
+        uint32_t alloc_flow_idx;
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->alloc_rx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);
+        resp->info.status =  cb->alloc_rx_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, &alloc_flow_idx);
+        resp->alloc_flow_idx = alloc_flow_idx;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
 }
 
-static int32_t rdevEthSwitchServerHandleAllocMacRequest(rdevEthSwitchServerInstanceState_t *inst,
-                                                        app_remote_device_channel_t *channel, 
+static int32_t rdevEthSwitchServerHandleAllocMacRequest(rdevEthSwitchServerInstanceState_t * inst,
+                                                        app_remote_device_channel_t * channel, 
                                                         uint32_t request_id,
-                                                        union rdevEthSwitchServerMessageList_u *reqMsg,
-                                                        rdevEthSwitchServerCbFxn_t *cb)
+                                                        union rdevEthSwitchServerMessageList_u * reqMsg,
+                                                        rdevEthSwitchServerCbFxn_t * cb)
 {
     int32_t ret = 0;
     rdevEthSwitchServerMessage_t *msg;
@@ -332,7 +349,7 @@ static int32_t rdevEthSwitchServerHandleAllocMacRequest(rdevEthSwitchServerInsta
     if(ret == 0) 
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->alloc_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp);
+        resp->info.status =  cb->alloc_mac_handler(inst->inst_prm.host_id,req->info.id,req->info.core_key, resp->mac_address);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
@@ -502,8 +519,11 @@ static int32_t rdevEthSwitchServerHandleRegRd(rdevEthSwitchServerInstanceState_t
     ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
     if(ret == 0) 
     {
+        uint32_t regval;
+
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->regrd_handler(inst->inst_prm.host_id,req->regaddr, &resp->regval);
+        resp->info.status =  cb->regrd_handler(inst->inst_prm.host_id,req->regaddr, &regval);
+        resp->regval = regval;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
@@ -523,8 +543,11 @@ static int32_t rdevEthSwitchServerHandleRegWr(rdevEthSwitchServerInstanceState_t
     ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
     if(ret == 0) 
     {
+        uint32_t regval;
+
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status =  cb->regwr_handler(inst->inst_prm.host_id,req->regaddr,req->regval,&resp->regval);
+        resp->info.status =  cb->regwr_handler(inst->inst_prm.host_id,req->regaddr,req->regval,&regval);
+        resp->regval = regval;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
     return ret;
@@ -641,8 +664,8 @@ rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ATTACH)] = &rdevEthSwitchServerHandleAttachRequest,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX)] = &rdevEthSwitchServerHandleAllocTxRequest,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX)] = &rdevEthSwitchServerHandleAllocRxRequest,
-    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW)] = &rdevEthSwitchServerHandleAllocDefaultFlow,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC)] = &rdevEthSwitchServerHandleAllocMacRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_DEFAULTFLOW)] = &rdevEthSwitchServerHandleRegisterDefaultFlow,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC)] = &rdevEthSwitchServerHandleRegisterMac,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC)] = &rdevEthSwitchServerHandleUnRegisterMac,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW)] = &rdevEthSwitchServerHandleUnRegisterDefaultFlow,

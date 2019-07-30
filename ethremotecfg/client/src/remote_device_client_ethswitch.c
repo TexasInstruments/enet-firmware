@@ -252,31 +252,25 @@ int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t co
     return ret;
 }
 
-int32_t rdevEthSwitchClient_allocrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_allocidx)
+int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t default_flow_idx)
 {
     rdevEthSwitchClientMessageList_t clientMsg; 
-    struct rpmsg_kdrv_ethswitch_alloc_request *msg = &clientMsg.rdevEthSwitchMsg.alloc_req;
+    struct rpmsg_kdrv_ethswitch_register_rx_default_request *msg = &clientMsg.rdevEthSwitchMsg.register_rx_default_req;
     int32_t ret;
     uint32_t respMsgSize;
-    rdevEthSwitchClientMessageList_t alloc_rx_default_reponse;
+    rdevEthSwitchClientMessageList_t register_rx_default_response;
 
     CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
-    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULTFLOW;
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGISTER_DEFAULTFLOW;
     msg->info.id = id;
     msg->info.core_key = core_key;
-    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &alloc_rx_default_reponse, sizeof(alloc_rx_default_reponse), &respMsgSize);
+    msg->default_flow_idx = default_flow_idx;
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &register_rx_default_response, sizeof(register_rx_default_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(alloc_rx_default_reponse.hdr) + sizeof(alloc_rx_default_reponse.rdevEthSwitchMsg.alloc_rx_default_res)));
-        if (alloc_rx_default_reponse.rdevEthSwitchMsg.alloc_rx_default_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
-        {
-            *rx_flow_allocidx = alloc_rx_default_reponse.rdevEthSwitchMsg.alloc_rx_default_res.alloc_flow_idx;
-        }
-        else
-        {
-            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-        }
+        CpswAppUtils_assert(respMsgSize == (sizeof(register_rx_default_response.hdr) + sizeof(register_rx_default_response.rdevEthSwitchMsg.register_rx_default_res)));
+        ret = register_rx_default_response.rdevEthSwitchMsg.register_rx_default_res.info.status;
     }
     return ret;
 }
