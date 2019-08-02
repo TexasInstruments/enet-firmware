@@ -60,55 +60,57 @@
  *
  */
 
-var biosCommonCfg = xdc.loadCapsule("bios_common.cfg");
-var biosCommonCfgArg =
-{
-    core:"mcu2_0",
-	/* Two Timers per core: 
-	 *  -- One for sysbios tick 
-	 *  -- One for NimuCpsw Interrupt Pacing 
-	 */
-	timerAllocation:[
-	                  {core: "mcu2_0", timer: ["DMTimer12", "DMTimer13"]},
-	                  {core: "mcu2_1", timer: ["DMTimer14", "DMTimer15"]},
-					],
-}
-biosCommonCfg.init(biosCommonCfgArg)
-
-var Core         = xdc.useModule('ti.sysbios.family.arm.v7r.keystone3.Core');
-Core.id = 0;
-
-
-var Hwi = xdc.useModule('ti.sysbios.family.arm.v7r.keystone3.Hwi');
-Hwi.vimBaseAddress = 0x0ff80000;
-
-var Cache = xdc.useModule('ti.sysbios.family.arm.v7r.Cache');
-Cache.enableCache = true;
-
-/* DMTimer #x - in general, address is 0x024x0000 where x is timer # */
-var Timer = xdc.useModule('ti.sysbios.timers.dmtimer.Timer');
-
-var Clock = xdc.useModule('ti.sysbios.knl.Clock');
-Clock.timerId = 0;
-
-/* Create default heap and hook it into Memory */
-var HeapMem = xdc.useModule('ti.sysbios.heaps.HeapMem');
-var Memory = xdc.module('xdc.runtime.Memory')
-var heapMemParams = new HeapMem.Params;
-heapMemParams.size = 16384*28;
-var heap0 = HeapMem.create(heapMemParams);
-Memory.defaultHeapInstance = heap0;
-
-/*
- * Initialize MPU and enable it
+/**
+ *  \file webpage.h
  *
- * Note: MPU must be enabled and properly configured for caching to work.
+ *  \brief Webpage header file.
  */
-xdc.loadCapsule("r5_mpu.xs");
 
-var ndkCfg = xdc.loadCapsule("ndk.cfg");
-var ndkCfgArg =
-{
-    core:"mcu2_0"
-}
-ndkCfg.init(ndkCfgArg)
+#ifndef WEBPAGE_H_
+#define WEBPAGE_H_
+
+/* ========================================================================== */
+/*                             Include Files                                  */
+/* ========================================================================== */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ========================================================================== */
+/*                           Macros & Typedefs                                */
+/* ========================================================================== */
+
+typedef void *         HANDLE;
+typedef char           INT8;
+typedef short          INT16;
+typedef int            INT32;
+typedef unsigned char  UINT8;
+typedef unsigned short UINT16;
+typedef unsigned int   UINT32;
+
+typedef UINT32         IPN;
+typedef struct sockaddr      *PSA;
+
+/* ========================================================================== */
+/*                         Structure Declarations                             */
+/* ========================================================================== */
+
+
+/* ========================================================================== */
+/*                          Function Declarations                             */
+/* ========================================================================== */
+
+/* None */
+
+/* ========================================================================== */
+/*                       Static Function Definitions                          */
+/* ========================================================================== */
+
+/* Build WEB page */
+extern void AddWebFiles(void);
+extern void RemoveWebFiles(void);
+
+#endif
+
+

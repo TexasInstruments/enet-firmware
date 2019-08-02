@@ -80,7 +80,22 @@
 
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
 #include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
+#include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
+#include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils_cfg.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils.h>
+
+/* NDK headers */
+#include <ti/ndk/inc/netmain.h>
+#include <ti/ndk/inc/stkmain.h>
+#include <ti/ndk/inc/socket.h>
+#include <ti/ndk/inc/_stack.h>
+#include <ti/ndk/inc/tools/servers.h>
+#include <ti/ndk/inc/tools/console.h>
+
+#include "webpage.h"
 
 #define IPC_RPMESSAGE_OBJ_SIZE  256
 #define VQ_BUF_SIZE             2048
@@ -142,6 +157,98 @@ __attribute__ ((aligned(8192)))
 };
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc)/sizeof(uint32_t);
 
+#define ENABLE_NDKSERVERS
+
+/*!
+ * \brief NIMUDeviceTable
+ *
+ * \details
+ *  This is the NIMU Device Table for the Platform.
+ *  This should be defined for each platform. Since the current platform
+ *  has a single network Interface; this has been defined here. If the
+ *  platform supports more than one network interface this should be
+ *  defined to have a list of "initialization" functions for each of the
+ *  interfaces.
+ */
+NIMU_DEVICE_TABLE_ENTRY NIMUDeviceTable[2U] =
+{
+    /*! \brief NIMU_NDK_Init for this network device */
+     { &NIMU_NDK_init },
+     { NULL },
+};
+
+#ifdef ENABLE_NDKSERVERS
+static HANDLE hEcho = 0;
+static HANDLE hEchoUdp = 0;
+static HANDLE hData = 0;
+static HANDLE hNull = 0;
+static HANDLE hOob = 0;
+#endif
+
+char *VerStr = "NIMU CPSW Example";
+
+
+void stackInitHook(void* hCfg)
+{
+    int rc;
+
+    /* increase stack size */
+    rc = 16384;
+    CfgAddEntry(hCfg, CFGTAG_OS, CFGITEM_OS_TASKSTKBOOT,
+                CFG_ADDMODE_UNIQUE, sizeof(uint32_t), (uint8_t *)&rc, 0 );
+
+    AddWebFiles();
+}
+
+void stackDeleteHook(void* hCfg)
+{
+    RemoveWebFiles();
+}
+
+void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
+{
+    volatile uint32_t ipAddrHex = 0U;
+    char ipAddr[20];
+
+    ipAddrHex = ntohl(IPAddr);
+    snprintf(ipAddr, 17, "%d.%d.%d.%d\n",
+             (uint8_t)(ipAddrHex>>24)&0xFF,
+             (uint8_t)(ipAddrHex>>16)&0xFF,
+             (uint8_t)(ipAddrHex>>8)&0xFF,
+             (uint8_t)ipAddrHex&0xFF);
+
+    System_printf("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
+
+}
+
+void netOpenHook()
+{
+#ifdef ENABLE_NDKSERVERS
+    // Create our local servers
+    hEcho = DaemonNew(SOCK_STREAMNC, 0, 7, dtask_tcp_echo,
+                      OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
+    hEchoUdp = DaemonNew(SOCK_DGRAM, 0, 7, dtask_udp_echo,
+                         OS_TASKPRINORM, OS_TASKSTKNORM, 0, 1);
+    hData = DaemonNew(SOCK_STREAM, 0, 1000, dtask_tcp_datasrv,
+                      OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
+    hNull = DaemonNew(SOCK_STREAMNC, 0, 1001, dtask_tcp_nullsrv,
+                      OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
+    hOob  = DaemonNew(SOCK_STREAMNC, 0, 999, dtask_tcp_oobsrv,
+                      OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
+#endif
+}
+
+void netCloseHook()
+{
+#ifdef ENABLE_NDKSERVERS
+    DaemonFree(hOob);
+    DaemonFree(hNull);
+    DaemonFree(hData);
+    DaemonFree(hEchoUdp);
+    DaemonFree(hEcho);
+#endif
+}
+
 void appLogPrintf(const char *format, ...)
 {
     va_list args;
@@ -177,22 +284,254 @@ static void rpmsg_vdevMonitorFxn(UArg arg0, UArg arg1)
     }
 }
 
-Mailbox_Handle gMessageTskMailbox = NULL;
+bool freeInDetach = false;
 
-enum rdevEthSwitchAppNotifyTskCmds_e
+typedef struct rdevEthSwitchAppAttachReq_s
 {
-    RDEVETHSWITCHAPP_NOTIFYTSKCMD_ATTACH,
-    RDEVETHSWITCHAPP_NOTIFYTSKCMD_DETACH,
-};
+    enum rpmsg_kdrv_ethswitch_cpsw_type cpswType;
+} rdevEthSwitchAppAttachReq_t;
 
-typedef struct rdevEthSwitchAppNotifyTskCmdInfo_s
+typedef struct rdevEthSwitchAppAttachRes_s
 {
-    enum rdevEthSwitchAppNotifyTskCmds_e cmd;
-    uint64_t  handle;
-    uint32_t  coreKey;
-} rdevEthSwitchAppNotifyTskCmdInfo_t;
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_mtu;
+    uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+    uint32_t features;
+} rdevEthSwitchAppAttachRes_t;
 
-#define RDEVETHSWITCHAPP_NOTIFYTSKCMD_COUNT (3)
+typedef struct rdevEthSwitchAppAllocReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+} rdevEthSwitchAppAllocReq_t;
+
+typedef struct rdevEthSwitchAppAllocTxRes_s
+{
+    uint32_t tx_id;
+} rdevEthSwitchAppAllocTxRes_t;
+
+typedef struct rdevEthSwitchAppFreeTxReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t tx_id;
+} rdevEthSwitchAppFreeTxReq_t;
+
+typedef struct rdevEthSwitchAppAllocRxRes_s
+{
+    uint32_t rx_flow_allocidx;
+} rdevEthSwitchAppAllocRxRes_t;
+
+typedef struct rdevEthSwitchAppFreeRxReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_flow_allocidx;
+} rdevEthSwitchAppFreeRxReq_t;
+
+
+typedef struct rdevEthSwitchAppAllocMacRes_s
+{
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+} rdevEthSwitchAppAllocMacRes_t;
+
+typedef struct rdevEthSwitchAppFreeMacReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+} rdevEthSwitchAppFreeMacReq_t;
+
+typedef struct rdevEthSwitchAppRegDefaultReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_default_flow_allocidx;
+} rdevEthSwitchAppRegDefaultReq_t;
+
+typedef struct rdevEthSwitchAppUnRegDefaultReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_default_flow_allocidx;
+} rdevEthSwitchAppUnRegDefaultReq_t;
+
+typedef struct rdevEthSwitchAppRegMacReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_flow_allocidx;
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+} rdevEthSwitchAppRegMacReq_t;
+
+typedef struct rdevEthSwitchAppUnRegMacReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_flow_allocidx;
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+} rdevEthSwitchAppUnRegMacReq_t;
+
+typedef struct rdevEthSwitchAppRegIPv4Req_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    uint8_t  ipv4Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
+} rdevEthSwitchAppRegIPv4Req_t;
+
+typedef struct rdevEthSwitchAppUnRegIPv4Req_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint8_t  ipv4Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
+} rdevEthSwitchAppUnRegIPv4Req_t;
+
+typedef struct rdevEthSwitchAppRegIPv6Req_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    uint8_t  ipv6Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
+} rdevEthSwitchAppRegIPv6Req_t;
+
+typedef struct rdevEthSwitchAppUnRegIPv6Req_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint8_t  ipv6Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
+} rdevEthSwitchAppUnRegIPv6Req_t;
+
+typedef struct rdevEthSwitchAppDetachReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+} rdevEthSwitchAppDetachReq_t;
+
+typedef struct rdevEthSwitchAppRegRdReq_s
+{
+    uint32_t regRdAddr;
+} rdevEthSwitchAppRegRdReq_t;
+
+typedef struct rdevEthSwitchAppRegRdRes_s
+{
+    uint32_t regRdValue;
+} rdevEthSwitchAppRegRdRes_t;
+
+typedef struct rdevEthSwitchAppRegWrReq_s
+{
+    uint32_t regWrAddr;
+    uint32_t regWrValue;
+} rdevEthSwitchAppRegWrReq_t;
+
+typedef struct rdevEthSwitchAppRegWrRes_s
+{
+    uint32_t regPostWrValue;
+} rdevEthSwitchAppRegWrRes_t;
+
+typedef struct rdevEthSwitchAppIOCTLReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t cmd;
+    void     *inArgs;
+    uint32_t inArgsSize;
+    void     *outArgs;
+    uint32_t outArgsSize;
+} rdevEthSwitchAppIOCTLReq_t;
+
+typedef struct rdevEthSwitchAppIOCTLRes_s
+{
+    uint8_t  *outArgs;
+} rdevEthSwitchAppIOCTLRes_t;
+
+typedef struct rdecEthSwitchAppPingReq_s
+{
+    char     msgText[128];
+} rdecEthSwitchAppPingReq_t;
+
+typedef struct rdecEthSwitchAppPingRes_s
+{
+    char     resp[128];
+} rdecEthSwitchAppPingRes_t;
+
+typedef enum rdevEthSwitchAppCmd_tag
+{
+    ETHSWT_CMD_IOCTL,
+    ETHSWT_CMD_REGWR,
+    ETHSWT_CMD_REGRD,
+    ETHSWT_CMD_ATTACH,
+    ETHSWT_CMD_DETACH,
+    ETHSWT_CMD_REGIPV6,
+    ETHSWT_CMD_UNREGIPV6,
+    ETHSWT_CMD_REGIPV4,
+    ETHSWT_CMD_UNREGIPV4,
+    ETHSWT_CMD_ALLOCTX,
+    ETHSWT_CMD_FREETX,
+    ETHSWT_CMD_ALLOCRX,
+    ETHSWT_CMD_FREERX,
+    ETHSWT_CMD_ALLOCMAC,
+    ETHSWT_CMD_FREEMAC,
+    ETHSWT_CMD_REGMAC,
+    ETHSWT_CMD_UNREGMAC,
+    ETHSWT_CMD_REGDEFAULT,
+    ETHSWT_CMD_UNREGDEFAULT,
+    ETHSWT_CMD_PING,
+} rdevEthSwitchAppCmd_e;
+
+typedef struct rdevEthSwitchAppReqMsg_s
+{
+
+    rdevEthSwitchAppCmd_e              cmd;
+    Mailbox_Handle                     hResponseMbx;
+    union {
+        rdevEthSwitchAppIOCTLReq_t         ioctl;
+        rdevEthSwitchAppRegWrReq_t         regwr;
+        rdevEthSwitchAppRegRdReq_t         regrd;
+        rdevEthSwitchAppAttachReq_t        attach;
+        rdevEthSwitchAppDetachReq_t        detach;
+        rdevEthSwitchAppRegIPv6Req_t       regipv6;
+        rdevEthSwitchAppUnRegIPv6Req_t     unregipv6;
+        rdevEthSwitchAppRegIPv4Req_t       regipv4;
+        rdevEthSwitchAppUnRegIPv4Req_t     unregipv4;
+        rdevEthSwitchAppRegMacReq_t        regmac;
+        rdevEthSwitchAppUnRegMacReq_t      unregmac;
+        rdevEthSwitchAppRegDefaultReq_t    regdefault;
+        rdevEthSwitchAppUnRegDefaultReq_t  unregdefault;
+        rdevEthSwitchAppAllocReq_t         alloc;
+        rdevEthSwitchAppFreeTxReq_t        freetx;
+        rdevEthSwitchAppFreeRxReq_t        freerx;
+        rdevEthSwitchAppFreeMacReq_t       freemac;
+        rdecEthSwitchAppPingReq_t          ping;
+    } u;
+} rdevEthSwitchAppReqMsg_t;
+
+typedef struct rdevEthSwitchAppResMsg_s
+{
+    int32_t  retVal;
+    union {
+        rdevEthSwitchAppAttachRes_t        attach;
+        rdevEthSwitchAppAllocTxRes_t       tx;
+        rdevEthSwitchAppAllocRxRes_t       rx;
+        rdevEthSwitchAppAllocMacRes_t      mac;
+        rdevEthSwitchAppIOCTLRes_t         ioctl;
+        rdevEthSwitchAppRegWrRes_t         regwr;
+        rdevEthSwitchAppRegRdRes_t         regrd;
+        rdecEthSwitchAppPingRes_t          ping;
+    } u;
+} rdevEthSwitchAppResMsg_t;
+
+typedef struct rdevEthSwitchAppMsg_s
+{
+    rdevEthSwitchAppReqMsg_t req;
+    rdevEthSwitchAppResMsg_t res;
+} rdevEthSwitchAppMsg_t;
+
+Mailbox_Handle gCmdMbx = NULL;
+Mailbox_Handle gCmdResponseMbx = NULL;
+
+#define RDEVETHSWITCHAPP_MSG_COUNT (3)
 
 static void  rdevEthSwitchApp_createMbx(Mailbox_Handle *pMailboxHandle)
 {
@@ -201,8 +540,8 @@ static void  rdevEthSwitchApp_createMbx(Mailbox_Handle *pMailboxHandle)
     Mailbox_Params_init(&mbxParams);
     *pMailboxHandle =
         Mailbox_create(
-            sizeof (rdevEthSwitchAppNotifyTskCmdInfo_t),
-            RDEVETHSWITCHAPP_NOTIFYTSKCMD_COUNT,
+            sizeof (rdevEthSwitchAppMsg_t),
+            RDEVETHSWITCHAPP_MSG_COUNT,
             &mbxParams,
             NULL);
 }
@@ -212,416 +551,168 @@ static void  rdevEthSwitchApp_deleteMbx(Mailbox_Handle *pMailboxHandle)
     Mailbox_delete(pMailboxHandle);
 }
 
-static void messageLoopFn(UArg a0, UArg a1)
-{
-    uint32_t device_id = (uint32_t)a0;
-    Mailbox_Handle hMailbox = (Mailbox_Handle)a1;
-    rdevEthSwitchAppNotifyTskCmdInfo_t msg;
-    bool sendNotify = false;
-    uint64_t attachHandle = 0;
-    uint32_t coreKey = 0;
-    uint32_t count = 0;
-    
-
-    while(TRUE) 
-    {
-        bool mbxStatus;
-
-        CpswAppUtils_assert(hMailbox != NULL);
-        mbxStatus =
-            Mailbox_pend(hMailbox,
-                         &msg,
-                         10000);
-        sendNotify = false;
-        if (mbxStatus == TRUE)
-        {
-            switch (msg.cmd)
-            {
-                case RDEVETHSWITCHAPP_NOTIFYTSKCMD_ATTACH:
-                {
-                    count++;
-                    attachHandle = msg.handle;
-                    coreKey      = msg.coreKey;
-                    if ((count % 10) == 0)
-                    {
-                        sendNotify   = true;
-                    }
-                }
-                break;
-                case RDEVETHSWITCHAPP_NOTIFYTSKCMD_DETACH:
-                {
-                    attachHandle = 0;
-                    coreKey      = 0;
-                    sendNotify   = false;
-                }
-                break;
-                default:
-                {
-                    CpswAppUtils_assert(false);
-                }
-            }
-        }
-        if (sendNotify)
-        {
-            uint8_t notifyInfo[] = {'d','u','m','p','s','t','a','t','s'};
-            CpswAppUtils_assert(attachHandle != 0);
-            CpswAppUtils_assert(coreKey != 0);
-            System_printf("%s: sending message\n", __func__);
-            rdevEthSwitchClient_sendNotify(device_id, attachHandle, coreKey, RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS, notifyInfo, sizeof(notifyInfo));
-        }
-    }
-}
-
-static void rdevEthSwitchApp_printStatsNonZero(const char *pcString, uint64_t statVal)
-{
-    if (0U != statVal)
-    {
-        System_printf(pcString, statVal);
-    }
-}
-
-static void rdevEthSwitchApp_printStatsWithIdxNonZero(const char *pcString,
-                                                  uint32_t idx,
-                                                  uint64_t statVal)
-{
-    if (0U != statVal)
-    {
-        System_printf(pcString, idx, statVal);
-    }
-}
-
-CpswStats_MacPort_9g gCpswStats;
-
-static void rdevEthSwitchApp_printMacPortStats9G(CpswStats_MacPort_9g *st)
-{
-    uint_fast32_t i;
-
-    gCpswStats = *st;
-    rdevEthSwitchApp_printStatsNonZero("  rxGoodFrames            = %u\n",(uint32_t)(st->rxGoodFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxBcastFrames            = %u\n",(uint32_t)(st->rxBcastFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxMcastFrames            = %u\n",(uint32_t)(st->rxMcastFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxPauseFrames            = %u\n",(uint32_t)(st->rxPauseFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxCrcErrors            = %u\n",(uint32_t)(st->rxCrcErrors));
-    rdevEthSwitchApp_printStatsNonZero("  rxAlignCodeErrors            = %u\n",(uint32_t)(st->rxAlignCodeErrors));
-    rdevEthSwitchApp_printStatsNonZero("  rxOversizedFrames            = %u\n",(uint32_t)(st->rxOversizedFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxJabberFrames            = %u\n",(uint32_t)(st->rxJabberFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxUndersizedFrames            = %u\n",(uint32_t)(st->rxUndersizedFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxFragments            = %u\n",(uint32_t)(st->rxFragments));
-    rdevEthSwitchApp_printStatsNonZero("  aleDrop            = %u\n",(uint32_t)(st->aleDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleOverrunDrop            = %u\n",(uint32_t)(st->aleOverrunDrop));
-    rdevEthSwitchApp_printStatsNonZero("  rxOctets            = %u\n",(uint32_t)(st->rxOctets));
-    rdevEthSwitchApp_printStatsNonZero("  txGoodFrames            = %u\n",(uint32_t)(st->txGoodFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txBcastFrames            = %u\n",(uint32_t)(st->txBcastFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txMcastFrames            = %u\n",(uint32_t)(st->txMcastFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txPauseFrames            = %u\n",(uint32_t)(st->txPauseFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txDeferredFrames            = %u\n",(uint32_t)(st->txDeferredFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txCollisionFrames            = %u\n",(uint32_t)(st->txCollisionFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txSingleCollFrames            = %u\n",(uint32_t)(st->txSingleCollFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txMultipleCollFrames            = %u\n",(uint32_t)(st->txMultipleCollFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txExcessiveCollFrames            = %u\n",(uint32_t)(st->txExcessiveCollFrames));
-    rdevEthSwitchApp_printStatsNonZero("  txLateCollFrames            = %u\n",(uint32_t)(st->txLateCollFrames));
-    rdevEthSwitchApp_printStatsNonZero("  rxIPGError            = %u\n",(uint32_t)(st->rxIPGError));
-    rdevEthSwitchApp_printStatsNonZero("  txCarrierSenseErrors            = %u\n",(uint32_t)(st->txCarrierSenseErrors));
-    rdevEthSwitchApp_printStatsNonZero("  txOctets            = %u\n",(uint32_t)(st->txOctets));
-    rdevEthSwitchApp_printStatsNonZero("  octetsFrames64            = %u\n",(uint32_t)(st->octetsFrames64));
-    rdevEthSwitchApp_printStatsNonZero("  octetsFrames65to127            = %u\n",(uint32_t)(st->octetsFrames65to127));
-    rdevEthSwitchApp_printStatsNonZero("  octetsFrames128to255            = %u\n",(uint32_t)(st->octetsFrames128to255));
-    rdevEthSwitchApp_printStatsNonZero("  octetsFrames256to511            = %u\n",(uint32_t)(st->octetsFrames256to511));
-    rdevEthSwitchApp_printStatsNonZero("  octetsFrames512to1023            = %u\n",(uint32_t)(st->octetsFrames512to1023));
-    rdevEthSwitchApp_printStatsNonZero("  octetsFrames1024            = %u\n",(uint32_t)(st->octetsFrames1024));
-    rdevEthSwitchApp_printStatsNonZero("  netOctets            = %u\n",(uint32_t)(st->netOctets));
-    rdevEthSwitchApp_printStatsNonZero("  rxBottomOfFifoDrop            = %u\n",(uint32_t)(st->rxBottomOfFifoDrop));
-    rdevEthSwitchApp_printStatsNonZero("  portMaskDrop            = %u\n",(uint32_t)(st->portMaskDrop));
-    rdevEthSwitchApp_printStatsNonZero("  rxTopOfFifoDrop            = %u\n",(uint32_t)(st->rxTopOfFifoDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleRateLimitDrop            = %u\n",(uint32_t)(st->aleRateLimitDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleVidIngressDrop            = %u\n",(uint32_t)(st->aleVidIngressDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleDAEqSADrop            = %u\n",(uint32_t)(st->aleDAEqSADrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleBlockDrop            = %u\n",(uint32_t)(st->aleBlockDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleSecureDrop            = %u\n",(uint32_t)(st->aleSecureDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleAuthDrop            = %u\n",(uint32_t)(st->aleAuthDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleUnknownUcast            = %u\n",(uint32_t)(st->aleUnknownUcast));
-    rdevEthSwitchApp_printStatsNonZero("  aleUnknownUcastBcnt            = %u\n",(uint32_t)(st->aleUnknownUcastBcnt));
-    rdevEthSwitchApp_printStatsNonZero("  aleUnknownMcast            = %u\n",(uint32_t)(st->aleUnknownMcast));
-    rdevEthSwitchApp_printStatsNonZero("  aleUnknownMcastBcnt            = %u\n",(uint32_t)(st->aleUnknownMcastBcnt));
-    rdevEthSwitchApp_printStatsNonZero("  aleUnknownBcast            = %u\n",(uint32_t)(st->aleUnknownBcast));
-    rdevEthSwitchApp_printStatsNonZero("  aleUnknownBcastBcnt            = %u\n",(uint32_t)(st->aleUnknownBcastBcnt));
-    rdevEthSwitchApp_printStatsNonZero("  alePolicyMatch            = %u\n",(uint32_t)(st->alePolicyMatch));
-    rdevEthSwitchApp_printStatsNonZero("  alePolicyMatchRed            = %u\n",(uint32_t)(st->alePolicyMatchRed));
-    rdevEthSwitchApp_printStatsNonZero("  alePolicyMatchYellow            = %u\n",(uint32_t)(st->alePolicyMatchYellow));
-    rdevEthSwitchApp_printStatsNonZero("  aleMultSADrop            = %u\n",(uint32_t)(st->aleMultSADrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleDualVlanDrop            = %u\n",(uint32_t)(st->aleDualVlanDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleLenErrorDrop            = %u\n",(uint32_t)(st->aleLenErrorDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleIpNextHdrDrop            = %u\n",(uint32_t)(st->aleIpNextHdrDrop));
-    rdevEthSwitchApp_printStatsNonZero("  aleIPv4FragDrop            = %u\n",(uint32_t)(st->aleIPv4FragDrop));
-    rdevEthSwitchApp_printStatsNonZero("  ietRxAssemblyErr            = %u\n",(uint32_t)(st->ietRxAssemblyErr));
-    rdevEthSwitchApp_printStatsNonZero("  ietRxAssemblyOk            = %u\n",(uint32_t)(st->ietRxAssemblyOk));
-    rdevEthSwitchApp_printStatsNonZero("  ietRxSmdError            = %u\n",(uint32_t)(st->ietRxSmdError));
-    rdevEthSwitchApp_printStatsNonZero("  ietRxFrag            = %u\n",(uint32_t)(st->ietRxFrag));
-    rdevEthSwitchApp_printStatsNonZero("  ietTxHold            = %u\n",(uint32_t)(st->ietTxHold));
-    rdevEthSwitchApp_printStatsNonZero("  ietTxFrag            = %u\n",(uint32_t)(st->ietTxFrag));
-    rdevEthSwitchApp_printStatsNonZero("  txMemProtectError            = %u\n",(uint32_t)(st->txMemProtectError));
-
-    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPri); i++)
-    {
-        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPri[%u]              = %u\n",i,(uint32_t)(st->enetPnTxPri[i]));
-    }
-
-    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPriBcnt); i++)
-    {
-        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPriBcnt[%u]          = %u\n",i,(uint32_t)(st->enetPnTxPriBcnt[i]));
-    }
-
-    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPriBcnt); i++)
-    {
-        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPriDrop[%u]          = %u\n",i,(uint32_t)(st->enetPnTxPriBcnt[i]));
-    }
-
-    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(st->enetPnTxPriBcnt); i++)
-    {
-        rdevEthSwitchApp_printStatsWithIdxNonZero("  enetPnTxPriDropBcnt[%u]      = %u\n",i,(uint32_t)(st->enetPnTxPriBcnt[i]));
-    }
-}
-
-uint32_t gRegWrAddr = 0xDEADBEEF;
-uint32_t gRegRdAddr = 0x00C0FFEE;
-bool freeInDetach = false;
-static volatile bool gWaitInLoop = true;
 static void requestLoopFn(UArg a0, UArg a1)
 {
-    uint32_t cnt = 0;
     uint32_t device_id = (uint32_t)a0;
     Mailbox_Handle hMailbox = (Mailbox_Handle)a1;
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_mtu;
-    uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
-    uint32_t features;
-    uint32_t tx_id;
-    uint32_t rx_flow_allocidx, rx_default_flow_allocidx;
-    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-    uint8_t  ipv4Addr[] = {172,24,209,155};
-    uint8_t  ipv6Addr[] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xA,0xB,0xC,0xD,0xE,0xF,0x10};
-
-    int32_t  ret;
-    
+    Bool mbxStatus;
+    rdevEthSwitchAppMsg_t msg;
 
     while(TRUE) {
-        switch (cnt % 20)
+        mbxStatus =
+            Mailbox_pend(hMailbox, &msg, BIOS_WAIT_FOREVER);
+        assert(mbxStatus == TRUE);
+        switch (msg.req.cmd)
         {
-            case 0:
+            case ETHSWT_CMD_PING:
             {
-                char     msgText[512];
-                char     resp[512];
 
-                memset(resp, 0, sizeof(resp));
-                snprintf(msgText, sizeof(msgText), "ping-request %d", cnt);
+                memset(msg.res.u.ping.resp, 0, sizeof(msg.res.u.ping.resp));
                 System_printf("%s: sending ping request\n", __func__);
-                ret = rdevEthSwitchClient_sendping(device_id, msgText, strlen(msgText), resp, sizeof(resp));
-                if (0 == ret)
+                msg.res.retVal = rdevEthSwitchClient_sendping(device_id, msg.req.u.ping.msgText, strlen(msg.req.u.ping.msgText), msg.res.u.ping.resp, sizeof(msg.res.u.ping.resp));
+                if (0 == msg.res.retVal)
                 {
-                    System_printf("%s: respose %s\n", __func__, resp);
+                    System_printf("%s: respose %s\n", __func__, msg.res.u.ping.resp);
                 }
                 break;
             }
-            case 1:
+            case ETHSWT_CMD_ATTACH:
             {
-                ret = rdevEthSwitchClient_attach(device_id, RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G, &id, &core_key, &rx_mtu, tx_mtu, CPSW_UTILS_ARRAYSIZE(tx_mtu),&features);
-                if (0 == ret)
+                msg.res.retVal = rdevEthSwitchClient_attach(device_id, msg.req.u.attach.cpswType, &msg.res.u.attach.id, &msg.res.u.attach.core_key, &msg.res.u.attach.rx_mtu, msg.res.u.attach.tx_mtu, CPSW_UTILS_ARRAYSIZE(msg.res.u.attach.tx_mtu),&msg.res.u.attach.features);
+                if (0 == msg.res.retVal)
                 {
-                    rdevEthSwitchAppNotifyTskCmdInfo_t notifyTskMsg;
-                    Bool mbxStatus;
-
-                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",__func__,(uintptr_t)(id & 0xFFFFFFFFU), core_key, rx_mtu, tx_mtu[0], tx_mtu[1],tx_mtu[2],tx_mtu[3], tx_mtu[4], tx_mtu[5],tx_mtu[6],tx_mtu[7],((features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
-                    notifyTskMsg.cmd = RDEVETHSWITCHAPP_NOTIFYTSKCMD_ATTACH;
-                    notifyTskMsg.handle = id;
-                    notifyTskMsg.coreKey = core_key;
-                    CpswAppUtils_assert(hMailbox != NULL);
-                    mbxStatus =
-                        Mailbox_post(hMailbox,
-                                     &notifyTskMsg,
-                                     BIOS_WAIT_FOREVER);
-                    CpswAppUtils_assert(mbxStatus == TRUE);
-
+                    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)(msg.res.u.attach.id));
+                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",__func__,hCpsw, msg.res.u.attach.core_key, msg.res.u.attach.rx_mtu, msg.res.u.attach.tx_mtu[0], msg.res.u.attach.tx_mtu[1],msg.res.u.attach.tx_mtu[2],msg.res.u.attach.tx_mtu[3], msg.res.u.attach.tx_mtu[4], msg.res.u.attach.tx_mtu[5],msg.res.u.attach.tx_mtu[6],msg.res.u.attach.tx_mtu[7],((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
                 }
                 break;
             }
-            case 2:
+            case ETHSWT_CMD_ALLOCTX:
             {
-                ret = rdevEthSwitchClient_alloctx(device_id, id, core_key, &tx_id);
-                if (0 == ret)
+                msg.res.retVal = rdevEthSwitchClient_alloctx(device_id, msg.req.u.alloc.id, msg.req.u.alloc.core_key, &msg.res.u.tx.tx_id);
+                if (0 == msg.res.retVal)
                 {
-                    System_printf("Function:%s,Txid:%u\n",__func__,tx_id);
+                    System_printf("Function:%s,Txid:%u\n",__func__,msg.res.u.tx.tx_id);
                 }
                 break;
             }
-            case 3:
+            case ETHSWT_CMD_ALLOCRX:
             {
-                ret = rdevEthSwitchClient_allocrx(device_id, id, core_key, &rx_flow_allocidx);
-                if (0 == ret)
+                msg.res.retVal = rdevEthSwitchClient_allocrx(device_id, msg.req.u.alloc.id, msg.req.u.alloc.core_key, &msg.res.u.rx.rx_flow_allocidx);
+                if (0 == msg.res.retVal)
                 {
-                    System_printf("Function:%s,RxAllocId:%u\n",__func__,rx_flow_allocidx);
+                    System_printf("Function:%s,RxAllocId:%u\n",__func__,msg.res.u.rx.rx_flow_allocidx);
                 }
                 break;
             }
-            case 4:
+            case ETHSWT_CMD_REGDEFAULT:
             {
-                ret = rdevEthSwitchClient_allocrx(device_id, id, core_key, &rx_default_flow_allocidx);
-                if (0 == ret)
+                msg.res.retVal = rdevEthSwitchClient_registerrxdefault(device_id, msg.req.u.regdefault.id, msg.req.u.regdefault.core_key,  msg.req.u.regdefault.rx_default_flow_allocidx);
+                break;
+            }
+            case ETHSWT_CMD_ALLOCMAC:
+            {
+                msg.res.retVal = rdevEthSwitchClient_allocmac(device_id, msg.req.u.alloc.id, msg.req.u.alloc.core_key, msg.res.u.mac.mac_address, CPSW_UTILS_ARRAYSIZE(msg.res.u.mac.mac_address));
+                if (0 == msg.res.retVal)
                 {
-                    System_printf("Function:%s,RxDefaultAllocId:%u\n",__func__,rx_default_flow_allocidx);
+                    System_printf("Function:%s,mac_address:%2x:%2x:%2x:%2x:%2x:%2x \n",__func__,msg.res.u.mac.mac_address[0],msg.res.u.mac.mac_address[1],msg.res.u.mac.mac_address[2],msg.res.u.mac.mac_address[3],msg.res.u.mac.mac_address[4],msg.res.u.mac.mac_address[5]);
                 }
                 break;
             }
-            case 5:
+            case ETHSWT_CMD_REGMAC:
             {
-                ret = rdevEthSwitchClient_registerrxdefault(device_id, id, core_key, rx_default_flow_allocidx);
+                msg.res.retVal = rdevEthSwitchClient_registermac(device_id, msg.req.u.regmac.id, msg.req.u.regmac.core_key, msg.req.u.regmac.rx_flow_allocidx, msg.req.u.regmac.mac_address);
                 break;
             }
-            case 6:
+            case ETHSWT_CMD_REGIPV4:
             {
-                ret = rdevEthSwitchClient_allocmac(device_id, id, core_key, mac_address, CPSW_UTILS_ARRAYSIZE(mac_address));
-                if (0 == ret)
-                {
-                    System_printf("Function:%s,mac_address:%2x:%2x:%2x:%2x:%2x:%2x \n",__func__,mac_address[0],mac_address[1],mac_address[2],mac_address[3],mac_address[4],mac_address[5]);
-                }
+                msg.res.retVal = rdevEthSwitchClient_ipv4macregister(device_id, msg.req.u.regipv4.id, msg.req.u.regipv4.core_key, msg.req.u.regipv4.mac_address, msg.req.u.regipv4.ipv4Addr);
                 break;
             }
-            case 7:
+            case ETHSWT_CMD_REGIPV6:
             {
-                ret = rdevEthSwitchClient_registermac(device_id, id, core_key, rx_flow_allocidx, mac_address);
+                msg.res.retVal = rdevEthSwitchClient_ipv6macregister(device_id, msg.req.u.regipv6.id, msg.req.u.regipv6.core_key, msg.req.u.regipv6.mac_address, msg.req.u.regipv6.ipv6Addr);
                 break;
             }
-            case 8:
+            case ETHSWT_CMD_UNREGIPV4:
             {
-                ret = rdevEthSwitchClient_ipv4macregister(device_id, id, core_key, mac_address, ipv4Addr);
+                msg.res.retVal = rdevEthSwitchClient_ipv4macunregister(device_id, msg.req.u.unregipv4.id, msg.req.u.unregipv4.core_key, msg.req.u.unregipv4.ipv4Addr);
                 break;
             }
-            case 9:
+            case ETHSWT_CMD_IOCTL:
             {
-                ret = rdevEthSwitchClient_ipv6macregister(device_id, id, core_key, mac_address, ipv6Addr);
-                break;
-            }
-            case 10:
-            {
-                ret = rdevEthSwitchClient_ipv4macunregister(device_id, id, core_key, ipv4Addr);
-                break;
-            }
-            case 11:
-            {
-                CpswStats_GenericMacPortInArgs inArgs;
-                CpswStats_PortStats portStats;
-
-                inArgs.portNum = CPSW_MAC_PORT_1;
-                ret = rdevEthSwitchClient_ioctl(device_id, id, core_key,CPSW_STATS_IOCTL_GET_MACPORT_STATS, &inArgs, sizeof(inArgs), &portStats, sizeof(portStats));
-                if (0 == ret)
-                {
-                    CpswStats_MacPort_9g *st;
-
-                    st = (CpswStats_MacPort_9g *)&portStats;
-                    rdevEthSwitchApp_printMacPortStats9G(st);
-                }
+                msg.res.retVal = rdevEthSwitchClient_ioctl(device_id, msg.req.u.ioctl.id, msg.req.u.ioctl.core_key,msg.req.u.ioctl.cmd, msg.req.u.ioctl.inArgs, msg.req.u.ioctl.inArgsSize, msg.req.u.ioctl.outArgs, msg.req.u.ioctl.outArgsSize);
                 break;
             }
 
-            case 12:
+            case ETHSWT_CMD_UNREGMAC:
             {
-                ret = rdevEthSwitchClient_unregistermac(device_id, id, core_key, rx_flow_allocidx, mac_address);
+                msg.res.retVal = rdevEthSwitchClient_unregistermac(device_id, msg.req.u.unregmac.id, msg.req.u.unregmac.core_key, msg.req.u.unregmac.rx_flow_allocidx, msg.req.u.unregmac.mac_address);
                 break;
             }
-            case 13:
+            case ETHSWT_CMD_UNREGDEFAULT:
             {
-                ret = rdevEthSwitchClient_unregisterrxdefault(device_id, id, core_key, rx_default_flow_allocidx);
+                msg.res.retVal = rdevEthSwitchClient_unregisterrxdefault(device_id, msg.req.u.unregdefault.id, msg.req.u.unregdefault.core_key, msg.req.u.unregdefault.rx_default_flow_allocidx);
                 break;
             }
-            case 14:
+            case ETHSWT_CMD_FREEMAC:
             {
                 if (freeInDetach == false)
                 {
-                    ret = rdevEthSwitchClient_freemac(device_id, id, core_key, mac_address);
+                    msg.res.retVal = rdevEthSwitchClient_freemac(device_id, msg.req.u.freemac.id, msg.req.u.freemac.core_key, msg.req.u.freemac.mac_address);
                 }
                 break;
             }
-            case 15:
+            case ETHSWT_CMD_FREETX:
             {
                 if (freeInDetach == false)
                 {
-                    ret = rdevEthSwitchClient_freetx(device_id, id, core_key, tx_id);
+                    msg.res.retVal = rdevEthSwitchClient_freetx(device_id, msg.req.u.freetx.id, msg.req.u.freetx.core_key, msg.req.u.freetx.tx_id);
                 }
                 break;
             }
-            case 16:
+            case ETHSWT_CMD_FREERX:
             {
                 if (freeInDetach == false)
                 {
-                    ret = rdevEthSwitchClient_freerx(device_id, id, core_key, rx_flow_allocidx);
+                    msg.res.retVal = rdevEthSwitchClient_freerx(device_id, msg.req.u.freerx.id , msg.req.u.freerx.core_key, msg.req.u.freerx.rx_flow_allocidx);
                 }
                 break;
             }
-            case 17:
+            case ETHSWT_CMD_DETACH:
             {
-                {
-                    rdevEthSwitchAppNotifyTskCmdInfo_t notifyTskMsg;
-                    Bool mbxStatus;
-
-                    notifyTskMsg.cmd = RDEVETHSWITCHAPP_NOTIFYTSKCMD_DETACH;
-                    notifyTskMsg.handle = id;
-                    notifyTskMsg.coreKey = core_key;
-                    CpswAppUtils_assert(hMailbox != NULL);
-                    mbxStatus =
-                        Mailbox_post(hMailbox,
-                                     &notifyTskMsg,
-                                     BIOS_WAIT_FOREVER);
-                    CpswAppUtils_assert(mbxStatus == TRUE);
-
-                }
-
-                ret = rdevEthSwitchClient_detach(device_id, id, core_key);
+                /* Dump stats before detach */
+                uint8_t notifyInfo[] = {'d','u','m','p','s','t','a','t','s'};
+                System_printf("%s: sending message\n", __func__);
+                rdevEthSwitchClient_sendNotify(device_id, msg.req.u.detach.id, msg.req.u.detach.core_key, RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS, notifyInfo, sizeof(notifyInfo));
+                msg.res.retVal = rdevEthSwitchClient_detach(device_id, msg.req.u.detach.id, msg.req.u.detach.core_key);
                 break;
             }
-            case 18:
+            case ETHSWT_CMD_REGWR:
             {
-                uint32_t postWriteVal;
-                ret = rdevEthSwitchClient_regwr(device_id, (uint32_t)&gRegWrAddr, 0xBABEFACE, &postWriteVal);
-                if (0 == ret)
-                {
-                    CpswAppUtils_assert(postWriteVal == 0xBABEFACE);
-                }
+                msg.res.retVal = rdevEthSwitchClient_regwr(device_id, msg.req.u.regwr.regWrAddr , msg.req.u.regwr.regWrValue, &msg.res.u.regwr.regPostWrValue);
                 break;
             }
-            case 19:
+            case ETHSWT_CMD_REGRD:
             {
-                uint32_t regRdVal;
-                ret = rdevEthSwitchClient_regrd(device_id, (uint32_t)&gRegRdAddr, &regRdVal);
-                if (0 == ret)
-                {
-                    CpswAppUtils_assert(regRdVal == gRegRdAddr);
-                }
+                msg.res.retVal = rdevEthSwitchClient_regrd(device_id, msg.req.u.regrd.regRdAddr , &msg.res.u.regrd.regRdValue);
                 break;
             }
         }
-        cnt++;
-        while (((cnt % 20) > 8) && gWaitInLoop)
-        {
-            Task_sleep(10);
-        }
+        assert(msg.req.hResponseMbx != NULL);
+        mbxStatus =
+            Mailbox_post(msg.req.hResponseMbx, &msg, BIOS_WAIT_FOREVER);
+        assert(mbxStatus == TRUE);
     }
 }
+
 
 static void startMessageAndRequestLoop(uint32_t device_id)
 {
     Task_Params params;
 
-    rdevEthSwitchApp_createMbx(&gMessageTskMailbox);
-    
-    CpswAppUtils_assert(gMessageTskMailbox != NULL);
-    Task_Params_init(&params);
-    params.priority = 1;
-    params.stackSize = IPC_TASK_STACKSIZE;
-    params.stack = &g_messageTaskStack[0];
-    params.stackSize = IPC_TASK_STACKSIZE;
-    params.arg0 = device_id;
-    params.arg1 = (uint32_t)gMessageTskMailbox;
-    Task_create(messageLoopFn, &params, NULL);
+
+    assert(gCmdMbx != NULL);
+    assert(gCmdResponseMbx != NULL);
 
     Task_Params_init(&params);
     params.priority = 3;
@@ -629,7 +720,7 @@ static void startMessageAndRequestLoop(uint32_t device_id)
     params.stack = &g_requestTaskStack[0];
     params.stackSize = IPC_TASK_STACKSIZE;
     params.arg0 = device_id;
-    params.arg1 = (uint32_t)gMessageTskMailbox;
+    params.arg1 = (uint32_t)gCmdMbx;
     Task_create(requestLoopFn, &params, NULL);
 }
 
@@ -783,8 +874,687 @@ int main(void)
     {
         BIOS_exit(0);
     }
+    rdevEthSwitchApp_createMbx(&gCmdMbx);
+    rdevEthSwitchApp_createMbx(&gCmdResponseMbx);
     BIOS_start();    /* does not return */
 
     return(0);
+}
+
+static bool CpswRemoteApp_IsAllPhyLinked(Cpsw_Handle hCpsw)
+{
+
+    return true;
+}
+
+struct Udma_DrvObj udmaDrvObj;
+
+static Udma_DrvHandle CpswRemoteApp_udmaOpen(void)
+{
+    Udma_InitPrms initPrms;
+    Udma_DrvHandle hUdmaDrv;
+    int32_t retVal;
+    uint32_t instId;
+
+    hUdmaDrv = &udmaDrvObj;
+    memset(hUdmaDrv, 0U, sizeof (*hUdmaDrv));
+
+    instId = UDMA_INST_ID_MAIN_0;
+
+    /* Initialize the UDMA driver based on NAVSS instance */
+    UdmaInitPrms_init(instId, &initPrms);
+    initPrms.printFxn = (Udma_PrintFxn)&System_printf;
+    retVal = Udma_init(hUdmaDrv, &initPrms);
+
+    /* assert if UDMA failed to open */
+    assert(UDMA_SOK == retVal);
+
+    return hUdmaDrv;
+}
+
+static void CpswRemoteApp_sendCmd(Mailbox_Handle hCmdMbx,
+                                  Mailbox_Handle hResponseMbx,
+                                  rdevEthSwitchAppCmd_e cmd,
+                                  rdevEthSwitchAppMsg_t *msg)
+{
+    Bool mbxStatus;
+
+    assert(hCmdMbx != NULL);
+    assert(hResponseMbx != NULL);
+
+    msg->req.cmd = cmd;
+    msg->req.hResponseMbx = hResponseMbx;
+    mbxStatus = Mailbox_post(hCmdMbx, msg, BIOS_WAIT_FOREVER);
+    assert(mbxStatus == TRUE);
+    mbxStatus = Mailbox_pend(hResponseMbx, msg, BIOS_WAIT_FOREVER);
+    assert(mbxStatus == TRUE);
+    assert(msg->res.retVal == CPSW_SOK);
+}
+
+static void CpswRemoteApp_setRxFlowPrms(CpswDma_OpenRxFlowPrms *pRxFlowPrms,
+                                        uint32_t rxStartFlowIdx,
+                                        uint32_t rxFlowIdx,
+                                        Udma_DrvHandle  hUdmaDrv,
+                                        uint32_t numRxPackets,
+                                        void     *cbArg,
+                                        Udma_EventCallback eventCb)
+{
+    pRxFlowPrms->startIdx               = rxStartFlowIdx;
+    pRxFlowPrms->flowIdx                = rxFlowIdx;
+
+    pRxFlowPrms->hUdmaDrv               = hUdmaDrv;
+
+    pRxFlowPrms->ringMemAllocFxn        = &CpswAppMemUtils_allocRingMemFxn;
+    pRxFlowPrms->ringMemFreeFxn         = &CpswAppMemUtils_freeRingMemFxn;
+
+    pRxFlowPrms->udmaEvtCfg.eventCb     = eventCb;
+    pRxFlowPrms->udmaEvtCfg.hEventCbArg = cbArg;
+
+    pRxFlowPrms->numRxPkts              = numRxPackets;
+
+    pRxFlowPrms->disableCacheOpsFlag    = false;
+    pRxFlowPrms->dmaDescAllocFxn        = &CpswAppMemUtils_allocDmaDescFxn;
+    pRxFlowPrms->dmaDescFreeFxn         = &CpswAppMemUtils_freeDmaDescFxn;
+    pRxFlowPrms->hCallbackArg           = cbArg;
+}
+
+
+static void CpswRemoteApp_addHostPortEntry(Mailbox_Handle hCmdMbx,
+                                           Mailbox_Handle hResponseMbx,
+                                           Cpsw_Handle hCpsw,
+                                           uint32_t coreKey,
+                                           uint8_t *macAddr)
+{
+    rdevEthSwitchAppMsg_t msg;
+    CpswAle_AddEntryOutArgs       setUcastOutArgs;
+    CpswAle_SetUcastEntryInArgs   setUcastInArgs;
+
+    memset(&setUcastInArgs, 0 , sizeof(setUcastInArgs));
+    memcpy(&setUcastInArgs.addr.addr[0U], macAddr, sizeof (setUcastInArgs.addr.addr));
+    setUcastInArgs.addr.vlanId  = 0U;
+    setUcastInArgs.info.portNum = CPSW_ALE_HOST_PORT_NUM;
+    setUcastInArgs.info.blocked = false;
+    setUcastInArgs.info.secure  = true;
+    setUcastInArgs.info.super   = false;
+    setUcastInArgs.info.ageable = false;
+
+    msg.req.u.ioctl.cmd = CPSW_ALE_IOCTL_ADD_UNICAST;
+    msg.req.u.ioctl.core_key = coreKey;
+    msg.req.u.ioctl.id       = (uint64_t) hCpsw;
+    msg.req.u.ioctl.inArgsSize = sizeof(setUcastInArgs);
+    msg.req.u.ioctl.inArgs     = &setUcastInArgs;
+    msg.req.u.ioctl.outArgs     = &setUcastOutArgs;
+    msg.req.u.ioctl.outArgsSize = sizeof(setUcastOutArgs);
+
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_IOCTL, &msg);
+}
+
+static void CpswRemoteApp_delAddrEntry(Mailbox_Handle hCmdMbx,
+                                       Mailbox_Handle hResponseMbx,
+                                       Cpsw_Handle hCpsw,
+                                       uint32_t coreKey,
+                                       uint8_t *macAddr)
+{
+    rdevEthSwitchAppMsg_t msg;
+    CpswAle_MacAddrInfo           addrInfo;
+
+    memset(&addrInfo, 0 , sizeof(addrInfo));
+    memcpy(&addrInfo.addr[0U], macAddr, sizeof (addrInfo.addr));
+    addrInfo.vlanId = 0U;
+
+    msg.req.u.ioctl.cmd = CPSW_ALE_IOCTL_REMOVE_ADDR;
+    msg.req.u.ioctl.core_key = coreKey;
+    msg.req.u.ioctl.id       = (uint64_t) hCpsw;
+    msg.req.u.ioctl.inArgsSize = sizeof(addrInfo);
+    msg.req.u.ioctl.inArgs     = &addrInfo;
+    msg.req.u.ioctl.outArgs     = NULL;
+    msg.req.u.ioctl.outArgsSize = 0;
+
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_IOCTL, &msg);
+}
+
+static void CpswRemoteApp_getRxStartFlowIdx(Mailbox_Handle hCmdMbx,
+                                            Mailbox_Handle hResponseMbx,
+                                            Cpsw_Handle hCpsw,
+                                            uint32_t coreKey,
+                                            uint32_t *startFlowIdx)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.ioctl.cmd = CPSW_HOSTPORT_GET_FLOW_ID_OFFSET;
+    msg.req.u.ioctl.core_key = coreKey;
+    msg.req.u.ioctl.id       = (uint64_t) hCpsw;
+    msg.req.u.ioctl.inArgsSize = 0;
+    msg.req.u.ioctl.inArgs     = NULL;
+    msg.req.u.ioctl.outArgs     = startFlowIdx;
+    msg.req.u.ioctl.outArgsSize = sizeof(*startFlowIdx);
+
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_IOCTL, &msg);
+
+}
+
+static void CpswRemoteApp_allocRxFlow(Mailbox_Handle hCmdMbx,
+                                      Mailbox_Handle hResponseMbx,
+                                      Cpsw_Handle    hCpsw,
+                                      uint32_t       coreKey,
+                                      uint32_t       *rxFlowStartIdx,
+                                      uint32_t       *rxFlowIdx)
+{
+    rdevEthSwitchAppMsg_t msg;
+    uint32_t absRxFlowIdx;
+
+    msg.req.u.alloc.id = (uint64_t)hCpsw;
+    msg.req.u.alloc.core_key = coreKey;
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_ALLOCRX, &msg);
+    absRxFlowIdx = msg.res.u.rx.rx_flow_allocidx;
+    CpswRemoteApp_getRxStartFlowIdx(hCmdMbx, hResponseMbx, hCpsw, coreKey, rxFlowStartIdx);
+    assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
+    *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
+}
+
+static void CpswRemoteApp_allocMac(Mailbox_Handle hCmdMbx,
+                                   Mailbox_Handle hResponseMbx,
+                                   Cpsw_Handle hCpsw,
+                                   uint32_t coreKey,
+                                   uint8_t *macAddress)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.alloc.id       = (uint64_t)hCpsw;
+    msg.req.u.alloc.core_key = coreKey;
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_ALLOCMAC, &msg);
+    memcpy(macAddress, msg.res.u.mac.mac_address, sizeof(msg.res.u.mac.mac_address));
+}
+
+static void CpswRemoteApp_registerDefaultRxFlow(Mailbox_Handle hCmdMbx,
+                                                Mailbox_Handle hResponseMbx,
+                                                Cpsw_Handle hCpsw,
+                                                uint32_t coreKey,
+                                                uint32_t rxFlowStartIdx,
+                                                uint32_t freeRxFlowIdx)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.regdefault.id       = (uint64_t)hCpsw;
+    msg.req.u.regdefault.core_key = coreKey;
+    msg.req.u.regdefault.rx_default_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_REGDEFAULT, &msg);
+}
+
+static void CpswRemoteApp_unregisterDefaultRxFlow(Mailbox_Handle hCmdMbx,
+                                                  Mailbox_Handle hResponseMbx,
+                                                  Cpsw_Handle hCpsw,
+                                                  uint32_t coreKey,
+                                                  uint32_t rxFlowStartIdx,
+                                                  uint32_t freeRxFlowIdx)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.unregdefault.id       = (uint64_t)hCpsw;
+    msg.req.u.unregdefault.core_key = coreKey;
+    msg.req.u.unregdefault.rx_default_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_UNREGDEFAULT, &msg);
+}
+
+static void CpswRemoteApp_registerDstMacRxFlow(Mailbox_Handle hCmdMbx,
+                                               Mailbox_Handle hResponseMbx,
+                                               Cpsw_Handle hCpsw,
+                                               uint32_t coreKey,
+                                               uint32_t rxFlowStartIdx,
+                                               uint32_t freeRxFlowIdx,
+                                               uint8_t  *macAddress)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.regmac.id       = (uint64_t)hCpsw;
+    msg.req.u.regmac.core_key = coreKey;
+    msg.req.u.regmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
+    memcpy(msg.req.u.regmac.mac_address, macAddress, sizeof(msg.req.u.regmac.mac_address));
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_REGMAC, &msg);
+}
+
+static void CpswRemoteApp_unregisterDstMacRxFlow(Mailbox_Handle hCmdMbx,
+                                                 Mailbox_Handle hResponseMbx,
+                                                 Cpsw_Handle hCpsw,
+                                                 uint32_t coreKey,
+                                                 uint32_t rxFlowStartIdx,
+                                                 uint32_t freeRxFlowIdx,
+                                                 uint8_t  *macAddress)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.unregmac.id       = (uint64_t)hCpsw;
+    msg.req.u.unregmac.core_key = coreKey;
+    msg.req.u.unregmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
+    memcpy(msg.req.u.unregmac.mac_address, macAddress, sizeof(msg.req.u.unregmac.mac_address));
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_UNREGMAC, &msg);
+}
+
+
+static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
+                                      Mailbox_Handle hResponseMbx,
+                                      Cpsw_Handle hCpsw,
+                                      Udma_DrvHandle  hUdmaDrv,
+                                      uint32_t coreKey,
+                                      bool     useDefaultFlow,
+                                      NimuCpswAppIf_RxConfig *rxConfig,
+                                      NimuCpswAppIf_RxHandleInfo *rxHandleInfo)
+{
+    CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
+
+    CpswDma_initRxFlowParams(&cpswRxFlowCfg);
+
+    CpswRemoteApp_allocRxFlow(hCmdMbx,
+                              hResponseMbx,
+                              hCpsw, 
+                              coreKey, 
+                              &rxHandleInfo->rxFlowStartIdx,
+                              &rxHandleInfo->rxFlowIdx);
+
+    CpswRemoteApp_setRxFlowPrms(&cpswRxFlowCfg, 
+                                rxHandleInfo->rxFlowStartIdx,
+                                rxHandleInfo->rxFlowIdx,
+                                hUdmaDrv,
+                                rxConfig->numPackets,
+                                rxConfig->cbArg,
+                                rxConfig->eventCb);
+    rxHandleInfo->hRxFlow = CpswDma_openRxFlow(&cpswRxFlowCfg);
+
+    assert(rxHandleInfo->hRxFlow != NULL);
+    
+    CpswRemoteApp_allocMac(hCmdMbx, hResponseMbx,hCpsw,coreKey,rxHandleInfo->macAddr);
+
+    CpswRemoteApp_addHostPortEntry(hCmdMbx, hResponseMbx, hCpsw, coreKey, rxHandleInfo->macAddr);
+    if (useDefaultFlow)
+    {
+        CpswRemoteApp_registerDefaultRxFlow(hCmdMbx, 
+                                            hResponseMbx,
+                                            hCpsw,
+                                            coreKey,
+                                            rxHandleInfo->rxFlowStartIdx,
+                                            rxHandleInfo->rxFlowIdx);
+    }
+    else
+    {
+        CpswRemoteApp_registerDstMacRxFlow(hCmdMbx, 
+                                           hResponseMbx,
+                                           hCpsw,
+                                           coreKey,
+                                           rxHandleInfo->rxFlowStartIdx,
+                                           rxHandleInfo->rxFlowIdx,
+                                           rxHandleInfo->macAddr);
+    }
+}
+
+
+void CpswRemoteApp_freeMac(Mailbox_Handle hCmdMbx,
+                           Mailbox_Handle hResponseMbx,
+                           Cpsw_Handle hCpsw,
+                           uint32_t coreKey,
+                           uint8_t *macAddress)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.freemac.id       = (uint64_t)hCpsw;
+    msg.req.u.freemac.core_key = coreKey;
+    memcpy(msg.req.u.freemac.mac_address, macAddress, sizeof(msg.req.u.freemac.mac_address));
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_FREEMAC, &msg);
+}
+
+void CpswRemoteApp_freeRxFlow(Mailbox_Handle hCmdMbx,
+                                 Mailbox_Handle hResponseMbx,
+                                 Cpsw_Handle hCpsw,
+                                 uint32_t coreKey,
+                                 uint32_t rxFlowIdx)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.freerx.id       = (uint64_t)hCpsw;
+    msg.req.u.freerx.core_key = coreKey;
+    msg.req.u.freerx.rx_flow_allocidx = rxFlowIdx;
+
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_FREERX, &msg);
+}
+
+
+static void CpswRemoteApp_closeNDKRxCh(Mailbox_Handle hCmdMbx,
+                                       Mailbox_Handle hResponseMbx,
+                                       Cpsw_Handle hCpsw,
+                                       Udma_DrvHandle  hUdmaDrv,
+                                       uint32_t coreKey,
+                                       bool     useDefaultFlow,
+                                       NimuCpswAppIf_RxHandleInfo *rxHandleInfo,
+                                       void *freeFxnArg,
+                                       NimuCpswAppIf_FreePktCbFxn freeFxn)
+{
+    CpswDma_PktInfoQ fqPktInfoQ;
+    CpswDma_PktInfoQ cqPktInfoQ;
+    int32_t status;
+
+    CpswUtils_initQ(&fqPktInfoQ);
+    CpswUtils_initQ(&cqPktInfoQ);
+
+    CpswDma_disableRxEvent(rxHandleInfo->hRxFlow);
+    
+    if (useDefaultFlow)
+    {
+        CpswRemoteApp_unregisterDefaultRxFlow(hCmdMbx,
+                                              hResponseMbx,
+                                              hCpsw,
+                                              coreKey,
+                                              rxHandleInfo->rxFlowStartIdx,
+                                              rxHandleInfo->rxFlowIdx);
+    }
+    else
+    {
+        CpswRemoteApp_unregisterDstMacRxFlow(hCmdMbx,
+                                             hResponseMbx,
+                                             hCpsw,
+                                             coreKey,
+                                             rxHandleInfo->rxFlowStartIdx,
+                                             rxHandleInfo->rxFlowIdx,
+                                             rxHandleInfo->macAddr);
+    }
+    CpswRemoteApp_delAddrEntry(hCmdMbx, hResponseMbx,hCpsw, coreKey, rxHandleInfo->macAddr);
+    status = CpswDma_closeRxFlow(rxHandleInfo->hRxFlow,
+                                 &fqPktInfoQ,
+                                 &cqPktInfoQ);
+    assert(status == CPSW_SOK);
+    CpswRemoteApp_freeMac(hCmdMbx, 
+                          hResponseMbx,
+                          hCpsw,
+                          coreKey,
+                          rxHandleInfo->macAddr);
+    CpswRemoteApp_freeRxFlow(hCmdMbx, 
+                             hResponseMbx,
+                             hCpsw,
+                             coreKey,
+                             rxHandleInfo->rxFlowIdx);
+    freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
+}
+
+
+static void CpswRemoteApp_setTxChPrms(CpswDma_OpenTxChPrms *pTxChPrms,
+                                      uint32_t txChNum,
+                                      Udma_DrvHandle  hUdmaDrv,
+                                      uint32_t numTxPackets,
+                                      void     *cbArg,
+                                      Udma_EventCallback eventCb)
+{
+    pTxChPrms->chNum               = txChNum;
+    pTxChPrms->hUdmaDrv            = hUdmaDrv;
+
+    pTxChPrms->ringMemAllocFxn     = &CpswAppMemUtils_allocRingMemFxn;
+    pTxChPrms->ringMemFreeFxn      = &CpswAppMemUtils_freeRingMemFxn;
+
+    pTxChPrms->numTxPkts           = numTxPackets;
+    pTxChPrms->disableCacheOpsFlag = false;
+
+    pTxChPrms->dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
+    pTxChPrms->dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
+
+    pTxChPrms->hCallbackArg        = cbArg;
+
+    pTxChPrms->udmaEvtCfg.hEventCbArg = cbArg;
+
+    pTxChPrms->udmaEvtCfg.eventCb = eventCb;
+
+}
+
+void CpswRemoteApp_allocTxCh(Mailbox_Handle hCmdMbx,
+                             Mailbox_Handle hResponseMbx,
+                             Cpsw_Handle hCpsw,
+                             uint32_t coreKey,
+                             uint32_t *txPSILThreadId)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.u.alloc.id = (uint64_t)hCpsw;
+    msg.req.u.alloc.core_key = coreKey;
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_ALLOCTX, &msg);
+    *txPSILThreadId = msg.res.u.tx.tx_id;
+}
+
+static void CpswRemoteApp_openNDKTxCh(Mailbox_Handle hCmdMbx,
+                                      Mailbox_Handle hResponseMbx,
+                                      Cpsw_Handle hCpsw,
+                                      Udma_DrvHandle  hUdmaDrv,
+                                      uint32_t coreKey,
+                                      NimuCpswAppIf_TxConfig *txConfig,
+                                      NimuCpswAppIf_TxHandleInfo *txHandleInfo)
+{
+    CpswDma_OpenTxChPrms   cpswTxChCfg;
+
+    CpswRemoteApp_allocTxCh(hCmdMbx,hResponseMbx,hCpsw, coreKey, &txHandleInfo->txChNum);
+
+    /* Set configuration parameters */
+    CpswDma_initTxChParams(&cpswTxChCfg);
+    CpswRemoteApp_setTxChPrms(&cpswTxChCfg,
+                              txHandleInfo->txChNum,
+                              hUdmaDrv,
+                              txConfig->numPackets,
+                              txConfig->cbArg,
+                              txConfig->eventCb);
+    txHandleInfo->hTxChannel = CpswDma_openTxCh(&cpswTxChCfg);
+    assert (NULL != txHandleInfo->hTxChannel);
+}
+
+static void CpswRemoteApp_freeTxCh(Mailbox_Handle hCmdMbx,
+                                   Mailbox_Handle hResponseMbx,
+                                   Cpsw_Handle hCpsw,
+                                   uint32_t coreKey,
+                                   uint32_t txChNum)
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.cmd = ETHSWT_CMD_FREETX;
+    msg.req.u.freetx.id    = (uint64_t)hCpsw;
+    msg.req.u.freetx.core_key = coreKey;
+    msg.req.u.freetx.tx_id    = txChNum;
+    
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_FREETX, &msg);
+}
+
+static void CpswRemoteApp_closeNDKTxCh(Mailbox_Handle hCmdMbx,
+                                       Mailbox_Handle hResponseMbx,
+                                       Cpsw_Handle hCpsw,
+                                       Udma_DrvHandle  hUdmaDrv,
+                                       uint32_t coreKey,
+                                       NimuCpswAppIf_TxHandleInfo *txHandleInfo,
+                                       void *freeFxnArg,
+                                       NimuCpswAppIf_FreePktCbFxn freeFxn)
+{
+    CpswDma_PktInfoQ fqPktInfoQ;
+    CpswDma_PktInfoQ cqPktInfoQ;
+    int32_t          status;
+
+    CpswUtils_initQ(&fqPktInfoQ);
+    CpswUtils_initQ(&cqPktInfoQ);
+
+    CpswDma_disableTxEvent(txHandleInfo->hTxChannel);
+    status = CpswDma_closeTxCh(txHandleInfo->hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
+    assert (CPSW_SOK == status);
+
+    CpswRemoteApp_freeTxCh(hCmdMbx,
+                           hResponseMbx,
+                           hCpsw,
+                           coreKey,
+                           txHandleInfo->txChNum);
+    freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
+}
+
+static void CpswRemoteApp_attach(Mailbox_Handle hCmdMbx,
+                                 Mailbox_Handle hResponseMbx,
+                                 enum rpmsg_kdrv_ethswitch_cpsw_type cpswType,
+                                 Cpsw_Handle *pCpswHandle,
+                                 uint32_t *coreKey,
+                                 uint32_t *rxMtu,
+                                 uint32_t *txMtu)
+{
+    rdevEthSwitchAppMsg_t msg;
+    uint32_t i;
+
+    msg.req.cmd = ETHSWT_CMD_ATTACH;
+    msg.req.u.attach.cpswType = cpswType;
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_ATTACH, &msg);
+    *pCpswHandle = (Cpsw_Handle) ((uintptr_t)(msg.res.u.attach.id));
+    *coreKey = msg.res.u.attach.core_key;
+    *rxMtu = msg.res.u.attach.rx_mtu;
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(msg.res.u.attach.tx_mtu); i++)
+    {
+        txMtu[i] = msg.res.u.attach.tx_mtu[i];
+    }
+}
+
+static void CpswRemoteApp_detach(Mailbox_Handle hCmdMbx,
+                                 Mailbox_Handle hResponseMbx,
+                                 Cpsw_Handle hCpsw,
+                                 uint32_t coreKey)
+
+{
+    rdevEthSwitchAppMsg_t msg;
+
+    msg.req.cmd = ETHSWT_CMD_DETACH;
+    msg.req.u.detach.id = (uint64_t)hCpsw;
+    msg.req.u.detach.core_key = coreKey;
+
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_DETACH, &msg);
+}
+
+static uint64_t CpswRemoteApp_virtToPhyFxn(const void *virtAddr,
+                                   void       *appData)
+{
+    return ((uint64_t) virtAddr);
+}
+
+static void *CpswRemoteApp_phyToVirtFxn(uint64_t phyAddr,
+                                void    *appData)
+{
+#if defined (__aarch64__)
+    uint64_t temp = phyAddr;
+#else
+    /* R5 is 32-bit machine, need to truncate to avoid void * typecast error */
+    uint32_t temp = (uint32_t) phyAddr;
+#endif
+    return ((void *) temp);
+}
+
+
+static CpswDma_Handle CpswRemoteApp_initCpswDma(Cpsw_Type cpswType, Udma_DrvHandle hUdmaDrv)
+{
+    CpswDma_Config dmaConfig;
+    static CpswDma_Handle gCpswDmaHandle = NULL;
+
+    CpswDma_initParams(&dmaConfig);
+    dmaConfig.hUdmaDrv = hUdmaDrv;
+    dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
+    gCpswDmaHandle = CpswDma_open(cpswType, &dmaConfig);
+    return gCpswDmaHandle;
+}
+
+static enum rpmsg_kdrv_ethswitch_cpsw_type CpswRemoteApp_getRdevCpswType(Cpsw_Type cpswType)
+{
+    enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
+
+    switch(cpswType)
+    {
+        case CPSW_2G:
+            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G;
+            break;
+    
+        case CPSW_9G:
+            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G;
+            break;
+    
+    }
+    return rdevCpswType;
+}
+
+void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
+                             NimuCpswAppIf_GetHandleOutArgs *outArgs)
+{
+    int32_t status;
+    uint32_t coreId = CpswAppSoc_getCoreId();
+    bool useDefaultFlow = false;
+    CpswOsal_Prms  osalPrms;
+    CpswUtils_Prms utilsPrms;
+    Cpsw_Type cpswType = CPSW_9G;
+    enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
+
+    assert(gCmdMbx != NULL);
+    assert(gCmdResponseMbx != NULL);
+    
+    rdevCpswType = CpswRemoteApp_getRdevCpswType(cpswType);
+
+    /* Initialize CPSW driver with default OSAL, utils */
+    utilsPrms.printFxn     = (Cpsw_PrintFxnCb) System_printf;
+    utilsPrms.traceFxn     = (Cpsw_TraceFxnCb) System_printf;
+    utilsPrms.phyToVirtFxn = &CpswRemoteApp_phyToVirtFxn;
+    utilsPrms.virtToPhyFxn = &CpswRemoteApp_virtToPhyFxn;
+
+    Cpsw_initOsalPrms(&osalPrms);
+
+    Cpsw_init(cpswType, &osalPrms, &utilsPrms);
+
+    status = CpswAppMemUtils_init();
+    assert(status == CPSW_SOK);
+    outArgs->coreId = coreId;
+    outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
+    outArgs->printFxnCb = (Cpsw_PrintFxnCb)&ConPrintf;
+    outArgs->isPhyLinkedFxn = &CpswRemoteApp_IsAllPhyLinked;
+
+    CpswRemoteApp_initCpswDma(cpswType, outArgs->hUdmaDrv);
+    CpswRemoteApp_attach(gCmdMbx, 
+                         gCmdResponseMbx, 
+                         rdevCpswType,
+                         &outArgs->hCpsw,
+                         &outArgs->coreKey,
+                         &outArgs->hostPortRxMtu,
+                         outArgs->txMtu);
+
+    CpswRemoteApp_openNDKTxCh(gCmdMbx, 
+                              gCmdResponseMbx,
+                              outArgs->hCpsw, 
+                              outArgs->hUdmaDrv, 
+                              outArgs->coreKey, 
+                              &inArgs->txCfg,
+                              &outArgs->txInfo);
+
+    CpswRemoteApp_openNDKRxCh(gCmdMbx, 
+                              gCmdResponseMbx,
+                              outArgs->hCpsw, 
+                              outArgs->hUdmaDrv, 
+                              outArgs->coreKey, 
+                              useDefaultFlow,
+                              &inArgs->rxCfg,
+                              &outArgs->rxInfo);
+}
+
+void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
+{
+    bool useDefaultFlow = false;
+
+    assert(gCmdMbx != NULL);
+    assert(gCmdResponseMbx != NULL);
+
+    CpswRemoteApp_closeNDKTxCh(gCmdMbx, 
+                               gCmdResponseMbx,
+                               releaseInfo->hCpsw, 
+                               releaseInfo->hUdmaDrv, 
+                               releaseInfo->coreKey, 
+                               &releaseInfo->txInfo,
+                               releaseInfo->freePktCbArg,
+                               releaseInfo->txFreePktCb);
+    CpswRemoteApp_closeNDKRxCh(gCmdMbx, 
+                               gCmdResponseMbx,
+                               releaseInfo->hCpsw, 
+                               releaseInfo->hUdmaDrv, 
+                               releaseInfo->coreKey, 
+                               useDefaultFlow,
+                               &releaseInfo->rxInfo,
+                               releaseInfo->freePktCbArg,
+                               releaseInfo->rxFreePktCb);
+
+    CpswRemoteApp_detach(gCmdMbx, gCmdResponseMbx, releaseInfo->hCpsw, releaseInfo->coreKey);
 }
 

@@ -52,7 +52,7 @@ SECTIONS
         *(.text:Udma_ringDequeueRaw*)
         *(.text:Udma_virtToPhyFxn*)
      }     > DDR_MCU2_0
-     
+
      .irqStackSection
     {
        *(*:ti_sysbios_family_arm_v7r_keystone3_Hwi_Module_State_0_irqStack__A)
@@ -83,7 +83,10 @@ SECTIONS
     .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    
+
+    .bss:app_log_mem        (NOLOAD) : {} > APP_LOG_MEM
+    .bss:ipc_vring_mem      (NOLOAD) : {} > IPC_VRING_MEM
+    .bss:ddr_shared_mem     (NOLOAD) : {} > DDR_MCU2_0
     .bss        : {} align(4)       > DDR_MCU2_0
     .far        : {} align(4)       > DDR_MCU2_0
     .boardcfg_data        : {} palign(128)           > DDR_MCU2_0
@@ -99,8 +102,6 @@ SECTIONS
     } > DDR_MCU2_0_RESOURCE_TABLE
 
     .tracebuf   : {} > DDR_MCU2_0
-
-/* Additional sections settings     */
 
 }  /* end of SECTIONS */
 

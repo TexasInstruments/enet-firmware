@@ -1,0 +1,5 @@
+./binsrc.exe x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\titagline.gif x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\titagline.h TITAGLINE
+./binsrc.exe x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\sample.htm x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\sample.h SAMPLE
+
+./binsrc.exe x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\tilogo.gif x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\tilogo.htm TILOGO
+./binsrc.exe x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\default.htm x:\k3\pdk_switch\pdk\packages\ti\drv\cpsw\examples\cpsw_nimu_example\webdata\default.h DEFAULT
