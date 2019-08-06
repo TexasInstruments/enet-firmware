@@ -97,6 +97,9 @@
 
 #include "webpage.h"
 
+#define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL (100)
+
+
 #define IPC_RPMESSAGE_OBJ_SIZE  256
 #define VQ_BUF_SIZE             2048
 #define REMOTE_DEVICE_ENDPT     26
@@ -195,16 +198,28 @@ typedef struct CpswRemoteApp_Obj_s
    uint8_t        ipv4Addr[CPSW_ALE_IPV4ADDR_NUM_OCTETS];
    CpswDma_Handle hDma;
    bool           useDefaultRxFlow;
+   bool           useExtAttach;
+   Cpsw_MacPort  *macPorts;
+   uint32_t      numMacPorts;
 } CpswRemoteApp_Obj;
+
+static Cpsw_MacPort gRemoteAppMacPorts[] = {
+    CPSW_MAC_PORT_1,
+    CPSW_MAC_PORT_2,
+    CPSW_MAC_PORT_3,
+};
 
 CpswRemoteApp_Obj gRemoteAppObj  =
 {
-    .hCmdMbx      = NULL,
-    .hResponseMbx = NULL,
-    .hCpsw        = NULL,
-    .coreKey      = CPSWRM_INVALIDCORE,
-    .hDma         = NULL,
+    .hCmdMbx          = NULL,
+    .hResponseMbx     = NULL,
+    .hCpsw            = NULL,
+    .coreKey          = CPSWRM_INVALIDCORE,
+    .hDma             = NULL,
     .useDefaultRxFlow = false,
+    .useExtAttach     = true,
+    .numMacPorts      = CPSW_UTILS_ARRAYSIZE(gRemoteAppMacPorts),
+    .macPorts         = gRemoteAppMacPorts,
 };
 
 static void CpswRemoteApp_registerIPV4Addr(Mailbox_Handle hCmdMbx,
@@ -219,6 +234,12 @@ static void CpswRemoteApp_unregisterIPV4Addr(Mailbox_Handle hCmdMbx,
                                              Cpsw_Handle hCpsw,
                                              uint32_t coreKey,
                                              uint8_t  *ipv4Addr);
+
+static bool CpswRemoteApp_isPhyLinked(Mailbox_Handle hCmdMbx,
+                                      Mailbox_Handle hResponseMbx,
+                                      Cpsw_Handle hCpsw,
+                                      uint32_t coreKey,
+                                      Cpsw_MacPort portNum);
 
 char *VerStr = "NIMU CPSW Example";
 
@@ -339,6 +360,12 @@ typedef struct rdevEthSwitchAppAttachReq_s
     enum rpmsg_kdrv_ethswitch_cpsw_type cpswType;
 } rdevEthSwitchAppAttachReq_t;
 
+typedef struct rdevEthSwitchAppAttachExtReq_s
+{
+    enum rpmsg_kdrv_ethswitch_cpsw_type cpswType;
+} rdevEthSwitchAppAttachExtReq_t;
+
+
 typedef struct rdevEthSwitchAppAttachRes_s
 {
     uint64_t id;
@@ -347,6 +374,19 @@ typedef struct rdevEthSwitchAppAttachRes_s
     uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
     uint32_t features;
 } rdevEthSwitchAppAttachRes_t;
+
+typedef struct rdevEthSwitchAppAttachExtRes_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_mtu;
+    uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+    uint32_t features;
+    uint32_t tx_id;
+    uint32_t rx_flow_allocidx;
+    uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+} rdevEthSwitchAppAttachExtRes_t;
+
 
 typedef struct rdevEthSwitchAppAllocReq_s
 {
@@ -510,6 +550,7 @@ typedef enum rdevEthSwitchAppCmd_tag
     ETHSWT_CMD_REGWR,
     ETHSWT_CMD_REGRD,
     ETHSWT_CMD_ATTACH,
+    ETHSWT_CMD_ATTACHEXT,
     ETHSWT_CMD_DETACH,
     ETHSWT_CMD_REGIPV6,
     ETHSWT_CMD_UNREGIPV6,
@@ -538,6 +579,7 @@ typedef struct rdevEthSwitchAppReqMsg_s
         rdevEthSwitchAppRegWrReq_t         regwr;
         rdevEthSwitchAppRegRdReq_t         regrd;
         rdevEthSwitchAppAttachReq_t        attach;
+        rdevEthSwitchAppAttachExtReq_t     attachext;
         rdevEthSwitchAppDetachReq_t        detach;
         rdevEthSwitchAppRegIPv6Req_t       regipv6;
         rdevEthSwitchAppUnRegIPv6Req_t     unregipv6;
@@ -560,6 +602,7 @@ typedef struct rdevEthSwitchAppResMsg_s
     int32_t  retVal;
     union {
         rdevEthSwitchAppAttachRes_t        attach;
+        rdevEthSwitchAppAttachExtRes_t     attachext;
         rdevEthSwitchAppAllocTxRes_t       tx;
         rdevEthSwitchAppAllocRxRes_t       rx;
         rdevEthSwitchAppAllocMacRes_t      mac;
@@ -625,6 +668,16 @@ static void requestLoopFn(UArg a0, UArg a1)
             case ETHSWT_CMD_ATTACH:
             {
                 msg.res.retVal = rdevEthSwitchClient_attach(device_id, msg.req.u.attach.cpswType, &msg.res.u.attach.id, &msg.res.u.attach.core_key, &msg.res.u.attach.rx_mtu, msg.res.u.attach.tx_mtu, CPSW_UTILS_ARRAYSIZE(msg.res.u.attach.tx_mtu),&msg.res.u.attach.features);
+                if (0 == msg.res.retVal)
+                {
+                    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)(msg.res.u.attach.id));
+                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",__func__,hCpsw, msg.res.u.attach.core_key, msg.res.u.attach.rx_mtu, msg.res.u.attach.tx_mtu[0], msg.res.u.attach.tx_mtu[1],msg.res.u.attach.tx_mtu[2],msg.res.u.attach.tx_mtu[3], msg.res.u.attach.tx_mtu[4], msg.res.u.attach.tx_mtu[5],msg.res.u.attach.tx_mtu[6],msg.res.u.attach.tx_mtu[7],((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
+                }
+                break;
+            }
+            case ETHSWT_CMD_ATTACHEXT:
+            {
+                msg.res.retVal = rdevEthSwitchClient_attachext(device_id, msg.req.u.attachext.cpswType, &msg.res.u.attachext.id, &msg.res.u.attachext.core_key, &msg.res.u.attachext.rx_mtu, msg.res.u.attachext.tx_mtu, CPSW_UTILS_ARRAYSIZE(msg.res.u.attachext.tx_mtu),&msg.res.u.attachext.features ,&msg.res.u.attachext.tx_id,&msg.res.u.attachext.rx_flow_allocidx, msg.res.u.attachext.mac_address, CPSW_UTILS_ARRAYSIZE(msg.res.u.attachext.mac_address));
                 if (0 == msg.res.retVal)
                 {
                     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)(msg.res.u.attach.id));
@@ -770,6 +823,33 @@ static void startMessageAndRequestLoop(uint32_t device_id)
     Task_create(requestLoopFn, &params, NULL);
 }
 
+static Void printDevInfo(struct rpmsg_kdrv_ethswitch_device_data *ethDevData)
+{
+    char *tf[] = {"false", "true"};
+
+    System_printf("ETHFW Version:%2d.%2d.%2d\n",
+                  ethDevData->fw_ver.major, 
+                  ethDevData->fw_ver.minor, 
+                  ethDevData->fw_ver.rev);
+    System_printf("ETHFW Build Date (YYYY/MMM/DD):%c%c%c%c/%c%c%c/%c%c\n",
+                  ethDevData->fw_ver.year[0],ethDevData->fw_ver.year[1],ethDevData->fw_ver.year[2],ethDevData->fw_ver.year[3],
+                  ethDevData->fw_ver.month[0],ethDevData->fw_ver.month[1],ethDevData->fw_ver.month[2],
+                  ethDevData->fw_ver.date[0],ethDevData->fw_ver.date[1]);
+    System_printf("ETHFW Commit SHA:%c%c%c%c%c%c%c%c\n",
+                  ethDevData->fw_ver.commit_hash[0],
+                  ethDevData->fw_ver.commit_hash[1],
+                  ethDevData->fw_ver.commit_hash[2],
+                  ethDevData->fw_ver.commit_hash[3],
+                  ethDevData->fw_ver.commit_hash[4],
+                  ethDevData->fw_ver.commit_hash[5],
+                  ethDevData->fw_ver.commit_hash[6],
+                  ethDevData->fw_ver.commit_hash[7]);
+    System_printf("ETHFW PermissionFlag:0x%x, UART Connected:%s,UART Id:%d",
+                  ethDevData->permission_flags,
+                  tf[ethDevData->uart_connected],
+                  ethDevData->uart_id);
+}
+
 
 static Void monitorAndUnlockRdev(UArg a0, UArg a1)
 {
@@ -796,8 +876,9 @@ static Void monitorAndUnlockRdev(UArg a0, UArg a1)
     }
 
     if(ret == 0) {
-        System_printf("Registered a device name = %s, data = %s, id = %u, type = %u\n",
-                "mcu2_0-ethswitch-0", prm.data, prm.device_id, prm.device_type);
+        System_printf("Registered a device name = %s, id = %u, type = %u\n",
+                "mcu2_0-ethswitch-0", prm.device_id, prm.device_type);
+        printDevInfo(&prm.eth_device_data);
     }
 
     startMessageAndRequestLoop(prm.device_id);
@@ -929,8 +1010,26 @@ int main(void)
 
 static bool CpswRemoteApp_IsAllPhyLinked(Cpsw_Handle hCpsw)
 {
+    uint32_t i;
+    static bool     isPhyLinked = false;
+    static uint32_t pollingInterVal = 0;
 
-    return true;
+    if ((isPhyLinked == false) || ((pollingInterVal % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
+    {
+        for (i = 0; i < gRemoteAppObj.numMacPorts; i++)
+        {
+            if (0 == i)
+            {
+                isPhyLinked = CpswRemoteApp_isPhyLinked(gRemoteAppObj.hCmdMbx, gRemoteAppObj.hResponseMbx,  hCpsw, gRemoteAppObj.coreKey,  gRemoteAppObj.macPorts[i]);
+            }
+            else
+            {
+                isPhyLinked = (isPhyLinked && CpswRemoteApp_isPhyLinked(gRemoteAppObj.hCmdMbx, gRemoteAppObj.hResponseMbx, hCpsw, gRemoteAppObj.coreKey,  gRemoteAppObj.macPorts[i]));
+            }
+        }
+    }
+    pollingInterVal = (pollingInterVal + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
+    return isPhyLinked;
 }
 
 struct Udma_DrvObj udmaDrvObj;
@@ -1176,32 +1275,25 @@ static void CpswRemoteApp_unregisterDstMacRxFlow(Mailbox_Handle hCmdMbx,
     CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_UNREGMAC, &msg);
 }
 
-static void CpswRemoteApp_setAllocMacAddr(uint8_t *macAddr)
-{
-    memcpy(gRemoteAppObj.macAddr, macAddr, sizeof(gRemoteAppObj.macAddr));
-}
-
-
-
 static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
                                       Mailbox_Handle hResponseMbx,
                                       Cpsw_Handle hCpsw,
                                       Udma_DrvHandle  hUdmaDrv,
                                       uint32_t coreKey,
                                       bool     useDefaultFlow,
+                                      uint32_t rxFlowStartIdx,
+                                      uint32_t rxFlowIdx,
+                                      uint8_t  *macAddress,
                                       NimuCpswAppIf_RxConfig *rxConfig,
                                       NimuCpswAppIf_RxHandleInfo *rxHandleInfo)
 {
     CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
 
-    CpswDma_initRxFlowParams(&cpswRxFlowCfg);
+    rxHandleInfo->rxFlowStartIdx = rxFlowStartIdx;
+    rxHandleInfo->rxFlowIdx      = rxFlowIdx;
+    CPSW_UTILS_ARRAY_COPY(rxHandleInfo->macAddr, macAddress);
 
-    CpswRemoteApp_allocRxFlow(hCmdMbx,
-                              hResponseMbx,
-                              hCpsw, 
-                              coreKey, 
-                              &rxHandleInfo->rxFlowStartIdx,
-                              &rxHandleInfo->rxFlowIdx);
+    CpswDma_initRxFlowParams(&cpswRxFlowCfg);
 
     CpswRemoteApp_setRxFlowPrms(&cpswRxFlowCfg, 
                                 rxHandleInfo->rxFlowStartIdx,
@@ -1213,10 +1305,7 @@ static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
     rxHandleInfo->hRxFlow = CpswDma_openRxFlow(&cpswRxFlowCfg);
 
     assert(rxHandleInfo->hRxFlow != NULL);
-    
-    CpswRemoteApp_allocMac(hCmdMbx, hResponseMbx,hCpsw,coreKey,rxHandleInfo->macAddr);
 
-    CpswRemoteApp_setAllocMacAddr(rxHandleInfo->macAddr);
     CpswRemoteApp_addHostPortEntry(hCmdMbx, hResponseMbx, hCpsw, coreKey, rxHandleInfo->macAddr);
     if (useDefaultFlow)
     {
@@ -1379,13 +1468,14 @@ static void CpswRemoteApp_openNDKTxCh(Mailbox_Handle hCmdMbx,
                                       Cpsw_Handle hCpsw,
                                       Udma_DrvHandle  hUdmaDrv,
                                       uint32_t coreKey,
+                                      uint32_t txPSILId,
                                       NimuCpswAppIf_TxConfig *txConfig,
                                       NimuCpswAppIf_TxHandleInfo *txHandleInfo)
 {
     CpswDma_OpenTxChPrms   cpswTxChCfg;
 
-    CpswRemoteApp_allocTxCh(hCmdMbx,hResponseMbx,hCpsw, coreKey, &txHandleInfo->txChNum);
 
+    txHandleInfo->txChNum = txPSILId;
     /* Set configuration parameters */
     CpswDma_initTxChParams(&cpswTxChCfg);
     CpswRemoteApp_setTxChPrms(&cpswTxChCfg,
@@ -1453,7 +1543,6 @@ static void CpswRemoteApp_attach(Mailbox_Handle hCmdMbx,
     rdevEthSwitchAppMsg_t msg;
     uint32_t i;
 
-    msg.req.cmd = ETHSWT_CMD_ATTACH;
     msg.req.u.attach.cpswType = cpswType;
     CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_ATTACH, &msg);
     *pCpswHandle = (Cpsw_Handle) ((uintptr_t)(msg.res.u.attach.id));
@@ -1464,6 +1553,44 @@ static void CpswRemoteApp_attach(Mailbox_Handle hCmdMbx,
         txMtu[i] = msg.res.u.attach.tx_mtu[i];
     }
 }
+
+static void CpswRemoteApp_attachExtended(Mailbox_Handle hCmdMbx,
+                                         Mailbox_Handle hResponseMbx,
+                                         enum rpmsg_kdrv_ethswitch_cpsw_type cpswType,
+                                         Cpsw_Handle *pCpswHandle,
+                                         uint32_t *coreKey,
+                                         uint32_t *rxMtu,
+                                         uint32_t *txMtu,
+                                         uint32_t *txPSILThreadId,
+                                         uint32_t *rxFlowStartIdx,
+                                         uint32_t *rxFlowIdx,
+                                         uint8_t  *macAddress)
+{
+    rdevEthSwitchAppMsg_t msg;
+    uint32_t i;
+    uint32_t absRxFlowIdx;
+
+    msg.req.u.attach.cpswType = cpswType;
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_ATTACHEXT, &msg);
+    *pCpswHandle = (Cpsw_Handle) ((uintptr_t)(msg.res.u.attachext.id));
+    *coreKey = msg.res.u.attachext.core_key;
+    *rxMtu = msg.res.u.attachext.rx_mtu;
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(msg.res.u.attachext.tx_mtu); i++)
+    {
+        txMtu[i] = msg.res.u.attachext.tx_mtu[i];
+    }
+    *txPSILThreadId = msg.res.u.attachext.tx_id;
+    absRxFlowIdx = msg.res.u.attachext.rx_flow_allocidx;
+    CpswRemoteApp_getRxStartFlowIdx(hCmdMbx, 
+                                    hResponseMbx, 
+                                    *pCpswHandle, 
+                                    *coreKey, 
+                                    rxFlowStartIdx);
+    assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
+    *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
+    memcpy(macAddress, msg.res.u.attachext.mac_address, sizeof(msg.res.u.attachext.mac_address));
+}
+
 
 static void CpswRemoteApp_detach(Mailbox_Handle hCmdMbx,
                                  Mailbox_Handle hResponseMbx,
@@ -1568,6 +1695,9 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     CpswUtils_Prms utilsPrms;
     Cpsw_Type cpswType = CPSW_9G;
     enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
+    uint32_t txPSILId;
+    uint32_t rxStartFlowId;
+    uint32_t rxFlowIdOffset;
 
     assert(gRemoteAppObj.hCmdMbx != NULL);
     assert(gRemoteAppObj.hResponseMbx != NULL);
@@ -1592,19 +1722,53 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     outArgs->isPhyLinkedFxn = &CpswRemoteApp_IsAllPhyLinked;
 
     gRemoteAppObj.hDma    = CpswRemoteApp_initCpswDma(cpswType, outArgs->hUdmaDrv);
-    CpswRemoteApp_attach(gRemoteAppObj.hCmdMbx, 
-                         gRemoteAppObj.hResponseMbx, 
-                         rdevCpswType,
-                         &outArgs->hCpsw,
-                         &outArgs->coreKey,
-                         &outArgs->hostPortRxMtu,
-                         outArgs->txMtu);
 
+    if (gRemoteAppObj.useExtAttach)
+    {
+        CpswRemoteApp_attachExtended(gRemoteAppObj.hCmdMbx, 
+                                     gRemoteAppObj.hResponseMbx, 
+                                     rdevCpswType,
+                                     &outArgs->hCpsw,
+                                     &outArgs->coreKey,
+                                     &outArgs->hostPortRxMtu,
+                                     outArgs->txMtu,
+                                     &txPSILId,
+                                     &rxStartFlowId,
+                                     &rxFlowIdOffset,
+                                     gRemoteAppObj.macAddr);
+    }
+    else
+    {
+        CpswRemoteApp_attach(gRemoteAppObj.hCmdMbx, 
+                             gRemoteAppObj.hResponseMbx, 
+                             rdevCpswType,
+                             &outArgs->hCpsw,
+                             &outArgs->coreKey,
+                             &outArgs->hostPortRxMtu,
+                             outArgs->txMtu);
+        CpswRemoteApp_allocTxCh(gRemoteAppObj.hCmdMbx, 
+                                gRemoteAppObj.hResponseMbx,
+                                outArgs->hCpsw, 
+                                outArgs->coreKey, 
+                                &txPSILId);
+        CpswRemoteApp_allocRxFlow(gRemoteAppObj.hCmdMbx,
+                                  gRemoteAppObj.hResponseMbx,
+                                  outArgs->hCpsw, 
+                                  outArgs->coreKey, 
+                                  &rxStartFlowId,
+                                  &rxFlowIdOffset);
+        CpswRemoteApp_allocMac(gRemoteAppObj.hCmdMbx, 
+                               gRemoteAppObj.hResponseMbx,
+                               outArgs->hCpsw,
+                               outArgs->coreKey,
+                               gRemoteAppObj.macAddr);
+    }
     CpswRemoteApp_openNDKTxCh(gRemoteAppObj.hCmdMbx, 
                               gRemoteAppObj.hResponseMbx,
                               outArgs->hCpsw, 
                               outArgs->hUdmaDrv, 
                               outArgs->coreKey, 
+                              txPSILId,
                               &inArgs->txCfg,
                               &outArgs->txInfo);
 
@@ -1614,6 +1778,9 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
                               outArgs->hUdmaDrv, 
                               outArgs->coreKey, 
                               gRemoteAppObj.useDefaultRxFlow,
+                              rxStartFlowId,
+                              rxFlowIdOffset,
+                              gRemoteAppObj.macAddr,
                               &inArgs->rxCfg,
                               &outArgs->rxInfo);
     gRemoteAppObj.coreKey = outArgs->coreKey;
@@ -1645,5 +1812,31 @@ void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
                                releaseInfo->rxFreePktCb);
 
     CpswRemoteApp_detach(gRemoteAppObj.hCmdMbx, gRemoteAppObj.hResponseMbx,releaseInfo->hCpsw, releaseInfo->coreKey);
+}
+
+static bool CpswRemoteApp_isPhyLinked(Mailbox_Handle hCmdMbx,
+                                      Mailbox_Handle hResponseMbx,
+                                      Cpsw_Handle hCpsw,
+                                      uint32_t coreKey,
+                                      Cpsw_MacPort portNum)
+{
+    rdevEthSwitchAppMsg_t msg;
+    Cpsw_GenericPortLinkInArgs inArgs;
+    bool isLinked;
+
+    memset(&inArgs, 0 , sizeof(inArgs));
+    inArgs.portNum = portNum;
+
+
+    msg.req.u.ioctl.cmd = CPSW_IOCTL_IS_PHY_LINKED;
+    msg.req.u.ioctl.core_key = coreKey;
+    msg.req.u.ioctl.id       = (uint64_t) hCpsw;
+    msg.req.u.ioctl.inArgsSize = sizeof(inArgs);
+    msg.req.u.ioctl.inArgs     = &inArgs;
+    msg.req.u.ioctl.outArgs     = &isLinked;
+    msg.req.u.ioctl.outArgsSize = sizeof(isLinked);
+
+    CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_IOCTL, &msg);
+    return isLinked;
 }
 

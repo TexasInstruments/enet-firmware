@@ -545,15 +545,26 @@ static Void CpswApp_cpuLoadTask(UArg a0, UArg a1)
 static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
 {
     bool runflag = true;
-    CpswAppIf_HandleInfo handleInfo;
     int32_t status = CPSW_EFAIL;
+    CpswMcm_HandleInfo handleInfo;
+    Cpsw_AttachCoreOutArgs attachInfo;
+    CpswMcm_CmdIf cmdIf;
+    Cpsw_Type cpswType;
+    uint32_t coreId;
 
-    /* Get CPSW & UDMA Drv Handle */
-    CpswAppIf_getHandles(&handleInfo);
+    cpswType = (Cpsw_Type) a0;
+    coreId   = a1;
+    CpswMcm_getCmdIf(cpswType, &cmdIf);
+    CpswAppUtils_assert(cmdIf.hMboxCmd != NULL);
+    CpswAppUtils_assert(cmdIf.hMboxResponse != NULL);
+
+
+    CpswMcm_acquireHandleInfo(&cmdIf, &handleInfo);
+    CpswMcm_coreAttach(&cmdIf,coreId  ,&attachInfo);
 
     gCpswSwitchAppObj.hCpsw = handleInfo.hCpsw;
     gCpswSwitchAppObj.hUdmaDrv = handleInfo.hUdmaDrv;
-    gCpswSwitchAppObj.coreId = handleInfo.coreId;
+    gCpswSwitchAppObj.coreId = coreId;
     gCpswSwitchAppObj.printCpuLoad = true;
 
     if (gCpswSwitchAppObj.hCpsw  == NULL)
@@ -664,7 +675,7 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
     }
 }
 
-void CpswApp_createUartMenuTask(void)
+void CpswApp_createUartMenuTask(Cpsw_Type cpswType, uint32_t coreId)
 {
     Task_Params params;
     Error_Block eb;
@@ -678,6 +689,8 @@ void CpswApp_createUartMenuTask(void)
     params.priority  = 2U;
     params.stack     = gAppTskStackUart;
     params.stackSize = sizeof(gAppTskStackUart);
+    params.arg0      = (UArg) cpswType;
+    params.arg1      = (UArg) coreId;
     hUartMenuTask = Task_create(CpswApp_uartMenuTskFxn, &params, &eb);
     if (hUartMenuTask == NULL)
     {

@@ -125,14 +125,6 @@ static uint8_t g_message_pool_storage[(ETHREMOTECFG_SERVER_MAX_PACKET_SIZE + siz
 
 static rdevEthSwitchServerState_t gRdevEthSwitchServerState;
 
-static uint32_t min(uint32_t a, uint32_t b)
-{
-    if(a > b)
-        return b;
-    else
-        return a;
-}
-
 static rdevEthSwitchServerInstanceState_t *rdevEthSwitchServerDataFindDeviceId(uint32_t device_id)
 {
     uint32_t cnt;
@@ -648,6 +640,44 @@ static int32_t rdevEthSwitchServerHandleUnRegisterIPv4Mac(rdevEthSwitchServerIns
     return ret;
 }
 
+static int32_t rdevEthSwitchServerHandleExtAttachRequest(rdevEthSwitchServerInstanceState_t *inst,
+                                                         app_remote_device_channel_t *channel, 
+                                                         uint32_t request_id,
+                                                         union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                         rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_attach_extended_request *req = &reqMsg->attach_ext_req;
+    struct rpmsg_kdrv_ethswitch_attach_extended_response *resp;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst,sizeof(*resp), request_id, &msg);
+    if(ret == 0) 
+    {
+        /* Declare local variable so that pointers are aligned to data type in callback functions */
+        uint64_t id;
+        uint32_t coreKey;
+        uint32_t rxMtu;
+        uint32_t txMtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
+        uint32_t features;
+        uint32_t alloc_flow_idx;
+        uint32_t tx_cpsw_psil_dst_id;
+        uint8_t  mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status =  cb->attach_ext_handler(inst->inst_prm.host_id,req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, CPSW_UTILS_ARRAYSIZE(txMtu), &features, &alloc_flow_idx, &tx_cpsw_psil_dst_id, mac_address);
+        resp->id = id;
+        resp->core_key = coreKey;
+        resp->rx_mtu = rxMtu;
+        CPSW_UTILS_ARRAY_COPY(resp->tx_mtu,txMtu);
+        resp->features = features;
+        resp->alloc_flow_idx = alloc_flow_idx;
+        resp->tx_cpsw_psil_dst_id = tx_cpsw_psil_dst_id;
+        CPSW_UTILS_ARRAY_COPY(resp->mac_address, mac_address);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+    return ret;
+}
 
 
 typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInstanceState_t *inst,
@@ -662,6 +692,7 @@ typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInst
 rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
 {
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ATTACH)] = &rdevEthSwitchServerHandleAttachRequest,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT)] = &rdevEthSwitchServerHandleExtAttachRequest,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX)] = &rdevEthSwitchServerHandleAllocTxRequest,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX)] = &rdevEthSwitchServerHandleAllocRxRequest,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC)] = &rdevEthSwitchServerHandleAllocMacRequest,
@@ -857,7 +888,7 @@ static int32_t rdevEthSwitchServerConnect(uint32_t device_id, app_remote_device_
 
 static uint32_t rdevEthSwitchServerFillPrivData(uint32_t device_id, void *priv_data, uint32_t avail_len)
 {
-    struct rpmsg_kdrv_ethswitch_device_data *demo_data = (struct rpmsg_kdrv_ethswitch_device_data *)priv_data;
+    struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data = (struct rpmsg_kdrv_ethswitch_device_data *)priv_data;
     rdevEthSwitchServerInstanceState_t *inst;
     int32_t ret = 0;
 
@@ -872,11 +903,11 @@ static uint32_t rdevEthSwitchServerFillPrivData(uint32_t device_id, void *priv_d
     }
 
     if(ret == 0) {
-        memcpy(&demo_data->char_string[0], &inst->inst_prm.data[0], min(avail_len, min(ETHREMOTECFG_SERVER_MAX_DATA_LEN, RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN)));
+        gRdevEthSwitchServerState.prm.cb.init_device_data_handler (inst->inst_prm.host_id, eth_dev_data);
     }
 
     SemaphoreP_post(gRdevEthSwitchServerState.lock_sem);
-    return sizeof(*demo_data);
+    return sizeof(*eth_dev_data);
 }
 
 

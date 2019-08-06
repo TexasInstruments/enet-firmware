@@ -100,10 +100,10 @@
 typedef struct rdevEthSwitchServerInstPrm_s {
     uint32_t host_id; /**< Host Id that should connect to this device */
     uint8_t name[ETHREMOTECFG_SERVER_MAX_NAME_LEN]; /**< Exported name */
-    uint8_t data[ETHREMOTECFG_SERVER_MAX_DATA_LEN]; /**< Exported device data */
 } rdevEthSwitchServerInstPrm_t;
 
 typedef int32_t (*ethrdev_srv_cb_attach_handler_t) (uint32_t host_id,uint8_t cpsw_type, uint64_t *pId, uint32_t *pCoreKey, uint32_t *pRxMtu, uint32_t *pTxMtu, uint32_t txMtuArraySize, uint32_t *pFeatures);
+typedef int32_t (*ethrdev_srv_cb_attach_ext_handler_t)  (uint32_t host_id, uint8_t cpsw_type,  uint64_t *pId, uint32_t *pCoreKey, uint32_t *pRxMtu, uint32_t *pTxMtu, uint32_t txMtuArraySize, uint32_t *pFeatures, uint32_t *pAllocFlowIdx, uint32_t *pTxCpswPsilDstId, uint8_t *macAddress);
 typedef int32_t (*ethrdev_srv_cb_alloc_tx_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t *pTxCpswPsilDstId);
 typedef int32_t (*ethrdev_srv_cb_alloc_rx_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key, uint32_t *pAllocFlowIdx);
 typedef int32_t (*ethrdev_srv_cb_alloc_mac_handler_t) (uint32_t host_id,uint64_t handle,  uint32_t core_key,uint8_t *mac_address);
@@ -123,10 +123,13 @@ typedef int32_t (*ethrdev_srv_cb_register_ipv6_mac_handler_t)(uint32_t host_id,u
 typedef int32_t (*ethrdev_srv_cb_unregister_ipv4_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *ipv4_addr);
 typedef int32_t (*ethrdev_srv_cb_unregister_ipv6_mac_handler_t)(uint32_t host_id,uint64_t handle,  uint32_t core_key, uint8_t *ipv6_addr);
 typedef void    (*ethrdev_srv_cb_client_notify_handler_t)(uint32_t host_id,uint64_t handle,uint32_t core_key, enum rpmsg_kdrv_ethswitch_client_notify_type  notifyid, uint8_t *notify_info, uint32_t notify_info_len);
+typedef void    (*ethrdev_srv_cb_init_device_data_t)(uint32_t host_id, struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
+
 
 typedef struct rdevEthSwitchServerCbFxn_s
 {
     ethrdev_srv_cb_attach_handler_t         attach_handler;
+    ethrdev_srv_cb_attach_ext_handler_t     attach_ext_handler;
     ethrdev_srv_cb_alloc_tx_handler_t       alloc_tx_handler;
     ethrdev_srv_cb_alloc_rx_handler_t       alloc_rx_handler;
     ethrdev_srv_cb_alloc_mac_handler_t      alloc_mac_handler;
@@ -146,6 +149,7 @@ typedef struct rdevEthSwitchServerCbFxn_s
     ethrdev_srv_cb_unregister_ipv4_mac_handler_t ipv4_unregister_mac_handler;
     ethrdev_srv_cb_unregister_ipv6_mac_handler_t ipv6_unregister_mac_handler;
     ethrdev_srv_cb_client_notify_handler_t       client_notify_handler;
+    ethrdev_srv_cb_init_device_data_t            init_device_data_handler;
 } rdevEthSwitchServerCbFxn_t;
 
 
@@ -166,6 +170,8 @@ typedef struct rdevEthSwitchServerInitPrm_s {
 typedef union rdevEthSwitchServerMessageList_u {
     struct rpmsg_kdrv_ethswitch_attach_request attach_req;
     struct rpmsg_kdrv_ethswitch_attach_response  attach_res;
+    struct rpmsg_kdrv_ethswitch_attach_extended_request attach_ext_req;
+    struct rpmsg_kdrv_ethswitch_attach_extended_response attach_ext_res;
     struct rpmsg_kdrv_ethswitch_alloc_request alloc_req;
     struct rpmsg_kdrv_ethswitch_alloc_rx_response alloc_rx_res;
     struct rpmsg_kdrv_ethswitch_alloc_tx_response alloc_tx_res;

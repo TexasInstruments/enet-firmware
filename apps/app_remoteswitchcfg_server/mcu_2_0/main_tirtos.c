@@ -377,17 +377,11 @@ static Void remotedev_init(UArg a0, UArg a1)
 
     inst = &remote_ethswitch_init_prm.inst_prm[0];
     inst->host_id = IPC_MCU2_1;
-    {
-        snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1);
-        snprintf((char *)&inst->data[0], ETHREMOTECFG_SERVER_MAX_DATA_LEN, ETHREMOTEDEVICE_DEVICE_DATA_MCU_2_1);
-    }
+    snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1);
 
     inst = &remote_ethswitch_init_prm.inst_prm[1];
     inst->host_id = IPC_MPU1_0;
-    {
-        snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0);
-        snprintf((char *)&inst->data[0], ETHREMOTECFG_SERVER_MAX_DATA_LEN, ETHREMOTEDEVICE_DEVICE_DATA_MPU_1_0);
-    }
+    snprintf((char *)&inst->name[0], ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0);
 
     rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
     CpswAppUtils_print("Remote demo device (core : mcu2_0) .....\r\n");
@@ -1445,6 +1439,119 @@ static int32_t app_ethrdev_srv_cb_register_ipv6_mac_handler(uint32_t host_id,uin
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
+static  int32_t app_ethrdev_srv_cb_attach_ext_handler (uint32_t host_id, 
+                                                       uint8_t cpsw_type,  
+                                                       uint64_t *pId, 
+                                                       uint32_t *pCoreKey, 
+                                                       uint32_t *pRxMtu, 
+                                                       uint32_t *pTxMtu, 
+                                                       uint32_t txMtuArraySize, 
+                                                       uint32_t *pFeatures, 
+                                                       uint32_t *pAllocFlowIdx, 
+                                                       uint32_t *pTxCpswPsilDstId, 
+                                                       uint8_t  *macAddress)
+{
+    int32_t status = CPSW_SOK;
+    CpswMcm_HandleInfo handleInfo;
+    Cpsw_AttachCoreOutArgs attachInfo;
+    Cpsw_IoctlPrms        prms;
+    uint32_t csumOffloadFlag;
+    Cpsw_Type cpswType;
+    uint32_t start_flow_idx, flow_idx_offset;
+
+    if (cpsw_type == RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G)
+    {
+        gCpswType = CPSW_2G;
+    }
+    else
+    {
+        CpswAppUtils_assert(cpsw_type == RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G);
+        gCpswType = CPSW_9G;
+    }
+    CpswAppUtils_print("Function:%s,HostId:%u,CpswType:%u\n",__func__,host_id, gCpswType);
+    cpswType = gCpswType;
+    
+    if (gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd == NULL)
+    {
+        status = CpswApp_init(cpswType);
+
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Failed to open CPSW: %d\n", status);
+        }
+        CpswAppUtils_assert(status == CPSW_SOK);
+        CpswMcm_getCmdIf(cpswType, &gCpswMainAppObj.mcmCmdIf[gCpswType]);
+    }
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd != NULL);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxResponse != NULL);
+
+    if (status == CPSW_SOK)
+    {
+        CpswMcm_acquireHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType], &handleInfo);
+        CpswMcm_coreAttach(&gCpswMainAppObj.mcmCmdIf[cpswType],host_id  ,&attachInfo);
+
+        *pId = (uint64_t)(handleInfo.hCpsw);
+        *pCoreKey = attachInfo.coreKey;
+        *pRxMtu = attachInfo.rxMtu;
+        CpswAppUtils_assert (txMtuArraySize == 
+                                      CPSW_UTILS_ARRAYSIZE(attachInfo.txMtu));
+        memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
+        *pFeatures = 0;
+        CPSW_IOCTL_SET_OUT_ARGS(&prms,&csumOffloadFlag);
+        status = Cpsw_ioctl(handleInfo.hCpsw,
+                            host_id,
+                            CPSW_HOSTPORT_GET_CSUMOFFLOADFLAG,
+                            &prms);
+
+        CpswAppUtils_assert(status == CPSW_SOK);
+
+        if (csumOffloadFlag)
+        {
+            *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM;
+        }
+    }
+
+    if (CPSW_SOK == status)
+    {
+        status = CpswAppUtils_allocRxFlow(handleInfo.hCpsw, 
+                                          attachInfo.coreKey, 
+                                          host_id, 
+                                          &start_flow_idx, 
+                                          &flow_idx_offset);
+        if (CPSW_SOK == status)
+        {
+            app_ethrdev_validate_startidx(handleInfo.hCpsw,host_id,start_flow_idx);
+            *pAllocFlowIdx = start_flow_idx + flow_idx_offset;
+        }
+    }
+
+    if (CPSW_SOK == status)
+    {
+        status = CpswAppUtils_allocTxCh(handleInfo.hCpsw, 
+                                        attachInfo.coreKey, 
+                                        host_id, 
+                                        pTxCpswPsilDstId);
+    }
+
+    if (CPSW_SOK == status)
+    {
+        status = CpswAppUtils_allocMac(handleInfo.hCpsw, 
+                                       attachInfo.coreKey, 
+                                       host_id, 
+                                       macAddress);
+    }
+    if (status != CPSW_SOK)
+    {
+        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+    }
+    else
+    {
+        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+    }
+    return status;
+}
+
+
 static void app_ethrdev_srv_cb_client_notify_handler(uint32_t host_id,uint64_t handle,  uint32_t core_key, enum rpmsg_kdrv_ethswitch_client_notify_type notifyid, uint8_t *notify_info, uint32_t notify_info_len)
 {
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
@@ -1484,10 +1591,39 @@ static void app_ethrdev_srv_cb_client_notify_handler(uint32_t host_id,uint64_t h
     }
 }
 
+#define APP_DATE_OFFSET_MONTH  (0)
+#define APP_DATE_OFFSET_DATE   (4)
+#define APP_DATE_OFFSET_YEAR   (7)
+
+static void  app_ethrdev_srv_cb_init_device_data_handler (uint32_t host_id, struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data)
+{
+    /* __DATE__ is a string constant that contains eleven characters and 
+     * looks like "Feb 12 1996". If the day of the month is less than 
+     * 10, it is padded with a space on the left
+     */
+    char *date = __DATE__;
+
+    eth_dev_data->fw_ver.major = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR;
+    eth_dev_data->fw_ver.minor = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR;
+    eth_dev_data->fw_ver.rev   = RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION;
+    memcpy(eth_dev_data->fw_ver.month, &date[APP_DATE_OFFSET_MONTH] , sizeof(eth_dev_data->fw_ver.month));
+    memcpy(eth_dev_data->fw_ver.date, &date[APP_DATE_OFFSET_DATE] , sizeof(eth_dev_data->fw_ver.date));
+    memcpy(eth_dev_data->fw_ver.year, &date[APP_DATE_OFFSET_YEAR] , sizeof(eth_dev_data->fw_ver.year));
+    /* RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT is defined by the build system */
+    memcpy(eth_dev_data->fw_ver.commit_hash, RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT, sizeof(eth_dev_data->fw_ver.commit_hash));
+    /* Enable permission for all ETHDEV remote commands without consideration of cores.
+     * This should be changed based on trusted cores
+     */
+    eth_dev_data->permission_flags = ((1 << RPMSG_KDRV_TP_ETHSWITCH_MAX) - 1);
+    eth_dev_data->uart_connected = true;
+    eth_dev_data->uart_id        = CPSW_UTILS_MCU2_0_UART_INSTANCE;
+}
+
 
 static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl = 
 {
     .attach_handler = app_ethrdev_srv_cb_attach_handler,
+    .attach_ext_handler = app_ethrdev_srv_cb_attach_ext_handler,
     .alloc_tx_handler = app_ethrdev_srv_cb_alloc_tx_handler,
     .alloc_rx_handler = app_ethrdev_srv_cb_alloc_rx_handler,
     .alloc_mac_handler = app_ethrdev_srv_cb_alloc_mac_handler,
@@ -1506,6 +1642,7 @@ static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl =
     .ipv6_register_mac_handler = app_ethrdev_srv_cb_register_ipv6_mac_handler,
     .ipv4_unregister_mac_handler = app_ethrdev_srv_cb_unregister_ipv4_mac_handler,
     .client_notify_handler = app_ethrdev_srv_cb_client_notify_handler,
+    .init_device_data_handler = app_ethrdev_srv_cb_init_device_data_handler,
 };
 
 

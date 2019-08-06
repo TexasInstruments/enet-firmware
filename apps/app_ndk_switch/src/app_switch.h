@@ -95,7 +95,8 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void CpswApp_createUartMenuTask(void);
+void CpswApp_createUartMenuTask(Cpsw_Type cpswType, uint32_t coreId);
+
 
 /* ========================================================================== */
 /*                       Static Function Definitions                          */

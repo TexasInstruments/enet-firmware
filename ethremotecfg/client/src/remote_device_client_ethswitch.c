@@ -61,6 +61,7 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
@@ -70,7 +71,6 @@
 #include <client-rtos/remote-device.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
 #include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
 
 typedef struct rdevEthSwitchClientMessageList_s
 {
@@ -119,6 +119,7 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
 {
     int32_t ret = 0;
     app_remote_device_device_connect_prm_t prm;
+    uint32_t dataFilledLen = 0;
 
     appRemoteDeviceDeviceConnectParamsInit(&prm);
 
@@ -135,9 +136,13 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
     if ((ret == 0) && (initPrms->device_id != APP_REMOTE_DEVICE_DEVICE_ID_EAGAIN)) 
     {
         ret = appRemoteDeviceGetData(initPrms->device_id, 
-                                     initPrms->data, 
-                                     sizeof(initPrms->data), 
-                                     &initPrms->dataFilledLen);
+                                     (uint8_t *)&initPrms->eth_device_data, 
+                                     sizeof(initPrms->eth_device_data), 
+                                     &dataFilledLen);
+        if (ret == 0)
+        {
+            assert(dataFilledLen == sizeof(initPrms->eth_device_data));
+        }
     }
     return ret;
 
@@ -165,7 +170,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &attach_reponse, sizeof(attach_reponse), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(attach_reponse.hdr) + sizeof(attach_reponse.rdevEthSwitchMsg.attach_res)));
+        assert(respMsgSize == (sizeof(attach_reponse.hdr) + sizeof(attach_reponse.rdevEthSwitchMsg.attach_res)));
         if (attach_reponse.rdevEthSwitchMsg.attach_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             *id = attach_reponse.rdevEthSwitchMsg.attach_res.id;
@@ -194,6 +199,78 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
     return ret;
 }
 
+int32_t rdevEthSwitchClient_attachext(uint32_t device_id, 
+                                      uint8_t cpswType,
+                                      uint64_t *id,
+                                      uint32_t *core_key,
+                                      uint32_t *rx_mtu,
+                                      uint32_t tx_mtu[],
+                                      uint32_t tx_mtu_array_size,
+                                      uint32_t *pFeatures,
+                                      uint32_t *tx_cpsw_psil_dst_id,
+                                      uint32_t *rx_flow_allocidx,
+                                      uint8_t  *mac_address, 
+                                      uint32_t mac_address_len)
+{
+    rdevEthSwitchClientMessageList_t clientMsg; 
+    struct rpmsg_kdrv_ethswitch_attach_request *msg = &clientMsg.rdevEthSwitchMsg.attach_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t attach_reponse;
+
+    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT;
+    msg->cpsw_type = cpswType;
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &attach_reponse, sizeof(attach_reponse), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(attach_reponse.hdr) + sizeof(attach_reponse.rdevEthSwitchMsg.attach_ext_res)));
+        if (attach_reponse.rdevEthSwitchMsg.attach_ext_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            *id = attach_reponse.rdevEthSwitchMsg.attach_ext_res.id;
+            *core_key = attach_reponse.rdevEthSwitchMsg.attach_ext_res.core_key;
+            *rx_mtu = attach_reponse.rdevEthSwitchMsg.attach_ext_res.rx_mtu;
+            *pFeatures = attach_reponse.rdevEthSwitchMsg.attach_ext_res.features;
+            *tx_cpsw_psil_dst_id = attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_cpsw_psil_dst_id;
+            *rx_flow_allocidx = attach_reponse.rdevEthSwitchMsg.attach_ext_res.alloc_flow_idx;
+            if (mac_address_len >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address))
+            {
+                memcpy(mac_address, 
+                       attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address, 
+                       sizeof(attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address));
+            }
+            else
+            {
+                ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+            }
+            if (ret == 0)
+            {
+                if (tx_mtu_array_size >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu))
+                {
+                    uint32_t i;
+
+                    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu); i++)
+                    {
+                        tx_mtu[i] = attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu[i];
+                    }
+                }
+                else
+                {
+                    ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+                }
+            }
+        }
+        else
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+    return ret;
+}
+
+
+
 int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, u64 id, u32 core_key, u32 *tx_cpsw_psil_dst_id)
 {
     rdevEthSwitchClientMessageList_t clientMsg; 
@@ -210,7 +287,7 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, u64 id, u32 core_key, u3
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &alloc_tx_reponse, sizeof(alloc_tx_reponse), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(alloc_tx_reponse.hdr) + sizeof(alloc_tx_reponse.rdevEthSwitchMsg.alloc_tx_res)));
+        assert(respMsgSize == (sizeof(alloc_tx_reponse.hdr) + sizeof(alloc_tx_reponse.rdevEthSwitchMsg.alloc_tx_res)));
         if (alloc_tx_reponse.rdevEthSwitchMsg.alloc_tx_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             *tx_cpsw_psil_dst_id = alloc_tx_reponse.rdevEthSwitchMsg.alloc_tx_res.tx_cpsw_psil_dst_id;
@@ -239,7 +316,7 @@ int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t co
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &alloc_rx_reponse, sizeof(alloc_rx_reponse), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(alloc_rx_reponse.hdr) + sizeof(alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res)));
+        assert(respMsgSize == (sizeof(alloc_rx_reponse.hdr) + sizeof(alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res)));
         if (alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             *rx_flow_allocidx = alloc_rx_reponse.rdevEthSwitchMsg.alloc_rx_res.alloc_flow_idx;
@@ -269,7 +346,7 @@ int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id, uint64_t id, u
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &register_rx_default_response, sizeof(register_rx_default_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(register_rx_default_response.hdr) + sizeof(register_rx_default_response.rdevEthSwitchMsg.register_rx_default_res)));
+        assert(respMsgSize == (sizeof(register_rx_default_response.hdr) + sizeof(register_rx_default_response.rdevEthSwitchMsg.register_rx_default_res)));
         ret = register_rx_default_response.rdevEthSwitchMsg.register_rx_default_res.info.status;
     }
     return ret;
@@ -291,7 +368,7 @@ int32_t rdevEthSwitchClient_allocmac(uint32_t device_id, uint64_t id, uint32_t c
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &alloc_mac_reponse, sizeof(alloc_mac_reponse), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(alloc_mac_reponse.hdr) + sizeof(alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res)));
+        assert(respMsgSize == (sizeof(alloc_mac_reponse.hdr) + sizeof(alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res)));
         if (alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             if (mac_address_len >= CPSW_UTILS_ARRAYSIZE(alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res.mac_address))
@@ -329,7 +406,7 @@ int32_t rdevEthSwitchClient_registermac(uint32_t device_id, uint64_t id, uint32_
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &register_mac_reponse, sizeof(register_mac_reponse), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(register_mac_reponse.hdr) + sizeof(register_mac_reponse.rdevEthSwitchMsg.register_mac_res)));
+        assert(respMsgSize == (sizeof(register_mac_reponse.hdr) + sizeof(register_mac_reponse.rdevEthSwitchMsg.register_mac_res)));
         if (register_mac_reponse.rdevEthSwitchMsg.register_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -356,7 +433,7 @@ int32_t rdevEthSwitchClient_unregistermac(uint32_t device_id, uint64_t id, uint3
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &unregister_mac_reponse, sizeof(unregister_mac_reponse), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(unregister_mac_reponse.hdr) + sizeof(unregister_mac_reponse.rdevEthSwitchMsg.unregister_mac_res)));
+        assert(respMsgSize == (sizeof(unregister_mac_reponse.hdr) + sizeof(unregister_mac_reponse.rdevEthSwitchMsg.unregister_mac_res)));
         if (unregister_mac_reponse.rdevEthSwitchMsg.unregister_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -382,7 +459,7 @@ int32_t rdevEthSwitchClient_unregisterrxdefault(uint32_t device_id, uint64_t id,
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &unregister_rx_default_reponse, sizeof(unregister_rx_default_reponse), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(unregister_rx_default_reponse.hdr) + sizeof(unregister_rx_default_reponse.rdevEthSwitchMsg.unregister_rx_default_res)));
+        assert(respMsgSize == (sizeof(unregister_rx_default_reponse.hdr) + sizeof(unregister_rx_default_reponse.rdevEthSwitchMsg.unregister_rx_default_res)));
         if (unregister_rx_default_reponse.rdevEthSwitchMsg.unregister_rx_default_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -408,7 +485,7 @@ int32_t rdevEthSwitchClient_freemac(uint32_t device_id, uint64_t id, uint32_t co
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &free_mac_response, sizeof(free_mac_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(free_mac_response.hdr) + sizeof(free_mac_response.rdevEthSwitchMsg.free_mac_res)));
+        assert(respMsgSize == (sizeof(free_mac_response.hdr) + sizeof(free_mac_response.rdevEthSwitchMsg.free_mac_res)));
         if (free_mac_response.rdevEthSwitchMsg.free_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -435,7 +512,7 @@ int32_t rdevEthSwitchClient_freetx(uint32_t device_id, uint64_t id, uint32_t cor
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &free_tx_response, sizeof(free_tx_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(free_tx_response.hdr) + sizeof(free_tx_response.rdevEthSwitchMsg.free_tx_res)));
+        assert(respMsgSize == (sizeof(free_tx_response.hdr) + sizeof(free_tx_response.rdevEthSwitchMsg.free_tx_res)));
         if (free_tx_response.rdevEthSwitchMsg.free_tx_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -461,7 +538,7 @@ int32_t rdevEthSwitchClient_freerx(uint32_t device_id, uint64_t id, uint32_t cor
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &free_rx_response, sizeof(free_rx_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(free_rx_response.hdr) + sizeof(free_rx_response.rdevEthSwitchMsg.free_rx_res)));
+        assert(respMsgSize == (sizeof(free_rx_response.hdr) + sizeof(free_rx_response.rdevEthSwitchMsg.free_rx_res)));
         if (free_rx_response.rdevEthSwitchMsg.free_rx_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -486,7 +563,7 @@ int32_t rdevEthSwitchClient_detach(uint32_t device_id, uint64_t id, uint32_t cor
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &detach_response, sizeof(detach_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(detach_response.hdr) + sizeof(detach_response.rdevEthSwitchMsg.detach_res)));
+        assert(respMsgSize == (sizeof(detach_response.hdr) + sizeof(detach_response.rdevEthSwitchMsg.detach_res)));
         if (detach_response.rdevEthSwitchMsg.detach_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -529,7 +606,7 @@ int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
     }
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(ioctl_response.hdr) + sizeof(ioctl_response.rdevEthSwitchMsg.ioctl_res)));
+        assert(respMsgSize == (sizeof(ioctl_response.hdr) + sizeof(ioctl_response.rdevEthSwitchMsg.ioctl_res)));
         if (ioctl_response.rdevEthSwitchMsg.ioctl_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             memcpy (outargs, ioctl_response.rdevEthSwitchMsg.ioctl_res.outargs, outargs_len);
@@ -561,7 +638,7 @@ int32_t rdevEthSwitchClient_regwr(uint32_t device_id,
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &regwr_response, sizeof(regwr_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(regwr_response.hdr) + sizeof(regwr_response.rdevEthSwitchMsg.regwr_res)));
+        assert(respMsgSize == (sizeof(regwr_response.hdr) + sizeof(regwr_response.rdevEthSwitchMsg.regwr_res)));
         if (regwr_response.rdevEthSwitchMsg.regwr_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             *post_wr_regval = regwr_response.rdevEthSwitchMsg.regwr_res.regval;
@@ -592,7 +669,7 @@ int32_t rdevEthSwitchClient_regrd(uint32_t device_id,
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &regrd_response, sizeof(regrd_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(regrd_response.hdr) + sizeof(regrd_response.rdevEthSwitchMsg.regrd_res)));
+        assert(respMsgSize == (sizeof(regrd_response.hdr) + sizeof(regrd_response.rdevEthSwitchMsg.regrd_res)));
         if (regrd_response.rdevEthSwitchMsg.regrd_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             *pregval = regrd_response.rdevEthSwitchMsg.regrd_res.regval;
@@ -625,8 +702,8 @@ int32_t rdevEthSwitchClient_sendping(uint32_t device_id, char *ping_msg, uint32_
     {
         memcpy(msg->data, ping_msg, ping_len);
         ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &ping_response, sizeof(ping_response), &respMsgSize);
-        CpswAppUtils_assert(respMsgSize <= respMaxLen);
-        CpswAppUtils_assert(respMsgSize == (sizeof(ping_response.hdr) + sizeof(ping_response.rdevEthSwitchMsg.ping_res)));
+        assert(respMsgSize <= respMaxLen);
+        assert(respMsgSize == (sizeof(ping_response.hdr) + sizeof(ping_response.rdevEthSwitchMsg.ping_res)));
         memcpy(respMsg, ping_response.rdevEthSwitchMsg.ping_res.data,ping_len);
     }
     return ret;
@@ -651,7 +728,7 @@ int32_t rdevEthSwitchClient_ipv4macregister(uint32_t device_id, uint64_t id, uin
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &ipv4_register_mac_response, sizeof(ipv4_register_mac_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(ipv4_register_mac_response.hdr) + sizeof(ipv4_register_mac_response.rdevEthSwitchMsg.ipv4_register_mac_res)));
+        assert(respMsgSize == (sizeof(ipv4_register_mac_response.hdr) + sizeof(ipv4_register_mac_response.rdevEthSwitchMsg.ipv4_register_mac_res)));
         if (ipv4_register_mac_response.rdevEthSwitchMsg.ipv4_register_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -679,7 +756,7 @@ int32_t rdevEthSwitchClient_ipv6macregister(uint32_t device_id, uint64_t id, uin
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &ipv6_register_mac_response, sizeof(ipv6_register_mac_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(ipv6_register_mac_response.hdr) + sizeof(ipv6_register_mac_response.rdevEthSwitchMsg.ipv6_register_mac_res)));
+        assert(respMsgSize == (sizeof(ipv6_register_mac_response.hdr) + sizeof(ipv6_register_mac_response.rdevEthSwitchMsg.ipv6_register_mac_res)));
         if (ipv6_register_mac_response.rdevEthSwitchMsg.ipv6_register_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -705,7 +782,7 @@ int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id, uint64_t id, u
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &ipv4_unregister_mac_response, sizeof(ipv4_unregister_mac_response), &respMsgSize);
     if (ret == 0)
     {
-        CpswAppUtils_assert(respMsgSize == (sizeof(ipv4_unregister_mac_response.hdr) + sizeof(ipv4_unregister_mac_response.rdevEthSwitchMsg.ipv4_unregister_mac_res)));
+        assert(respMsgSize == (sizeof(ipv4_unregister_mac_response.hdr) + sizeof(ipv4_unregister_mac_response.rdevEthSwitchMsg.ipv4_unregister_mac_res)));
         if (ipv4_unregister_mac_response.rdevEthSwitchMsg.ipv4_unregister_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
             ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;

@@ -66,6 +66,10 @@
 
 #include <protocol/rpmsg-kdrv-transport-common.h>
 
+#define RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR             (0)
+#define RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR             (1)
+#define RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION          (1)
+
 enum rpmsg_kdrv_ethswitch_message_type {
     RPMSG_KDRV_TP_ETHSWITCH_ATTACH                  = 0x00,
     RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT              = 0x01,
@@ -114,10 +118,6 @@ enum rpmsg_kdrv_ethswitch_client_notify_type {
 #define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EACCESS  (-3)
 
 
-/*
- * Maximum length of demo device data
- */
-#define RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN     (32)
 
 /*
  * Maximum length of demo device message data
@@ -156,6 +156,26 @@ enum rpmsg_kdrv_ethswitch_client_notify_type {
 #define RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN         (16)
 
 #define RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM      (1 << 0)
+
+/*
+ * Number of octets in year
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_YEARLEN             (4)
+
+/*
+ * Number of octets in month
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_MONTHLEN            (3)
+
+/*
+ * Number of octets in date
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_DATELEN             (2)
+
+/*
+ * GIT Commit SHA length in octets
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_COMMITSHALEN        (8)
 
 /*
  * message header for demo device
@@ -454,12 +474,33 @@ struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_response {
 }  __packed;
 
 
+
+/* firmware version info */
+struct rpmsg_kdrv_ethswitch_firmware_version_info {
+    u32 major;
+    u32 minor;
+    u32 rev;
+    char year[RPMSG_KDRV_TP_ETHSWITCH_YEARLEN];
+    char month[RPMSG_KDRV_TP_ETHSWITCH_MONTHLEN];
+    char date[RPMSG_KDRV_TP_ETHSWITCH_DATELEN];
+    char commit_hash[RPMSG_KDRV_TP_ETHSWITCH_COMMITSHALEN];
+} __packed;
+
+
 /*
  * per-device data for ethswitch device
  */
 struct rpmsg_kdrv_ethswitch_device_data {
-    /* Does the device send all vsyncs? */
-    u8 char_string[RPMSG_KDRV_TP_ETHSWITCH_DEVICE_DATA_LEN];
+    struct rpmsg_kdrv_ethswitch_firmware_version_info fw_ver;
+    /** flag indicating permission enabled for each 
+      * enum rpmsg_kdrv_ethswitch_message_type command for the connecting
+      * client
+      */
+    u32    permission_flags;
+    /** flag indicating if UART is connected */
+    u32    uart_connected;
+    /** UART ID used by firmware for log prints */
+    u32    uart_id;
 } __packed;
 
 

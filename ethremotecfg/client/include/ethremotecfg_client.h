@@ -71,8 +71,7 @@ typedef struct rdevEthSwitchClientInitPrms_s {
     uint32_t device_id;
     uint32_t device_type;
     uint32_t (*cbHandler)(void *priv_data, void *msg);
-    uint8_t data[ETHREMOTECFG_SERVER_MAX_DATA_LEN];
-    uint32_t dataFilledLen;
+    struct rpmsg_kdrv_ethswitch_device_data eth_device_data;
 } rdevEthSwitchClientInitPrms_t;
 
 int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms);
@@ -103,7 +102,7 @@ int32_t rdevEthSwitchClient_registermac(uint32_t device_id, uint64_t id, uint32_
 int32_t rdevEthSwitchClient_allocmac(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint32_t mac_address_len);
 int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t default_flow_idx);
 int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_allocidx);
-int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, u64 id, u32 core_key, u32 *tx_cpsw_psil_dst_id);
+int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *tx_cpsw_psil_dst_id);
 int32_t rdevEthSwitchClient_attach(uint32_t device_id, 
                                    uint8_t cpswType,
                                    uint64_t *id,
@@ -112,6 +111,18 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint32_t tx_mtu[],
                                    uint32_t tx_mtu_array_size,
                                    uint32_t  *features);
+int32_t rdevEthSwitchClient_attachext(uint32_t device_id, 
+                                      uint8_t cpswType,
+                                      uint64_t *id,
+                                      uint32_t *core_key,
+                                      uint32_t *rx_mtu,
+                                      uint32_t tx_mtu[],
+                                      uint32_t tx_mtu_array_size,
+                                      uint32_t *features,
+                                      uint32_t *tx_cpsw_psil_dst_id,
+                                      uint32_t *rx_flow_allocidx,
+                                      uint8_t *mac_address, 
+                                      uint32_t mac_address_len);
 
 
 int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id, u64 id, u32 core_key, enum rpmsg_kdrv_ethswitch_client_notify_type notify_id, uint8_t *notify_info, uint32_t notify_info_len);

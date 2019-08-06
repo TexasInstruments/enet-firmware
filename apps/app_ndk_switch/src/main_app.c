@@ -98,6 +98,8 @@
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apprm.h>
 #include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
 #include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
 
@@ -144,13 +146,16 @@ typedef struct
     uint32_t numMacPorts;
 
     /* Multiclient manager handles */
-    CpswMcm_Handle hMcm[CPSW_COUNT];
+    CpswMcm_CmdIf mcmCmdIf[CPSW_COUNT];
 
     /* UDMA driver handle */
     Udma_DrvHandle hUdmaDrv;
 
     /* Host port MAC address */
     uint8_t hostMacAddr[ETH_MAC_ADDR_LEN];
+    
+    /* Use default flow */
+    bool    useDefaultRxFlow;
 } CpswMain_AppObj;
 
 /* ========================================================================== */
@@ -223,6 +228,7 @@ static CpswMain_AppObj gCpswMainAppObj = {
 #endif
     .macPorts = gCpswMainAppMacPorts,
     .numMacPorts = CPSWAPPUTILS_ARRAY_SIZE(gCpswMainAppMacPorts),
+    .useDefaultRxFlow = true,
 };
 
 /* ========================================================================== */
@@ -323,8 +329,7 @@ static int32_t CpswApp_init(void)
     cpswCfg.hostPortConfig.removeCrc      = true;
     cpswCfg.hostPortConfig.padShortPacket = true;
     cpswCfg.hostPortConfig.passCrcErrors  = true;
-    cpswCfg.resourcePartitionConfig.isDefaultRmPartition = true;
-    cpswCfg.resourcePartitionConfig.rmPartitionPrms      = NULL;
+    CpswAppUtils_initResourceConfig(gCpswMainAppObj.cpswType, gCpswMainAppObj.coreId, &cpswCfg.resourceConfig);
 
     CpswApp_setAleConfig(&cpswCfg.aleConfig);
 
@@ -348,22 +353,22 @@ static int32_t CpswApp_init(void)
            gCpswMainAppObj.numMacPorts);
 
     /* First MAC port in the array gives the host address */
-    status = CpswSoc_getMacAddr(gCpswMainAppObj.cpswType,
-                       gCpswMainAppObj.macPorts[0],
-                       &cpswCfg.aleConfig.macAddr[0]);
+    status = CpswAppUtils_setDefaultHostPortMacAddr(&cpswCfg.resourceConfig, cpswCfg.aleConfig.macAddr);
+    CpswAppUtils_assert (status == CPSW_SOK);
 
     memcpy(&gCpswMainAppObj.hostMacAddr[0U],
-           &cpswCfg.aleConfig.macAddr[0],
+           cpswCfg.aleConfig.macAddr,
            ETH_MAC_ADDR_LEN);
 
     CpswAppUtils_print("Host MAC address: ");
     CpswAppUtils_printMacAddr(&gCpswMainAppObj.hostMacAddr[0U]);
 
-    gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType] = CpswMcm_init(&cpswMcmCfg);
-    CpswAppUtils_assert (NULL != gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType]);
+    status = CpswMcm_init(&cpswMcmCfg);
+    CpswAppUtils_assert (status == CPSW_SOK);
 
     return status;
 }
+
 
 void CpswApp_deInit(void)
 {
@@ -372,49 +377,8 @@ void CpswApp_deInit(void)
     memset(&gCpswMainAppObj, 0U, sizeof(CpswMain_AppObj));
 }
 
-void CpswAppIf_getHandles(CpswAppIf_HandleInfo *pAppIfHandleInfo)
-{
-    int32_t status;
-    CpswMcm_HandleInfo handleInfo;
 
-    if (gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType] == NULL)
-    {
-        status = CpswApp_init();
-        pAppIfHandleInfo->isDefaultFlow = true;
 
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print("Failed to open CPSW: %d\n", status);
-            CpswAppUtils_assert(status == CPSW_SOK);
-        }
-    }
-    else
-    {
-        pAppIfHandleInfo->isDefaultFlow = false;
-    }
-
-    CpswMcm_getHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType], &handleInfo);
-
-    pAppIfHandleInfo->hCpsw         = handleInfo.hCpsw;
-    pAppIfHandleInfo->hUdmaDrv      = handleInfo.hUdmaDrv;
-    pAppIfHandleInfo->coreId        = handleInfo.coreId;
-    pAppIfHandleInfo->coreKey       = handleInfo.coreKey;
-    pAppIfHandleInfo->hostPortRxMtu = handleInfo.hostPortRxMtu;
-    memcpy (&pAppIfHandleInfo->txMtu[0U], &handleInfo.txMtu[0U],
-                            CPSW_UTILS_ARRAYSIZE(pAppIfHandleInfo->txMtu));
-
-    pAppIfHandleInfo->printFxnCb    = &CpswAppUtils_print;
-}
-
-void CpswAppIf_releaseHandles(void)
-{
-    CpswMcm_releaseHandle(gCpswMainAppObj.hMcm[gCpswMainAppObj.cpswType]);
-}
-
-Cpsw_MacPort CpswAppIf_getMacPortNum(void)
-{
-    return (Cpsw_MacPort)gCpswMainAppObj.masterPort;
-}
 
 void stackInitHook(void* hCfg)
 {
@@ -444,7 +408,7 @@ void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
     /* Not that CPSW is initialized, create UART menu task for user configuration */
     /* Note - We can't call this function from any other tasks as it calls CpswAppIf_getHandles
      *        function but doesn't handle open of flows/tx channels */
-    CpswApp_createUartMenuTask();
+    CpswApp_createUartMenuTask(gCpswMainAppObj.cpswType, gCpswMainAppObj.coreId);
 }
 
 void netOpenHook()
@@ -492,5 +456,91 @@ void CpswApp_setDLFOBitInACTRLReg(void)
        asm(" MCR p15, #0, r12, c1, c0, #1 ;");
 }
 #endif
+
+static bool CpswApp_IsPhyLinked(Cpsw_Handle hCpsw)
+{
+    return Cpsw_isPhyLinked(hCpsw,  gCpswMainAppObj.masterPort);
+}
+
+
+void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
+                             NimuCpswAppIf_GetHandleOutArgs *outArgs)
+{
+    int32_t status;
+    CpswMcm_HandleInfo handleInfo;
+    Cpsw_AttachCoreOutArgs attachInfo;
+    bool useDefaultFlow = gCpswMainAppObj.useDefaultRxFlow;
+
+    gCpswMainAppObj.coreId = CpswAppSoc_getCoreId();
+    if (gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType].hMboxCmd == NULL)
+    {
+        status = CpswApp_init();
+
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Failed to open CPSW: %d\n", status);
+        }
+        CpswAppUtils_assert(status == CPSW_SOK);
+        CpswMcm_getCmdIf(gCpswMainAppObj.cpswType, &gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType]);
+    }
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType].hMboxCmd != NULL);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType].hMboxResponse != NULL);
+
+
+    CpswMcm_acquireHandleInfo(&gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType], &handleInfo);
+    CpswMcm_coreAttach(&gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType], gCpswMainAppObj.coreId  ,&attachInfo);
+
+    CpswAppUtils_openNDKTxCh(handleInfo.hCpsw, 
+                             handleInfo.hUdmaDrv, 
+                             attachInfo.coreKey, 
+                             gCpswMainAppObj.coreId, 
+                             &inArgs->txCfg,
+                             &outArgs->txInfo);
+
+    CpswAppUtils_openNDKRxCh(handleInfo.hCpsw, 
+                             handleInfo.hUdmaDrv, 
+                             attachInfo.coreKey, 
+                             gCpswMainAppObj.coreId, 
+                             useDefaultFlow,
+                             &inArgs->rxCfg,
+                             &outArgs->rxInfo);
+
+ 
+    outArgs->coreId = gCpswMainAppObj.coreId;
+    outArgs->coreKey = attachInfo.coreKey;
+    outArgs->hCpsw   = handleInfo.hCpsw;
+    outArgs->hostPortRxMtu = attachInfo.rxMtu;
+    CPSW_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
+    outArgs->hUdmaDrv = handleInfo.hUdmaDrv;
+    outArgs->printFxnCb = &CpswAppUtils_print;
+    outArgs->isPhyLinkedFxn = &CpswApp_IsPhyLinked;
+}
+
+void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
+{
+    bool useDefaultFlow = gCpswMainAppObj.useDefaultRxFlow;
+
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType].hMboxCmd != NULL);
+    CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType].hMboxResponse != NULL);
+
+    CpswAppUtils_closeNDKTxCh(releaseInfo->hCpsw, 
+                              releaseInfo->hUdmaDrv, 
+                              releaseInfo->coreKey, 
+                              releaseInfo->coreId,
+                              &releaseInfo->txInfo,
+                              releaseInfo->freePktCbArg,
+                              releaseInfo->txFreePktCb);
+    CpswAppUtils_closeNDKRxCh(releaseInfo->hCpsw, 
+                              releaseInfo->hUdmaDrv, 
+                              releaseInfo->coreKey, 
+                              releaseInfo->coreId,
+                              useDefaultFlow,
+                              &releaseInfo->rxInfo,
+                              releaseInfo->freePktCbArg,
+                              releaseInfo->rxFreePktCb);
+
+    CpswMcm_coreDetach(&gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType], releaseInfo->coreId, releaseInfo->coreKey);
+    CpswMcm_releaseHandleInfo(&gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType]);
+}
 
 /* end of file */
