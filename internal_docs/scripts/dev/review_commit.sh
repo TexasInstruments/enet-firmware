@@ -24,8 +24,10 @@ git diff --stat=256,256 $1 $modcommitid | grep --invert-match Bin | sed -n 's/|.
 put1to2 () {
     if [ $# -eq 2 ];then
         dir=$tarfolder/$2/$(dirname $1)
-        mkdir -p $dir
-        cp $1 $dir
+        if [ -f $1 ];then
+		  mkdir -p $dir
+          cp $1 $dir
+		fi
     else
         echo "wrong number of parameter for call put1to2,called with $#, but need 2"
         exit 1
@@ -40,21 +42,37 @@ put1to2 () {
 exec 3<> $gitstfile
 while read line <&3
 do {
-    fullpath=$line
-    #here we get the original file and put it into original folder
-    dir=$tarfolder/$orig/$(dirname $fullpath)
+    statline=$line
+    #check if there was a rename
+	if [[ $statline == *"=>"* ]]; then
+	  if [[ $statline == *"{"* ]]; then
+	    common_prefix=`echo ${statline} | sed -e 's/^\(.*\){\{1\}.*$/\1/g'`
+	    common_suffix=`echo ${statline} | sed -e 's/^.*}\{1\}\(.*\)$/\1/g'`
+        origfilepath="${common_prefix}`echo ${statline} | sed -e 's/^.*{\{1\}\(.*\) => .*$/\1/g'`${common_suffix}"
+	    modfilepath="${common_prefix}`echo ${statline} | sed -e 's/^.* => \(.*\)}\{1\}.*$/\1/g'`${common_suffix}"
+      else
+        origfilepath=`echo ${statline} | sed -e 's/^\(.*\) => .*$/\1/g'`
+	    modfilepath=`echo ${statline} | sed -e 's/^.* => \(.*\)$/\1/g'`
+      fi
+	else
+	  origfilepath=$statline
+	  modfilepath=$statline
+    fi	
+	#here we get the original file and put it into original folder
+    dir=$tarfolder/$orig/$(dirname $origfilepath)
     mkdir -p $dir
-    origfile=$tarfolder/$orig/$fullpath
-    git rev-parse --verify $1:$fullpath >/dev/null 2>&1 &&  git cat-file blob $1:$fullpath > $origfile
+    origfile=$tarfolder/$orig/$origfilepath
+    git rev-parse --verify $1:$origfilepath >/dev/null 2>&1 &&  git cat-file blob $1:$origfilepath > $origfile
     if [ "$modcommitid" = "HEAD" ];then 
         #here we handle the modified file, copy them to modified folder
-        put1to2 $fullpath $modi
+        put1to2 $modfilepath $modi
     else
-        modifiedfile=$tarfolder/$modi/$fullpath
+        modifiedfile=$tarfolder/$modi/$modfilepath
         dir=$(dirname $modifiedfile)
         mkdir -p $dir
-        git rev-parse --verify $2:$fullpath >/dev/null 2>&1 &&  git cat-file blob $2:$fullpath > $modifiedfile
+        git rev-parse --verify $2:$modfilepath >/dev/null 2>&1 &&  git cat-file blob $2:$modfilepath > $modifiedfile
     fi
+	
 }
 done
 exec 3>&-
@@ -63,5 +81,4 @@ cat $gitstfile
 echo "will create review tar ball $tarfolder"
 tar zcf ${tarfolder}.tgz $tarfolder
 
-exit 0
 
