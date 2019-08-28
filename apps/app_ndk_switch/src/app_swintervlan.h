@@ -60,14 +60,14 @@
  *
  */
 
-/*!
- * \file app_switch.h
+/**
+ *  \file app_swintervlan.h
  *
- * \brief App switch header file
+ *  \brief CPSW Inter VLAN Routing app interface header file.
  */
 
-#ifndef APP_SWITCH_H_
-#define APP_SWITCH_H_
+#ifndef APP_SWINTERVLAN_H_
+#define APP_SWINTERVLAN_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
@@ -77,26 +77,21 @@
 extern "C" {
 #endif
 
-#include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
-
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
-/* None */
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
 
-/* None */
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void CpswApp_createUartMenuTask(Cpsw_Type cpswType, uint32_t coreId);
-
+void             CpswApp_swInterVlanRouting(Cpsw_Type cpswType);
 
 /* ========================================================================== */
 /*                       Static Function Definitions                          */
@@ -108,4 +103,4 @@ void CpswApp_createUartMenuTask(Cpsw_Type cpswType, uint32_t coreId);
 }
 #endif
 
-#endif /* APP_SWITCH_H_ */
+#endif /* #ifndef APP_SWINTERVLANROUTING_H_ */

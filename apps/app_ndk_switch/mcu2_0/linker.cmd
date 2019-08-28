@@ -24,6 +24,9 @@ SECTIONS
     }    >> R5F_TCMB0
 
     .text_fast {
+        *(.text:CacheP_*)
+        *(.text:CSL_proxy*)
+        *(.text:CSL_ringacc*)
         *(.text:CpswDma_retrieveRxPackets*)
         *(.text:CpswDma_retrieveTxDonePackets*)
         *(.text:CpswDma_ringDequeue*)
@@ -54,7 +57,8 @@ SECTIONS
         *(.text:Udma_ringQueueRaw*)
         *(.text:Udma_ringDequeueRaw*)
         *(.text:Udma_virtToPhyFxn*)
-     }     > DDR_MCU2_0
+        *(.text:CpswApp_swInterVlanRouting*)
+     }     > R5F_TCMB0
 
      .irqStackSection
     {
@@ -65,7 +69,7 @@ SECTIONS
        _text_rest_begin = .;
        *(.text)
        _text_rest_end = .;
-    } palign(32)    >  DDR_MCU2_0
+    } palign(32)    >  MSMC3
 
     .const_sect {
        *(.const)
@@ -80,20 +84,23 @@ SECTIONS
 
     /* For NDK packet memory, we need to map this sections before .bss*/
     /* For NDK packet memory, we need to map this sections before .bss*/
-    .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > MSMC3
+    .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > MSMC3
+    .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > MSMC3
+    .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > MSMC3
+    .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > MSMC3
 
     .bss        : {} align(4)       > DDR_MCU2_0
-    .far        : {} align(4)       > DDR_MCU2_0
+    .far        : {} align(4)       > MSMC3
     .boardcfg_data        : {} palign(128)           > DDR_MCU2_0
-    .sysmem     : {}                > DDR_MCU2_0
-    .stack      : {} align(8)       > DDR_MCU2_0
+    .sysmem     : {}                > MSMC3
+    .stack      : {} align(8)       > MSMC3
+
 
     /* USB or any other LLD buffer for benchmarking */
-    .data_buffer: {} palign(128) > DDR_MCU2_0
+    .benchmark_buffer (NOLOAD) {} ALIGN (8) > MSMC3
+    .data_buffer: {} palign(128) > MSMC3
+    .serialContext  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
 
 /* Additional sections settings     */
 

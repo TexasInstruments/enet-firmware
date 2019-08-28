@@ -9,6 +9,7 @@ SECTIONS
     .text_boot {
         *boot.aer5f<*boot.o*>(.text)
         -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_keystone3_Hwi_*)
+        -lti.csl.aer5f<csl_arm_r5.o*>(.text)
         -lti.targets.arm.rtsarm.aer5f<*.o*>(.text:xdc_runtime_*)
         -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_Cache*)
         -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_MPU*)
@@ -17,7 +18,13 @@ SECTIONS
         *(*:ti_sysbios_family_arm_v7r*)
         *(*:ti_sysbios_family_arm_MPU*)
     }    >> MCU0_R5F_TCMB0
+
     .text_fast {
+        *(.text:CpswDma_*)
+        *(.text:CacheP_*)
+        *(.text:CSL_proxy*)
+        *(.text:CSL_ringacc*)
+        *(.text:Udma_*)
 		*(.text:CpswDma_retrieveRxPackets*)    
 		*(.text:CpswDma_retrieveTxDonePackets*)
 		*(.text:CpswDma_ringDequeue*)          
@@ -49,7 +56,9 @@ SECTIONS
 		*(.text:Udma_ringQueueRaw*)
 		*(.text:Udma_ringDequeueRaw*)
 		*(.text:Udma_virtToPhyFxn*)
-     }     > DDR0
+
+     }     > OCMRAM
+
     .irqStackSection
     {
        *(*:ti_sysbios_family_arm_v7r_keystone3_Hwi_Module_State_0_irqStack__A)
@@ -76,8 +85,10 @@ SECTIONS
     .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR0
     .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
     .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
+    .bss:appStack (NOLOAD) {} ALIGN (128) > DDR0
     .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR0
     .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR0
+    .bss:CpswDmaObjs (NOLOAD) {} ALIGN (128) > OCMRAM
 
     .bss        : {} align(4)       > DDR0
     .far        : {} align(4)       > DDR0

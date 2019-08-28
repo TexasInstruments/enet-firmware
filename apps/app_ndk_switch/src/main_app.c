@@ -84,6 +84,7 @@
 #include <ti/sysbios/utils/Load.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Mailbox.h>
+#include <ti/sysbios/family/arm/v7r/Cache.h>
 
 /* OSAL Header file */
 #include <ti/osal/osal.h>
@@ -92,16 +93,22 @@
 #include <ti/drv/sciclient/sciclient.h>
 #include <ti/drv/cpsw/cpsw.h>
 #include <ti/drv/udma/udma.h>
+#include <ti/drv/uart/UART_stdio.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils_cfg.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_networkutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apprm.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apprm.h>
 #include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
 #include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+
+#include <ti/drv/cpsw/cpsw_cfgserver/cpsw_cfgserver.h>
 
 /* NDK headers */
 #include <ti/ndk/inc/netmain.h>
@@ -111,8 +118,9 @@
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
 
-#include "app_switch.h"
 #include "webpage.h"
+#include "app_intervlan.h"
+#include "app_swintervlan.h"
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -121,7 +129,8 @@
 /* Test application stack size */
 #define APP_TSK_STACK_MAIN              (10U * 1024U)
 #define ETHFWAPP_PACKET_POLL_PERIOD_MS  (1U)
-
+#define ETHFWAPP_UART_READ_TIMEOUT      (5U)
+#define ETHFWAPP_UART_WRITE_TIMEOUT     (5U)
 
 #define ENABLE_NDKSERVERS
 
@@ -129,33 +138,33 @@
 /*                         Structure Declarations                             */
 /* ========================================================================== */
 
-typedef struct
-{
-    /* Core Id */
-    uint32_t coreId;
+ typedef struct
+ {
+     /* Core Id */
+     uint32_t coreId;
 
-    /* CPSW instance type */
-    Cpsw_Type cpswType;
+     /* CPSW instance type */
+     Cpsw_Type cpswType;
 
-    /* MAC ports */
-    Cpsw_MacPort *macPorts;
+     /* MAC ports */
+     Cpsw_MacPort *macPorts;
 
-    /* Master port on which NIMU will poll for link
-     * Note - This will get removed once NIMU dependency on port is resolved */
-    Cpsw_MacPort masterPort;
+     /* Master port on which NIMU will poll for link
+      * Note - This will get removed once NIMU dependency on port is resolved */
+     Cpsw_MacPort masterPort;
 
-    /* Number of MAC ports */
-    uint32_t numMacPorts;
+     /* Number of MAC ports */
+     uint32_t numMacPorts;
 
-    /* Multiclient manager handles */
-    CpswMcm_CmdIf mcmCmdIf[CPSW_COUNT];
+     /* Multiclient manager handles */
+     CpswMcm_CmdIf mcmCmdIf[CPSW_COUNT];
 
-    /* UDMA driver handle */
-    Udma_DrvHandle hUdmaDrv;
+     /* UDMA driver handle */
+     Udma_DrvHandle hUdmaDrv;
 
-    /* Use default flow */
-    bool    useDefaultRxFlow;
-} CpswMain_AppObj;
+     /* Use default flow */
+     bool    useDefaultRxFlow;
+ } CpswMain_AppObj;
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
@@ -206,6 +215,8 @@ char *VerStr = "NIMU CPSW Example";
 
 char gIpAddrStr[20] = "0.0.0.0";
 
+static Task_Handle task;
+
 static Cpsw_MacPort gCpswMainAppMacPorts[] = {
 #if defined(SOC_AM65XX)
     CPSW_MAC_PORT_0,
@@ -223,11 +234,16 @@ static CpswMain_AppObj gCpswMainAppObj = {
     .masterPort = CPSW_MAC_PORT_0,
 #elif defined(SOC_J721E)
     .cpswType = CPSW_9G,
-    .masterPort = CPSW_MAC_PORT_2,
+    .masterPort = CPSW_MAC_PORT_3,
 #endif
     .macPorts = gCpswMainAppMacPorts,
     .numMacPorts = CPSWAPPUTILS_ARRAY_SIZE(gCpswMainAppMacPorts),
     .useDefaultRxFlow = true,
+    .mcmCmdIf =
+    {
+        [CPSW_2G] = {.hMboxCmd = NULL, .hMboxResponse = NULL},
+        [CPSW_9G] = {.hMboxCmd = NULL, .hMboxResponse = NULL},
+    },
 };
 
 /* ========================================================================== */
@@ -238,7 +254,16 @@ int main(void)
 {
     /* Set ccsHaltFlag to 1 for halting core for CCS connection */
     volatile uint32_t ccsHaltFlag = 0U;
+    UART_Params  params;
+
     while(ccsHaltFlag);
+
+    /* Change read and write Timeout of UART params to enable Xmodem*/
+    UART_Params_init(&params);
+    params.readTimeout = ETHFWAPP_UART_READ_TIMEOUT; /* in milliseconds */
+    params.writeTimeout = ETHFWAPP_UART_WRITE_TIMEOUT;
+
+    UART_stdioInit2(CPSW_UTILS_MCU2_0_UART_INSTANCE, &params);
 
     CpswAppBoardUtils_init();
 
@@ -267,14 +292,14 @@ static void CpswApp_setAleConfig(CpswAle_Config *aleConfig)
 
     aleConfig->vlanConfig.aleVlanAwareMode = TRUE;
     aleConfig->vlanConfig.cpswVlanAwareMode = FALSE;
-    aleConfig->vlanConfig.unknownUnregMcastFloodMask = 0U;
-    aleConfig->vlanConfig.unknownRegMcastFloodMask = 0U;
+    aleConfig->vlanConfig.unknownUnregMcastFloodMask = CPSW_ALE_ALL_PORTS_MASK;
+    aleConfig->vlanConfig.unknownRegMcastFloodMask = CPSW_ALE_ALL_PORTS_MASK;
     aleConfig->vlanConfig.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
     aleConfig->vlanConfig.autoLearnWithVLAN = TRUE;
 
     aleConfig->policerGlobalConfig.policingEnable = true;
     aleConfig->policerGlobalConfig.yellowDropEnable = false;
-    aleConfig->policerGlobalConfig.redDropEnable = true;
+    aleConfig->policerGlobalConfig.redDropEnable = false;
     aleConfig->policerGlobalConfig.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 
     aleConfig->portCfg[0].learningCfg.noLearn = FALSE;
@@ -311,6 +336,7 @@ static void CpswApp_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
         linkConfig->speed     = CPSW_SPEED_AUTO;
         linkConfig->duplexity = CPSW_DUPLEX_AUTO;
     }
+    CpswAppInterVlan_setMacConfig(linkArgs, macPort);
 
 }
 
@@ -328,11 +354,15 @@ static int32_t CpswApp_init(void)
     cpswCfg.hostPortConfig.removeCrc      = true;
     cpswCfg.hostPortConfig.padShortPacket = true;
     cpswCfg.hostPortConfig.passCrcErrors  = true;
-    CpswAppUtils_initResourceConfig(gCpswMainAppObj.cpswType, gCpswMainAppObj.coreId, &cpswCfg.resourceConfig);
+    CpswAppUtils_initResourceConfig(gCpswMainAppObj.cpswType,
+                                    CpswAppSoc_getCoreId(),
+                                    &cpswCfg.resourceConfig);
 
     CpswApp_setAleConfig(&cpswCfg.aleConfig);
 
     cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
+
+    CpswAppInterVlan_setOpenPrms(&cpswCfg);
 
     /* Open UDMA */
     gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(gCpswMainAppObj.cpswType, NULL);
@@ -357,13 +387,32 @@ static int32_t CpswApp_init(void)
 
 void CpswApp_deInit(void)
 {
+    while (Task_getMode(task) != Task_Mode_TERMINATED)
+    {
+        Task_sleep(10);
+    }
+
+    if (Task_deleteTerminatedTasks == FALSE)
+    {
+        Task_delete(&task);
+    }
+
     CpswAppUtils_udmaclose(gCpswMainAppObj.hUdmaDrv);
 
     memset(&gCpswMainAppObj, 0U, sizeof(CpswMain_AppObj));
 }
 
 
+/* Functions called from Config server library based on selection from GUI */
+void CpswApp_startSwInterVlan(char* recvBuff, char* sendBuff)
+{
+    CpswApp_swInterVlanRouting(gCpswMainAppObj.cpswType);
+}
 
+void CpswApp_startHwInterVlan(char* recvBuff, char* sendBuff)
+{
+    CpswApp_hwInterVlanRouting(gCpswMainAppObj.cpswType);
+}
 
 void stackInitHook(void* hCfg)
 {
@@ -373,6 +422,13 @@ void stackInitHook(void* hCfg)
     rc = 16384;
     CfgAddEntry(hCfg, CFGTAG_OS, CFGITEM_OS_TASKSTKBOOT,
                 CFG_ADDMODE_UNIQUE, sizeof(uint32_t), (uint8_t *)&rc, 0 );
+
+#if (CPSW_TRACE_CFG_TRACE_LEVEL >= CPSW_TRACE_CFG_LEVEL_DEBUG)
+    /* We do not want to see debug messages less than WARNINGS */
+    rc = DBG_INFO;
+    CfgAddEntry( hCfg, CFGTAG_OS, CFGITEM_OS_DBGPRINTLEVEL,
+                    CFG_ADDMODE_UNIQUE, sizeof(uint32_t), (uint8_t *)&rc, 0 );
+#endif
 
     AddWebFiles();
 }
@@ -385,15 +441,23 @@ void stackDeleteHook(void* hCfg)
 void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
 {
     volatile uint32_t ipAddrHex = 0U;
+    int32_t status;
 
     NtIPN2Str(IPAddr, gIpAddrStr);
 
     CpswAppUtils_print("\nCPSW NIMU application, IP address I/F 1: %s\n\r", gIpAddrStr);
 
-    /* Not that CPSW is initialized, create UART menu task for user configuration */
-    /* Note - We can't call this function from any other tasks as it calls CpswAppIf_getHandles
-     *        function but doesn't handle open of flows/tx channels */
-    CpswApp_createUartMenuTask(gCpswMainAppObj.cpswType, gCpswMainAppObj.coreId);
+    /* Assign functions that are to be called based on actions in GUI.
+     * These cannot be dynamically pushed to function pointer array, as the
+     * index is used in GUI as command.
+     */
+    cpswCfgServer_fxn_table[9]  = &CpswApp_startSwInterVlan;
+    cpswCfgServer_fxn_table[10] = &CpswApp_startHwInterVlan;
+
+    /* Start Configuration server */
+    status = CpswCfgServer_init(gCpswMainAppObj.cpswType);
+    CpswAppUtils_assert(CPSW_SOK == status);
+
 }
 
 void netOpenHook()
@@ -404,7 +468,7 @@ void netOpenHook()
                       OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
     hEchoUdp = DaemonNew(SOCK_DGRAM, 0, 7, dtask_udp_echo,
                          OS_TASKPRINORM, OS_TASKSTKNORM, 0, 1);
-    hData = DaemonNew(SOCK_STREAM, 0, 1000, dtask_tcp_datasrv,
+    hData = DaemonNew(SOCK_STREAM, 0, 1002, dtask_tcp_datasrv,
                       OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
     hNull = DaemonNew(SOCK_STREAMNC, 0, 1001, dtask_tcp_nullsrv,
                       OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);

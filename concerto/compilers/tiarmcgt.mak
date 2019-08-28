@@ -118,8 +118,8 @@ $(_MODULE)_INCLUDES := $(foreach inc,$($(_MODULE)_IDIRS),-I="$(basename $(inc))"
 $(_MODULE)_DEFINES  := $(foreach def,$($(_MODULE)_DEFS),-D=$(def))
 $(_MODULE)_LIBRARIES:= $(foreach ldir,$($(_MODULE)_LDIRS),--search_path="$(ldir)") $(foreach ldir,$($(_MODULE)_SYSLDIRS),--search_path="$(ldir)") $(foreach lib,$(STATIC_LIBS),--library=$(LIB_PRE)$(lib).$(LIB_EXT)) $(foreach lib,$(SYS_STATIC_LIBS),--library=$(LIB_PRE)$(lib).$(LIB_EXT)) $(foreach lib,$(ADDITIONAL_STATIC_LIBS),--library=$(lib)) $(foreach linkerf,$(LINKER_FILES),--library=$(linkerf))
 $(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES)
-$(_MODULE)_CFLAGS   := $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS)
-$(_MODULE)_LDFLAGS  := $($(_MODULE)_CFLAGS) -z --warn_sections --reread_libs --zero_init=on $($(_MODULE)_LINKER_CMD_FILES) --rom_model
+$(_MODULE)_CFLAGS   := $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS) --gen_func_subsections
+$(_MODULE)_LDFLAGS  := $($(_MODULE)_CFLAGS) -z --warn_sections --reread_libs --zero_init=on --rom_model
 
 ifeq ($(TREAT_WARNINGS_AS_ERROR), yes)
   $(_MODULE)_CFLAGS  += --emit_warnings_as_errors
@@ -131,7 +131,7 @@ endif
 ###################################################
 
 $(_MODULE)_LINK_LIB   := $(call PATH_CONV,$(AR) ru2 $($(_MODULE)_BIN) $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS))
-$(_MODULE)_LINK_EXE   := $(call PATH_CONV,$(LD) $($(_MODULE)_LDFLAGS) $($(_MODULE)_OBJS) $($(_MODULE)_LIBRARIES) --output_file=$($(_MODULE)_BIN) --map_file=$($(_MODULE)_MAP))
+$(_MODULE)_LINK_EXE   := $(call PATH_CONV,$(LD) $($(_MODULE)_LDFLAGS) $($(_MODULE)_OBJS) $($(_MODULE)_LIBRARIES) $($(_MODULE)_LINKER_CMD_FILES) --output_file=$($(_MODULE)_BIN) --map_file=$($(_MODULE)_MAP))
 
 ###################################################
 # MACROS FOR COMPILING
