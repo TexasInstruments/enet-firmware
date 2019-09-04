@@ -490,14 +490,14 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     CpswMcm_acquireHandleInfo(&gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType], &handleInfo);
     CpswMcm_coreAttach(&gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType], gCpswMainAppObj.coreId  ,&attachInfo);
 
-    CpswAppUtils_openNDKTxCh(handleInfo.hCpsw, 
+    CpswAppUtils_openNimuTxCh(handleInfo.hCpsw, 
                              handleInfo.hUdmaDrv, 
                              attachInfo.coreKey, 
                              gCpswMainAppObj.coreId, 
                              &inArgs->txCfg,
                              &outArgs->txInfo);
 
-    CpswAppUtils_openNDKRxCh(handleInfo.hCpsw, 
+    CpswAppUtils_openNimuRxFlow(handleInfo.hCpsw, 
                              handleInfo.hUdmaDrv, 
                              attachInfo.coreKey, 
                              gCpswMainAppObj.coreId, 
@@ -523,15 +523,13 @@ void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
     CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType].hMboxCmd != NULL);
     CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[gCpswMainAppObj.cpswType].hMboxResponse != NULL);
 
-    CpswAppUtils_closeNDKTxCh(releaseInfo->hCpsw, 
-                              releaseInfo->hUdmaDrv, 
+    CpswAppUtils_closeNimuTxCh(releaseInfo->hCpsw, 
                               releaseInfo->coreKey, 
                               releaseInfo->coreId,
                               &releaseInfo->txInfo,
                               releaseInfo->freePktCbArg,
                               releaseInfo->txFreePktCb);
-    CpswAppUtils_closeNDKRxCh(releaseInfo->hCpsw, 
-                              releaseInfo->hUdmaDrv, 
+    CpswAppUtils_closeNimuRxFlow(releaseInfo->hCpsw, 
                               releaseInfo->coreKey, 
                               releaseInfo->coreId,
                               useDefaultFlow,

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2017 Texas Instruments Incorporated
+ * Copyright (c) 2019 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -100,9 +100,10 @@
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL (100)
 
 
-#define IPC_RPMESSAGE_OBJ_SIZE  256
-#define VQ_BUF_SIZE             2048
-#define REMOTE_DEVICE_ENDPT     26
+#define IPC_RPMESSAGE_OBJ_SIZE  (256)
+#define VQ_TIMEOUT              (100)
+#define VQ_BUF_SIZE             (2048)
+#define REMOTE_DEVICE_ENDPT     (26)
 #define RPMSG_DATA_SIZE         (256*512 + IPC_RPMESSAGE_OBJ_SIZE)
 #define VRING_BASE_ADDRESS      0xBA000000
 #define VRING_BUFFER_SIZE       0x02000000
@@ -150,8 +151,8 @@ __attribute__ ((aligned(8192)))
     static uint8_t  sysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section ("ipc_data_buffer"), aligned (8)));
     static uint8_t  gCntrlBuf[RPMSG_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned (8)));
 
-    static SemaphoreP_Handle g_ipc_init_wait_sem;
-    static SemaphoreP_Handle g_rdev_start_sem;
+    static SemaphoreP_Handle gIpcInitWaitSem;
+    static SemaphoreP_Handle gRdevStartSem;
 
     static uint32_t selfProcId = IPC_MCU2_1;
     static uint32_t gRemoteProc[] =
@@ -205,8 +206,6 @@ typedef struct CpswRemoteApp_Obj_s
 
 static Cpsw_MacPort gRemoteAppMacPorts[] = {
     CPSW_MAC_PORT_1,
-    CPSW_MAC_PORT_2,
-    CPSW_MAC_PORT_3,
 };
 
 CpswRemoteApp_Obj gRemoteAppObj  =
@@ -214,7 +213,7 @@ CpswRemoteApp_Obj gRemoteAppObj  =
     .hCmdMbx          = NULL,
     .hResponseMbx     = NULL,
     .hCpsw            = NULL,
-    .coreKey          = CPSWRM_INVALIDCORE,
+    .coreKey          = CPSW_RM_INVALIDCORE,
     .hDma             = NULL,
     .useDefaultRxFlow = false,
     .useExtAttach     = true,
@@ -342,15 +341,17 @@ static void rpmsg_vdevMonitorFxn(UArg arg0, UArg arg1)
     if(status != IPC_SOK)
     {
         System_printf("%s: Ipc_lateVirtioCreate failed\n", __func__);
-        return;
     }
 
-    status = RPMessage_lateInit(IPC_MPU1_0);
-    if(status != IPC_SOK)
+    if(status == IPC_SOK)
     {
-        System_printf("%s: RPMessage_lateInit failed\n", __func__);
-        return;
+        status = RPMessage_lateInit(IPC_MPU1_0);
+        if(status != IPC_SOK)
+        {
+            System_printf("%s: RPMessage_lateInit failed\n", __func__);
+        }
     }
+    return;
 }
 
 bool freeInDetach = false;
@@ -635,7 +636,8 @@ static void  rdevEthSwitchApp_createMbx(Mailbox_Handle *pMailboxHandle)
             NULL);
 }
 
-static void  rdevEthSwitchApp_deleteMbx(Mailbox_Handle *pMailboxHandle)
+//static 
+void  rdevEthSwitchApp_deleteMbx(Mailbox_Handle *pMailboxHandle)
 {
     Mailbox_delete(pMailboxHandle);
 }
@@ -815,9 +817,8 @@ static void startMessageAndRequestLoop(uint32_t device_id)
 
     Task_Params_init(&params);
     params.priority = 3;
-    params.stackSize = IPC_TASK_STACKSIZE;
     params.stack = &g_requestTaskStack[0];
-    params.stackSize = IPC_TASK_STACKSIZE;
+    params.stackSize = sizeof(g_requestTaskStack);
     params.arg0 = device_id;
     params.arg1 = (uint32_t)gRemoteAppObj.hCmdMbx;
     Task_create(requestLoopFn, &params, NULL);
@@ -856,8 +857,8 @@ static Void monitorAndUnlockRdev(UArg a0, UArg a1)
     int32_t ret = 0;
     rdevEthSwitchClientInitPrms_t prm;
 
-    SemaphoreP_pend(g_ipc_init_wait_sem, SemaphoreP_WAIT_FOREVER);
-    SemaphoreP_post(g_rdev_start_sem);
+    SemaphoreP_pend(gIpcInitWaitSem, SemaphoreP_WAIT_FOREVER);
+    SemaphoreP_post(gRdevStartSem);
 
 
     sprintf(prm.device_name, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1);
@@ -890,6 +891,7 @@ static Void ipc_init(UArg a0, UArg a1)
     Task_Params       params;
     uint32_t          numProc = gNumRemoteProc;
     Ipc_VirtIoParams  vqParam;
+    RPMessage_Params cntrlParam;
 
     /* Step1 : Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gRemoteProc[0]);
@@ -905,12 +907,10 @@ static Void ipc_init(UArg a0, UArg a1)
     vqParam.vqBufSize     = numProc * Ipc_getVqObjMemoryRequiredPerCore();
     vqParam.vringBaseAddr = (void*)VRING_BASE_ADDRESS;
     vqParam.vringBufSize  = VRING_BUFFER_SIZE;
-    vqParam.timeoutCnt    = 100;  /* Wait for counts */
+    vqParam.timeoutCnt    = VQ_TIMEOUT;  /* Wait for counts */
     Ipc_initVirtIO(&vqParam);
 
     /* Step 3: Initialize RPMessage */
-    RPMessage_Params cntrlParam;
-
     /* Initialize the param */
     RPMessageParams_init(&cntrlParam);
 
@@ -918,16 +918,17 @@ static Void ipc_init(UArg a0, UArg a1)
     cntrlParam.buf         = &gCntrlBuf[0];
     cntrlParam.bufSize     = RPMSG_DATA_SIZE;
     cntrlParam.stackBuffer = &ctrlTaskBuf[0];
-    cntrlParam.stackSize   = IPC_TASK_STACKSIZE;
+    cntrlParam.stackSize   = sizeof(ctrlTaskBuf);
     RPMessage_init(&cntrlParam);
 
-    SemaphoreP_post(g_ipc_init_wait_sem);
+    SemaphoreP_post(gIpcInitWaitSem);
+
+    /* Step 4: Create RPMessage monitor task */
 
     Task_Params_init(&params);
     params.priority = 3;
-    params.stackSize = IPC_TASK_STACKSIZE;
     params.stack = &g_vdevMonStackBuf[0];
-    params.stackSize = IPC_TASK_STACKSIZE;
+    params.stackSize = sizeof(g_vdevMonStackBuf);
     Task_create(rpmsg_vdevMonitorFxn, &params, NULL);
 }
 
@@ -939,7 +940,7 @@ static Void remotedev_init(UArg a0, UArg a1)
 
     remote_dev_init_prm.rpmsg_buf_size = 256;
     remote_dev_init_prm.remote_endpt = REMOTE_DEVICE_ENDPT;
-    remote_dev_init_prm.wait_sem = g_rdev_start_sem;
+    remote_dev_init_prm.wait_sem = gRdevStartSem;
     remote_dev_init_prm.num_cores = 1;
     remote_dev_init_prm.cores[0] = IPC_MCU2_0;
 
@@ -958,28 +959,28 @@ static Void taskFxn(UArg a0, UArg a1)
 
     SemaphoreP_Params_init(&sem_params);
     sem_params.mode = SemaphoreP_Mode_BINARY;
-    g_ipc_init_wait_sem = SemaphoreP_create(0, &sem_params);
+    gIpcInitWaitSem = SemaphoreP_create(0, &sem_params);
 
     SemaphoreP_Params_init(&sem_params);
     sem_params.mode = SemaphoreP_Mode_BINARY;
-    g_rdev_start_sem = SemaphoreP_create(0, &sem_params);
+    gRdevStartSem = SemaphoreP_create(0, &sem_params);
 
     Task_Params_init(&ipc_taskParams);
     ipc_taskParams.priority = 2;
     ipc_taskParams.stack = &g_ipcStackBuf[0];
-    ipc_taskParams.stackSize = IPC_TASK_STACKSIZE;
+    ipc_taskParams.stackSize = sizeof(g_ipcStackBuf);
     Task_create(ipc_init, &ipc_taskParams, NULL);
 
     Task_Params_init(&rdev_taskParams);
     rdev_taskParams.priority = 2;
     rdev_taskParams.stack = &g_rdevStackBuf[0];
-    rdev_taskParams.stackSize = IPC_TASK_STACKSIZE;
+    rdev_taskParams.stackSize = sizeof(g_rdevStackBuf);
     Task_create(remotedev_init, &rdev_taskParams, NULL);
 
     Task_Params_init(&monitor_taskParams);
     monitor_taskParams.priority = 2;
     monitor_taskParams.stack = &g_monitorStackBuf[0];
-    monitor_taskParams.stackSize = IPC_TASK_STACKSIZE;
+    monitor_taskParams.stackSize = sizeof(g_monitorStackBuf);
     Task_create(monitorAndUnlockRdev, &monitor_taskParams, NULL);
 }
 
@@ -994,7 +995,7 @@ int main(void)
     /* Set the task priority higher than the default priority (1) */
     taskParams.priority = 2;
     taskParams.stack = &g_mainStackBuf[0];
-    taskParams.stackSize = IPC_TASK_STACKSIZE;
+    taskParams.stackSize = sizeof(g_mainStackBuf);
 
     task = Task_create(taskFxn, &taskParams, NULL);
     if(NULL == task)
@@ -1658,15 +1659,23 @@ static void *CpswRemoteApp_phyToVirtFxn(uint64_t phyAddr,
 
 static CpswDma_Handle CpswRemoteApp_initCpswDma(Cpsw_Type cpswType, Udma_DrvHandle hUdmaDrv)
 {
-    CpswDma_Config dmaConfig;
+    CpswDma_DataPathConfig dmaConfig;
     CpswDma_Handle cpswDmaHandle = NULL;
 
-    CpswDma_initParams(&dmaConfig);
+    CpswDma_initDataPathParams(&dmaConfig);
     dmaConfig.hUdmaDrv = hUdmaDrv;
-    dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
-    cpswDmaHandle = CpswDma_open(cpswType, &dmaConfig);
+    cpswDmaHandle = CpswDma_initDataPath(cpswType, &dmaConfig);
     return cpswDmaHandle;
 }
+
+static int32_t CpswRemoteApp_deinitCpswDma(CpswDma_Handle cpswDmaHandle)
+{
+    int32_t status;
+
+    status = CpswDma_deInitDataPath(cpswDmaHandle);
+    return status;
+}
+
 
 static enum rpmsg_kdrv_ethswitch_cpsw_type CpswRemoteApp_getRdevCpswType(Cpsw_Type cpswType)
 {
@@ -1812,6 +1821,7 @@ void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
                                releaseInfo->rxFreePktCb);
 
     CpswRemoteApp_detach(gRemoteAppObj.hCmdMbx, gRemoteAppObj.hResponseMbx,releaseInfo->hCpsw, releaseInfo->coreKey);
+    CpswRemoteApp_deinitCpswDma(gRemoteAppObj.hDma);
 }
 
 static bool CpswRemoteApp_isPhyLinked(Mailbox_Handle hCmdMbx,

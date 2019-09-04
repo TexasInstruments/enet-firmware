@@ -238,8 +238,6 @@ static Cpsw_MacPort gCpswMainAppMacPorts[] = {
     CPSW_MAC_PORT_0,
 #elif defined(SOC_J721E)
     CPSW_MAC_PORT_1,
-    CPSW_MAC_PORT_2,
-    CPSW_MAC_PORT_3,
 #endif
 };
 
@@ -597,14 +595,14 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     CpswMcm_acquireHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType], &handleInfo);
     CpswMcm_coreAttach(&gCpswMainAppObj.mcmCmdIf[cpswType],coreId  ,&attachInfo);
 
-    CpswAppUtils_openNDKTxCh(handleInfo.hCpsw, 
+    CpswAppUtils_openNimuTxCh(handleInfo.hCpsw, 
                              handleInfo.hUdmaDrv, 
                              attachInfo.coreKey, 
                              coreId, 
                              &inArgs->txCfg,
                              &outArgs->txInfo);
 
-    CpswAppUtils_openNDKRxCh(handleInfo.hCpsw, 
+    CpswAppUtils_openNimuRxFlow(handleInfo.hCpsw, 
                              handleInfo.hUdmaDrv, 
                              attachInfo.coreKey, 
                              coreId, 
@@ -630,15 +628,13 @@ void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
     CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd != NULL);
     CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxResponse != NULL);
 
-    CpswAppUtils_closeNDKTxCh(releaseInfo->hCpsw, 
-                              releaseInfo->hUdmaDrv, 
+    CpswAppUtils_closeNimuTxCh(releaseInfo->hCpsw, 
                               releaseInfo->coreKey, 
                               releaseInfo->coreId,
                               &releaseInfo->txInfo,
                               releaseInfo->freePktCbArg,
                               releaseInfo->txFreePktCb);
-    CpswAppUtils_closeNDKRxCh(releaseInfo->hCpsw, 
-                              releaseInfo->hUdmaDrv, 
+    CpswAppUtils_closeNimuRxFlow(releaseInfo->hCpsw, 
                               releaseInfo->coreKey, 
                               releaseInfo->coreId,
                               useDefaultFlow,
@@ -755,7 +751,7 @@ static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,
     CpswMcm_HandleInfo handleInfo;
     Cpsw_AttachCoreOutArgs attachInfo;
     Cpsw_IoctlPrms        prms;
-    uint32_t csumOffloadFlag;
+    bool csumOffloadFlag;
     Cpsw_Type cpswType;
 
 
@@ -799,7 +795,7 @@ static int32_t app_ethrdev_srv_cb_attach_handler (uint32_t host_id,
     CPSW_IOCTL_SET_OUT_ARGS(&prms,&csumOffloadFlag);
     status = Cpsw_ioctl(handleInfo.hCpsw,
                         host_id,
-                        CPSW_HOSTPORT_GET_CSUMOFFLOADFLAG,
+                        CPSW_HOSTPORT_IS_CSUM_OFFLOAD_ENABLE,
                         &prms);
 
     CpswAppUtils_assert(status == CPSW_SOK);
@@ -1455,7 +1451,7 @@ static  int32_t app_ethrdev_srv_cb_attach_ext_handler (uint32_t host_id,
     CpswMcm_HandleInfo handleInfo;
     Cpsw_AttachCoreOutArgs attachInfo;
     Cpsw_IoctlPrms        prms;
-    uint32_t csumOffloadFlag;
+    bool csumOffloadFlag;
     Cpsw_Type cpswType;
     uint32_t start_flow_idx, flow_idx_offset;
 
@@ -1500,7 +1496,7 @@ static  int32_t app_ethrdev_srv_cb_attach_ext_handler (uint32_t host_id,
         CPSW_IOCTL_SET_OUT_ARGS(&prms,&csumOffloadFlag);
         status = Cpsw_ioctl(handleInfo.hCpsw,
                             host_id,
-                            CPSW_HOSTPORT_GET_CSUMOFFLOADFLAG,
+                            CPSW_HOSTPORT_IS_CSUM_OFFLOAD_ENABLE,
                             &prms);
 
         CpswAppUtils_assert(status == CPSW_SOK);
