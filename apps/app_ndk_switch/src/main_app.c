@@ -329,6 +329,9 @@ static int32_t CpswApp_init(void)
     CpswApp_setAleConfig(&cpswCfg.aleConfig);
 
     cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
+    /* Set total flows used with RX channel - since we are only client setting to 2
+       one for reserved flow and other for NIMU use */
+    cpswCfg.dmaConfig.rxChInitPrms.flowCnt = 2U;
 
     /* Open UDMA */
     gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(gCpswMainAppObj.cpswType);
