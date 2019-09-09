@@ -79,6 +79,13 @@ $(_MODULE)_LINKER_CMD_FILES += $($(_MODULE)_ODIR)/configuro/linker.cmd
 endif
 $(_MODULE)_LINKER_CMD_FILES += $(LINKER_CMD_FILES)
 
+# Eclipse executable name
+ifeq ($(HOST_OS),Windows_NT)
+	ECLIPSE_EXE := $(CCS_PATH)/eclipse/eclipsec
+else
+	ECLIPSE_EXE := $(CCS_PATH)/eclipse/eclipse
+endif
+
 ifneq ($(SKIPBUILD),1)
 
 NEEDS_COMPILER:=
@@ -187,11 +194,11 @@ else
 	$(PRINT) Building CCS project $(_MODULE_NAME)
 ifeq ("$(wildcard $($(_MODULE)_ODIR)/ccs_workspace)","")
 	$(foreach ccsPjtPath,$($(_MODULE)_CCS_PJT_PATH),\
-	$(CCS_PATH)/eclipse/eclipsec -noSplash -data  $($(_MODULE)_ODIR)/ccs_workspace -application com.ti.ccstudio.apps.projectImport -ccs.location $(ccsPjtPath) \
+	$(ECLIPSE_EXE) -noSplash -data  $($(_MODULE)_ODIR)/ccs_workspace -application com.ti.ccstudio.apps.projectImport -ccs.location $(ccsPjtPath) \
 	)
 endif
 	$(foreach ccsPjtName,$($(_MODULE)_CCS_PJT_NAME),\
-	$(CCS_PATH)/eclipse/eclipsec -noSplash -data  $($(_MODULE)_ODIR)/ccs_workspace -application com.ti.ccstudio.apps.projectBuild -ccs.projects $(ccsPjtName) -ccs.configuration $(call map-target-build-to-ccs-config,$(TARGET_BUILD));\
+	$(ECLIPSE_EXE) -noSplash -data  $($(_MODULE)_ODIR)/ccs_workspace -application com.ti.ccstudio.apps.projectBuild -ccs.projects $(ccsPjtName) -ccs.configuration $(call map-target-build-to-ccs-config,$(TARGET_BUILD));\
 	)
 endif
 endef
