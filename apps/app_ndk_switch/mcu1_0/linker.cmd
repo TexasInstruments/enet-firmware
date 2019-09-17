@@ -25,37 +25,37 @@ SECTIONS
         *(.text:CSL_proxy*)
         *(.text:CSL_ringacc*)
         *(.text:Udma_*)
-		*(.text:CpswDma_retrieveRxPackets*)    
-		*(.text:CpswDma_retrieveTxDonePackets*)
-		*(.text:CpswDma_ringDequeue*)          
-		*(.text:CpswDma_ringEnqueue*)          
-		*(.text:CpswDma_rxFlowIdxInit*)        
-		*(.text:CpswDma_submitPkts*)           
-		*(.text:CpswDma_submitRxPackets*)      
-		*(.text:CpswDma_submitTxReadyPackets*) 
-		*(.text:CpswUtils_appendQ*)
-		*(.text:CpswUtils_copyQ*)
-		*(.text:CpswUtils_deQ*)
-		*(.text:CpswUtils_disableIntr*)
-		*(.text:CpswUtils_enQ*)
-		*(.text:CpswUtils_enQHead*)
-		*(.text:CpswUtils_enableIntr*)
-		*(.text:CpswUtils_getQCount*)
-		*(.text:CpswUtils_mutexLock*)
-		*(.text:CpswUtils_mutexUnlock*)
-		*(.text:CpswUtils_phyToVirtFxn*)
-		*(.text:CpswUtils_virtToPhyFxn*)
-		*(.text:NIMUPacketService*)
-		*(.text:NIMUReceivePacket*)
-		*(.text:NIMUSendPacket*)
-		*(.text:NIMUCreatePacket*)
-		*(.text:Ndk2Cpsw_sendTxPackets*)
-		*(.text:PBM_alloc*)
-		*(.text:PBMQ_enq*)
-		*(.text:PBMQ_deq*)
-		*(.text:Udma_ringQueueRaw*)
-		*(.text:Udma_ringDequeueRaw*)
-		*(.text:Udma_virtToPhyFxn*)
+        *(.text:CpswDma_retrieveRxPackets*)
+        *(.text:CpswDma_retrieveTxDonePackets*)
+        *(.text:CpswDma_ringDequeue*)
+        *(.text:CpswDma_ringEnqueue*)
+        *(.text:CpswDma_rxFlowIdxInit*)
+        *(.text:CpswDma_submitPkts*)
+        *(.text:CpswDma_submitRxPackets*)
+        *(.text:CpswDma_submitTxReadyPackets*)
+        *(.text:CpswUtils_appendQ*)
+        *(.text:CpswUtils_copyQ*)
+        *(.text:CpswUtils_deQ*)
+        *(.text:CpswUtils_disableIntr*)
+        *(.text:CpswUtils_enQ*)
+        *(.text:CpswUtils_enQHead*)
+        *(.text:CpswUtils_enableIntr*)
+        *(.text:CpswUtils_getQCount*)
+        *(.text:CpswUtils_mutexLock*)
+        *(.text:CpswUtils_mutexUnlock*)
+        *(.text:CpswUtils_phyToVirtFxn*)
+        *(.text:CpswUtils_virtToPhyFxn*)
+        *(.text:NIMUPacketService*)
+        *(.text:NIMUReceivePacket*)
+        *(.text:NIMUSendPacket*)
+        *(.text:NIMUCreatePacket*)
+        *(.text:Ndk2Cpsw_sendTxPackets*)
+        *(.text:PBM_alloc*)
+        *(.text:PBMQ_enq*)
+        *(.text:PBMQ_deq*)
+        *(.text:Udma_ringQueueRaw*)
+        *(.text:Udma_ringDequeueRaw*)
+        *(.text:Udma_virtToPhyFxn*)
 
      }     > OCMRAM
 
@@ -63,7 +63,7 @@ SECTIONS
     {
        *(*:ti_sysbios_family_arm_v7r_keystone3_Hwi_Module_State_0_irqStack__A)
     } palign(8) > MCU0_R5F_TCMB0
-    
+
     .text_rest{
        _text_rest_begin = .;
        *(.text)
@@ -76,22 +76,21 @@ SECTIONS
     .data_sect {
        *(.data)
     } palign(128)   >  DDR0
-    
-    .cinit      : {} palign(8)      > MCU0_R5F_TCMB0 
+
+    .cinit      : {} palign(8)      > MCU0_R5F_TCMB0
     .pinit      : {} palign(8)      > MCU0_R5F_TCMB0
 
-    /* For NDK packet memory, we need to map this sections before .bss*/
-    /* For NDK packet memory, we need to map this sections before .bss*/
-    .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR0
-    .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
-    .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
-    .bss:appStack (NOLOAD) {} ALIGN (128) > DDR0
+    /* For NDK packet memory */
+    .bss:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR0
+    .bss:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
+    .bss:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR0
+    .bss:CPSW_DMA_OBJ_MEM (NOLOAD) {} ALIGN (128) > DDR0
     .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR0
     .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR0
-    .bss:CpswDmaObjs (NOLOAD) {} ALIGN (128) > OCMRAM
+    .bss:APP_STACK_MEM (NOLOAD) {} ALIGN (128) > DDR0
 
     .bss        : {} align(4)       > DDR0
-    .far        : {} align(4)       > DDR0
+    .bss        : {} align(4)       > DDR0
     .boardcfg_data        : {} palign(128)           > MSMC3
     .sysmem     : {}                > MSMC3
     .stack      : {} align(8)       > MCU0_R5F_TCMB0

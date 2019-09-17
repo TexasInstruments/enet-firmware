@@ -82,13 +82,14 @@ SECTIONS
     .cinit      : {} palign(8)      > DDR_MCU2_0
     .pinit      : {} palign(8)      > R5F_TCMB0
 
-    /* For NDK packet memory, we need to map this sections before .bss*/
-    /* For NDK packet memory, we need to map this sections before .bss*/
-    .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > MSMC3
-    .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > MSMC3
-    .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > MSMC3
-    .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > MSMC3
-    .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > MSMC3
+    /* For NDK packet memory */
+    .bss:CPSW_DMA_DESC_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:CPSW_DMA_PKT_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:CPSW_DMA_OBJ_MEM      (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+
+    .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
 
     .bss        : {} align(4)       > DDR_MCU2_0
     .far        : {} align(4)       > MSMC3

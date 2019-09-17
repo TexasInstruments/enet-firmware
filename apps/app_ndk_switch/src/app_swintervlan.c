@@ -191,7 +191,7 @@ static uint8_t testDstIpv4Addr[4] = {192,
                              204};
 
 /* Test application stack */
-#pragma DATA_SECTION(gAppTskStackMain,".bss:appStack")
+#pragma DATA_SECTION(gAppTskStackMain,".bss:APP_STACK_MEM")
 static uint8_t gAppTskStackMain[APP_TSK_STACK_SIZE]
                                 __attribute__((aligned(32)));
 

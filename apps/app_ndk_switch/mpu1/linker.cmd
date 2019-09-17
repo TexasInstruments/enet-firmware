@@ -76,22 +76,25 @@ SECTIONS {
         KEEP(*(.stack))
     } > REGION_STACK AT> REGION_STACK
 
-	__TI_STACK_BASE = __stack;
-    
+    __TI_STACK_BASE = __stack;
+
     .bss:taskStackSection : {} > DDR_MPU1
-    /* For NDK packet memory, we need to map this sections before .bss*/
-	.ethPacketMem (NOLOAD) : ALIGN(128) 
-	{
-		.far:CPSW_DMA_DESC_MEMPOOL
-		. = ALIGN(128);
-		.far:CPSW_DMA_RING_MEMPOOL
-		. = ALIGN(128);
-		.far:CPSW_DMA_PKT_MEMPOOL
-		. = ALIGN(128);
-		.bss:NDK_MMBUFFER
-		. = ALIGN(128);
-		.bss:NDK_PACKETMEM
-	} > REGION_ETHPKT AT> REGION_ETHPKT
+    /* For NDK packet memory */
+    .ethPacketMem (NOLOAD) : ALIGN(128)
+    {
+        .bss:CPSW_DMA_DESC_MEMPOOL
+        . = ALIGN(128);
+        .bss:CPSW_DMA_RING_MEMPOOL
+        . = ALIGN(128);
+        .bss:CPSW_DMA_PKT_MEMPOOL
+        . = ALIGN(128);
+        .bss:CPSW_DMA_OBJ_MEM
+        . = ALIGN(128);
+        .bss:NDK_MMBUFFER
+        . = ALIGN(128);
+        .bss:NDK_PACKETMEM
+        . = ALIGN(128);
+    } > REGION_ETHPKT AT> REGION_ETHPKT
 
     .bss:app_log_mem        (NOLOAD) : {} > APP_LOG_MEM
     .bss:tiovx_obj_desc_mem (NOLOAD) : {} > TIOVX_OBJ_DESC_MEM
