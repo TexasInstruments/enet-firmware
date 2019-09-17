@@ -176,16 +176,15 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
    For details about SD card creation, refer to the Processor SDK Linux
    Automotive User's Guide.
 
--# Copy the CAN/Eth gateway demo application to the **firmware** directory of
-   Linux filesystem in SD card:
+-# Copy the demo application to the **firmware** directory of Linux filesystem in SD card:
 
-       cp <SDK_INSTALL_PATH>/binary/gatewayapp/bin/j721e_evm/gatewayapp_mcu2_0_release.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/_demo_.xer5f <MOUNT>/rootfs/lib/firmware/
 
 -# Update the soft-link `j7-main-r5f0_0-fw` to point to the demo application
    copied to SD card in the previous step:
 
        cd <MOUNT>/rootfs/lib/firmware/
-       ln -sf gatewayapp_mcu2_0_release.xer5f j7-main-r5f0_0-fw
+       ln -sf _demo_.xer5f j7-main-r5f0_0-fw
 
 -# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM. It's
    labeled `UART` (J44).
