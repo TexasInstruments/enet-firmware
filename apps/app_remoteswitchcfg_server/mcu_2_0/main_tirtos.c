@@ -125,8 +125,6 @@
 #define VQ_BUF_SIZE             2048
 #define REMOTE_DEVICE_ENDPT     26
 #define RPMSG_DATA_SIZE         (256*512 + IPC_RPMESSAGE_OBJ_SIZE)
-#define VRING_BASE_ADDRESS      0xBA000000
-#define VRING_BUFFER_SIZE       0x02000000
 
 static uint8_t g_monitorStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 static uint8_t g_rdevStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
@@ -137,6 +135,8 @@ static uint8_t ctrlTaskBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:tas
 
 static uint8_t  sysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section ("ipc_data_buffer"), aligned (8)));
 static uint8_t  gCntrlBuf[RPMSG_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned (8)));
+
+static uint8_t g_vringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section (".bss:ipc_vring_mem"), aligned (8192)));
 
 static SemaphoreP_Handle g_rdev_init_wait_sem;
 static SemaphoreP_Handle g_ipc_init_wait_sem;
@@ -237,7 +237,7 @@ static Cpsw_MacPort gCpswMainAppMacPorts[] = {
 #if defined(SOC_AM65XX)
     CPSW_MAC_PORT_0,
 #elif defined(SOC_J721E)
-    CPSW_MAC_PORT_1,
+    CPSW_MAC_PORT_2,
 #endif
 };
 
@@ -321,8 +321,8 @@ static Void ipc_init(UArg a0, UArg a1)
     /* Step2 : Initialize Virtio */
     vqParam.vqObjBaseAddr = (void*)&sysVqBuf[0];
     vqParam.vqBufSize     = numProc * Ipc_getVqObjMemoryRequiredPerCore();
-    vqParam.vringBaseAddr = (void*)VRING_BASE_ADDRESS;
-    vqParam.vringBufSize  = VRING_BUFFER_SIZE;
+    vqParam.vringBaseAddr = (void*)g_vringMemBuf;
+    vqParam.vringBufSize  = sizeof(g_vringMemBuf);
     vqParam.timeoutCnt    = 100;  /* Wait for counts */
     Ipc_initVirtIO(&vqParam);
 

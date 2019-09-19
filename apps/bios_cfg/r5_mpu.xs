@@ -170,8 +170,20 @@ attrs.tex = 1;
 attrs.subregionDisableMask = 0;
 MPU.setRegionMeta(index++, non_cache_base_addr + 0*16*MB, MPU.RegionSize_16M, attrs);
 MPU.setRegionMeta(index++, non_cache_base_addr + 1*16*MB, MPU.RegionSize_16M, attrs); 
-MPU.setRegionMeta(index++, non_cache_base_addr + 2*16*MB, MPU.RegionSize_16M, attrs); 
-MPU.setRegionMeta(index++, non_cache_base_addr + 3*16*MB, MPU.RegionSize_16M, attrs); 
+
+var non_cache_base_addr = 0xAA000000;
+var MB = 0x100000;
+
+attrs.enable = true;
+attrs.bufferable = false;
+attrs.cacheable = false;
+attrs.shareable = true;
+attrs.noExecute = true;
+attrs.accPerm = 1;          /* RW at PL1 */
+attrs.tex = 1;
+attrs.subregionDisableMask = 0;
+MPU.setRegionMeta(index++, non_cache_base_addr + 0*16*MB, MPU.RegionSize_16M, attrs); 
+MPU.setRegionMeta(index++, non_cache_base_addr + 1*16*MB, MPU.RegionSize_16M, attrs); 
 
 /* make DDR_MCU2_1_IPC_ADDR as non-cache */
 /* Note: the next MPU regions start address (second argument of MPU.setRegionMeta) 
@@ -186,7 +198,7 @@ attrs.noExecute = true;
 attrs.accPerm = 1;          /* RW at PL1 */
 attrs.tex = 1;
 attrs.subregionDisableMask = 0;
-MPU.setRegionMeta(index++, 0xA4000000, MPU.RegionSize_1M, attrs);
+MPU.setRegionMeta(index++, 0xA3000000, MPU.RegionSize_1M, attrs);
 
 /* make DDR_MCU2_0_IPC_ADDR as non-cache */
 /* Note: the next MPU regions start address (second argument of MPU.setRegionMeta) 

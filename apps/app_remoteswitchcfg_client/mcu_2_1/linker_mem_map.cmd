@@ -71,17 +71,17 @@ MEMORY
     /* R5F_TCMB0 [ size 32.00 KB ] */
     R5F_TCMB0                ( RWIX ) : ORIGIN = 0x41010000 , LENGTH = 0x00008000
     /* DDR for MCU2_1 for Linux IPC [ size 1024.00 KB ] */
-    DDR_MCU2_1_IPC           ( RWIX ) : ORIGIN = 0xA4000000 , LENGTH = 0x00100000
+    DDR_MCU2_1_IPC           ( RWIX ) : ORIGIN = 0xA3000000 , LENGTH = 0x00100000
     /* DDR for MCU2_1 for Linux resource table [ size 1024 B ] */
-    DDR_MCU2_1_RESOURCE_TABLE ( RWIX ) : ORIGIN = 0xA4100000 , LENGTH = 0x00000400
+    DDR_MCU2_1_RESOURCE_TABLE ( RWIX ) : ORIGIN = 0xA3100000 , LENGTH = 0x00000400
     /* DDR for MCU2_1 for code/data [ size 63.00 MB ] */
-    DDR_MCU2_1               ( RWIX ) : ORIGIN = 0xA4100400 , LENGTH = 0x03EFFC00
+    DDR_MCU2_1               ( RWIX ) : ORIGIN = 0xA3100400 , LENGTH = 0x00EFFC00
     /* Memory for remote core logging [ size 256.00 KB ] */
     APP_LOG_MEM                       : ORIGIN = 0xB8000000 , LENGTH = 0x00040000
     /* Memory for TI OpenVX shared memory. MUST be non-cached or cache-coherent [ size 31.75 MB ] */
     TIOVX_OBJ_DESC_MEM                : ORIGIN = 0xB8040000 , LENGTH = 0x01FC0000
     /* Memory for IPC Vring's. MUST be non-cached or cache-coherent [ size 32.00 MB ] */
-    IPC_VRING_MEM                     : ORIGIN = 0xBA000000 , LENGTH = 0x02000000
+    IPC_VRING_MEM                     : ORIGIN = 0xAA000000 , LENGTH = 0x02000000
     /* Memory for shared memory buffers in DDR [ size 576.00 MB ] */
     DDR_SHARED_MEM                    : ORIGIN = 0xBC000000 , LENGTH = 0x24000000
 }

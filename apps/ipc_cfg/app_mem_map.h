@@ -93,55 +93,55 @@
 
 /* DDR for MCU2_0 for all sections, used for reserving memory in DTS file [ size 31.00 MB ] */
 #define DDR_MCU2_0_DTS_ADDR (0xA2100000u)
-#define DDR_MCU2_0_DTS_SIZE (0x01F00000u)
+#define DDR_MCU2_0_DTS_SIZE (0x00F00000u)
 
 /* DDR for MCU2_1 for Linux IPC [ size 1024.00 KB ] */
-#define DDR_MCU2_1_IPC_ADDR (0xA4000000u)
+#define DDR_MCU2_1_IPC_ADDR (0xA3000000u)
 #define DDR_MCU2_1_IPC_SIZE (0x00100000u)
 
 /* DDR for MCU2_1 for all sections, used for reserving memory in DTS file [ size 63.00 MB ] */
-#define DDR_MCU2_1_DTS_ADDR (0xA4100000u)
-#define DDR_MCU2_1_DTS_SIZE (0x03F00000u)
+#define DDR_MCU2_1_DTS_ADDR (0xA3100000u)
+#define DDR_MCU2_1_DTS_SIZE (0x00F00000u)
 
 /* DDR for MCU3_0 for Linux IPC [ size 1024.00 KB ] */
-#define DDR_MCU3_0_IPC_ADDR (0xA8000000u)
+#define DDR_MCU3_0_IPC_ADDR (0xA4000000u)
 #define DDR_MCU3_0_IPC_SIZE (0x00100000u)
 
 /* DDR for MCU3_0 for all sections, used for reserving memory in DTS file [ size 15.00 MB ] */
-#define DDR_MCU3_0_DTS_ADDR (0xA8100000u)
+#define DDR_MCU3_0_DTS_ADDR (0xA4100000u)
 #define DDR_MCU3_0_DTS_SIZE (0x00F00000u)
 
 /* DDR for MCU3_1 for Linux IPC [ size 1024.00 KB ] */
-#define DDR_MCU3_1_IPC_ADDR (0xA9000000u)
+#define DDR_MCU3_1_IPC_ADDR (0xA5000000u)
 #define DDR_MCU3_1_IPC_SIZE (0x00100000u)
 
 /* DDR for MCU3_1 for all sections, used for reserving memory in DTS file [ size 15.00 MB ] */
-#define DDR_MCU3_1_DTS_ADDR (0xA9100000u)
+#define DDR_MCU3_1_DTS_ADDR (0xA5100000u)
 #define DDR_MCU3_1_DTS_SIZE (0x00F00000u)
 
 /* DDR for C66x_2 for Linux IPC [ size 1024.00 KB ] */
-#define DDR_C66x_2_IPC_ADDR (0xAA000000u)
+#define DDR_C66x_2_IPC_ADDR (0xA7000000u)
 #define DDR_C66x_2_IPC_SIZE (0x00100000u)
 
 /* DDR for C66x_1 for all sections, used for reserving memory in DTS file [ size 63.00 MB ] */
-#define DDR_C66x_1_DTS_ADDR (0xAA100000u)
-#define DDR_C66x_1_DTS_SIZE (0x03F00000u)
+#define DDR_C66x_2_DTS_ADDR (0xA7100000u)
+#define DDR_C66x_2_DTS_SIZE (0x00F00000u)
 
 /* DDR for C66x_1 for Linux IPC [ size 1024.00 KB ] */
-#define DDR_C66x_1_IPC_ADDR (0xAE000000u)
+#define DDR_C66x_1_IPC_ADDR (0xA6000000u)
 #define DDR_C66x_1_IPC_SIZE (0x00100000u)
 
 /* DDR for C66x_2 for all sections, used for reserving memory in DTS file [ size 31.00 MB ] */
-#define DDR_C66x_2_DTS_ADDR (0xAE100000u)
-#define DDR_C66x_2_DTS_SIZE (0x01F00000u)
+#define DDR_C66x_1_DTS_ADDR (0xA6100000u)
+#define DDR_C66x_1_DTS_SIZE (0x00F00000u)
 
 /* DDR for C7x_1 for Linux IPC [ size 1024.00 KB ] */
-#define DDR_C7x_1_IPC_ADDR (0xB0000000u)
+#define DDR_C7x_1_IPC_ADDR (0xA8000000u)
 #define DDR_C7x_1_IPC_SIZE (0x00100000u)
 
 /* DDR for C7x_1 for all sections, used for reserving memory in DTS file [ size 127.00 MB ] */
-#define DDR_C7x_1_DTS_ADDR (0xB0100000u)
-#define DDR_C7x_1_DTS_SIZE (0x07F00000u)
+#define DDR_C7x_1_DTS_ADDR (0xA8100000u)
+#define DDR_C7x_1_DTS_SIZE (0x00F00000u)
 
 /* Memory for remote core logging [ size 256.00 KB ] */
 #define APP_LOG_MEM_ADDR (0xB8000000u)
@@ -152,7 +152,7 @@
 #define TIOVX_OBJ_DESC_MEM_SIZE (0x01FC0000u)
 
 /* Memory for IPC Vring's. MUST be non-cached or cache-coherent [ size 32.00 MB ] */
-#define IPC_VRING_MEM_ADDR (0xBA000000u)
+#define IPC_VRING_MEM_ADDR (0xAA000000u)
 #define IPC_VRING_MEM_SIZE (0x02000000u)
 
 /* Memory for shared memory buffers in DDR [ size 576.00 MB ] */

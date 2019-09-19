@@ -105,57 +105,57 @@
 #define VQ_BUF_SIZE             (2048)
 #define REMOTE_DEVICE_ENDPT     (26)
 #define RPMSG_DATA_SIZE         (256*512 + IPC_RPMESSAGE_OBJ_SIZE)
-#define VRING_BASE_ADDRESS      0xBA000000
-#define VRING_BUFFER_SIZE       0x02000000
 
 static uint8_t g_monitorStackBuf[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t g_rdevStackBuf[IPC_TASK_STACKSIZE]
+static uint8_t g_rdevStackBuf[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t g_ipcStackBuf[IPC_TASK_STACKSIZE]
+static uint8_t g_ipcStackBuf[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t g_vdevMonStackBuf[IPC_TASK_STACKSIZE]
+static uint8_t g_vdevMonStackBuf[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t g_mainStackBuf[IPC_TASK_STACKSIZE]
+static uint8_t g_mainStackBuf[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t ctrlTaskBuf[IPC_TASK_STACKSIZE]
+static uint8_t ctrlTaskBuf[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t g_messageTaskStack[IPC_TASK_STACKSIZE]
+static uint8_t g_messageTaskStack[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t g_requestTaskStack[IPC_TASK_STACKSIZE]
+static uint8_t g_requestTaskStack[IPC_TASK_STACKSIZE]
     __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
     ;
 
-    static uint8_t  sysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section ("ipc_data_buffer"), aligned (8)));
-    static uint8_t  gCntrlBuf[RPMSG_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned (8)));
+static uint8_t  sysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section ("ipc_data_buffer"), aligned (8)));
+static uint8_t  gCntrlBuf[RPMSG_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned (8)));
 
-    static SemaphoreP_Handle gIpcInitWaitSem;
-    static SemaphoreP_Handle gRdevStartSem;
+static uint8_t g_vringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section (".bss:ipc_vring_mem"), aligned (8192)));
 
-    static uint32_t selfProcId = IPC_MCU2_1;
-    static uint32_t gRemoteProc[] =
+static SemaphoreP_Handle gIpcInitWaitSem;
+static SemaphoreP_Handle gRdevStartSem;
+
+static uint32_t selfProcId = IPC_MCU2_1;
+static uint32_t gRemoteProc[] =
 {
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0, IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2, IPC_C7X_1
 };
@@ -205,7 +205,7 @@ typedef struct CpswRemoteApp_Obj_s
 } CpswRemoteApp_Obj;
 
 static Cpsw_MacPort gRemoteAppMacPorts[] = {
-    CPSW_MAC_PORT_1,
+    CPSW_MAC_PORT_2,
 };
 
 CpswRemoteApp_Obj gRemoteAppObj  =
@@ -905,8 +905,8 @@ static Void ipc_init(UArg a0, UArg a1)
     /* Step2 : Initialize Virtio */
     vqParam.vqObjBaseAddr = (void*)&sysVqBuf[0];
     vqParam.vqBufSize     = numProc * Ipc_getVqObjMemoryRequiredPerCore();
-    vqParam.vringBaseAddr = (void*)VRING_BASE_ADDRESS;
-    vqParam.vringBufSize  = VRING_BUFFER_SIZE;
+    vqParam.vringBaseAddr = (void*)g_vringMemBuf;
+    vqParam.vringBufSize  = sizeof(g_vringMemBuf);
     vqParam.timeoutCnt    = VQ_TIMEOUT;  /* Wait for counts */
     Ipc_initVirtIO(&vqParam);
 
