@@ -155,6 +155,8 @@ static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl;
 
 #define ENABLE_NDKSERVERS
 
+#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS (1U)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -178,9 +180,6 @@ typedef struct
 
     /* UDMA driver handle */
     Udma_DrvHandle hUdmaDrv;
-
-    /* Host port MAC address */
-    uint8_t hostMacAddr[ETH_MAC_ADDR_LEN];
 
     /* Use default rx flow */
     bool    useDefaultRxFlow;
@@ -315,7 +314,7 @@ static Void ipc_init(UArg a0, UArg a1)
     CpswAppUtils_print("IPC_echo_test (core : %s) .....\r\n",
             Ipc_mpGetSelfName());
 
-
+    Ipc_init(NULL);
     Ipc_loadResourceTable(appGetIpcResourceTable());
 
     /* Step2 : Initialize Virtio */
@@ -515,25 +514,18 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
     cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
 
     /* Open UDMA */
-    gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(cpswType);
+    gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(cpswType, NULL);
     cpswCfg.dmaConfig.hUdmaDrv = gCpswMainAppObj.hUdmaDrv;
 
     cpswMcmCfg.pCpswCfg     = &cpswCfg;
     cpswMcmCfg.cpswType     = cpswType;
-    cpswMcmCfg.setMacConfig = CpswApp_initLinkArgs;
+    cpswMcmCfg.setPortLinkCfg = CpswApp_initLinkArgs;
     cpswMcmCfg.numMacPorts  = gCpswMainAppObj.numMacPorts;
     cpswMcmCfg.periodicTaskPeriod = CPSW_PHY_FSM_TICK_PERIOD_MS; /* msecs */
 
     memcpy(&cpswMcmCfg.macPortList[0U],
            gCpswMainAppObj.macPorts,
            gCpswMainAppObj.numMacPorts);
-
-    CpswAppUtils_setDefaultHostPortMacAddr(&cpswCfg.resourceConfig, cpswCfg.aleConfig.macAddr);
-
-    CPSW_UTILS_ARRAY_COPY(gCpswMainAppObj.hostMacAddr, cpswCfg.aleConfig.macAddr);
-
-    CpswAppUtils_print("Host MAC address: ");
-    CpswAppUtils_printMacAddr(&gCpswMainAppObj.hostMacAddr[0U]);
 
     status = CpswMcm_init(&cpswMcmCfg);
 
@@ -556,11 +548,11 @@ static bool CpswApp_IsAllPhyLinked(Cpsw_Handle hCpsw)
     {
         if (0 == i)
         {
-            isPhyLinked = Cpsw_isPhyLinked(hCpsw, gCpswMainAppObj.macPorts[i]);
+            isPhyLinked = CpswAppUtils_isPortLinkUp(hCpsw, CpswAppSoc_getCoreId(), gCpswMainAppObj.macPorts[i]);
         }
         else
         {
-            isPhyLinked = (isPhyLinked && Cpsw_isPhyLinked(hCpsw,  gCpswMainAppObj.macPorts[i]));
+            isPhyLinked = (isPhyLinked && CpswAppUtils_isPortLinkUp(hCpsw, CpswAppSoc_getCoreId(),  gCpswMainAppObj.macPorts[i]));
         }
     }
     return isPhyLinked;
@@ -576,6 +568,9 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     uint32_t coreId = CpswAppSoc_getCoreId();
     bool useDefaultFlow = gCpswMainAppObj.useDefaultRxFlow;
     Cpsw_Type cpswType = gCpswMainAppObj.cpswType;
+    CpswDma_OpenTxChPrms   cpswTxChCfg;
+    CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
+    CpswDma_UdmaRingPrms *pFqRingPrms;
 
     if (gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd == NULL)
     {
@@ -595,20 +590,63 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     CpswMcm_acquireHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType], &handleInfo);
     CpswMcm_coreAttach(&gCpswMainAppObj.mcmCmdIf[cpswType],coreId  ,&attachInfo);
 
-    CpswAppUtils_openNimuTxCh(handleInfo.hCpsw, 
-                             handleInfo.hUdmaDrv, 
-                             attachInfo.coreKey, 
-                             coreId, 
-                             &inArgs->txCfg,
-                             &outArgs->txInfo);
+    /* Open TX channel */
+    CpswDma_initTxChParams(&cpswTxChCfg);
 
-    CpswAppUtils_openNimuRxFlow(handleInfo.hCpsw, 
-                             handleInfo.hUdmaDrv, 
-                             attachInfo.coreKey, 
-                             coreId, 
-                             useDefaultFlow,
-                             &inArgs->rxCfg,
-                             &outArgs->rxInfo);
+    cpswTxChCfg.hUdmaDrv               = handleInfo.hUdmaDrv;
+    cpswTxChCfg.numTxPkts              = inArgs->txCfg.numPackets;
+    cpswTxChCfg.hCbArg                 = inArgs->txCfg.cbArg;
+    cpswTxChCfg.notifyCb               = inArgs->txCfg.notifyCb;
+    cpswTxChCfg.useProxy               = true;
+
+    cpswTxChCfg.disableCacheOpsFlag    = false;
+
+    cpswTxChCfg.ringMemAllocFxn        = &CpswAppMemUtils_allocRingMemFxn;
+    cpswTxChCfg.ringMemFreeFxn         = &CpswAppMemUtils_freeRingMemFxn;
+
+    cpswTxChCfg.dmaDescAllocFxn        = &CpswAppMemUtils_allocDmaDescFxn;
+    cpswTxChCfg.dmaDescFreeFxn         = &CpswAppMemUtils_freeDmaDescFxn;
+
+    CpswAppUtils_openTxCh(handleInfo.hCpsw,
+                          attachInfo.coreKey,
+                          coreId,
+                          &outArgs->txInfo.txChNum,
+                          &outArgs->txInfo.hTxChannel,
+                          &cpswTxChCfg);
+
+    /* Open RX Flow */
+    CpswDma_initRxFlowParams(&cpswRxFlowCfg);
+    cpswRxFlowCfg.notifyCb               = inArgs->rxCfg.notifyCb;
+    cpswRxFlowCfg.numRxPkts              = inArgs->rxCfg.numPackets;
+    cpswRxFlowCfg.hUdmaDrv               = handleInfo.hUdmaDrv;
+    cpswRxFlowCfg.hCbArg                 = inArgs->rxCfg.cbArg;
+    cpswRxFlowCfg.useProxy               = true;
+
+    /* Use ring monitor for the CQ ring of RX flow */
+    pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
+    pFqRingPrms->useRingMon = false;
+
+    cpswRxFlowCfg.disableCacheOpsFlag    = false;
+    cpswRxFlowCfg.rxFlowMtu              = attachInfo.rxMtu;
+
+    cpswRxFlowCfg.ringMemAllocFxn        = &CpswAppMemUtils_allocRingMemFxn;
+    cpswRxFlowCfg.ringMemFreeFxn         = &CpswAppMemUtils_freeRingMemFxn;
+
+    cpswRxFlowCfg.dmaDescAllocFxn        = &CpswAppMemUtils_allocDmaDescFxn;
+    cpswRxFlowCfg.dmaDescFreeFxn         = &CpswAppMemUtils_freeDmaDescFxn;
+
+    CpswAppUtils_openRxFlow(handleInfo.hCpsw,
+                            attachInfo.coreKey,
+                            coreId,
+                            useDefaultFlow,
+                            &outArgs->rxInfo.rxFlowStartIdx,
+                            &outArgs->rxInfo.rxFlowIdx,
+                            &outArgs->rxInfo.macAddr[0U],
+                            &outArgs->rxInfo.hRxFlow,
+                            &cpswRxFlowCfg);
+
+    CpswAppUtils_print("Host MAC address: ");
+    CpswAppUtils_printMacAddr(&outArgs->rxInfo.macAddr[0U]);
 
     outArgs->coreId = coreId;
     outArgs->coreKey = attachInfo.coreKey;
@@ -618,32 +656,54 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     outArgs->hUdmaDrv = handleInfo.hUdmaDrv;
     outArgs->printFxnCb = &CpswAppUtils_print;
     outArgs->isPhyLinkedFxn = &CpswApp_IsAllPhyLinked;
+    outArgs->isRingMonUsed = false;
+    outArgs->clkPeriodMs   = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
 }
 
 void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
 {
+    CpswDma_PktInfoQ fqPktInfoQ;
+    CpswDma_PktInfoQ cqPktInfoQ;
     bool useDefaultFlow = gCpswMainAppObj.useDefaultRxFlow;
     Cpsw_Type cpswType = gCpswMainAppObj.cpswType;
 
     CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxCmd != NULL);
     CpswAppUtils_assert(gCpswMainAppObj.mcmCmdIf[cpswType].hMboxResponse != NULL);
 
-    CpswAppUtils_closeNimuTxCh(releaseInfo->hCpsw, 
-                              releaseInfo->coreKey, 
-                              releaseInfo->coreId,
-                              &releaseInfo->txInfo,
-                              releaseInfo->freePktCbArg,
-                              releaseInfo->txFreePktCb);
-    CpswAppUtils_closeNimuRxFlow(releaseInfo->hCpsw, 
-                              releaseInfo->coreKey, 
-                              releaseInfo->coreId,
-                              useDefaultFlow,
-                              &releaseInfo->rxInfo,
-                              releaseInfo->freePktCbArg,
-                              releaseInfo->rxFreePktCb);
+    /* Close TX channel */
+    {
+        CpswUtils_initQ(&fqPktInfoQ);
+        CpswUtils_initQ(&cqPktInfoQ);
+        CpswAppUtils_closeTxCh(releaseInfo->hCpsw,
+                               releaseInfo->coreKey,
+                               releaseInfo->coreId,
+                               &fqPktInfoQ,
+                               &cqPktInfoQ,
+                               releaseInfo->txInfo.hTxChannel,
+                               releaseInfo->txInfo.txChNum);
+        releaseInfo->txFreePktCb(releaseInfo->freePktCbArg, &fqPktInfoQ, &cqPktInfoQ);
+    }
+
+    {
+        /* Close RX Flow */
+        CpswUtils_initQ(&fqPktInfoQ);
+        CpswUtils_initQ(&cqPktInfoQ);
+        CpswAppUtils_closeRxFlow(releaseInfo->hCpsw,
+                                 releaseInfo->coreKey,
+                                 releaseInfo->coreId,
+                                 useDefaultFlow,
+                                 &fqPktInfoQ,
+                                 &cqPktInfoQ,
+                                 releaseInfo->rxInfo.rxFlowStartIdx,
+                                 releaseInfo->rxInfo.rxFlowIdx,
+                                 releaseInfo->rxInfo.macAddr,
+                                 releaseInfo->rxInfo.hRxFlow);
+        releaseInfo->rxFreePktCb(releaseInfo->freePktCbArg, &fqPktInfoQ, &cqPktInfoQ);
+    }
 
     CpswMcm_coreDetach(&gCpswMainAppObj.mcmCmdIf[cpswType], releaseInfo->coreId, releaseInfo->coreKey);
     CpswMcm_releaseHandleInfo(&gCpswMainAppObj.mcmCmdIf[cpswType]);
+
 }
 
 void stackInitHook(void* hCfg)

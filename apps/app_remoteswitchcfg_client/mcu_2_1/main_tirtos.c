@@ -98,7 +98,7 @@
 #include "webpage.h"
 
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL (100)
-
+#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS (1U)
 
 #define IPC_RPMESSAGE_OBJ_SIZE  (256)
 #define VQ_TIMEOUT              (100)
@@ -899,7 +899,7 @@ static Void ipc_init(UArg a0, UArg a1)
     System_printf("IPC_echo_test (core : %s) .....\r\n",
             Ipc_mpGetSelfName());
 
-
+    Ipc_init(NULL);
     Ipc_loadResourceTable(appGetIpcResourceTable());
 
     /* Step2 : Initialize Virtio */
@@ -1083,7 +1083,8 @@ static void CpswRemoteApp_setRxFlowPrms(CpswDma_OpenRxFlowPrms *pRxFlowPrms,
                                         Udma_DrvHandle  hUdmaDrv,
                                         uint32_t numRxPackets,
                                         void     *cbArg,
-                                        Udma_EventCallback eventCb)
+                                        CpswDma_PktNotifyCb eventCb,
+                                        uint32_t rxFlowMtu)
 {
     pRxFlowPrms->startIdx               = rxStartFlowIdx;
     pRxFlowPrms->flowIdx                = rxFlowIdx;
@@ -1093,15 +1094,16 @@ static void CpswRemoteApp_setRxFlowPrms(CpswDma_OpenRxFlowPrms *pRxFlowPrms,
     pRxFlowPrms->ringMemAllocFxn        = &CpswAppMemUtils_allocRingMemFxn;
     pRxFlowPrms->ringMemFreeFxn         = &CpswAppMemUtils_freeRingMemFxn;
 
-    pRxFlowPrms->udmaEvtCfg.eventCb     = eventCb;
-    pRxFlowPrms->udmaEvtCfg.hEventCbArg = cbArg;
+    pRxFlowPrms->notifyCb               = eventCb;
 
     pRxFlowPrms->numRxPkts              = numRxPackets;
 
     pRxFlowPrms->disableCacheOpsFlag    = false;
     pRxFlowPrms->dmaDescAllocFxn        = &CpswAppMemUtils_allocDmaDescFxn;
     pRxFlowPrms->dmaDescFreeFxn         = &CpswAppMemUtils_freeDmaDescFxn;
-    pRxFlowPrms->hCallbackArg           = cbArg;
+    pRxFlowPrms->hCbArg                 = cbArg;
+    pRxFlowPrms->useProxy               = false;
+    pRxFlowPrms->rxFlowMtu              = rxFlowMtu;
 }
 
 
@@ -1286,7 +1288,8 @@ static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
                                       uint32_t rxFlowIdx,
                                       uint8_t  *macAddress,
                                       NimuCpswAppIf_RxConfig *rxConfig,
-                                      NimuCpswAppIf_RxHandleInfo *rxHandleInfo)
+                                      NimuCpswAppIf_RxHandleInfo *rxHandleInfo,
+                                      uint32_t rxFlowMtu)
 {
     CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
 
@@ -1302,7 +1305,8 @@ static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
                                 hUdmaDrv,
                                 rxConfig->numPackets,
                                 rxConfig->cbArg,
-                                rxConfig->eventCb);
+                                rxConfig->notifyCb,
+                                rxFlowMtu);
     rxHandleInfo->hRxFlow = CpswDma_openRxFlow(&cpswRxFlowCfg);
 
     assert(rxHandleInfo->hRxFlow != NULL);
@@ -1428,7 +1432,7 @@ static void CpswRemoteApp_setTxChPrms(CpswDma_OpenTxChPrms *pTxChPrms,
                                       Udma_DrvHandle  hUdmaDrv,
                                       uint32_t numTxPackets,
                                       void     *cbArg,
-                                      Udma_EventCallback eventCb)
+                                      CpswDma_PktNotifyCb eventCb)
 {
     pTxChPrms->chNum               = txChNum;
     pTxChPrms->hUdmaDrv            = hUdmaDrv;
@@ -1442,11 +1446,9 @@ static void CpswRemoteApp_setTxChPrms(CpswDma_OpenTxChPrms *pTxChPrms,
     pTxChPrms->dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
     pTxChPrms->dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
 
-    pTxChPrms->hCallbackArg        = cbArg;
+    pTxChPrms->hCbArg        = cbArg;
 
-    pTxChPrms->udmaEvtCfg.hEventCbArg = cbArg;
-
-    pTxChPrms->udmaEvtCfg.eventCb = eventCb;
+    pTxChPrms->notifyCb = eventCb;
 
 }
 
@@ -1484,7 +1486,7 @@ static void CpswRemoteApp_openNDKTxCh(Mailbox_Handle hCmdMbx,
                               hUdmaDrv,
                               txConfig->numPackets,
                               txConfig->cbArg,
-                              txConfig->eventCb);
+                              txConfig->notifyCb);
     txHandleInfo->hTxChannel = CpswDma_openTxCh(&cpswTxChCfg);
     assert (NULL != txHandleInfo->hTxChannel);
 }
@@ -1729,6 +1731,8 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
     outArgs->printFxnCb = (Cpsw_PrintFxnCb)&ConPrintf;
     outArgs->isPhyLinkedFxn = &CpswRemoteApp_IsAllPhyLinked;
+    outArgs->isRingMonUsed = false;
+    outArgs->clkPeriodMs   = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
 
     gRemoteAppObj.hDma    = CpswRemoteApp_initCpswDma(cpswType, outArgs->hUdmaDrv);
 
@@ -1791,7 +1795,8 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
                               rxFlowIdOffset,
                               gRemoteAppObj.macAddr,
                               &inArgs->rxCfg,
-                              &outArgs->rxInfo);
+                              &outArgs->rxInfo,
+                              outArgs->hostPortRxMtu);
     gRemoteAppObj.coreKey = outArgs->coreKey;
     gRemoteAppObj.hCpsw   = outArgs->hCpsw;
 }
@@ -1838,7 +1843,7 @@ static bool CpswRemoteApp_isPhyLinked(Mailbox_Handle hCmdMbx,
     inArgs.portNum = portNum;
 
 
-    msg.req.u.ioctl.cmd = CPSW_IOCTL_IS_PHY_LINKED;
+    msg.req.u.ioctl.cmd = CPSW_IOCTL_IS_PORT_LINK_UP;
     msg.req.u.ioctl.core_key = coreKey;
     msg.req.u.ioctl.id       = (uint64_t) hCpsw;
     msg.req.u.ioctl.inArgsSize = sizeof(inArgs);
