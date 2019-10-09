@@ -35,7 +35,7 @@ PROFILE?=debug
 
 # Treat compiler warning as error
 # Supported Values: yes | no
-TREAT_WARNINGS_AS_ERROR ?= yes
+TREAT_WARNINGS_AS_ERROR ?= false
 
 # Build a specific CPU type's based on CPU flags status defined above
 ifneq (,$(filter yes,$(BUILD_CPU_MCU1_0) $(BUILD_CPU_MCU1_1) $(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0) $(BUILD_CPU_MCU3_1)))
