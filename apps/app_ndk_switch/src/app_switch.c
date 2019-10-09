@@ -544,7 +544,7 @@ static Void CpswApp_cpuLoadTask(UArg a0, UArg a1)
 
 static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
 {
-    bool runflag = true;
+    volatile bool runflag = true;
     int32_t status = CPSW_EFAIL;
     CpswMcm_HandleInfo handleInfo;
     Cpsw_AttachCoreOutArgs attachInfo;
@@ -587,7 +587,8 @@ static Void CpswApp_uartMenuTskFxn(UArg a0, UArg a1)
         uint8_t srcMacAddr[ETH_MAC_ADDR_LEN];
         uint8_t dstMacAddr[ETH_MAC_ADDR_LEN];
         uint8_t ingressPortNum, egressPortNum;
-        uint32_t vlanId, portmask, isEnable, rate;
+        uint32_t vlanId, portmask, isEnable;
+        uint32_t rate = 0U;
         int32_t choice = 0U;
 
         CpswAppUtils_print("\n\rEthFw: BOARD IP: %s", gIpAddrStr);

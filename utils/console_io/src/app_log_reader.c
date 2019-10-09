@@ -102,11 +102,11 @@ int32_t  appLogRdInit(app_log_init_prm_t *prm)
             obj->device_write = prm->device_write;
             obj->task_stack = g_app_log_rd_task_stack;
             obj->task_stack_size = APP_LOG_RD_TASK_STACK_SIZE;
-    
+
             for(cpu_id=0; cpu_id<obj->log_rd_max_cpus; cpu_id++)
             {
                 app_log_cpu_shared_mem_t *cpu_shared_mem;
-    
+
                 cpu_shared_mem = &obj->shared_mem->cpu_shared_mem[cpu_id];
                 cpu_shared_mem->log_rd_idx = 0;
             }
@@ -227,7 +227,8 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
 
 void* appLogRdRun(app_log_rd_obj_t *obj)
 {
-    uint32_t done = 0, cpu_id;
+    volatile uint32_t done = 0;
+    uint32_t cpu_id = 0;
     uint32_t num_bytes, str_len;
 
     while(!done)
@@ -254,9 +255,9 @@ void* appLogRdRun(app_log_rd_obj_t *obj)
                         if(obj->device_write)
                         {
                             snprintf(obj->print_buf, APP_LOG_PRINT_BUF_MAX, "[%-6s] %s\r\n",
-                                cpu_shared_mem->log_cpu_name, 
+                                cpu_shared_mem->log_cpu_name,
                                 obj->buf);
-                            
+
                             obj->device_write(obj->print_buf, APP_LOG_PRINT_BUF_MAX);
                         }
                     }
