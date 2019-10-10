@@ -640,7 +640,7 @@ static int32_t CpswApp_getRxTxHandle(void)
 
         /* Use ring monitor for the CQ ring of RX flow */
         pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
-        pFqRingPrms->useRingMon = true;
+        pFqRingPrms->useRingMon = false;
         pFqRingPrms->ringMonCfg.mode = TISCI_MSG_VALUE_RM_MON_MODE_THRESHOLD;
         /* Ring mon low threshold */
     #if defined _DEBUG_
@@ -770,7 +770,7 @@ static void CpswApp_pktRxTx(void)
                 CpswAppUtils_print("# pkts=%d\n", gCpswInterVlanAppObj.num_pkts);
                 #endif
             }
-            
+
         }
 
      }

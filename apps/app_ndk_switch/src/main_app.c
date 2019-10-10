@@ -573,7 +573,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
 
     /* Use ring monitor for the CQ ring of RX flow */
     pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
-    pFqRingPrms->useRingMon = true;
+    pFqRingPrms->useRingMon = false;
     pFqRingPrms->ringMonCfg.mode = TISCI_MSG_VALUE_RM_MON_MODE_THRESHOLD;
     /* Ring mon low threshold */
 #if defined _DEBUG_
