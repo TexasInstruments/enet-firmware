@@ -5,5 +5,5 @@ var searchData=
   ['01002_5fvalidation_2emd',['01002_validation.md',['../01002__validation_8md.html',1,'']]],
   ['01003_5fccs_5fconnection_2emd',['01003_ccs_connection.md',['../01003__ccs__connection_8md.html',1,'']]],
   ['05000_5fethfw_5fdemos_2emd',['05000_ethfw_demos.md',['../05000__ethfw__demos_8md.html',1,'']]],
-  ['05001_5fdemo_5fethfw_5fl2_5fswitching_2emd',['05001_demo_ethfw_l2_switching.md',['../05001__demo__ethfw__l2__switching_8md.html',1,'']]]
+  ['05001_5fdemo_5fethfw_5fcombined_2emd',['05001_demo_ethfw_combined.md',['../05001__demo__ethfw__combined_8md.html',1,'']]]
 ];

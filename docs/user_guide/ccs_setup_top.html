@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('ccs_setup_top.html','');});
 <div class="textblock"><hr/>
 <h1><a class="anchor" id="ethfw_download_instal_ccs"></a>
 Download and Install CCS</h1>
-<p>Code Composer Studio is an integrated development environment (IDE) that supports TI's Microcontroller and Embedded Processors portfolio. It provides useful tools to develop and debug embedded applications.</p>
+<p>Code Composer Studio is an integrated development environment (IDE) that supports TI's Micro controller and Embedded Processors portfolio. It provides useful tools to develop and debug embedded applications.</p>
 <p>Please visit Code Composer Studio product <a href="http://www.ti.com/tool/ccstudio">page</a> for more information or visit the CCS Downloads <a href="http://software-dl.ti.com/ccs/esd/documents/ccs_downloads.html">page</a>.</p>
 <p>Supported CCS version for J721E EVM is 9.0.1.00004 as shown below.</p>
 <div class="image">
@@ -133,9 +133,9 @@ Creating a Target Configuration File</h1>
 <div class="caption">
 Creating CCS Target Configuration File</div></div>
 <ol type="1">
-<li>Open launch.js script located at gateway_demos/ccs_tools/ccsLoadDmsc/j721e/ and change<ul>
-<li><b>gelFilePath</b> to [Install Dir]/gateway_demos/ccs_tools/J721E</li>
-<li><b>pdkPath</b> to [Install Dir]/gateway_demos/ccs_tools/ccsLoadDmsc/j721e</li>
+<li>Open launch.js script located at below path [SDK_INSTALL_PATH]\ and change<ul>
+<li><b>gelFilePath</b> to your GEL files in the CCS installation.</li>
+<li><b>pdkPath</b> to [SDK_INSTALL_PATH]</li>
 </ul>
 </li>
 </ol>
@@ -153,7 +153,7 @@ Launch CCS Target Configuration</div></div>
 </li>
 <li>Go to the <b>View</b> Target configurations and launch a target configuration is done by right clicking on it.</li>
 <li>Go to the <b>View</b> menu and then select <b>Scripting Console </b></li>
-<li><p class="startli">Run the launch.js script provided in gateway_demos/ccs_tools/ccsLoadDmsc/j721e/ on scripting console to load and execute DMSC firmware binary. This step can take considerable time as it configures PLL etc. in the SOC via GEL files and configures DDR.</p>
+<li><p class="startli">Run the launch.js script located in the pdk_xx_xx_xx\ on scripting console to load and execute DMSC firmware binary. This step can take considerable time as it configures PLL etc. in the SOC via GEL files and configures DDR.</p>
 <div class="image">
 <img src="launch_dss_script.png" alt="launch_dss_script.png"/>
 <div class="caption">
@@ -171,7 +171,7 @@ Launch script Complete</div></div>
 MAIN_Cortex_R5_0_0</div></div>
 </li>
 <li>Go to the <b>Run</b> menu and then select <b>Load</b> -&gt; <b>Select Program to Load</b></li>
-<li><p class="startli">In the <b>Load Program</b> window, browse the EthFw Layer-2 switching application binary. It can be found at gateway_demos/l2_switching/binaries/debug/ethfw_app_ndk_switch_tirtos_mcu_2_0.xer5f</p>
+<li><p class="startli">In the <b>Load Program</b> window, browse the EthFw Layer-2 switching application binary.</p>
 <div class="image">
 <img src="demo_l2_switching_steps_4.png" alt="demo_l2_switching_steps_4.png"/>
 <div class="caption">

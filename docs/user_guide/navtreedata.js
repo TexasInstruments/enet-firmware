@@ -8,7 +8,8 @@ var NAVTREE =
     ] ],
     [ "User Guide", "ethfw_c_ug_top.html", [
       [ "EthFw Demos", "ethfw_c_ug_top.html#ethfw_c_ug_ethfw_demos", [
-        [ "EthFw Switching & TCP/IP Apps Demo", "ethfw_c_ug_top.html#ethfw_depend_eg", null ]
+        [ "EthFw Switching & TCP/IP Apps Demo", "ethfw_c_ug_top.html#ethfw_switching_demo", null ],
+        [ "Inter-VLAN Routing", "ethfw_c_ug_top.html#ethfw_intervlan_demo", null ]
       ] ],
       [ "Supported Features", "ethfw_c_ug_top.html#ethfw_c_ug_features_list", null ],
       [ "Dependencies", "ethfw_c_ug_top.html#ethfw_instal_top", [

@@ -1,24 +1,34 @@
 var demo_top =
 [
-    [ "Layer-2 Switching & TCP/IP Apps", "demo_l2_switching_ndk_top.html", [
-      [ "Introduction", "demo_l2_switching_ndk_top.html#demo_l2_switching_intro", [
-        [ "Dependencies", "demo_l2_switching_ndk_top.html#demo_l2_switching_depend", null ]
+    [ "Ethernet Firmware differentiating features demos", "demo_ethfw_combined_top.html", [
+      [ "Introduction", "demo_ethfw_combined_top.html#ethfw_demo_intro", [
+        [ "Dependencies", "demo_ethfw_combined_top.html#ethfw_demo_depend", null ]
       ] ],
-      [ "Compile Time Configurations", "demo_l2_switching_ndk_top.html#demo_l2_switching_demo_cfg", null ],
-      [ "Test Setup", "demo_l2_switching_ndk_top.html#demo_l2_switching_setup_cfg", [
-        [ "Pre-requisites", "demo_l2_switching_ndk_top.html#demo_l2_switching_prerequisites", [
-          [ "Plex server set up", "demo_l2_switching_ndk_top.html#demo_l2_switching_prereq_plextv", null ],
-          [ "Setting static IPs", "demo_l2_switching_ndk_top.html#demo_l2_switching_static_ips", null ]
+      [ "Compile Time Configurations", "demo_ethfw_combined_top.html#ethfw_demo_cfg", null ],
+      [ "Test Setup", "demo_ethfw_combined_top.html#ethfw_demo_setup_cfg", [
+        [ "Pre-requisites", "demo_ethfw_combined_top.html#ethfw_demo_prerequisites", [
+          [ "Plex server set up", "demo_ethfw_combined_top.html#ethfw_demo_prereq_plextv", null ],
+          [ "PackEth tool", "demo_ethfw_combined_top.html#ethfw_demo_prereq_packEth", null ],
+          [ "Python3 and Pip3", "demo_ethfw_combined_top.html#ethfw_demo_prereq_python", null ],
+          [ "Setting static IPs", "demo_ethfw_combined_top.html#ethfw_demo_static_ips", null ]
         ] ],
-        [ "CCS Boot", "demo_l2_switching_ndk_top.html#demo_l2_switching_CCS", [
-          [ "Prerequisites", "demo_l2_switching_ndk_top.html#demo_l2_switchin_CCS_prereqs", null ],
-          [ "Steps", "demo_l2_switching_ndk_top.html#demo_l2_switching_CCS_steps", null ]
+        [ "CCS Boot", "demo_ethfw_combined_top.html#ethfw_demo_CCS", [
+          [ "Prerequisites", "demo_ethfw_combined_top.html#demo_l2_switchin_CCS_prereqs", null ],
+          [ "Steps", "demo_ethfw_combined_top.html#ethfw_demo_CCS_steps", null ]
         ] ],
-        [ "SD Card Boot", "demo_l2_switching_ndk_top.html#demo_l2_switching_sdcard", [
-          [ "Steps", "demo_l2_switching_ndk_top.html#demo_l2_switching_sdcard_steps", null ]
+        [ "SD Card Boot", "demo_ethfw_combined_top.html#ethfw_demo_sdcard", [
+          [ "Steps", "demo_ethfw_combined_top.html#ethfw_demo_sdcard_steps", null ]
         ] ],
-        [ "Sample output", "demo_l2_switching_ndk_top.html#demo_l2_switching_output", null ]
+        [ "HTTP Client Page (http://192.168.1.203)", "demo_ethfw_combined_top.html#ethfw_http_client_page", null ],
+        [ "Plex TV Client", "demo_ethfw_combined_top.html#ethfw_plex_tv_client_usage", null ],
+        [ "Virtual Net Driver on A72", "demo_ethfw_combined_top.html#ethfw_virt_net_driver", null ],
+        [ "GUI Configurator tool", "demo_ethfw_combined_top.html#ethfw_gui_tool_configuration", null ],
+        [ "Inter VLAN Routing", "demo_ethfw_combined_top.html#ethfw_intervlan_routing", [
+          [ "Software Inter VLAN Routing", "demo_ethfw_combined_top.html#ethfw_sw_intervlan_routing", null ],
+          [ "Hardware Inter VLAN Routing", "demo_ethfw_combined_top.html#ethfw_hw_intervlan_routing", null ]
+        ] ],
+        [ "Sample output", "demo_ethfw_combined_top.html#ethfw_demo_output", null ]
       ] ],
-      [ "Document Revision History", "demo_l2_switching_ndk_top.html#demo_l2_switching_rev_history", null ]
+      [ "Document Revision History", "demo_ethfw_combined_top.html#ethfw_demo_rev_history", null ]
     ] ]
 ];

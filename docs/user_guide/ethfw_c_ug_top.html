@@ -86,7 +86,8 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#ethfw_c_ug_ethfw_demos">EthFw Demos</a><ul><li class="level2"><a href="#ethfw_depend_eg">EthFw Switching &amp; TCP/IP Apps Demo</a></li>
+<ul><li class="level1"><a href="#ethfw_c_ug_ethfw_demos">EthFw Demos</a><ul><li class="level2"><a href="#ethfw_switching_demo">EthFw Switching &amp; TCP/IP Apps Demo</a></li>
+<li class="level2"><a href="#ethfw_intervlan_demo">Inter-VLAN Routing</a></li>
 </ul>
 </li>
 <li class="level1"><a href="#ethfw_c_ug_features_list">Supported Features</a></li>
@@ -142,17 +143,34 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <hr/>
  <h1><a class="anchor" id="ethfw_c_ug_ethfw_demos"></a>
 EthFw Demos</h1>
-<p>EthFw Demos showcases usage and integration of EthFw to use &amp; configure CPSW9G IP in the Jacinto 7 devices. These peripheral/board level sample/demo examples demonstrates the capabilities of the CPSW9G IP features &amp; EthFw.</p>
+<p>EthFw Demos showcases usage and integration of EthFw to use &amp; configure CPSW9G IP in the Jacinto 7 devices. These peripheral/board level sample/demo examples demonstrates the capabilities of the CPSW9G IP features &amp; EthFw stack.</p>
 <p>Listed below are some of the key applications. </p><table class="doxtable">
 <tr>
 <th>Demo </th><th>Comments  </th></tr>
 <tr>
 <td>L2 Switching </td><td>Configures Switch to enable switching between its external ports </td></tr>
+<tr>
+<td>L2/L3 address based classification </td><td>Illustrates traffic steering to A72(linux) and R5F(RTOS) based on L2 header. Illustrate with iperf and web server traffic from PC1/PC2 </td></tr>
+<tr>
+<td>Inter-VLAN Routing (SW)</td><td>Showcases Inter-VLAN routing using lookup and forward operations being done in SW(R5). Showcase low-level lookup and forwarding on top of CPSW LLD </td></tr>
+<tr>
+<td>Inter-VLAN Routing (HW)</td><td>Illustrates hardware offload support for Inter-VLAN routing. Illustrate Line rate routing with no additional impact on R5 CPU load </td></tr>
 </table>
-<h2><a class="anchor" id="ethfw_depend_eg"></a>
+<h2><a class="anchor" id="ethfw_switching_demo"></a>
 EthFw Switching &amp; TCP/IP Apps Demo</h2>
 <p>This demo showcases switching capabilities of the J721E integrated Ethernet Switch (CPSW9G) for features like VLAN, Multicast etc. This demo also showcases TI NDK (TCP/IP) integration into EthFw. In this demo we showcase usage of HTTP server.</p>
-<p>For further information, please refer to the <a class="el" href="demo_l2_switching_ndk_top.html">Layer-2 Switching &amp; TCP/IP Apps</a> demo application documentation.</p>
+<h2><a class="anchor" id="ethfw_intervlan_demo"></a>
+Inter-VLAN Routing</h2>
+<p>This demo illustrates Line-rate Inter-VLAN routing in hardware without any additional load on EthFw core. This demo showcases InterVLAN routing capability of CPSW IP along with software fall-back support. CPSW ALE classifier feature is used per flow to characterize the route and configure the egress operation.</p>
+<p>Available egress operations</p><ul>
+<li>Replace Destination (MAC) Address</li>
+<li>Replace Source (MAC) Address</li>
+<li>Replace VLAN ID</li>
+<li>Optional decrement of Time To Live (TTL)</li>
+<li>Supports IPv4 (TTL) and IPv6 (Hop Limit) fields</li>
+<li>Packets with 0 or 1 TTL/Hop Limit are sent to the host for error processing</li>
+</ul>
+<p>For further information, please refer to the demo_l2_switching_ndk_top demo application documentation.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_c_ug_features_list"></a>
@@ -161,13 +179,15 @@ Supported Features</h1>
 <tr>
 <th>Feature </th><th>Comments  </th></tr>
 <tr>
-<td>L2 Switching </td><td>Support for configuration of switch to enable L2 Switching between external ports </td></tr>
+<td>L2 Switching </td><td>Support for configuration of switch to enable L2 Switching between external ports with VLAN, multi-cast </td></tr>
 <tr>
-<td>VLAN </td><td>Support for creating and deleting VLAN </td></tr>
-<tr>
-<td>Multicast </td><td>Support for enabling/disabling multicast </td></tr>
+<td>Inter-VLAN Routing </td><td>Inter-VLAN routing configuration in HW with software fall-back support </td></tr>
 <tr>
 <td>NDK Integration </td><td>Integration of TCP/IP stack enabling TCP, UDP, HTTP apps </td></tr>
+<tr>
+<td>Remote configuration server </td><td>Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver </td></tr>
+<tr>
+<td>Resource management library </td><td>Resource management library for CPSW resource sharing across cores. </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
@@ -199,7 +219,7 @@ J721E EVM GESI Expansion Board</h3>
 <img src="GESI_Board.jpg" alt="GESI_Board.jpg"/>
 <div class="caption">
 J721E EVM GESI Board Top View</div></div>
-<p> There are four RGMII PHYs in the J721E GESI board as show in the following image. They will be referred to as <b>MAC Port 0</b>, <b>MAC Port 1</b>, <b>MAC Port 2</b> and <b>MAC Port 3</b> thoughout this document.</p>
+<p> There are four RGMII PHYs in the J721E GESI board as show in the following image. They will be referred to as <b>MAC Port 0</b>, <b>MAC Port 1</b>, <b>MAC Port 2</b> and <b>MAC Port 3</b> throughout this document.</p>
 <div class="image">
 <img src="GESI_RJ45_SideView.png" alt="GESI_RJ45_SideView.png"/>
 <div class="caption">
@@ -221,7 +241,7 @@ CSL</h4>
 <p>EthFw uses CSL to determine peripheral addresses and program peripheral registers.</p>
 <h4><a class="anchor" id="ethfw_depend_pdk_udma"></a>
 UDMA</h4>
-<p>Unified DMA (UDMA) is an integral part of the Jacinto 7 devices and is in charge of moving data between periperals and memory.</p>
+<p>Unified DMA (UDMA) is an integral part of the Jacinto 7 devices and is in charge of moving data between peripherals and memory.</p>
 <p>PDK includes an UDMA LLD which provides APIs that the CPSW LLD relies on to send and receive packets to the CPSW's host port.</p>
 <h4><a class="anchor" id="ethfw_depend_pdk_cpsw"></a>
 CPSW LLD</h4>
@@ -271,7 +291,7 @@ Utilities Directory Structure</h2>
 Utilities Directory Structure</div></div>
  <h2><a class="anchor" id="ethfw_dir_demo"></a>
 Demo Aplication Sources Directory Structure</h2>
-<p>Source code of the EthFw demo applications ben found in the <b>apps</b> directory. For instance, below image shows the directory structure of the L2 Switching application.</p>
+<p>Source code of the EthFw demo applications is in the <b>apps</b> directory. For instance, below image shows the directory structure of the L2 Switching application.</p>
 <div class="image">
 <img src="c_ug_dir_l2_switching_demo.png" alt="c_ug_dir_l2_switching_demo.png"/>
 <div class="caption">
@@ -337,7 +357,7 @@ Profiles</h2>
 Examples Linker File (Select memory location to hold example binary)</h2>
 <p>The example applications use different memories and this could be changed and/or reconfigured via linker command files.</p>
 <ul>
-<li><b>linker_mem_map.cmd</b> is autogenerated file using PyTI_PSDK_RTOS tool which defines memory layout (addresses and sizes)<ul>
+<li><b>linker_mem_map.cmd</b> is auto generated file using PyTI_PSDK_RTOS tool which defines memory layout (addresses and sizes)<ul>
 <li>Available at <code>&lt;ethfw_xx_yy_zz_bb&gt;/apps/app_&lt;name&gt;/&lt;core&gt;/linker_mem_map.cmd</code></li>
 </ul>
 </li>
@@ -355,7 +375,7 @@ Running Examples</h1>
 <h2><a class="anchor" id="ethfw_run_ccs_load_binary"></a>
 Load Example Binaries</h2>
 <p>Refer to <a class="el" href="demo_top.html">EthFw Demo Applications</a> section for a full list of EthFw demo applications.</p>
-<p>For detailed steps to load and run the L2 Switching application, please refer to its <a class="el" href="demo_l2_switching_ndk_top.html#demo_l2_switching_setup_cfg">Test Setup</a> section.</p>
+<p>For detailed steps to load and run the L2 Switching application, please refer to its demo_l2_switching_setup_cfg section.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_uninstall"></a>
@@ -370,9 +390,7 @@ Known issues</h1>
 <tr>
 <th>JIRA ID </th><th>Issue Summary </th><th>Workaround  </th></tr>
 <tr>
-<td>PROC_BRDS-658 </td><td>MAC PORT 0 packet drop seen of Rx/Tx - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J7 EVM. This port is labelled as PRG1_RGMII1_B (image below) </td><td>Don’t connect this port </td></tr>
-<tr>
-<td>PROC_BRDS-659 </td><td>J7 Ethernet expansion board causing interference in the GESI MDIO PHYs - QSGMII expansion board is causing instabilities in the MDIO bus.</td><td>Remove ETH expansion board to avoid interference. </td></tr>
+<td>PROC_BRDS-658 </td><td>MAC PORT 0 packet drop seen of Rx/TX - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J7 EVM. This port is labelled as PRG1_RGMII1_B (image below) </td><td>Don’t connect this port </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html#ethfw_known_issues">Back To Top</a></p>
 <hr/>
@@ -395,7 +413,7 @@ Demo Application - Profile: Debug</h2>
 <tr>
 <td><code>-eo=.obj</code> </td><td>Output Object file extension </td></tr>
 <tr>
-<td><code>--float_support=vfpv3d16</code> </td><td>VFP coprocessor is enabled </td></tr>
+<td><code>--float_support=vfpv3d16</code> </td><td>VFP co-processor is enabled </td></tr>
 <tr>
 <td><code>--preproc_with_compile</code> </td><td>Continue compilation after using -pp<code>&lt;X&gt;</code> options </td></tr>
 <tr>
@@ -429,7 +447,7 @@ Demo Application - Profile: Release</h2>
 <tr>
 <td><code>-eo=.obj</code> </td><td>Output Object file extension </td></tr>
 <tr>
-<td><code>--float_support=vfpv3d16</code> </td><td>VFP coprocessor is enabled </td></tr>
+<td><code>--float_support=vfpv3d16</code> </td><td>VFP co-processor is enabled </td></tr>
 <tr>
 <td><code>--preproc_with_compile</code> </td><td>Continue compilation after using -pp<code>&lt;X&gt;</code> options </td></tr>
 <tr>
