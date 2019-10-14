@@ -8,7 +8,7 @@
 
 This application demonstrates basic Jacinto 7 integrated switch differentiating features
 like InterVLAN Routing in Hardware, firewall, packet header based classification along with
-Layer-2 switching with VLAN, multicast and Software based InterVLAN Routing among the ports.
+Layer-2 switching with VLAN, multi-cast and Software based InterVLAN Routing among the ports.
 The traffic forwarding process among the ports don't require CPU involved or DMA bandwidth as
 everything is completely handled by CPSW hardware.
 
@@ -21,7 +21,7 @@ Below are top-level features demonstrated:
 
  - Basic L2 Switching
  - Switching with VLAN
- - Multicast switching
+ - Multi-cast switching
  - HTTP server
  - Send/Receive apps over TCP/UDP
  - Support for Remote Cores
@@ -39,7 +39,7 @@ The Ethernet Firmware demo application is in charge of:
 This application runs on the J721E EVM with GESI (Gateway/Ethernet
 Switch/Industrial Expansion Board) board. The demo application has a HTTP server
 hosting a web page which can be accessed by any device connected to the CPSW
-switch. A GUI based control interface to enable/disable/configure features like VLAN, multicast,
+switch. A GUI based control interface to enable/disable/configure features like VLAN, multi-cast,
 rate-limiting, InterVLAN Routing and also to show the load of the CPU is added in the release.
 
 A video streaming application (Ex - Plex Media Server, VLC) can be used to
@@ -54,7 +54,7 @@ The switching demo uses www.plex.tv media server for showing video streaming.
 > media server and make sure it adheres to your organization's policy before
 > using and configuring it.
 
-The IP address of J721E EVM is used to access the TCP/IP demo webpage from any
+The IP address of J721E EVM is used to access the TCP/IP demo web page from any
 device connected to the CPSW switch.
 
 ![](demo_l2_switching_diagram.png "Layer-2 Switching Application Diagram")
@@ -200,11 +200,11 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
 
 ### Steps {#ethfw_demo_sdcard_steps}
 
--# Create a bootable SD card with Linux bootloader, kernel and filesystem.
+-# Create a bootable SD card with Linux bootloader, kernel and file system.
    For details about SD card creation, refer to the Processor SDK Linux
    Automotive User's Guide.
 
--# Copy the demo application to the **firmware** directory of Linux filesystem in SD card:
+-# Copy the demo application to the **firmware** directory of Linux file system in SD card:
 
        cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/_demo_.xer5f <MOUNT>/rootfs/lib/firmware/
 

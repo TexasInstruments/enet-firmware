@@ -7,7 +7,7 @@
 # Download and Install CCS {#ethfw_download_instal_ccs}
 
 Code Composer Studio is an integrated development environment (IDE) that supports
-TI's Microcontroller and Embedded Processors portfolio. It provides useful tools
+TI's Micro controller and Embedded Processors portfolio. It provides useful tools
 to develop and debug embedded applications.
 
 Please visit Code Composer Studio product [page](http://www.ti.com/tool/ccstudio)
