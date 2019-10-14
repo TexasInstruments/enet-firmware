@@ -242,6 +242,11 @@ static bool CpswRemoteApp_isPhyLinked(Mailbox_Handle hCmdMbx,
 
 char *VerStr = "NIMU CPSW Example";
 
+//hack for release mode build fix TODO fix this
+void localAssert(bool cond)
+{
+    assert(cond);
+}
 
 void stackInitHook(void* hCfg)
 {
@@ -277,14 +282,14 @@ void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
                          gRemoteAppObj.ipv4Addr[2],
                          gRemoteAppObj.ipv4Addr[3]);
 
-    CpswRemoteApp_registerIPV4Addr(gRemoteAppObj.hCmdMbx, 
+    CpswRemoteApp_registerIPV4Addr(gRemoteAppObj.hCmdMbx,
                                  gRemoteAppObj.hResponseMbx,
-                                 gRemoteAppObj.hCpsw, 
+                                 gRemoteAppObj.hCpsw,
                                  gRemoteAppObj.coreKey,
                                  gRemoteAppObj.macAddr,
                                  gRemoteAppObj.ipv4Addr);
-                           
-    
+
+
     System_printf("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
 
 }
@@ -636,7 +641,7 @@ static void  rdevEthSwitchApp_createMbx(Mailbox_Handle *pMailboxHandle)
             NULL);
 }
 
-//static 
+//static
 void  rdevEthSwitchApp_deleteMbx(Mailbox_Handle *pMailboxHandle)
 {
     Mailbox_delete(pMailboxHandle);
@@ -652,7 +657,7 @@ static void requestLoopFn(UArg a0, UArg a1)
     while(TRUE) {
         mbxStatus =
             Mailbox_pend(hMailbox, &msg, BIOS_WAIT_FOREVER);
-        assert(mbxStatus == TRUE);
+        localAssert(mbxStatus == TRUE);
         switch (msg.req.cmd)
         {
             case ETHSWT_CMD_PING:
@@ -799,10 +804,10 @@ static void requestLoopFn(UArg a0, UArg a1)
                 break;
             }
         }
-        assert(msg.req.hResponseMbx != NULL);
+        localAssert(msg.req.hResponseMbx != NULL);
         mbxStatus =
             Mailbox_post(msg.req.hResponseMbx, &msg, BIOS_WAIT_FOREVER);
-        assert(mbxStatus == TRUE);
+        localAssert(mbxStatus == TRUE);
     }
 }
 
@@ -812,8 +817,8 @@ static void startMessageAndRequestLoop(uint32_t device_id)
     Task_Params params;
 
 
-    assert(gRemoteAppObj.hCmdMbx != NULL);
-    assert(gRemoteAppObj.hResponseMbx != NULL);
+    localAssert(gRemoteAppObj.hCmdMbx != NULL);
+    localAssert(gRemoteAppObj.hResponseMbx != NULL);
 
     Task_Params_init(&params);
     params.priority = 3;
@@ -829,8 +834,8 @@ static Void printDevInfo(struct rpmsg_kdrv_ethswitch_device_data *ethDevData)
     char *tf[] = {"false", "true"};
 
     System_printf("ETHFW Version:%2d.%2d.%2d\n",
-                  ethDevData->fw_ver.major, 
-                  ethDevData->fw_ver.minor, 
+                  ethDevData->fw_ver.major,
+                  ethDevData->fw_ver.minor,
                   ethDevData->fw_ver.rev);
     System_printf("ETHFW Build Date (YYYY/MMM/DD):%c%c%c%c/%c%c%c/%c%c\n",
                   ethDevData->fw_ver.year[0],ethDevData->fw_ver.year[1],ethDevData->fw_ver.year[2],ethDevData->fw_ver.year[3],
@@ -1033,7 +1038,7 @@ static bool CpswRemoteApp_isAllPortLinked(Cpsw_Handle hCpsw)
     return isPhyLinked;
 }
 
-struct Udma_DrvObj udmaDrvObj;
+static struct Udma_DrvObj udmaDrvObj;
 
 static Udma_DrvHandle CpswRemoteApp_udmaOpen(void)
 {
@@ -1052,8 +1057,8 @@ static Udma_DrvHandle CpswRemoteApp_udmaOpen(void)
     initPrms.printFxn = (Udma_PrintFxn)&System_printf;
     retVal = Udma_init(hUdmaDrv, &initPrms);
 
-    /* assert if UDMA failed to open */
-    assert(UDMA_SOK == retVal);
+    /* localAssert if UDMA failed to open */
+    localAssert(UDMA_SOK == retVal);
 
     return hUdmaDrv;
 }
@@ -1065,16 +1070,16 @@ static void CpswRemoteApp_sendCmd(Mailbox_Handle hCmdMbx,
 {
     Bool mbxStatus;
 
-    assert(hCmdMbx != NULL);
-    assert(hResponseMbx != NULL);
+    localAssert(hCmdMbx != NULL);
+    localAssert(hResponseMbx != NULL);
 
     msg->req.cmd = cmd;
     msg->req.hResponseMbx = hResponseMbx;
     mbxStatus = Mailbox_post(hCmdMbx, msg, BIOS_WAIT_FOREVER);
-    assert(mbxStatus == TRUE);
+    localAssert(mbxStatus == TRUE);
     mbxStatus = Mailbox_pend(hResponseMbx, msg, BIOS_WAIT_FOREVER);
-    assert(mbxStatus == TRUE);
-    assert(msg->res.retVal == CPSW_SOK);
+    localAssert(mbxStatus == TRUE);
+    localAssert(msg->res.retVal == CPSW_SOK);
 }
 
 static void CpswRemoteApp_setRxFlowPrms(CpswDma_OpenRxFlowPrms *pRxFlowPrms,
@@ -1196,7 +1201,7 @@ static void CpswRemoteApp_allocRxFlow(Mailbox_Handle hCmdMbx,
     CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_ALLOCRX, &msg);
     absRxFlowIdx = msg.res.u.rx.rx_flow_allocidx;
     CpswRemoteApp_getRxStartFlowIdx(hCmdMbx, hResponseMbx, hCpsw, coreKey, rxFlowStartIdx);
-    assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
+    localAssert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
     *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
 }
 
@@ -1299,7 +1304,7 @@ static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
 
     CpswDma_initRxFlowParams(&cpswRxFlowCfg);
 
-    CpswRemoteApp_setRxFlowPrms(&cpswRxFlowCfg, 
+    CpswRemoteApp_setRxFlowPrms(&cpswRxFlowCfg,
                                 rxHandleInfo->rxFlowStartIdx,
                                 rxHandleInfo->rxFlowIdx,
                                 hUdmaDrv,
@@ -1309,12 +1314,12 @@ static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
                                 rxFlowMtu);
     rxHandleInfo->hRxFlow = CpswDma_openRxFlow(&cpswRxFlowCfg);
 
-    assert(rxHandleInfo->hRxFlow != NULL);
+    localAssert(rxHandleInfo->hRxFlow != NULL);
 
     CpswRemoteApp_addHostPortEntry(hCmdMbx, hResponseMbx, hCpsw, coreKey, rxHandleInfo->macAddr);
     if (useDefaultFlow)
     {
-        CpswRemoteApp_registerDefaultRxFlow(hCmdMbx, 
+        CpswRemoteApp_registerDefaultRxFlow(hCmdMbx,
                                             hResponseMbx,
                                             hCpsw,
                                             coreKey,
@@ -1323,7 +1328,7 @@ static void CpswRemoteApp_openNDKRxCh(Mailbox_Handle hCmdMbx,
     }
     else
     {
-        CpswRemoteApp_registerDstMacRxFlow(hCmdMbx, 
+        CpswRemoteApp_registerDstMacRxFlow(hCmdMbx,
                                            hResponseMbx,
                                            hCpsw,
                                            coreKey,
@@ -1383,7 +1388,7 @@ static void CpswRemoteApp_closeNDKRxCh(Mailbox_Handle hCmdMbx,
     CpswUtils_initQ(&cqPktInfoQ);
 
     CpswDma_disableRxEvent(rxHandleInfo->hRxFlow);
-    
+
     CpswRemoteApp_unregisterIPV4Addr(hCmdMbx,
                                      hResponseMbx,
                                      hCpsw,
@@ -1412,13 +1417,13 @@ static void CpswRemoteApp_closeNDKRxCh(Mailbox_Handle hCmdMbx,
     status = CpswDma_closeRxFlow(rxHandleInfo->hRxFlow,
                                  &fqPktInfoQ,
                                  &cqPktInfoQ);
-    assert(status == CPSW_SOK);
-    CpswRemoteApp_freeMac(hCmdMbx, 
+    localAssert(status == CPSW_SOK);
+    CpswRemoteApp_freeMac(hCmdMbx,
                           hResponseMbx,
                           hCpsw,
                           coreKey,
                           rxHandleInfo->macAddr);
-    CpswRemoteApp_freeRxFlow(hCmdMbx, 
+    CpswRemoteApp_freeRxFlow(hCmdMbx,
                              hResponseMbx,
                              hCpsw,
                              coreKey,
@@ -1488,7 +1493,7 @@ static void CpswRemoteApp_openNDKTxCh(Mailbox_Handle hCmdMbx,
                               txConfig->cbArg,
                               txConfig->notifyCb);
     txHandleInfo->hTxChannel = CpswDma_openTxCh(&cpswTxChCfg);
-    assert (NULL != txHandleInfo->hTxChannel);
+    localAssert (NULL != txHandleInfo->hTxChannel);
 }
 
 static void CpswRemoteApp_freeTxCh(Mailbox_Handle hCmdMbx,
@@ -1503,7 +1508,7 @@ static void CpswRemoteApp_freeTxCh(Mailbox_Handle hCmdMbx,
     msg.req.u.freetx.id    = (uint64_t)hCpsw;
     msg.req.u.freetx.core_key = coreKey;
     msg.req.u.freetx.tx_id    = txChNum;
-    
+
     CpswRemoteApp_sendCmd(hCmdMbx, hResponseMbx, ETHSWT_CMD_FREETX, &msg);
 }
 
@@ -1525,7 +1530,7 @@ static void CpswRemoteApp_closeNDKTxCh(Mailbox_Handle hCmdMbx,
 
     CpswDma_disableTxEvent(txHandleInfo->hTxChannel);
     status = CpswDma_closeTxCh(txHandleInfo->hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
-    assert (CPSW_SOK == status);
+    localAssert (CPSW_SOK == status);
 
     CpswRemoteApp_freeTxCh(hCmdMbx,
                            hResponseMbx,
@@ -1584,12 +1589,12 @@ static void CpswRemoteApp_attachExtended(Mailbox_Handle hCmdMbx,
     }
     *txPSILThreadId = msg.res.u.attachext.tx_id;
     absRxFlowIdx = msg.res.u.attachext.rx_flow_allocidx;
-    CpswRemoteApp_getRxStartFlowIdx(hCmdMbx, 
-                                    hResponseMbx, 
-                                    *pCpswHandle, 
-                                    *coreKey, 
+    CpswRemoteApp_getRxStartFlowIdx(hCmdMbx,
+                                    hResponseMbx,
+                                    *pCpswHandle,
+                                    *coreKey,
                                     rxFlowStartIdx);
-    assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
+    localAssert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
     *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
     memcpy(macAddress, msg.res.u.attachext.mac_address, sizeof(msg.res.u.attachext.mac_address));
 }
@@ -1688,11 +1693,11 @@ static enum rpmsg_kdrv_ethswitch_cpsw_type CpswRemoteApp_getRdevCpswType(Cpsw_Ty
         case CPSW_2G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G;
             break;
-    
+
         case CPSW_9G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G;
             break;
-    
+
     }
     return rdevCpswType;
 }
@@ -1710,9 +1715,9 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     uint32_t rxStartFlowId;
     uint32_t rxFlowIdOffset;
 
-    assert(gRemoteAppObj.hCmdMbx != NULL);
-    assert(gRemoteAppObj.hResponseMbx != NULL);
-    
+    localAssert(gRemoteAppObj.hCmdMbx != NULL);
+    localAssert(gRemoteAppObj.hResponseMbx != NULL);
+
     rdevCpswType = CpswRemoteApp_getRdevCpswType(cpswType);
 
     /* Initialize CPSW driver with default OSAL, utils */
@@ -1726,7 +1731,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     Cpsw_init(cpswType, &osalPrms, &utilsPrms);
 
     status = CpswAppMemUtils_init();
-    assert(status == CPSW_SOK);
+    localAssert(status == CPSW_SOK);
     outArgs->coreId = coreId;
     outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
     outArgs->printFxnCb = (Cpsw_PrintFxnCb)&ConPrintf;
@@ -1738,8 +1743,8 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
 
     if (gRemoteAppObj.useExtAttach)
     {
-        CpswRemoteApp_attachExtended(gRemoteAppObj.hCmdMbx, 
-                                     gRemoteAppObj.hResponseMbx, 
+        CpswRemoteApp_attachExtended(gRemoteAppObj.hCmdMbx,
+                                     gRemoteAppObj.hResponseMbx,
                                      rdevCpswType,
                                      &outArgs->hCpsw,
                                      &outArgs->coreKey,
@@ -1752,44 +1757,44 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     }
     else
     {
-        CpswRemoteApp_attach(gRemoteAppObj.hCmdMbx, 
-                             gRemoteAppObj.hResponseMbx, 
+        CpswRemoteApp_attach(gRemoteAppObj.hCmdMbx,
+                             gRemoteAppObj.hResponseMbx,
                              rdevCpswType,
                              &outArgs->hCpsw,
                              &outArgs->coreKey,
                              &outArgs->hostPortRxMtu,
                              outArgs->txMtu);
-        CpswRemoteApp_allocTxCh(gRemoteAppObj.hCmdMbx, 
+        CpswRemoteApp_allocTxCh(gRemoteAppObj.hCmdMbx,
                                 gRemoteAppObj.hResponseMbx,
-                                outArgs->hCpsw, 
-                                outArgs->coreKey, 
+                                outArgs->hCpsw,
+                                outArgs->coreKey,
                                 &txPSILId);
         CpswRemoteApp_allocRxFlow(gRemoteAppObj.hCmdMbx,
                                   gRemoteAppObj.hResponseMbx,
-                                  outArgs->hCpsw, 
-                                  outArgs->coreKey, 
+                                  outArgs->hCpsw,
+                                  outArgs->coreKey,
                                   &rxStartFlowId,
                                   &rxFlowIdOffset);
-        CpswRemoteApp_allocMac(gRemoteAppObj.hCmdMbx, 
+        CpswRemoteApp_allocMac(gRemoteAppObj.hCmdMbx,
                                gRemoteAppObj.hResponseMbx,
                                outArgs->hCpsw,
                                outArgs->coreKey,
                                gRemoteAppObj.macAddr);
     }
-    CpswRemoteApp_openNDKTxCh(gRemoteAppObj.hCmdMbx, 
+    CpswRemoteApp_openNDKTxCh(gRemoteAppObj.hCmdMbx,
                               gRemoteAppObj.hResponseMbx,
-                              outArgs->hCpsw, 
-                              outArgs->hUdmaDrv, 
-                              outArgs->coreKey, 
+                              outArgs->hCpsw,
+                              outArgs->hUdmaDrv,
+                              outArgs->coreKey,
                               txPSILId,
                               &inArgs->txCfg,
                               &outArgs->txInfo);
 
-    CpswRemoteApp_openNDKRxCh(gRemoteAppObj.hCmdMbx, 
+    CpswRemoteApp_openNDKRxCh(gRemoteAppObj.hCmdMbx,
                               gRemoteAppObj.hResponseMbx,
-                              outArgs->hCpsw, 
-                              outArgs->hUdmaDrv, 
-                              outArgs->coreKey, 
+                              outArgs->hCpsw,
+                              outArgs->hUdmaDrv,
+                              outArgs->coreKey,
                               gRemoteAppObj.useDefaultRxFlow,
                               rxStartFlowId,
                               rxFlowIdOffset,
@@ -1803,22 +1808,22 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
 
 void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
 {
-    assert(gRemoteAppObj.hCmdMbx != NULL); 
-    assert(gRemoteAppObj.hResponseMbx != NULL);
+    localAssert(gRemoteAppObj.hCmdMbx != NULL);
+    localAssert(gRemoteAppObj.hResponseMbx != NULL);
 
-    CpswRemoteApp_closeNDKTxCh(gRemoteAppObj.hCmdMbx, 
+    CpswRemoteApp_closeNDKTxCh(gRemoteAppObj.hCmdMbx,
                                gRemoteAppObj.hResponseMbx,
-                               releaseInfo->hCpsw, 
-                               releaseInfo->hUdmaDrv, 
-                               releaseInfo->coreKey, 
+                               releaseInfo->hCpsw,
+                               releaseInfo->hUdmaDrv,
+                               releaseInfo->coreKey,
                                &releaseInfo->txInfo,
                                releaseInfo->freePktCbArg,
                                releaseInfo->txFreePktCb);
-    CpswRemoteApp_closeNDKRxCh(gRemoteAppObj.hCmdMbx, 
+    CpswRemoteApp_closeNDKRxCh(gRemoteAppObj.hCmdMbx,
                                gRemoteAppObj.hResponseMbx,
-                               releaseInfo->hCpsw, 
-                               releaseInfo->hUdmaDrv, 
-                               releaseInfo->coreKey, 
+                               releaseInfo->hCpsw,
+                               releaseInfo->hUdmaDrv,
+                               releaseInfo->coreKey,
                                gRemoteAppObj.useDefaultRxFlow,
                                gRemoteAppObj.ipv4Addr,
                                &releaseInfo->rxInfo,
