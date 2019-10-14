@@ -3,7 +3,7 @@
 [TOC]
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Introduction {#ethfw_demo_intro}
+# Introduction {#demo_ethfw_combined_intro}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 This application demonstrates basic Jacinto 7 integrated switch differentiating features
@@ -67,7 +67,7 @@ Below diagram shows connections for video streaming connections.
 > available in your network or if using static IP addresses.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-## Dependencies {#ethfw_demo_depend}
+## Dependencies {#demo_ethfw_combined_depend}
 
 This application depends on multiple components and are detailed in sections
 below:
@@ -85,7 +85,7 @@ below:
 [Back To Top](@ref demo_ethfw_combined_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Compile Time Configurations {#ethfw_demo_cfg}
+# Compile Time Configurations {#demo_ethfw_combined_cfg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Not applicable.
@@ -94,12 +94,12 @@ Not applicable.
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Test Setup {#ethfw_demo_setup_cfg}
+# Test Setup {#demo_ethfw_combined_setup_cfg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-## Pre-requisites {#ethfw_demo_prerequisites}
+## Pre-requisites {#demo_ethfw_combined_prerequisites}
 
-### Plex server set up {#ethfw_demo_prereq_plextv}
+### Plex server set up {#demo_ethfw_combined_prereq_plextv}
 
 -# Install Plex Media Server. The Ubuntu/Windows installation executable
    and instructions can be found in their [website](https://www.plex.tv/)
@@ -107,14 +107,14 @@ Not applicable.
    powered on.
 -# Add video samples to the Library as needed.
 
-### PackEth tool {#ethfw_demo_prereq_packEth}
+### PackEth tool {#demo_ethfw_combined_prereq_packEth}
 -# Install PackEth packet generator tool on your Linux PC. The Ubuntu Installation
   instructions can be found in their [website](http://packeth.sourceforge.net/packeth/Installation.html)
 
 > **Note:** Please check licensing information and terms of usage of PackEth tool
 > and make sure it adheres to your organization's policy before
 > using and configuring it.
-### Python3 and Pip3 {#ethfw_demo_prereq_python}
+### Python3 and Pip3 {#demo_ethfw_combined_prereq_python}
   -# The GUI tool to send configurations is developed using
   Python3 and PyQt, and it requires various python modules. So install pip3 to get the modules installed in the easiest way.
 
@@ -125,7 +125,7 @@ Not applicable.
         sudo apt-get install qttools5-dev-tools
         pip3 install jsonschema pyserial serial xmodem
 
-### Setting static IPs {#ethfw_demo_static_ips}
+### Setting static IPs {#demo_ethfw_combined_static_ips}
 
 -# As depicted in the previous connections diagram, the static IPs for all
    devices required in this demo can be set as follows:
@@ -155,14 +155,14 @@ Not applicable.
    network running DHCP.
 
 
-## CCS Boot {#ethfw_demo_CCS}
+## CCS Boot {#demo_ethfw_combined_CCS}
 
 ### Prerequisites {#demo_l2_switchin_CCS_prereqs}
 
 Install Code Composer Studio and setup a <b>Target Configuration</b> for use
 with J721E EVM. Refer to @ref ethfw_instal_ccs.
 
-### Steps {#ethfw_demo_CCS_steps}
+### Steps {#demo_ethfw_combined_CCS_steps}
 
 -# Connect a micro USB cable to JTAG port of J721E_EVM. The XDS110 JTAG
    connector is labeled `XDS110` (J3).
@@ -196,9 +196,9 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
    refer to @ref load_example_binaries_on_j7 section.
 
 
-## SD Card Boot {#ethfw_demo_sdcard}
+## SD Card Boot {#demo_ethfw_combined_sdcard}
 
-### Steps {#ethfw_demo_sdcard_steps}
+### Steps {#demo_ethfw_combined_sdcard_steps}
 
 -# Create a bootable SD card with Linux bootloader, kernel and file system.
    For details about SD card creation, refer to the Processor SDK Linux
@@ -243,7 +243,7 @@ on J721E EVM.
 
 ![](tcpipdemopage.png "TCP/IP HTTP Server Landing Page")
 
-[Back To Top](@ref demo_l2_switching_ndk_top)
+[Back To Top](@ref demo_ethfw_combined_top)
 
 
 ## Plex TV Client {#ethfw_plex_tv_client_usage}
@@ -341,7 +341,7 @@ The predefined packEth config files is available as part of docs.
   * Since the routing is now offloaded to hardware, there will be no impact on the CPU load even if the data rate is increased to as high as 1Gbps.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-## Sample output {#ethfw_demo_output}
+## Sample output {#demo_ethfw_combined_output}
 
 Below is a sample log from the execution of this demo application.
 
@@ -391,7 +391,7 @@ SNo.      IP Address         MAC Address
 [Back To Top](@ref demo_ethfw_combined_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Document Revision History {#ethfw_demo_rev_history}
+# Document Revision History {#demo_ethfw_combined_rev_history}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Revision | Date          | Author                 | Description

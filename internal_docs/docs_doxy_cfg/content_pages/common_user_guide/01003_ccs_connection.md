@@ -50,9 +50,9 @@ Supported CCS version for J721E EVM is 9.0.1.00004 as shown below.
 
 ![](ccs_target_configuration.png "Creating CCS Target Configuration File")
 
--# Open launch.js script located at below path [SDK_INSTALL_PATH]\pdk_xx_xx_xx\packages\ti\drv\sciclient\tools\ccsLoadDmsc\j721e\ and change
+-# Open launch.js script located at below path [SDK_INSTALL_PATH]/pdk_xx_xx_xx/packages/ti/drv/sciclient/tools/ccsLoadDmsc/j721e/ and change
    - **gelFilePath** to your GEL files in the CCS installation.
-   - **pdkPath** to [SDK_INSTALL_PATH]\pdk_xx_xx_xx\packages
+   - **pdkPath** to [SDK_INSTALL_PATH]/pdk_xx_xx_xx/packages
 
 [Back To Top](@ref ccs_setup_top)
 
@@ -71,7 +71,7 @@ Supported CCS version for J721E EVM is 9.0.1.00004 as shown below.
 -# Go to the <b>View</b> Target configurations and launch a target configuration
    is done by right clicking on it.
 -# Go to the <b>View</b> menu and then select <b>Scripting Console </b>
--# Run the launch.js script located in the pdk_xx_xx_xx\packages\ti\drv\sciclient\tools\ccsLoadDmsc\j721e\
+-# Run the launch.js script located in the pdk_xx_xx_xx/packages/ti/drv/sciclient/tools/ccsLoadDmsc/j721e/
    on scripting console to load and execute DMSC firmware binary.
    This step can take considerable time as it configures PLL etc. in the SOC via GEL files and configures DDR.
 

@@ -42,7 +42,7 @@ Available egress operations
 - Supports IPv4 (TTL) and IPv6 (Hop Limit) fields
 - Packets with 0 or 1 TTL/Hop Limit are sent to the host for error processing
 
-For further information, please refer to the @ref demo_l2_switching_ndk_top demo
+For further information, please refer to the @ref demo_ethfw_combined_top demo
 application documentation.
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -342,7 +342,7 @@ and/or reconfigured via linker command files.
 Refer to @ref demo_top section for a full list of EthFw demo applications.
 
 For detailed steps to load and run the L2 Switching application, please refer
-to its @ref demo_l2_switching_setup_cfg section.
+to its @ref demo_ethfw_combined_cfg section.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
