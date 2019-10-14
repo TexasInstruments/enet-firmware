@@ -1009,7 +1009,7 @@ int main(void)
     return(0);
 }
 
-static bool CpswRemoteApp_IsAllPhyLinked(Cpsw_Handle hCpsw)
+static bool CpswRemoteApp_isAllPortLinked(Cpsw_Handle hCpsw)
 {
     uint32_t i;
     static bool     isPhyLinked = false;
@@ -1730,7 +1730,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     outArgs->coreId = coreId;
     outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
     outArgs->printFxnCb = (Cpsw_PrintFxnCb)&ConPrintf;
-    outArgs->isPortLinkedFxn = &CpswRemoteApp_IsAllPhyLinked;
+    outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
     outArgs->isRingMonUsed = false;
     outArgs->clkPeriodMs   = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
 
