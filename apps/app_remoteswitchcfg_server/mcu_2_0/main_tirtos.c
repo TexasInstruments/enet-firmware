@@ -99,16 +99,20 @@
 #include <ti/drv/sciclient/sciclient.h>
 #include <ti/drv/cpsw/cpsw.h>
 #include <ti/drv/udma/udma.h>
+#include <ti/drv/uart/UART_stdio.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils_cfg.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_networkutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apprm.h>
 #include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
 #include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+
+#include <ti/drv/cpsw/cpsw_cfgserver/cpsw_cfgserver.h>
 
 /* NDK headers */
 #include <ti/ndk/inc/netmain.h>
@@ -119,6 +123,8 @@
 #include <ti/ndk/inc/tools/console.h>
 
 #include "webpage.h"
+#include "app_intervlan.h"
+#include "app_swintervlan.h"
 
 
 #define IPC_RPMESSAGE_OBJ_SIZE  256
@@ -152,6 +158,9 @@ static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl;
 
 /* Test application stack size */
 #define APP_TSK_STACK_MAIN              (10U * 1024U)
+#define ETHFWAPP_PACKET_POLL_PERIOD_MS  (1U)
+#define ETHFWAPP_UART_READ_TIMEOUT      (5U)
+#define ETHFWAPP_UART_WRITE_TIMEOUT     (5U)
 
 #define ENABLE_NDKSERVERS
 
@@ -228,6 +237,7 @@ static HANDLE hEchoUdp = 0;
 static HANDLE hData = 0;
 static HANDLE hNull = 0;
 static HANDLE hOob = 0;
+static HANDLE hSock = 0;
 #endif
 
 char *VerStr = "NIMU CPSW Example";
@@ -237,6 +247,7 @@ static Cpsw_MacPort gCpswMainAppMacPorts[] = {
     CPSW_MAC_PORT_0,
 #elif defined(SOC_J721E)
     CPSW_MAC_PORT_2,
+    CPSW_MAC_PORT_3,
 #endif
 };
 
@@ -489,6 +500,7 @@ static void CpswApp_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
         linkConfig->speed     = CPSW_SPEED_AUTO;
         linkConfig->duplexity = CPSW_DUPLEX_AUTO;
     }
+    CpswAppInterVlan_setMacConfig(linkArgs, macPort);
 
 }
 
@@ -502,7 +514,7 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
 
     /* Set configuration parameters */
     Cpsw_initParams(&cpswCfg);
-    cpswCfg.vlanConfig.vlanAware          = false;
+    cpswCfg.vlanConfig.vlanAware          = true;
     cpswCfg.hostPortConfig.removeCrc      = true;
     cpswCfg.hostPortConfig.padShortPacket = true;
     cpswCfg.hostPortConfig.passCrcErrors  = true;
@@ -512,6 +524,8 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
     CpswApp_setAleConfig(&cpswCfg.aleConfig);
 
     cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
+
+    CpswAppInterVlan_setOpenPrms(&cpswCfg);
 
     /* Open UDMA */
     gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(cpswType, NULL);
@@ -528,6 +542,7 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
            gCpswMainAppObj.numMacPorts);
 
     status = CpswMcm_init(&cpswMcmCfg);
+    CpswAppUtils_assert (status == CPSW_SOK);
 
     return status;
 }
@@ -655,7 +670,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     CPSW_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
     outArgs->hUdmaDrv = handleInfo.hUdmaDrv;
     outArgs->printFxnCb = &CpswAppUtils_print;
-    outArgs->isPhyLinkedFxn = &CpswApp_IsAllPhyLinked;
+    outArgs->isPortLinkedFxn = &CpswApp_IsAllPhyLinked;
     outArgs->isRingMonUsed = false;
     outArgs->clkPeriodMs   = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
 }
@@ -706,6 +721,33 @@ void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
 
 }
 
+/* Functions called from Config server library based on selection from GUI */
+void CpswApp_startSwInterVlan(char* recvBuff, char* sendBuff)
+{
+    CpswCfgServer_InterVlanConfig *pInterVlanCfg;
+    int32_t status = CPSW_SOK;
+    if (recvBuff != NULL)
+    {
+        pInterVlanCfg = (CpswCfgServer_InterVlanConfig *)recvBuff;
+        status = CpswApp_addSwIVlanClasifierEntries(pInterVlanCfg);
+        CpswAppUtils_assert(CPSW_SOK == status);
+
+    }
+}
+
+void CpswApp_startHwInterVlan(char* recvBuff, char* sendBuff)
+{
+    CpswCfgServer_InterVlanConfig *pInterVlanCfg;
+    if (recvBuff != NULL)
+    {
+        pInterVlanCfg = (CpswCfgServer_InterVlanConfig *)recvBuff;
+
+        CpswApp_hwInterVlanRouting(gCpswMainAppObj.cpswType,
+                                   pInterVlanCfg);
+    }
+
+}
+
 void stackInitHook(void* hCfg)
 {
     int rc;
@@ -727,6 +769,7 @@ void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
 {
     volatile uint32_t ipAddrHex = 0U;
     char ipAddr[20];
+    int32_t status;
 
     ipAddrHex = ntohl(IPAddr);
     snprintf(ipAddr, 17, "%d.%d.%d.%d\n",
@@ -737,7 +780,38 @@ void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
 
     CpswAppUtils_print("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
 
+    /* Assign functions that are to be called based on actions in GUI.
+     * These cannot be dynamically pushed to function pointer array, as the
+     * index is used in GUI as command.
+     */
+    cpswCfgServer_fxn_table[9]  = &CpswApp_startSwInterVlan;
+    cpswCfgServer_fxn_table[10] = &CpswApp_startHwInterVlan;
+
+    /* Start Configuration server */
+    status = CpswCfgServer_init(gCpswMainAppObj.cpswType);
+    CpswAppUtils_assert(CPSW_SOK == status);
+
+    CpswApp_swInterVlanRouting(gCpswMainAppObj.cpswType);
+
 }
+
+#if defined (SOC_J721E)
+/**
+ * \brief PDK-4356 FIX - set to DLFO bit in ACTRL register of R5F
+ *
+ * This API uses assembly instruction to set DLFO bit in ACTRL register
+ * of R5F.
+ * This should be called from the Core reset callback.
+ *
+ */
+#pragma CODE_SECTION(CpswApp_setDLFOBitInACTRLReg,".text_boot")
+void CpswApp_setDLFOBitInACTRLReg(void)
+{
+       asm(" MRC p15, #0, r12, c1, c0, #1 ;");
+       asm(" ORR r12, r12, #8192 ;");
+       asm(" MCR p15, #0, r12, c1, c0, #1 ;");
+}
+#endif
 
 void netOpenHook()
 {
@@ -750,6 +824,8 @@ void netOpenHook()
     hData = DaemonNew(SOCK_STREAM, 0, 1000, dtask_tcp_datasrv,
                       OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
     hNull = DaemonNew(SOCK_STREAMNC, 0, 1001, dtask_tcp_nullsrv,
+                      OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
+    hSock = DaemonNew(SOCK_STREAM, 0, 1002, dtask_tcp_datasrv,
                       OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
     hOob  = DaemonNew(SOCK_STREAMNC, 0, 999, dtask_tcp_oobsrv,
                       OS_TASKPRINORM, OS_TASKSTKNORM, 0, 3);
@@ -764,6 +840,7 @@ void netCloseHook()
     DaemonFree(hData);
     DaemonFree(hEchoUdp);
     DaemonFree(hEcho);
+    DaemonFree(hSock);
 #endif
 }
 
@@ -772,7 +849,14 @@ int main(void)
 {
     Task_Handle task;
     Task_Params taskParams;
+    UART_Params  params;
 
+    /* Change read and write Timeout of UART params to enable Xmodem*/
+    UART_Params_init(&params);
+    params.readTimeout = ETHFWAPP_UART_READ_TIMEOUT; /* in milliseconds */
+    params.writeTimeout = ETHFWAPP_UART_WRITE_TIMEOUT;
+
+    UART_stdioInit2(CPSW_UTILS_MCU2_0_UART_INSTANCE, &params);
 
     CpswAppBoardUtils_init();
 
@@ -1700,9 +1784,4 @@ static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl =
     .client_notify_handler = app_ethrdev_srv_cb_client_notify_handler,
     .init_device_data_handler = app_ethrdev_srv_cb_init_device_data_handler,
 };
-
-
-
-
-
 

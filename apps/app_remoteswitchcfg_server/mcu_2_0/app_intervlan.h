@@ -60,53 +60,54 @@
  *
  */
 
-var biosCommonCfg = xdc.loadCapsule("bios_common.cfg");
-var biosCommonCfgArg =
-{
-    core:"mcu1_0"
-}
-biosCommonCfg.init(biosCommonCfgArg)
-
-var Core         = xdc.useModule('ti.sysbios.family.arm.v7r.keystone3.Core');
-Core.id = 0;
-
-var Hwi = xdc.useModule('ti.sysbios.family.arm.v7r.keystone3.Hwi');
-
-
-var Cache = xdc.useModule('ti.sysbios.family.arm.v7r.Cache');
-Cache.enableCache = true;
-
-/* DMTimer #x - in general, address is 0x024x0000 where x is timer # */
-var Timer = xdc.useModule('ti.sysbios.timers.dmtimer.Timer');
-Timer.checkFrequency = false;
-
-var Clock = xdc.useModule('ti.sysbios.knl.Clock');
-Clock.timerId = 1;
-
-xdc.print("# !!!  Clock TimerId [" + Clock.timerId + "]" + " !!!" );
-
-/*
- * Initialize MPU and enable it
+/*!
+ * \file app_intervlan.h
  *
- * Note: MPU must be enabled and properly configured for caching to work.
+ * \brief App intervlan config header file
  */
-xdc.loadCapsule("r5_mpu.xs");
 
-/* Create default heap and hook it into Memory */
-var HeapMem = xdc.useModule('ti.sysbios.heaps.HeapMem');
-var Memory = xdc.module('xdc.runtime.Memory')
-var heapMemParams = new HeapMem.Params;
-heapMemParams.size = 16384*28;
-var heap0 = HeapMem.create(heapMemParams);
-Memory.defaultHeapInstance = heap0;
+#ifndef APP_INTERVLAN_H_
+#define APP_INTERVLAN_H_
 
-var Reset = xdc.useModule("xdc.runtime.Reset");
-Reset.fxns[Reset.fxns.length++] = "&CpswApp_setDLFOBitInACTRLReg";
+/* ========================================================================== */
+/*                             Include Files                                  */
+/* ========================================================================== */
 
-var ndkCfg = xdc.loadCapsule("ndk.cfg");
-var ndkCfgArg =
-{
-    core:"mcu1_0"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+
+/* ========================================================================== */
+/*                           Macros & Typedefs                                */
+/* ========================================================================== */
+
+/* None */
+
+/* ========================================================================== */
+/*                         Structure Declarations                             */
+/* ========================================================================== */
+
+/* None */
+
+/* ========================================================================== */
+/*                          Function Declarations                             */
+/* ========================================================================== */
+void CpswApp_hwInterVlanRouting(Cpsw_Type cpswType,
+                                CpswCfgServer_InterVlanConfig *pInterVlanCfg);
+void CpswAppInterVlan_setOpenPrms(Cpsw_Config     *pCpswCfg);
+void CpswAppInterVlan_setMacConfig(Cpsw_OpenPortLinkInArgs *pLinkArgs,
+                                   uint32_t portNum);
+
+/* ========================================================================== */
+/*                       Static Function Definitions                          */
+/* ========================================================================== */
+
+/* None */
+
+#ifdef __cplusplus
 }
-ndkCfg.init(ndkCfgArg)
+#endif
 
+#endif /* APP_INTERVLAN_H_ */

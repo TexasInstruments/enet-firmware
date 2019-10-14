@@ -1730,7 +1730,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     outArgs->coreId = coreId;
     outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
     outArgs->printFxnCb = (Cpsw_PrintFxnCb)&ConPrintf;
-    outArgs->isPhyLinkedFxn = &CpswRemoteApp_IsAllPhyLinked;
+    outArgs->isPortLinkedFxn = &CpswRemoteApp_IsAllPhyLinked;
     outArgs->isRingMonUsed = false;
     outArgs->clkPeriodMs   = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
 
