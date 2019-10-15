@@ -694,7 +694,7 @@ static void CpswApp_pktRxTx(void)
     uint32_t         rxReadyCnt;
     bool             isSemPosted;
     uint32_t         iterationCount = 0;
-
+    volatile bool testDone = false;
     /*  The packet handling loop is structured as described below
      *  The outer loop waits for semaphore notification from RX completion
      *  ISR. At this moment the Rx completion interrupt is disabled and we switch
@@ -713,7 +713,7 @@ static void CpswApp_pktRxTx(void)
     {
 
      /*TODO: add a voluntary yield here for other tasks at same priority to run
-      * if we are continuosly handling a stream of packets*/
+      * if we are continuously handling a stream of packets*/
 
     /* rxReadyQ should be empty here as we would have processed and queued all packets from
      * last iteration. */
@@ -731,7 +731,7 @@ static void CpswApp_pktRxTx(void)
      {
         /* If we get here, it means that we have processed all received packets.
          * Need to switch on interrupt notification for Rx pkts and move to
-         * blocked state until new pkt reception is signalled
+         * blocked state until new pkt reception is signaled
          */
 
         /* Re-enable the Rx completion notification from ISR here */
@@ -742,7 +742,7 @@ static void CpswApp_pktRxTx(void)
         CpswDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
 
 
-        /* Pend on sempahore nofitication event from Rx Completion ISR */
+        /* Pend on semaphore notification event from Rx Completion ISR */
         isSemPosted = Semaphore_pend(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
 
         if (false == isSemPosted)
@@ -754,7 +754,7 @@ static void CpswApp_pktRxTx(void)
                 CpswAppUtils_print("# pkts=%d\n", gCpswInterVlanAppObj.num_pkts);
                 #endif
             }
-            
+
         }
 
      }
@@ -774,7 +774,7 @@ static void CpswApp_pktRxTx(void)
             frame = (EthVlanFrame *)pktInfo->bufPtr;
             Cache_inv((Ptr)frame, PKT_HEADER_SIZE, Cache_Type_L1D, TRUE);
 
-            /* Step2: Modify SA, DA fields of ethernet header*/
+            /* Step2: Modify SA, DA fields of Ethernet header*/
             /* Modify DASA
              * Modify VLAN ID
              * Modify TTL
@@ -813,7 +813,7 @@ static void CpswApp_pktRxTx(void)
                                                   &rxFreeQ);
     CpswAppUtils_assert(CpswUtils_getQCount(&rxFreeQ) == 0);
 
-   } while(true);
+   } while(testDone == true);
 
 }
 

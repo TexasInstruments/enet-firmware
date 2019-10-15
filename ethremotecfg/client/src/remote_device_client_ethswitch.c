@@ -94,7 +94,7 @@ static int32_t rdevEthSwitchClientFreeMsg(void *priv, void *data, uint32_t len)
 
 int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id, u64 id, u32 core_key, enum rpmsg_kdrv_ethswitch_client_notify_type notify_id, uint8_t *notify_info, uint32_t notify_info_len)
 {
-    rdevEthSwitchClientMessageList_t *clientMsg = Memory_calloc(NULL, sizeof(rdevEthSwitchClientMessageList_t) , sizeof(uint64_t), NULL); 
+    rdevEthSwitchClientMessageList_t *clientMsg = Memory_calloc(NULL, sizeof(rdevEthSwitchClientMessageList_t) , sizeof(uint64_t), NULL);
     struct rpmsg_kdrv_ethswitch_c2s_notify *msg = &clientMsg->rdevEthSwitchMsg.c2s_notify;
     int32_t ret;
 
@@ -123,7 +123,7 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
 
     appRemoteDeviceDeviceConnectParamsInit(&prm);
 
-    sprintf(prm.device_name, "%s", initPrms->device_name);
+    snprintf(prm.device_name, APP_REMOTE_DEVICE_CONNECT_NAME_LEN, "%s", initPrms->device_name);
     prm.message_cb = initPrms->cbHandler;
     prm.message_cb_priv = NULL;
     ret = appRemoteDeviceConnect(&prm, &initPrms->device_id);
@@ -133,11 +133,11 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
         ret = appRemoteDeviceGetType(initPrms->device_id, &initPrms->device_type);
     }
 
-    if ((ret == 0) && (initPrms->device_id != APP_REMOTE_DEVICE_DEVICE_ID_EAGAIN)) 
+    if ((ret == 0) && (initPrms->device_id != APP_REMOTE_DEVICE_DEVICE_ID_EAGAIN))
     {
-        ret = appRemoteDeviceGetData(initPrms->device_id, 
-                                     (uint8_t *)&initPrms->eth_device_data, 
-                                     sizeof(initPrms->eth_device_data), 
+        ret = appRemoteDeviceGetData(initPrms->device_id,
+                                     (uint8_t *)&initPrms->eth_device_data,
+                                     sizeof(initPrms->eth_device_data),
                                      &dataFilledLen);
         if (ret == 0)
         {
@@ -148,7 +148,7 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
 
 }
 
-int32_t rdevEthSwitchClient_attach(uint32_t device_id, 
+int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint8_t cpswType,
                                    uint64_t *id,
                                    uint32_t *core_key,
@@ -157,7 +157,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint32_t tx_mtu_array_size,
                                    uint32_t  *pFeatures)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_attach_request *msg = &clientMsg.rdevEthSwitchMsg.attach_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -199,7 +199,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
     return ret;
 }
 
-int32_t rdevEthSwitchClient_attachext(uint32_t device_id, 
+int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
                                       uint8_t cpswType,
                                       uint64_t *id,
                                       uint32_t *core_key,
@@ -209,10 +209,10 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
                                       uint32_t *pFeatures,
                                       uint32_t *tx_cpsw_psil_dst_id,
                                       uint32_t *rx_flow_allocidx,
-                                      uint8_t  *mac_address, 
+                                      uint8_t  *mac_address,
                                       uint32_t mac_address_len)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_attach_request *msg = &clientMsg.rdevEthSwitchMsg.attach_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -236,8 +236,8 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
             *rx_flow_allocidx = attach_reponse.rdevEthSwitchMsg.attach_ext_res.alloc_flow_idx;
             if (mac_address_len >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address))
             {
-                memcpy(mac_address, 
-                       attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address, 
+                memcpy(mac_address,
+                       attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address,
                        sizeof(attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address));
             }
             else
@@ -273,7 +273,7 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
 
 int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, u64 id, u32 core_key, u32 *tx_cpsw_psil_dst_id)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_alloc_request *msg = &clientMsg.rdevEthSwitchMsg.alloc_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -302,7 +302,7 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id, u64 id, u32 core_key, u3
 
 int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t *rx_flow_allocidx)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_alloc_request *msg = &clientMsg.rdevEthSwitchMsg.alloc_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -331,7 +331,7 @@ int32_t rdevEthSwitchClient_allocrx(uint32_t device_id, uint64_t id, uint32_t co
 
 int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t default_flow_idx)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_register_rx_default_request *msg = &clientMsg.rdevEthSwitchMsg.register_rx_default_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -354,7 +354,7 @@ int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id, uint64_t id, u
 
 int32_t rdevEthSwitchClient_allocmac(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint32_t mac_address_len)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_alloc_request *msg = &clientMsg.rdevEthSwitchMsg.alloc_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -390,7 +390,7 @@ int32_t rdevEthSwitchClient_allocmac(uint32_t device_id, uint64_t id, uint32_t c
 
 int32_t rdevEthSwitchClient_registermac(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t flow_idx, uint8_t *mac_address)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_register_mac_request *msg = &clientMsg.rdevEthSwitchMsg.register_mac_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -417,7 +417,7 @@ int32_t rdevEthSwitchClient_registermac(uint32_t device_id, uint64_t id, uint32_
 
 int32_t rdevEthSwitchClient_unregistermac(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t flow_idx, uint8_t *mac_address)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_unregister_mac_request *msg = &clientMsg.rdevEthSwitchMsg.unregister_mac_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -444,7 +444,7 @@ int32_t rdevEthSwitchClient_unregistermac(uint32_t device_id, uint64_t id, uint3
 
 int32_t rdevEthSwitchClient_unregisterrxdefault(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t default_flow_idx)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_unregister_rx_default_request *msg = &clientMsg.rdevEthSwitchMsg.unregister_rx_default_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -470,7 +470,7 @@ int32_t rdevEthSwitchClient_unregisterrxdefault(uint32_t device_id, uint64_t id,
 
 int32_t rdevEthSwitchClient_freemac(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_free_mac_request *msg = &clientMsg.rdevEthSwitchMsg.free_mac_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -496,7 +496,7 @@ int32_t rdevEthSwitchClient_freemac(uint32_t device_id, uint64_t id, uint32_t co
 
 int32_t rdevEthSwitchClient_freetx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t tx_cpsw_psil_dst_id)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_free_tx_request *msg = &clientMsg.rdevEthSwitchMsg.free_tx_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -523,7 +523,7 @@ int32_t rdevEthSwitchClient_freetx(uint32_t device_id, uint64_t id, uint32_t cor
 
 int32_t rdevEthSwitchClient_freerx(uint32_t device_id, uint64_t id, uint32_t core_key, uint32_t alloc_flow_idx)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_free_rx_request *msg = &clientMsg.rdevEthSwitchMsg.free_rx_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -549,7 +549,7 @@ int32_t rdevEthSwitchClient_freerx(uint32_t device_id, uint64_t id, uint32_t cor
 
 int32_t rdevEthSwitchClient_detach(uint32_t device_id, uint64_t id, uint32_t core_key)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_detach_request *msg = &clientMsg.rdevEthSwitchMsg.detach_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -572,16 +572,16 @@ int32_t rdevEthSwitchClient_detach(uint32_t device_id, uint64_t id, uint32_t cor
     return ret;
 }
 
-int32_t rdevEthSwitchClient_ioctl(uint32_t device_id, 
-                                  uint64_t id, 
-                                  uint32_t core_key, 
-                                  uint32_t cmd , 
-                                  void *inargs, 
-                                  uint32_t inargs_len, 
-                                  void *outargs, 
+int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
+                                  uint64_t id,
+                                  uint32_t core_key,
+                                  uint32_t cmd ,
+                                  void *inargs,
+                                  uint32_t inargs_len,
+                                  void *outargs,
                                   uint32_t outargs_len)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_ioctl_request *msg = &clientMsg.rdevEthSwitchMsg.ioctl_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -619,12 +619,12 @@ int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
     return ret;
 }
 
-int32_t rdevEthSwitchClient_regwr(uint32_t device_id, 
+int32_t rdevEthSwitchClient_regwr(uint32_t device_id,
                                   uint32_t regaddr,
                                   uint32_t regval,
                                   uint32_t *post_wr_regval)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_regwr_request *msg = &clientMsg.rdevEthSwitchMsg.regwr_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -652,11 +652,11 @@ int32_t rdevEthSwitchClient_regwr(uint32_t device_id,
 }
 
 
-int32_t rdevEthSwitchClient_regrd(uint32_t device_id, 
+int32_t rdevEthSwitchClient_regrd(uint32_t device_id,
                                   uint32_t regaddr,
                                   uint32_t *pregval)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_regrd_request *msg = &clientMsg.rdevEthSwitchMsg.regrd_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -684,7 +684,7 @@ int32_t rdevEthSwitchClient_regrd(uint32_t device_id,
 
 int32_t rdevEthSwitchClient_sendping(uint32_t device_id, char *ping_msg, uint32_t ping_len, char *respMsg, uint32_t respMaxLen)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_ping_request *msg = &clientMsg.rdevEthSwitchMsg.ping_req;
     rdevEthSwitchClientMessageList_t ping_response;
     int32_t ret  = 0;
@@ -712,7 +712,7 @@ int32_t rdevEthSwitchClient_sendping(uint32_t device_id, char *ping_msg, uint32_
 
 int32_t rdevEthSwitchClient_ipv4macregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_address)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request *msg = &clientMsg.rdevEthSwitchMsg.ipv4_register_mac_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -740,7 +740,7 @@ int32_t rdevEthSwitchClient_ipv4macregister(uint32_t device_id, uint64_t id, uin
 
 int32_t rdevEthSwitchClient_ipv6macregister(uint32_t device_id, uint64_t id, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_address)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request *msg = &clientMsg.rdevEthSwitchMsg.ipv6_register_mac_req;
     int32_t ret;
     uint32_t respMsgSize;
@@ -767,7 +767,7 @@ int32_t rdevEthSwitchClient_ipv6macregister(uint32_t device_id, uint64_t id, uin
 
 int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id, uint64_t id, uint32_t core_key,uint8_t *ipv4_address)
 {
-    rdevEthSwitchClientMessageList_t clientMsg; 
+    rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request *msg = &clientMsg.rdevEthSwitchMsg.ipv4_unregister_mac_req;
     int32_t ret;
     uint32_t respMsgSize;
