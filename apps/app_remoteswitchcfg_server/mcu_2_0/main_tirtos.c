@@ -849,19 +849,12 @@ int main(void)
 {
     Task_Handle task;
     Task_Params taskParams;
-    UART_Params  params;
-
-    /* Change read and write Timeout of UART params to enable Xmodem*/
-    UART_Params_init(&params);
-    params.readTimeout = ETHFWAPP_UART_READ_TIMEOUT; /* in milliseconds */
-    params.writeTimeout = ETHFWAPP_UART_WRITE_TIMEOUT;
-
-    UART_stdioInit2(CPSW_UTILS_MCU2_0_UART_INSTANCE, &params);
 
     CpswAppBoardUtils_init();
 
     CpswAppUtils_enableClocks(gCpswMainAppObj.cpswType,
                               MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
+
     /* Initialize the task params */
     Task_Params_init(&taskParams);
     /* Set the task priority higher than the default priority (1) */
