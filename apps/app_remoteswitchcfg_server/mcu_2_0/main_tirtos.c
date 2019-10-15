@@ -809,7 +809,7 @@ void CpswApp_setDLFOBitInACTRLReg(void)
 }
 #endif
 
-void netOpenHook()
+void netOpenHook(void)
 {
 #ifdef ENABLE_NDKSERVERS
     // Create our local servers
@@ -828,7 +828,7 @@ void netOpenHook()
 #endif
 }
 
-void netCloseHook()
+void netCloseHook(void)
 {
 #ifdef ENABLE_NDKSERVERS
     DaemonFree(hOob);

@@ -188,7 +188,7 @@ void appLogPrintf(const char *format, ...);
  *
  * \return current time in units of usecs
  */
-uint64_t appLogGetTimeInUsec();
+uint64_t appLogGetTimeInUsec(void);
 
 /** \brief Pending on 'n' msecs
  *

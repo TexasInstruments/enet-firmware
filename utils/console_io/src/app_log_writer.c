@@ -114,7 +114,7 @@ int32_t  appLogWrInit(app_log_init_prm_t *prm)
     return status;
 }
 
-int32_t  appLogWrDeInit()
+int32_t  appLogWrDeInit(void)
 {
     int32_t status = 0;
 

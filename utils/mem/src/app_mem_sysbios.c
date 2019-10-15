@@ -168,7 +168,7 @@ int32_t appMemInit(app_mem_init_prm_t *prm)
     return status;
 }
 
-int32_t appMemDeInit()
+int32_t appMemDeInit(void)
 {
     int32_t status = 0;
 

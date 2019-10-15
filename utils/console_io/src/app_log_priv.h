@@ -101,7 +101,7 @@ void      appLogWrUnLock(app_log_wr_obj_t *obj, uintptr_t key);
 int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj, app_log_init_prm_t *prm);
 void*     appLogRdRun(app_log_rd_obj_t *obj);
 
-uint64_t  appLogGetTimeInUsec();
+uint64_t  appLogGetTimeInUsec(void);
 void      appLogWaitMsecs(uint32_t time_in_msecs);
 
 void     *appMemMap(void *phys_addr, uint32_t size);

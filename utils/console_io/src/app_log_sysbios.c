@@ -76,7 +76,7 @@ void appLogWrUnLock(app_log_wr_obj_t *obj, uintptr_t key)
     HwiP_restore(key);
 }
 
-uint64_t appLogGetTimeInUsec()
+uint64_t appLogGetTimeInUsec(void)
 {
     Types_Timestamp64 bios_timestamp64;
     Types_FreqHz bios_freq;

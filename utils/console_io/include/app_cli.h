@@ -94,7 +94,7 @@ void appCliInitPrmSetDefault(app_cli_init_prm_t *);
 int32_t appCliInit(app_cli_init_prm_t *);
 
 /* de-init CLI */
-int32_t appCliDeInit();
+int32_t appCliDeInit(void);
 
 /* Register a handler for system command 'cmd'
  * A system command is a command that can be invoked at point during application invokation

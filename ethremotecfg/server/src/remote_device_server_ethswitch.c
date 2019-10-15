@@ -1047,7 +1047,7 @@ static int32_t rdevEthSwitchServerMessageConsumerTaskInit(rdevEthSwitchServerIns
     return ret;
 }
 
-static int32_t rdevEthSwitchServerSenderTaskInit()
+static int32_t rdevEthSwitchServerSenderTaskInit(void)
 {
     SemaphoreP_Params sem_params;
     TaskP_Params tsk_prm;

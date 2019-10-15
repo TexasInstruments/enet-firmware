@@ -100,7 +100,7 @@ void appLogWrUnLock(app_log_wr_obj_t *obj, uintptr_t key)
     pthread_mutex_unlock(&g_app_log_liunx_obj.lock);
 }
 
-uint64_t appLogGetTimeInUsec()
+uint64_t appLogGetTimeInUsec(void)
 {
     uint64_t timeInUsecs = 0;
     struct timeval tv;

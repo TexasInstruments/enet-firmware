@@ -178,7 +178,7 @@ int32_t appCliInit(app_cli_init_prm_t *prm)
     return status;
 }
 
-int32_t appCliDeInit()
+int32_t appCliDeInit(void)
 {
     int32_t status = 0;
     
@@ -254,7 +254,7 @@ int32_t appCliRegisterAppSubCmd(char *cmd, char *desc, app_cli_cmd_handler_f cmd
     return status;
 }
 
-static int32_t appCliUnRegisterAllAppSubCmds()
+static int32_t appCliUnRegisterAllAppSubCmds(void)
 {
     app_cli_obj_t *obj = &g_app_cli_obj;
     int32_t status = -1;

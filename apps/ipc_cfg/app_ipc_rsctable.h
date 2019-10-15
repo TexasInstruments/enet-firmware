@@ -159,7 +159,7 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section 
     },
 };
 
-void *appGetIpcResourceTable()
+void *appGetIpcResourceTable(void)
 {
     return (void*)&ti_ipc_remoteproc_ResourceTable;
 }

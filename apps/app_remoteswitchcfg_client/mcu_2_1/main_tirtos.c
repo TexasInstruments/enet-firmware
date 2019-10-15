@@ -294,7 +294,7 @@ void IpAddrHookFxn (uint32_t IPAddr, uint32_t IfIdx, uint32_t fAdd)
 
 }
 
-void netOpenHook()
+void netOpenHook(void)
 {
 #ifdef ENABLE_NDKSERVERS
     // Create our local servers
@@ -311,7 +311,7 @@ void netOpenHook()
 #endif
 }
 
-void netCloseHook()
+void netCloseHook(void)
 {
 #ifdef ENABLE_NDKSERVERS
     DaemonFree(hOob);

@@ -192,7 +192,7 @@ int32_t appMemInit(app_mem_init_prm_t *prm);
  *
  * \return 0 on success else failure
  */
-int32_t appMemDeInit();
+int32_t appMemDeInit(void);
 
 /**
  * \brief Alloc memory from specific heap
