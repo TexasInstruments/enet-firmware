@@ -846,7 +846,11 @@ int main(void)
     Task_Handle task;
     Task_Params taskParams;
 
-    CpswAppBoardUtils_init();
+    /* Set ccsHaltFlag to 1 for halting core for CCS connection */
+    volatile uint32_t ccsHaltFlag = 0U;
+    while(ccsHaltFlag);
+
+    CpswAppBoardUtils_initEthFw();
 
     CpswAppUtils_enableClocks(gCpswMainAppObj.cpswType,
                               MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
