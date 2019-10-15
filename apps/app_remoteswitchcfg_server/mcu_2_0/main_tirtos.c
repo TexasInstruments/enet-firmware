@@ -409,10 +409,6 @@ static Void taskFxn(UArg a0, UArg a1)
     volatile uint32_t ccsHaltFlag = 0U;
     while(ccsHaltFlag);
 
-    CpswAppUtils_print("=======================================================\n");
-    CpswAppUtils_print ("           CPSW Ethernet Firmware Demo             \n");
-    CpswAppUtils_print("=======================================================\n");
-
     SemaphoreP_Params_init(&sem_params);
     sem_params.mode = SemaphoreP_Mode_BINARY;
     g_ipc_init_wait_sem = SemaphoreP_create(0, &sem_params);
@@ -854,6 +850,11 @@ int main(void)
 
     CpswAppUtils_enableClocks(gCpswMainAppObj.cpswType,
                               MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
+
+
+    CpswAppUtils_print("=======================================================\n");
+    CpswAppUtils_print ("           CPSW Ethernet Firmware Demo             \n");
+    CpswAppUtils_print("=======================================================\n");
 
     /* Initialize the task params */
     Task_Params_init(&taskParams);
