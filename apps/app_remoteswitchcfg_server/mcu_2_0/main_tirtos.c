@@ -410,7 +410,7 @@ static Void taskFxn(UArg a0, UArg a1)
     while(ccsHaltFlag);
 
     CpswAppUtils_print("=======================================================\n");
-    CpswAppUtils_print ("           CPSW L2 Switching APP          \n");
+    CpswAppUtils_print ("           CPSW Ethernet Firmware Demo             \n");
     CpswAppUtils_print("=======================================================\n");
 
     SemaphoreP_Params_init(&sem_params);

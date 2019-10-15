@@ -364,7 +364,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
 
         inArgs.inPktMatchCfg.packetMatchEnableMask = 0;
 
-        inArgs.inPktMatchCfg.ingressPort   = pInterVlanCfg->ingPortNum;
+        inArgs.inPktMatchCfg.ingressPort   = (Cpsw_MacPort)pInterVlanCfg->ingPortNum;
         inArgs.inPktMatchCfg.packetMatchEnableMask |=  CPSW_INTERVLAN_INGRESSPKT_MATCH_PORT;
 
         inArgs.inPktMatchCfg.dstIp.ipAddrtype = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
@@ -396,7 +396,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
         inArgs.inPktMatchCfg.vlanId    = pInterVlanCfg->ingVlanId;
         inArgs.inPktMatchCfg.enableTTLCheck = TRUE;
 
-        inArgs.egressCfg.egressPort = pInterVlanCfg->egrPortNum;
+        inArgs.egressCfg.egressPort = (Cpsw_MacPort) pInterVlanCfg->egrPortNum;
         inArgs.egressCfg.outPktModCfg.decrementTTL = TRUE;
         inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = FALSE;
         inArgs.egressCfg.outPktModCfg.replaceDASA = TRUE;
@@ -444,7 +444,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
         memcpy(inArgs.inPktMatchCfg.dstIp.ipv6.ipv6Addr,testDstIpv6Addr2,sizeof(inArgs.inPktMatchCfg.dstIp.ipv6.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnableMask |=  CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
-        inArgs.egressCfg.egressPort = pInterVlanCfg->ingPortNum;
+        inArgs.egressCfg.egressPort = (Cpsw_MacPort)pInterVlanCfg->ingPortNum;
 
         CPSW_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -487,7 +487,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
 
         inArgs.inPktMatchCfg.packetMatchEnableMask = 0;
 
-        inArgs.inPktMatchCfg.ingressPort   = pInterVlanCfg->egrPortNum;
+        inArgs.inPktMatchCfg.ingressPort   = (Cpsw_MacPort) pInterVlanCfg->egrPortNum;
         inArgs.inPktMatchCfg.packetMatchEnableMask |=  CPSW_INTERVLAN_INGRESSPKT_MATCH_PORT;
 
         inArgs.inPktMatchCfg.dstIp.ipAddrtype = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
@@ -520,7 +520,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
         inArgs.inPktMatchCfg.vlanId    = pInterVlanCfg->egrPortNum;
         inArgs.inPktMatchCfg.enableTTLCheck = TRUE;
 
-        inArgs.egressCfg.egressPort = pInterVlanCfg->ingPortNum;
+        inArgs.egressCfg.egressPort = (Cpsw_MacPort) pInterVlanCfg->ingPortNum;
         inArgs.egressCfg.outPktModCfg.decrementTTL = TRUE;
         inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = FALSE;
         inArgs.egressCfg.outPktModCfg.replaceDASA = TRUE;
@@ -591,7 +591,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
         inArgs.inPktMatchCfg.vlanId    = pInterVlanCfg->ingVlanId;
         inArgs.inPktMatchCfg.enableTTLCheck = TRUE;
 
-        inArgs.egressCfg.egressPort = pInterVlanCfg->egrPortNum;
+        inArgs.egressCfg.egressPort = (Cpsw_MacPort) pInterVlanCfg->egrPortNum;
         inArgs.egressCfg.outPktModCfg.decrementTTL = TRUE;
         inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = FALSE;
         inArgs.egressCfg.outPktModCfg.replaceDASA = TRUE;
