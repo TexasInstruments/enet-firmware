@@ -931,11 +931,12 @@ static void rdevEthSwitchServerMessageMonitorTaskFn(void *arg0, void *arg1)
     void *value;
     rdevEthSwitchServerMessage_t *msg;
     struct rpmsg_kdrv_device_header *dev_hdr;
-    struct rpmsg_kdrv_ethswitch_s2c_notify *resp;    
+    struct rpmsg_kdrv_ethswitch_s2c_notify *resp;
     rdevEthSwitchServerInstanceState_t *inst = (rdevEthSwitchServerInstanceState_t *)arg0;
     int32_t ret = 0;
+    volatile bool testDone = false;
 
-    while(1) {
+    while(testDone != true) {
         ret = 0;
         uint32_t should_send_message = 0;
 

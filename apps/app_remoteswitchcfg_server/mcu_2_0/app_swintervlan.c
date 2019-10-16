@@ -813,7 +813,7 @@ static void CpswApp_pktRxTx(void)
                                                   &rxFreeQ);
     CpswAppUtils_assert(CpswUtils_getQCount(&rxFreeQ) == 0);
 
-   } while(testDone == true);
+   } while(testDone != true);
 
 }
 
