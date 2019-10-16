@@ -231,7 +231,7 @@ static Void CpswApp_InterVlanRouting(UArg a0, UArg a1)
     gCpswInterVlanAppObj.completionSem = Semaphore_create(0, &semParams, NULL);
 
     status = CpswApp_getRxTxHandle();
-    CpswAppUtils_print("\n Rx Flow for Software Inter-VLAN Routing is up\n");
+    CpswAppUtils_print("Rx Flow for Software Inter-VLAN Routing is up\n");
 
     if (status == CPSW_SOK)
     {

@@ -11,6 +11,7 @@ MV = $(UTILSPATH)mv
 RMDIR = $(UTILSPATH)rm -rf
 MKDIR = $(UTILSPATH)mkdir
 ECHO = @$(UTILSPATH)echo
+CD = $(UTILSPATH)cd
 
 ifeq ($(OS),Windows_NT)
   MAKE = gmake
@@ -21,11 +22,11 @@ endif
 
 
 .PHONY : all clean allclean
-.PHONY : user_design user_design_clean
+.PHONY : user_design user_design_clean api_guide api_guide_clean
 
-all: user_design
+all: user_design api_guide
 
-clean : user_design_clean
+clean : user_design_clean api_guide_clean
 
 allclean: clean
 
@@ -35,6 +36,13 @@ user_design:
 user_design_clean:
 	$(RM) -R ../../docs/user_guide
 	$(RM) -R output.txt
+
+api_guide:
+	cd ./content_pages/api_guide &&  $(MAKE) api_guide
+
+api_guide_clean:
+	 $(RM) -R ../../docs/api_guide
+	 $(RM) -R ./content_pages/api_guide/output.txt
 
 # Nothing beyond this point
 # Nothing beyond this point

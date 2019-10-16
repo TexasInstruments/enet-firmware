@@ -237,3 +237,4 @@ int32_t rdevEthSwitchServerInit(rdevEthSwitchServerInitPrm_t *prm);
 
 #endif
 
+/* @} */

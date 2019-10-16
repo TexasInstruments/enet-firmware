@@ -63,8 +63,7 @@ Below diagram shows connections for video streaming connections.
 ![](demo_l2_switching_connections.png "Layer-2 Switching Demo connections diagram")
 
 > **Note:** The IP addresses in above diagram can change based on your network
-> configuration. Also use of Ubuntu laptop is not required if DHCP server is
-> available in your network or if using static IP addresses.
+> configuration.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Dependencies {#demo_ethfw_combined_depend}
@@ -151,9 +150,6 @@ Not applicable.
 
 -# **Optional** - If static IP configuration is not possible, a local DHCP
    server can be setup in a Linux PC as shown in the connections diagram above.
-   Otherwise, it's also possible to connect the **MAC Port 1** to a wider
-   network running DHCP.
-
 
 ## CCS Boot {#demo_ethfw_combined_CCS}
 
@@ -281,64 +277,79 @@ You should be able to see a Window opening up as shown below.
 * Using the tool the Port statistics can be obtained using the "PORT STATISTICS" tab.
 
 ## Inter VLAN Routing {#ethfw_intervlan_routing}
-### Test set up
-![](demo_intervlan_routing_setup.png "Inter-VLAN test set up")
-
-PC1 packEth configuration.
-
-    * Pkt Header
-    DST_MAC =02:00:00:00:00:02
-    SRC MAC = 00:11:01:00:00:01
-    VLAN ID=0x64
-    SRC IP=192.168.106.128
-    DST IP=192.168.108.128
-    TTL = 255
-    * Payload = 300 Bytes
-
-Use Wireshark(R) in PC2 to capture and illustrate the received packet contents
-- Verify that the SRC_MAC, DST_MAC, VLAN ID, TTL fields are all updated correctly
-- Verify that the R5 CPU load is ~0, this is printed on the R5 console terminal (connect minicom to /dev/ttyUSB2
-- Verify that packet receive rate using  bmon
-
-    * Pkt Header
-    DST_MAC = 00:11:02:00:00:01
-    SRC MAC = 02:00:00:00:00:02
-    VLAN ID=0x68
-    SRC IP=192.168.108.128
-    DST IP=192.168.106.128
-
-    TTL = 255
-    * Payload = 300 Bytes
-
-The predefined packEth config files is available as part of docs.
 
 ### Software Inter VLAN Routing {#ethfw_sw_intervlan_routing}
   * Open the "CONFIGURATION FILE" tab of the GUI tool. Here you can load the pre-written
     configuration files and send them to the EVM to enable/disable features of the CPSW9G.
   * To enable, Software Inter VLAN Routing, click on the "Open" button and select the sw_intervlan_routing_config.txt file present in the "<SDK_INSTALL_PATH>/pdk/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files" directory.
-  * Always parse the configuration before sending to the EVM using "Parse" button to identify errors in the configuration.
+  * Always parse the configuration before sending to the EVM using "Parse" button.
   > **Note:** The list of allowed commands and the configurations are present in the "schemas.py" file in the "cpsw_configclient/inc/" directory.
-  * Once the parsing succeeded, you can send the configuration using "Send Config" button.
-  * Now that the Software based Inter VLAN routing is enabled, you can verify it by sending packets with VLAN ID tagged using packEth tool.
+  * If the parsing succeeded, you can send the configuration using "Send Config" button.
+  * Now that the Software based Inter VLAN routing is enabled, you can verify it by sending packets with VLAN ID using packEth tool.
   * In the packEth tool on the PC with 192.168.1.202 IP address, enter the details as shown in the below picture.
 
   ![](packethswintervlan.png "PackEth settings for Software InterVLAN Routing")
 
-  * The packets sent using packEth with IP address 192.168.1.202 and VLAN ID set to 0x64 (100 in decimal) will be routed to the PC with IP address 192.168.1.204 with VLAN ID changed to 0xC8 (200 in decimal). This can be verified using tools like WireShark on the receiver PC.
+  * PackEth configuration for Sw Inter VLAN Routing
+
+        Pkt Header
+        DST MAC =02:00:00:00:00:02
+        SRC MAC = 00:11:01:00:00:01
+        VLAN ID=0x64
+        SRC IP=192.168.1.202
+        DST IP=192.168.108.204
+        TTL = 255
+        Payload = 300 Bytes
+
+  * The packets sent with the above configuration will be routed to the PC with IP address 192.168.1.204 and the VLAN ID will be changed to 0xC8 (200 in decimal). This can be verified using tools like WireShark on the receiver PC.
+  * The received packets should have the following header :
+
+        Pkt Header
+        DST MAC = 00:11:02:00:00:01
+        SRC MAC = 02:00:00:00:00:02
+        VLAN ID=0xC8
+        SRC IP=192.168.1.202
+        DST IP=192.168.1.204
+        TTL = 254
+        Payload = 300 Bytes
+
   * And also, if the packets are sent at a higher data rate, the CPU load will spike up, this can be clearly seen from the GUI tool.
 
 ### Hardware Inter VLAN Routing {#ethfw_hw_intervlan_routing}
   * Open the "CONFIGURATION FILE" tab of the GUI tool.
   * To enable, Hardware Inter VLAN Routing, click on the "Open" button and select the hw_intervlan_routing_config.txt file present in the "<SDK_INSTALL_PATH>/pdk/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files" directory.
-  * Always parse the configuration before sending to the EVM using "Parse" button to identify errors in the configuration.
-  * Once the parsing succeeded, you can send the configuration using "Send Config" button.
-  * Now that the Hardware based Inter VLAN routing is enabled, you can verify it by sending packets with VLAN ID tagged using packEth tool.
+  * Always parse the configuration before sending to the EVM using "Parse" button.
+  * If the parsing succeeded, you can send the configuration using "Send Config" button.
+  * Now that the Hardware based Inter VLAN routing is enabled, you can verify it by sending packets with VLAN ID using packEth tool.
   * Change the configurations in PackEth tool as show below.
 
   ![](packethhwintervlan.png "PackEth settings for Hardware InterVLAN Routing")
 
-  * The packets sent using packEth with IP address 192.168.1.201 and VLAN ID set to 0x64 (100 in decimal) will be routed to the PC with IP address 192.168.1.204 with VLAN ID changed to 0xC8 (200 in decimal). This can be verified using tools like WireShark on the receiver PC.
-  * Since the routing is now offloaded to hardware, there will be no impact on the CPU load even if the data rate is increased to as high as 1Gbps.
+  * PackEth configuration for Hw Inter VLAN Routing
+
+        Pkt Header
+        DST MAC =02:00:00:00:00:02
+        SRC MAC = 00:11:01:00:00:01
+        VLAN ID=0x64
+        SRC IP=192.168.1.201
+        DST IP=192.168.108.204
+        TTL = 255
+        Payload = 300 Bytes
+
+
+  * The packets sent with the above configuration will be routed to the PC with IP address 192.168.1.204 and the VLAN ID will be changed to 0xC8 (200 in decimal). This can be verified using tools like WireShark on the receiver PC.
+  * The received packets should have the following header :
+
+        Pkt Header
+        DST MAC = 00:11:02:00:00:01
+        SRC MAC = 02:00:00:00:00:02
+        VLAN ID=0xC8
+        SRC IP=192.168.1.201
+        DST IP=192.168.1.204
+        TTL = 254
+        Payload = 300 Bytes    
+
+  * Since the routing is now offloaded to hardware, there will be no impact on the CPU load even for data rates as high as 1Gbps.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Sample output {#demo_ethfw_combined_output}
