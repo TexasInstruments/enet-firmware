@@ -67,18 +67,17 @@
 
 #define APP_LOG_BUF_MAX  (1024u)
 
-#define APP_LOG_PRINT_BUF_MAX (APP_LOG_BUF_MAX+APP_LOG_MAX_CPU_NAME+32u)
+#define APP_LOG_PRINT_BUF_MAX (APP_LOG_BUF_MAX + APP_LOG_MAX_CPU_NAME + 32u)
 
-typedef struct {
-
+typedef struct
+{
     char buf[APP_LOG_BUF_MAX];
     app_log_shared_mem_t *shared_mem;
     app_log_cpu_shared_mem_t *cpu_shared_mem;
-
 } app_log_wr_obj_t;
 
-typedef struct {
-
+typedef struct
+{
     char buf[APP_LOG_BUF_MAX];
     char print_buf[APP_LOG_PRINT_BUF_MAX];
     app_log_shared_mem_t *shared_mem;
@@ -87,25 +86,31 @@ typedef struct {
     app_log_device_send_string_f device_write;
     uint8_t *task_stack;
     uint32_t task_stack_size;
-    void    *task_handle;
-
+    void *task_handle;
 } app_log_rd_obj_t;
 
-#define appAlign(value, align)   ((( (value) + ( (align) - 1 ) ) / (align) ) * (align) )
-#define appFloor(value, align)   (( (value) / (align) ) * (align) )
+#define appAlign(value, align)   ((((value) + ((align) - 1)) / (align)) * (align))
+#define appFloor(value, align)   (((value) / (align)) * (align))
 #define appCeil(value, align)    appLogAlign(value, align)
 
 uintptr_t appLogWrLock(app_log_wr_obj_t *obj);
-void      appLogWrUnLock(app_log_wr_obj_t *obj, uintptr_t key);
 
-int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj, app_log_init_prm_t *prm);
-void*     appLogRdRun(app_log_rd_obj_t *obj);
+void      appLogWrUnLock(app_log_wr_obj_t *obj,
+                         uintptr_t key);
+
+int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj,
+                             app_log_init_prm_t *prm);
+
+void *appLogRdRun(app_log_rd_obj_t *obj);
 
 uint64_t  appLogGetTimeInUsec(void);
+
 void      appLogWaitMsecs(uint32_t time_in_msecs);
 
-void     *appMemMap(void *phys_addr, uint32_t size);
-int32_t   appMemUnMap(void *virt_addr, uint32_t size);
+void *appMemMap(void *phys_addr,
+                uint32_t size);
+
+int32_t   appMemUnMap(void *virt_addr,
+                      uint32_t size);
 
 #endif
-

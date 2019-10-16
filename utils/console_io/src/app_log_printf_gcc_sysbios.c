@@ -66,28 +66,28 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-
-int printf (__const char *__restrict __format, ...)
+int printf(__const char *__restrict __format,
+           ...)
 {
     int status = 0;
     char buf[1024u];
-    
+
     va_list args;
-    va_start(args,__format);
+
+    va_start(args, __format);
     vsnprintf(buf, sizeof(buf), __format, args);
     va_end(args);
-    
+
     appLogPrintf(buf);
-    
+
     return status;
 }
 
-int puts (__const char *__s)
+int puts(__const char *__s)
 {
     int status = 0;
-    
+
     appLogPrintf("%s\n", __s);
-    
+
     return 0;
 }
-

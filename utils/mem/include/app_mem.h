@@ -111,59 +111,58 @@
 /**
  * \brief Heap initialization parameters
  */
-typedef struct {
-
-    void    *base;                   /**< heap memory base address */
-    char    name[APP_MEM_HEAP_NAME_MAX];  /**< heap name */
-    uint32_t size;                   /**< heap size in bytes */
-    uint32_t flags;                  /**< flags, see APP_MEM_HEAP_FLAGS_* */
-
+typedef struct
+{
+    void *base;                       /**< heap memory base address */
+    char name[APP_MEM_HEAP_NAME_MAX]; /**< heap name */
+    uint32_t size;                    /**< heap size in bytes */
+    uint32_t flags;                   /**< flags, see APP_MEM_HEAP_FLAGS_* */
 } app_mem_heap_prm_t;
 
 /**
  * \brief Memory module initialization parameters
  */
-typedef struct {
-
+typedef struct
+{
     app_mem_heap_prm_t heap_info[APP_MEM_HEAP_MAX]; /**< heap init parameters */
-
 } app_mem_init_prm_t;
-
 
 /**
  * \brief Heap statistics and information
  */
-typedef struct {
-
+typedef struct
+{
     uint32_t heap_id;                       /**< Heap ID, see APP_MEM_HEAP_* */
     char heap_name[APP_MEM_HEAP_NAME_MAX];  /**< Heap name */
     uint32_t heap_size;                     /**< Heap size in bytes */
     uint32_t free_size;                     /**< Free space in bytes */
-
 } app_mem_stats_t;
 
 /**
  * \brief Align ptr value to 'align' bytes
  */
-static inline void *APP_MEM_ALIGNPTR(void *val, uint32_t align)
+static inline void *APP_MEM_ALIGNPTR(void *val,
+                                     uint32_t align)
 {
-    return (void*)((((uintptr_t)val+align-1) / align) * align);
+    return (void *)((((uintptr_t)val + align - 1) / align) * align);
 }
 
 /**
  * \brief Align 64b value to 'align' bytes
  */
-static inline uint64_t APP_MEM_ALIGN64(uint64_t val, uint32_t align)
+static inline uint64_t APP_MEM_ALIGN64(uint64_t val,
+                                       uint32_t align)
 {
-    return (uint64_t)( (uint64_t)(val+align-1) / align) * align;
+    return (uint64_t)((uint64_t)(val + align - 1) / align) * align;
 }
 
 /**
  * \brief Align 32b value to 'align' bytes
  */
-static inline uint32_t APP_MEM_ALIGN32(uint32_t val, uint32_t align)
+static inline uint32_t APP_MEM_ALIGN32(uint32_t val,
+                                       uint32_t align)
 {
-    return (uint32_t)( (uint32_t)(val+align-1) / align) * align;
+    return (uint32_t)((uint32_t)(val + align - 1) / align) * align;
 }
 
 /**
@@ -203,7 +202,9 @@ int32_t appMemDeInit(void);
  *
  * \return pointer to memory or NULL in case of failure
  */
-void    *appMemAlloc(uint32_t heap_id, uint32_t size, uint32_t align);
+void *appMemAlloc(uint32_t heap_id,
+                  uint32_t size,
+                  uint32_t align);
 
 /**
  * \brief Free memory that was previously allocated
@@ -214,8 +215,9 @@ void    *appMemAlloc(uint32_t heap_id, uint32_t size, uint32_t align);
  *
  * \return 0 on success else failure
  */
-int32_t appMemFree(uint32_t heap_id, void *ptr, uint32_t size);
-
+int32_t appMemFree(uint32_t heap_id,
+                   void *ptr,
+                   uint32_t size);
 
 /**
  * \brief Return heap statistics and information
@@ -225,10 +227,9 @@ int32_t appMemFree(uint32_t heap_id, void *ptr, uint32_t size);
  *
  * \return 0 on success else failure
  */
-int32_t appMemStats(uint32_t heap_id, app_mem_stats_t *stats);
-
+int32_t appMemStats(uint32_t heap_id,
+                    app_mem_stats_t *stats);
 
 /* @} */
 
 #endif
-

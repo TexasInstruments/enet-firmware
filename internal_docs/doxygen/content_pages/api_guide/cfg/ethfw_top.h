@@ -1,4 +1,3 @@
-
 /**
  *  \defgroup ETHFW_MODULE ETHFW
  */

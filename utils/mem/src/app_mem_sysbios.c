@@ -72,20 +72,18 @@
 /** \brief Minmum number of bytes that will be used for alignment, MUST >= max CPU cache line size */
 #define APP_MEM_ALIGN_MIN_BYTES     (256u)
 
-typedef struct {
-
+typedef struct
+{
     uint16_t is_valid;
     HeapMem_Struct bios_heap_struct;
     IHeap_Handle bios_heap_handle;
     uint32_t alloc_offset;
     app_mem_heap_prm_t heap_prm;
-
 } app_mem_heap_obj_t;
 
-typedef struct {
-
+typedef struct
+{
     app_mem_heap_obj_t heap_obj[APP_MEM_HEAP_MAX];
-
 } app_mem_obj_t;
 
 static app_mem_obj_t g_app_mem_obj;
@@ -94,7 +92,7 @@ void appMemInitPrmSetDefault(app_mem_init_prm_t *prm)
 {
     uint32_t heap_id;
 
-    for(heap_id = 0; heap_id < APP_MEM_HEAP_MAX; heap_id++)
+    for (heap_id = 0; heap_id < APP_MEM_HEAP_MAX; heap_id++)
     {
         app_mem_heap_prm_t *heap_prm;
 
@@ -113,7 +111,7 @@ int32_t appMemInit(app_mem_init_prm_t *prm)
 
     uint32_t heap_id;
 
-    for(heap_id = 0; heap_id < APP_MEM_HEAP_MAX; heap_id++)
+    for (heap_id = 0; heap_id < APP_MEM_HEAP_MAX; heap_id++)
     {
         app_mem_heap_prm_t *heap_prm;
         app_mem_heap_obj_t *heap_obj;
@@ -125,7 +123,7 @@ int32_t appMemInit(app_mem_init_prm_t *prm)
         heap_obj->alloc_offset = 0;
         heap_obj->bios_heap_handle = NULL;
 
-        if( (heap_prm->base == NULL) || (heap_prm->size == 0))
+        if ((heap_prm->base == NULL) || (heap_prm->size == 0))
         {
             /* no heap specified by user */
         }
@@ -138,7 +136,7 @@ int32_t appMemInit(app_mem_init_prm_t *prm)
 
             heap_obj->is_valid = 1;
 
-            if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
+            if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
             {
                 /* no BIOS heap, linear allocator based on offset */
                 heap_obj->alloc_offset = 0;
@@ -150,21 +148,22 @@ int32_t appMemInit(app_mem_init_prm_t *prm)
 
                 HeapMem_Params_init(&bios_heap_prm);
                 bios_heap_prm.buf = APP_MEM_ALIGNPTR(
-                    heap_prm->base, APP_MEM_ALIGN_MIN_BYTES);
+                                                     heap_prm->base, APP_MEM_ALIGN_MIN_BYTES);
                 bios_heap_prm.size = APP_MEM_ALIGN32(
-                    heap_prm->size, APP_MEM_ALIGN_MIN_BYTES);
+                                                     heap_prm->size, APP_MEM_ALIGN_MIN_BYTES);
 
                 HeapMem_construct(&heap_obj->bios_heap_struct, &bios_heap_prm);
 
-                heap_prm->base   = bios_heap_prm.buf;
-                heap_prm->size   = bios_heap_prm.size;
+                heap_prm->base = bios_heap_prm.buf;
+                heap_prm->size = bios_heap_prm.size;
 
                 heap_obj->bios_heap_handle = HeapMem_Handle_upCast(
-                            HeapMem_handle(&heap_obj->bios_heap_struct)
-                                );
+                                                                   HeapMem_handle(&heap_obj->bios_heap_struct)
+                                                                   );
             }
         }
     }
+
     return status;
 }
 
@@ -174,15 +173,15 @@ int32_t appMemDeInit(void)
 
     uint32_t heap_id;
 
-    for(heap_id = 0; heap_id < APP_MEM_HEAP_MAX; heap_id++)
+    for (heap_id = 0; heap_id < APP_MEM_HEAP_MAX; heap_id++)
     {
         app_mem_heap_obj_t *heap_obj;
 
         heap_obj = &g_app_mem_obj.heap_obj[heap_id];
 
-        if(heap_obj->is_valid)
+        if (heap_obj->is_valid)
         {
-            if(heap_obj->bios_heap_handle != NULL)
+            if (heap_obj->bios_heap_handle != NULL)
             {
                 HeapMem_destruct(&heap_obj->bios_heap_struct);
             }
@@ -192,14 +191,17 @@ int32_t appMemDeInit(void)
             heap_obj->bios_heap_handle = NULL;
         }
     }
+
     return status;
 }
 
-void    *appMemAlloc(uint32_t heap_id, uint32_t size, uint32_t align)
+void *appMemAlloc(uint32_t heap_id,
+                  uint32_t size,
+                  uint32_t align)
 {
     void *ptr = NULL;
 
-    if(heap_id < APP_MEM_HEAP_MAX && size != 0)
+    if (heap_id < APP_MEM_HEAP_MAX && size != 0)
     {
         app_mem_heap_obj_t *heap_obj;
         app_mem_heap_prm_t *heap_prm;
@@ -207,9 +209,9 @@ void    *appMemAlloc(uint32_t heap_id, uint32_t size, uint32_t align)
         heap_obj = &g_app_mem_obj.heap_obj[heap_id];
         heap_prm = &heap_obj->heap_prm;
 
-        if(heap_obj->is_valid)
+        if (heap_obj->is_valid)
         {
-            if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
+            if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
             {
                 uint32_t offset;
                 uintptr_t key;
@@ -218,36 +220,37 @@ void    *appMemAlloc(uint32_t heap_id, uint32_t size, uint32_t align)
 
                 offset = APP_MEM_ALIGN32(heap_obj->alloc_offset, align);
 
-                if( (offset+size) <= heap_prm->size)
+                if ((offset + size) <= heap_prm->size)
                 {
-                    ptr = (void*)((uintptr_t)heap_prm->base + offset);
+                    ptr = (void *)((uintptr_t)heap_prm->base + offset);
 
-                    heap_obj->alloc_offset = (offset+size);
+                    heap_obj->alloc_offset = (offset + size);
                 }
 
                 HwiP_restore(key);
             }
             else
             {
-                if(heap_obj->bios_heap_handle!=NULL)
+                if (heap_obj->bios_heap_handle != NULL)
                 {
                     Error_Block eb;
 
                     Error_init(&eb);
 
-                    size  = APP_MEM_ALIGN32(size, APP_MEM_ALIGN_MIN_BYTES);
+                    size = APP_MEM_ALIGN32(size, APP_MEM_ALIGN_MIN_BYTES);
                     align = APP_MEM_ALIGN32(align, APP_MEM_ALIGN_MIN_BYTES);
 
                     ptr = Memory_alloc(heap_obj->bios_heap_handle,
-                               size,
-                               align,
-                               &eb);
+                                       size,
+                                       align,
+                                       &eb);
 
-                    if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_DO_CLEAR_ON_ALLOC))
+                    if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_DO_CLEAR_ON_ALLOC))
                     {
                         memset(ptr, 0, size);
                     }
-                    if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_IS_SHARED))
+
+                    if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_IS_SHARED))
                     {
                         CacheP_wbInv(ptr, size);
                     }
@@ -255,14 +258,17 @@ void    *appMemAlloc(uint32_t heap_id, uint32_t size, uint32_t align)
             }
         }
     }
+
     return ptr;
 }
 
-int32_t appMemFree(uint32_t heap_id, void *ptr, uint32_t size)
+int32_t appMemFree(uint32_t heap_id,
+                   void *ptr,
+                   uint32_t size)
 {
     int32_t status = -1;
 
-    if(heap_id < APP_MEM_HEAP_MAX && ptr != NULL && size != 0)
+    if (heap_id < APP_MEM_HEAP_MAX && ptr != NULL && size != 0)
     {
         app_mem_heap_obj_t *heap_obj;
         app_mem_heap_prm_t *heap_prm;
@@ -270,9 +276,9 @@ int32_t appMemFree(uint32_t heap_id, void *ptr, uint32_t size)
         heap_obj = &g_app_mem_obj.heap_obj[heap_id];
         heap_prm = &heap_obj->heap_prm;
 
-        if(heap_obj->is_valid)
+        if (heap_obj->is_valid)
         {
-            if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
+            if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
             {
                 uintptr_t key;
 
@@ -286,32 +292,34 @@ int32_t appMemFree(uint32_t heap_id, void *ptr, uint32_t size)
             }
             else
             {
-                if(heap_obj->bios_heap_handle!=NULL)
+                if (heap_obj->bios_heap_handle != NULL)
                 {
-                    size  = APP_MEM_ALIGN32(size, APP_MEM_ALIGN_MIN_BYTES);
+                    size = APP_MEM_ALIGN32(size, APP_MEM_ALIGN_MIN_BYTES);
 
-                    if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_IS_SHARED))
+                    if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_IS_SHARED))
                     {
                         CacheP_wbInv(ptr, size);
                     }
 
                     Memory_free(heap_obj->bios_heap_handle,
-                        ptr,
-                        size);
+                                ptr,
+                                size);
 
                     status = 0;
                 }
             }
         }
     }
+
     return status;
 }
 
-int32_t appMemStats(uint32_t heap_id, app_mem_stats_t *stats)
+int32_t appMemStats(uint32_t heap_id,
+                    app_mem_stats_t *stats)
 {
     int32_t status = -1;
 
-    if(heap_id < APP_MEM_HEAP_MAX && stats != NULL )
+    if (heap_id < APP_MEM_HEAP_MAX && stats != NULL)
     {
         app_mem_heap_obj_t *heap_obj;
         app_mem_heap_prm_t *heap_prm;
@@ -319,7 +327,7 @@ int32_t appMemStats(uint32_t heap_id, app_mem_stats_t *stats)
         heap_obj = &g_app_mem_obj.heap_obj[heap_id];
         heap_prm = &heap_obj->heap_prm;
 
-        if(stats!=NULL)
+        if (stats != NULL)
         {
             stats->heap_id = APP_MEM_HEAP_MAX;
             stats->heap_name[0] = 0;
@@ -327,13 +335,13 @@ int32_t appMemStats(uint32_t heap_id, app_mem_stats_t *stats)
             stats->free_size = 0;
         }
 
-        if(heap_obj->is_valid)
+        if (heap_obj->is_valid)
         {
             stats->heap_id = heap_id;
             strncpy(stats->heap_name, heap_prm->name, APP_MEM_HEAP_NAME_MAX);
             stats->heap_size = heap_prm->size;
 
-            if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
+            if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
             {
                 uintptr_t key;
 
@@ -347,7 +355,7 @@ int32_t appMemStats(uint32_t heap_id, app_mem_stats_t *stats)
             }
             else
             {
-                if(heap_obj->bios_heap_handle!=NULL)
+                if (heap_obj->bios_heap_handle != NULL)
                 {
                     Memory_Stats bios_heap_stats;
 
@@ -360,5 +368,6 @@ int32_t appMemStats(uint32_t heap_id, app_mem_stats_t *stats)
             }
         }
     }
+
     return status;
 }

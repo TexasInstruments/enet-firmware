@@ -81,10 +81,11 @@ typedef int (*app_cli_device_send_string_f)(char *string, uint32_t max_size);
 typedef int (*app_cli_device_get_string_f)(char *string, uint32_t max_size, uint32_t *string_size);
 
 /* CLI init parameters */
-typedef struct {
-    app_cli_device_send_string_f device_write; /* device specific callback to write string to device, by default appUartWriteString() is used */
-    app_cli_device_get_string_f device_read;  /* device specific callback to read string from device, by default appUartReadString() is used */
-    char cli_prompt_name[APP_CLI_MAX_PROMPT_NAME];   /* CLI prompt name, by default "ti" will be used */
+typedef struct
+{
+    app_cli_device_send_string_f device_write;     /* device specific callback to write string to device, by default appUartWriteString() is used */
+    app_cli_device_get_string_f device_read;       /* device specific callback to read string from device, by default appUartReadString() is used */
+    char cli_prompt_name[APP_CLI_MAX_PROMPT_NAME]; /* CLI prompt name, by default "ti" will be used */
 } app_cli_init_prm_t;
 
 /* set default parameters for CLI */
@@ -100,7 +101,9 @@ int32_t appCliDeInit(void);
  * A system command is a command that can be invoked at point during application invokation
  * ex, while a application use-case is running
  */
-int32_t appCliRegisterSystemCmd(char *cmd, char *desc, app_cli_cmd_handler_f cmd_handler);
+int32_t appCliRegisterSystemCmd(char *cmd,
+                                char *desc,
+                                app_cli_cmd_handler_f cmd_handler);
 
 /* Register a handler for application command 'cmd'
  * Once a application command is invoke, additional application commands
@@ -110,7 +113,9 @@ int32_t appCliRegisterSystemCmd(char *cmd, char *desc, app_cli_cmd_handler_f cmd
  * An application handler should register application specific sub-commands
  * which can be invoked while a application runs
  */
-int32_t appCliRegisterAppCmd(char *cmd, char *desc, app_cli_cmd_handler_f cmd_handler);
+int32_t appCliRegisterAppCmd(char *cmd,
+                             char *desc,
+                             app_cli_cmd_handler_f cmd_handler);
 
 /* Register a handler for application sub-commands 'cmd'
  * This are commands specific to the currently running application
@@ -119,15 +124,17 @@ int32_t appCliRegisterAppCmd(char *cmd, char *desc, app_cli_cmd_handler_f cmd_ha
  *
  * This commands can be invoked only after a application command is executed
  */
-int32_t appCliRegisterAppSubCmd(char *cmd, char *desc, app_cli_cmd_handler_f cmd_handler);
+int32_t appCliRegisterAppSubCmd(char *cmd,
+                                char *desc,
+                                app_cli_cmd_handler_f cmd_handler);
 
 /* waits to read input from user and invokes handler based on
-   the command that is entered.
-   After handling one command, the function returns.
-   If unsupport command is entered, function returns.
-   User should call this function in a loop to get the effect of a CLI.
-   If user enters 'exit', is_exit flag is set to 1
-   User can use this flag to break out of the loop.
+ * the command that is entered.
+ * After handling one command, the function returns.
+ * If unsupport command is entered, function returns.
+ * User should call this function in a loop to get the effect of a CLI.
+ * If user enters 'exit', is_exit flag is set to 1
+ * User can use this flag to break out of the loop.
  */
 int32_t appCliShowPrompt(uint32_t *is_exit);
 
@@ -139,4 +146,3 @@ void appCliShowBanner(void);
 #endif
 
 #endif /* APP_CLI_H */
-

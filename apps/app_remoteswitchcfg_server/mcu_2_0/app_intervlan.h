@@ -96,7 +96,9 @@ extern "C" {
 /* ========================================================================== */
 void CpswApp_hwInterVlanRouting(Cpsw_Type cpswType,
                                 CpswCfgServer_InterVlanConfig *pInterVlanCfg);
-void CpswAppInterVlan_setOpenPrms(Cpsw_Config     *pCpswCfg);
+
+void CpswAppInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg);
+
 void CpswAppInterVlan_setMacConfig(Cpsw_OpenPortLinkInArgs *pLinkArgs,
                                    uint32_t portNum);
 

@@ -60,7 +60,6 @@
  *
  */
 
-
 #ifndef __RPMSG_KDRV_TRANSPORT_ETHSWITCH_H__
 #define __RPMSG_KDRV_TRANSPORT_ETHSWITCH_H__
 
@@ -70,41 +69,43 @@
 #define RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR             (1)
 #define RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION          (1)
 
-enum rpmsg_kdrv_ethswitch_message_type {
-    RPMSG_KDRV_TP_ETHSWITCH_ATTACH                  = 0x00,
-    RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT              = 0x01,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX                = 0x02,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX                = 0x03,
-    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_DEFAULTFLOW    = 0x04,
-    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC               = 0x05,
-    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC            = 0x06,
-    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC          = 0x07,
-    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW  = 0x08,
-    RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC                = 0x09,
-    RPMSG_KDRV_TP_ETHSWITCH_FREE_TX                 = 0x0A,
-    RPMSG_KDRV_TP_ETHSWITCH_FREE_RX                 = 0x0B,
-    RPMSG_KDRV_TP_ETHSWITCH_DETACH                  = 0x0C,
-    RPMSG_KDRV_TP_ETHSWITCH_IOCTL                   = 0x0D,
-    RPMSG_KDRV_TP_ETHSWITCH_REGWR                   = 0x0E,
-    RPMSG_KDRV_TP_ETHSWITCH_REGRD                   = 0x0F,
-    RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER       = 0x10,
-    RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER       = 0x11,
-    RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER     = 0x12,
-    RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_UNREGISTER     = 0x13,
-    RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST            = 0x14,
-    RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY              = 0x15,
-    RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY              = 0x16,
-    RPMSG_KDRV_TP_ETHSWITCH_MAX                     = 0x17,
+enum rpmsg_kdrv_ethswitch_message_type
+{
+    RPMSG_KDRV_TP_ETHSWITCH_ATTACH                 = 0x00,
+    RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT             = 0x01,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX               = 0x02,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX               = 0x03,
+    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_DEFAULTFLOW   = 0x04,
+    RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC              = 0x05,
+    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC           = 0x06,
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC         = 0x07,
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW = 0x08,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC               = 0x09,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_TX                = 0x0A,
+    RPMSG_KDRV_TP_ETHSWITCH_FREE_RX                = 0x0B,
+    RPMSG_KDRV_TP_ETHSWITCH_DETACH                 = 0x0C,
+    RPMSG_KDRV_TP_ETHSWITCH_IOCTL                  = 0x0D,
+    RPMSG_KDRV_TP_ETHSWITCH_REGWR                  = 0x0E,
+    RPMSG_KDRV_TP_ETHSWITCH_REGRD                  = 0x0F,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER      = 0x10,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER      = 0x11,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER    = 0x12,
+    RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_UNREGISTER    = 0x13,
+    RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST           = 0x14,
+    RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY             = 0x15,
+    RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY             = 0x16,
+    RPMSG_KDRV_TP_ETHSWITCH_MAX                    = 0x17,
 };
 
-enum rpmsg_kdrv_ethswitch_cpsw_type {
+enum rpmsg_kdrv_ethswitch_cpsw_type
+{
     RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G,
     RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G,
     RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAX,
 };
 
-
-enum rpmsg_kdrv_ethswitch_client_notify_type {
+enum rpmsg_kdrv_ethswitch_client_notify_type
+{
     RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS,
     RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_MAX,
 };
@@ -116,8 +117,6 @@ enum rpmsg_kdrv_ethswitch_client_notify_type {
 #define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EAGAIN   (-1)
 #define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL    (-2)
 #define RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EACCESS  (-3)
-
-
 
 /*
  * Maximum length of demo device message data
@@ -133,7 +132,6 @@ enum rpmsg_kdrv_ethswitch_client_notify_type {
  * Maximum length of output arguments for IOCTL
  */
 #define RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN    (128)
-
 
 /*
  * Number of priorities supported by CPSW
@@ -180,7 +178,8 @@ enum rpmsg_kdrv_ethswitch_client_notify_type {
 /*
  * message header for demo device
  */
-struct rpmsg_kdrv_ethswitch_message_header {
+struct rpmsg_kdrv_ethswitch_message_header
+{
     /* enum: rpmsg_kdrv_ethswitch_message_type */
     u8 message_type;
 } __packed;
@@ -188,7 +187,8 @@ struct rpmsg_kdrv_ethswitch_message_header {
 /*
  * Common structure used for all ETHSWITCH config command request msgs except attach
  */
-struct rpmsg_kdrv_ethswitch_common_request_info {
+struct rpmsg_kdrv_ethswitch_common_request_info
+{
     /* unique handle returned by ATTACH  */
     u64 id;
     /* Core specific key returned by attach */
@@ -198,7 +198,8 @@ struct rpmsg_kdrv_ethswitch_common_request_info {
 /*
  * Common header used for all ETHSWITCH config commands response msgs
  */
-struct rpmsg_kdrv_ethswitch_common_response_info {
+struct rpmsg_kdrv_ethswitch_common_response_info
+{
     /* Status of request */
     s32 status;
 } __packed;
@@ -206,7 +207,8 @@ struct rpmsg_kdrv_ethswitch_common_response_info {
 /*
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH cmd client request
  */
-struct rpmsg_kdrv_ethswitch_attach_request {
+struct rpmsg_kdrv_ethswitch_attach_request
+{
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
     /* enum: rpmsg_kdrv_ethswitch_cpsw_type  */
@@ -216,7 +218,8 @@ struct rpmsg_kdrv_ethswitch_attach_request {
 /*
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH cmd server response
  */
-struct rpmsg_kdrv_ethswitch_attach_response {
+struct rpmsg_kdrv_ethswitch_attach_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /* unique handle used by all further CMDs  */
     u64 id;
@@ -233,7 +236,8 @@ struct rpmsg_kdrv_ethswitch_attach_response {
 /*
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT cmd client request
  */
-struct rpmsg_kdrv_ethswitch_attach_extended_request {
+struct rpmsg_kdrv_ethswitch_attach_extended_request
+{
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
     /* enum: rpmsg_kdrv_ethswitch_cpsw_type  */
@@ -243,7 +247,8 @@ struct rpmsg_kdrv_ethswitch_attach_extended_request {
 /*
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT cmd server response
  */
-struct rpmsg_kdrv_ethswitch_attach_extended_response {
+struct rpmsg_kdrv_ethswitch_attach_extended_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /* unique handle used by all further CMDs  */
     u64 id;
@@ -257,62 +262,67 @@ struct rpmsg_kdrv_ethswitch_attach_extended_response {
     u32 features;
     /*! Allocated flow's index */
     u32 alloc_flow_idx;
+
     /*! Tx PSIL Peer destination thread id which should be paired with the
-      * Tx UDMA channel
-      */
+     * Tx UDMA channel
+     */
     u32 tx_cpsw_psil_dst_id;
     /*! Mac address allocated */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-
-
 } __packed;
-
 
 /*
  * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX,
  * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX,
  * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC,
  * RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX_DEFAULT
- * cmd 
+ * cmd
  */
-struct rpmsg_kdrv_ethswitch_alloc_request {
+struct rpmsg_kdrv_ethswitch_alloc_request
+{
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_alloc_rx_response {
+struct rpmsg_kdrv_ethswitch_alloc_rx_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Allocated flow's index */
     u32 alloc_flow_idx;
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_alloc_tx_response {
+struct rpmsg_kdrv_ethswitch_alloc_tx_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
+
     /*! Tx PSIL Peer destination thread id which should be paired with the
-      * Tx UDMA channel
-      */
+     * Tx UDMA channel
+     */
     u32 tx_cpsw_psil_dst_id;
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_alloc_mac_response {
+struct rpmsg_kdrv_ethswitch_alloc_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Mac address allocated */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_register_rx_default_request {
+struct rpmsg_kdrv_ethswitch_register_rx_default_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    u32    default_flow_idx;
+    u32 default_flow_idx;
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_register_rx_default_response {
+struct rpmsg_kdrv_ethswitch_register_rx_default_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-
-struct rpmsg_kdrv_ethswitch_register_mac_request {
+struct rpmsg_kdrv_ethswitch_register_mac_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
@@ -320,110 +330,131 @@ struct rpmsg_kdrv_ethswitch_register_mac_request {
     u32 flow_idx;
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_register_mac_response {
+struct rpmsg_kdrv_ethswitch_register_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_unregister_mac_request {
+struct rpmsg_kdrv_ethswitch_unregister_mac_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     u32 flow_idx;
 } __packed;
 
-struct rpmsg_kdrv_ethswitch_unregister_mac_response {
+struct rpmsg_kdrv_ethswitch_unregister_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_free_mac_request {
+struct rpmsg_kdrv_ethswitch_free_mac_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_free_mac_response {
+struct rpmsg_kdrv_ethswitch_free_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_free_tx_request {
+struct rpmsg_kdrv_ethswitch_free_tx_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     u32 tx_cpsw_psil_dst_id;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_free_tx_response {
+struct rpmsg_kdrv_ethswitch_free_tx_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_unregister_rx_default_request {
+struct rpmsg_kdrv_ethswitch_unregister_rx_default_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     u32 default_flow_idx;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_unregister_rx_default_response {
+struct rpmsg_kdrv_ethswitch_unregister_rx_default_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_free_rx_request {
+struct rpmsg_kdrv_ethswitch_free_rx_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     u32 alloc_flow_idx;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_free_rx_response {
+struct rpmsg_kdrv_ethswitch_free_rx_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_detach_request {
+struct rpmsg_kdrv_ethswitch_detach_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_detach_response {
+struct rpmsg_kdrv_ethswitch_detach_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ioctl_request {
+struct rpmsg_kdrv_ethswitch_ioctl_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    u32    cmd;
-    u32    inargs_len;
-    u8     inargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN];
-    u32    outargs_len;
+    u32 cmd;
+    u32 inargs_len;
+    u8 inargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN];
+    u32 outargs_len;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ioctl_response {
+struct rpmsg_kdrv_ethswitch_ioctl_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-    u8     outargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN];
+    u8 outargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN];
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_regwr_request {
+struct rpmsg_kdrv_ethswitch_regwr_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
-    u32    regaddr;
-    u32    regval;
+    u32 regaddr;
+    u32 regval;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_regwr_response {
+struct rpmsg_kdrv_ethswitch_regwr_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Updated register value */
-    u32    regval;
+    u32 regval;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_regrd_request {
+struct rpmsg_kdrv_ethswitch_regrd_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
-    u32    regaddr;
+    u32 regaddr;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_regrd_response {
+struct rpmsg_kdrv_ethswitch_regrd_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-    u32    regval;
+    u32 regval;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request {
+struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    /*! Mac address associated with the IP address which should be added to 
+
+    /*! Mac address associated with the IP address which should be added to
      *  the ARP table
      */
     uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
@@ -431,10 +462,12 @@ struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request {
     uint8_t ipv4_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request {
+struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-    /*! Mac address associated with the IP address which should be added to 
+
+    /*! Mac address associated with the IP address which should be added to
      *  the ARP table
      */
     uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
@@ -442,41 +475,45 @@ struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request {
     uint8_t ipv6_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
 }  __packed;
 
-
-struct rpmsg_kdrv_ethswitch_ipv4_register_mac_response {
+struct rpmsg_kdrv_ethswitch_ipv4_register_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response {
+struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request {
+struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! IPv4 address  */
     uint8_t ipv4_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_request {
+struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_request
+{
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! IPv6 address */
     uint8_t ipv6_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_response {
+struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
-struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_response {
+struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_response
+{
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
-
-
 
 /* firmware version info */
-struct rpmsg_kdrv_ethswitch_firmware_version_info {
+struct rpmsg_kdrv_ethswitch_firmware_version_info
+{
     u32 major;
     u32 minor;
     u32 rev;
@@ -486,26 +523,27 @@ struct rpmsg_kdrv_ethswitch_firmware_version_info {
     char commit_hash[RPMSG_KDRV_TP_ETHSWITCH_COMMITSHALEN];
 } __packed;
 
-
 /*
  * per-device data for ethswitch device
  */
-struct rpmsg_kdrv_ethswitch_device_data {
+struct rpmsg_kdrv_ethswitch_device_data
+{
     struct rpmsg_kdrv_ethswitch_firmware_version_info fw_ver;
-    /** flag indicating permission enabled for each 
-      * enum rpmsg_kdrv_ethswitch_message_type command for the connecting
-      * client
-      */
-    u32    permission_flags;
+
+    /** flag indicating permission enabled for each
+     * enum rpmsg_kdrv_ethswitch_message_type command for the connecting
+     * client
+     */
+    u32 permission_flags;
     /** flag indicating if UART is connected */
-    u32    uart_connected;
+    u32 uart_connected;
     /** UART ID used by firmware for log prints */
-    u32    uart_id;
+    u32 uart_id;
 } __packed;
 
-
 /* demo device ping request - always client to server */
-struct rpmsg_kdrv_ethswitch_ping_request {
+struct rpmsg_kdrv_ethswitch_ping_request
+{
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
     /* ping data */
@@ -513,13 +551,15 @@ struct rpmsg_kdrv_ethswitch_ping_request {
 } __packed;
 
 /* demo device ping response - always server to client */
-struct rpmsg_kdrv_ethswitch_ping_response {
+struct rpmsg_kdrv_ethswitch_ping_response
+{
     /* ping data */
     u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
 } __packed;
 
 /* demo device server to client one-way message */
-struct rpmsg_kdrv_ethswitch_s2c_notify {
+struct rpmsg_kdrv_ethswitch_s2c_notify
+{
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
     /* message data */
@@ -527,7 +567,8 @@ struct rpmsg_kdrv_ethswitch_s2c_notify {
 } __packed;
 
 /* demo device client to server one-way message */
-struct rpmsg_kdrv_ethswitch_c2s_notify {
+struct rpmsg_kdrv_ethswitch_c2s_notify
+{
     /* message header */
     struct rpmsg_kdrv_ethswitch_message_header header;
     struct rpmsg_kdrv_ethswitch_common_request_info info;

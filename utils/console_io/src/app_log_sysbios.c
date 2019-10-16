@@ -71,7 +71,8 @@ uintptr_t appLogWrLock(app_log_wr_obj_t *obj)
     return HwiP_disable();
 }
 
-void appLogWrUnLock(app_log_wr_obj_t *obj, uintptr_t key)
+void appLogWrUnLock(app_log_wr_obj_t *obj,
+                    uintptr_t key)
 {
     HwiP_restore(key);
 }
@@ -85,10 +86,10 @@ uint64_t appLogGetTimeInUsec(void)
     Timestamp_get64(&bios_timestamp64);
     Timestamp_getFreq(&bios_freq);
 
-    cur_ts = ((uint64_t) bios_timestamp64.hi << 32) | bios_timestamp64.lo;
-    freq = ((uint64_t) bios_freq.hi << 32) | bios_freq.lo;
+    cur_ts = ((uint64_t)bios_timestamp64.hi << 32) | bios_timestamp64.lo;
+    freq = ((uint64_t)bios_freq.hi << 32) | bios_freq.lo;
 
-    return (cur_ts*1000000u)/freq;
+    return (cur_ts * 1000000u) / freq;
 }
 
 void appLogWaitMsecs(uint32_t time_in_msecs)
@@ -96,7 +97,8 @@ void appLogWaitMsecs(uint32_t time_in_msecs)
     TaskP_sleepInMsecs(time_in_msecs);
 }
 
-int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj, app_log_init_prm_t *prm)
+int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj,
+                             app_log_init_prm_t *prm)
 {
     TaskP_Params bios_task_prms;
     int32_t status = 0;
@@ -106,25 +108,28 @@ int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj, app_log_init_prm_t *prm)
     bios_task_prms.stacksize = obj->task_stack_size;
     bios_task_prms.stack = obj->task_stack;
     bios_task_prms.priority = prm->log_rd_task_pri;
-    bios_task_prms.arg0 = (void*)(obj);
+    bios_task_prms.arg0 = (void *)(obj);
     bios_task_prms.arg1 = NULL;
 
-    obj->task_handle = (void*)TaskP_create(
-                            (void*)appLogRdRun,
-                            &bios_task_prms);
-    if(obj->task_handle==NULL)
+    obj->task_handle = (void *)TaskP_create(
+                                            (void *)appLogRdRun,
+                                            &bios_task_prms);
+    if (obj->task_handle == NULL)
     {
         status = -1;
     }
+
     return status;
 }
 
-void *appMemMap(void *phys_ptr, uint32_t size)
+void *appMemMap(void *phys_ptr,
+                uint32_t size)
 {
     return phys_ptr; /* phys == virtual in sysbios */
 }
 
-int32_t appMemUnMap(void *virt_ptr, uint32_t size)
+int32_t appMemUnMap(void *virt_ptr,
+                    uint32_t size)
 {
     return 0; /* nothing to do in sysbios */
 }

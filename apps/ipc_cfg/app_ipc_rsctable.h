@@ -73,7 +73,7 @@ extern "C" {
 #define C66X_2_MEM_RPMSG_VRING0        (DDR_C66x_2_IPC_ADDR)
 #define C66X_2_MEM_RPMSG_VRING1        (DDR_C66x_2_IPC_ADDR + RPMSG_VRING_SIZE)
 #define C7X_1_MEM_RPMSG_VRING0         (DDR_C7x_1_IPC_ADDR)
-#define C7X_1_MEM_RPMSG_VRING1         (DDR_C7x_1_IPC_ADDR  + RPMSG_VRING_SIZE)
+#define C7X_1_MEM_RPMSG_VRING1         (DDR_C7x_1_IPC_ADDR + RPMSG_VRING_SIZE)
 
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,
@@ -94,76 +94,75 @@ extern "C" {
 extern char xdc_runtime_SysMin_Module_State_0_outbuf__A;
 #define TRACEBUFADDR ((uintptr_t)&xdc_runtime_SysMin_Module_State_0_outbuf__A)
 
-const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section (".resource_table"), aligned (4096))) = 
+const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(".resource_table"), aligned(4096))) =
 {
-    1,                   /* we're the first version that implements this */
-    NUM_ENTRIES,         /* number of entries in the table */
-    0, 0,                /* reserved, must be zero */
+    1,                                     /* we're the first version that implements this */
+    NUM_ENTRIES,                           /* number of entries in the table */
+    0,                                  0, /* reserved, must be zero */
 
     /* offsets to entries */
     {
-        offsetof(Ipc_ResourceTable, rpmsg_vdev),
-        offsetof(Ipc_ResourceTable, trace),
+        offsetof(Ipc_ResourceTable,     rpmsg_vdev),
+        offsetof(Ipc_ResourceTable,     trace),
     },
 
     /* rpmsg vdev entry */
     {
-        TYPE_VDEV, VIRTIO_ID_RPMSG, 0,
-#if defined (CPU_c6x_1) || defined (CPU_c6x_2)
-        RPMSG_C66_DSP_FEATURES, 0, 0, 0, 2, { 0, 0 },
-#elif defined (CPU_c7x_1)
-        RPMSG_C7X_DSP_FEATURES, 0, 0, 0, 2, { 0, 0 },
+        TYPE_VDEV,                      VIRTIO_ID_RPMSG,0,
+#if defined(CPU_c6x_1) || defined(CPU_c6x_2)
+        RPMSG_C66_DSP_FEATURES,         0,              0,                  0,  2,            {0, 0},
+#elif defined(CPU_c7x_1)
+        RPMSG_C7X_DSP_FEATURES,         0,              0,                  0,  2,            {0, 0},
 #else
-        RPMSG_R5F_C0_FEATURES, 0, 0, 0, 2, { 0, 0 },
+        RPMSG_R5F_C0_FEATURES,          0,              0,                  0,  2,            {0, 0},
 #endif
         /* no config data */
     },
     /* the two vrings */
-#if defined (CPU_mcu1_0)
-    { MCU1_0_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
-    { MCU1_0_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_mcu1_1)
-    { MCU1_1_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
-    { MCU1_1_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_mcu2_0)
-    { MCU2_0_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
-    { MCU2_0_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_mcu2_1)
-    { MCU2_1_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
-    { MCU2_1_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_mcu3_0)
-    { MCU3_0_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
-    { MCU3_0_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_mcu3_1)
-    { MCU3_1_R5F_MEM_RPMSG_VRING0, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
-    { MCU3_1_R5F_MEM_RPMSG_VRING1, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_c6x_1)
-    { C66X_1_MEM_RPMSG_VRING0, 4096, C66_RPMSG_VQ0_SIZE, 1, 0 },
-    { C66X_1_MEM_RPMSG_VRING1, 4096, C66_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_c6x_2)
-    { C66X_2_MEM_RPMSG_VRING0, 4096, C66_RPMSG_VQ0_SIZE, 1, 0 },
-    { C66X_2_MEM_RPMSG_VRING1, 4096, C66_RPMSG_VQ1_SIZE, 2, 0 },
-#elif defined (CPU_c7x_1)
-    { C7X_1_MEM_RPMSG_VRING0, 4096, C7X_RPMSG_VQ0_SIZE, 1, 0 },
-    { C7X_1_MEM_RPMSG_VRING1, 4096, C7X_RPMSG_VQ1_SIZE, 2, 0 },
+#if defined(CPU_mcu1_0)
+    {MCU1_0_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
+    {MCU1_0_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_mcu1_1)
+    {MCU1_1_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
+    {MCU1_1_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_mcu2_0)
+    {MCU2_0_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
+    {MCU2_0_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_mcu2_1)
+    {MCU2_1_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
+    {MCU2_1_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_mcu3_0)
+    {MCU3_0_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
+    {MCU3_0_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_mcu3_1)
+    {MCU3_1_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
+    {MCU3_1_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_c6x_1)
+    {C66X_1_MEM_RPMSG_VRING0,           4096,           C66_RPMSG_VQ0_SIZE, 1,  0},
+    {C66X_1_MEM_RPMSG_VRING1,           4096,           C66_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_c6x_2)
+    {C66X_2_MEM_RPMSG_VRING0,           4096,           C66_RPMSG_VQ0_SIZE, 1,  0},
+    {C66X_2_MEM_RPMSG_VRING1,           4096,           C66_RPMSG_VQ1_SIZE, 2,  0},
+#elif defined(CPU_c7x_1)
+    {C7X_1_MEM_RPMSG_VRING0,            4096,           C7X_RPMSG_VQ0_SIZE, 1,  0},
+    {C7X_1_MEM_RPMSG_VRING1,            4096,           C7X_RPMSG_VQ1_SIZE, 2,  0},
 #else
-    #error CPU_<cpu name> not defined
-#endif 
+#error CPU_<cpu name> not defined
+#endif
 
     {
 #ifdef CPU_c7x_1
-        (TRACE_INTS_VER1 | TYPE_TRACE), TRACEBUFADDR, 0x80000, 0, "trace:r5f0",
+        (TRACE_INTS_VER1 | TYPE_TRACE), TRACEBUFADDR,   0x80000,            0,  "trace:r5f0",
 #else
-        (TRACE_INTS_VER0 | TYPE_TRACE), TRACEBUFADDR, 0x80000, 0, "trace:r5f0",
+        (TRACE_INTS_VER0 | TYPE_TRACE), TRACEBUFADDR,   0x80000,            0,  "trace:r5f0",
 #endif
     },
 };
 
 void *appGetIpcResourceTable(void)
 {
-    return (void*)&ti_ipc_remoteproc_ResourceTable;
+    return (void *)&ti_ipc_remoteproc_ResourceTable;
 }
-
 
 #ifdef __cplusplus
 }

@@ -87,15 +87,16 @@ int32_t  appLogRdInit(app_log_init_prm_t *prm)
     uint32_t cpu_id;
     app_log_rd_obj_t *obj = &g_app_log_rd_obj;
 
-    if(prm->shared_mem == NULL || prm->log_rd_max_cpus >= APP_LOG_MAX_CPUS)
+    if (prm->shared_mem == NULL || prm->log_rd_max_cpus >= APP_LOG_MAX_CPUS)
     {
         status = -1;
     }
-    if(status==0)
+
+    if (status == 0)
     {
         obj->shared_mem = appMemMap(prm->shared_mem, sizeof(app_log_shared_mem_t));
 
-        if(obj->shared_mem!=NULL)
+        if (obj->shared_mem != NULL)
         {
             obj->log_rd_max_cpus = prm->log_rd_max_cpus;
             obj->log_rd_poll_interval_in_msecs = prm->log_rd_poll_interval_in_msecs;
@@ -103,17 +104,19 @@ int32_t  appLogRdInit(app_log_init_prm_t *prm)
             obj->task_stack = g_app_log_rd_task_stack;
             obj->task_stack_size = APP_LOG_RD_TASK_STACK_SIZE;
 
-            for(cpu_id=0; cpu_id<obj->log_rd_max_cpus; cpu_id++)
+            for (cpu_id = 0; cpu_id < obj->log_rd_max_cpus; cpu_id++)
             {
                 app_log_cpu_shared_mem_t *cpu_shared_mem;
 
                 cpu_shared_mem = &obj->shared_mem->cpu_shared_mem[cpu_id];
                 cpu_shared_mem->log_rd_idx = 0;
             }
+
             /* task is never deleted to have log till the very end of CPU shutdown */
             status = appLogRdCreateTask(obj, prm);
         }
     }
+
     return status;
 }
 
@@ -125,7 +128,9 @@ int32_t  appLogRdDeInit(void)
 }
 
 uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
-                char *buf, uint32_t buf_size, uint32_t *str_len )
+                           char *buf,
+                           uint32_t buf_size,
+                           uint32_t *str_len)
 {
     uint32_t num_bytes = 0, idx = 0, wr_idx, rd_idx, copy_bytes = 0;
     uint32_t break_loop = 0;
@@ -135,7 +140,7 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
     wr_idx = cpu_shared_mem->log_wr_idx;
     rd_idx = cpu_shared_mem->log_rd_idx;
 
-    if(rd_idx > wr_idx)
+    if (rd_idx > wr_idx)
     {
         num_bytes = (APP_LOG_PER_CPU_MEM_SIZE - rd_idx) + wr_idx;
     }
@@ -144,7 +149,7 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
         num_bytes = wr_idx - rd_idx;
     }
 
-    if(num_bytes > 0U)
+    if (num_bytes > 0U)
     {
         /* MISRA.PTR.ARITH
          * MISRAC_2004 Rule_17.1 and MISRAC_2004 Rule_17.4
@@ -157,9 +162,9 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
          */
         src = cpu_shared_mem->log_mem;
 
-        for(copy_bytes = 0U; copy_bytes < num_bytes; copy_bytes ++)
+        for (copy_bytes = 0U; copy_bytes < num_bytes; copy_bytes++)
         {
-            if(rd_idx >= APP_LOG_PER_CPU_MEM_SIZE)
+            if (rd_idx >= APP_LOG_PER_CPU_MEM_SIZE)
             {
                 rd_idx = 0;
             }
@@ -176,19 +181,19 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
 
             rd_idx++;
 
-            if (cur_char==(uint8_t)0xA0)
+            if (cur_char == (uint8_t)0xA0)
             {
                 break_loop = 1;
             }
-            else if (cur_char==(uint8_t)'\r')
+            else if (cur_char == (uint8_t)'\r')
             {
                 break_loop = 1;
             }
-            else if (cur_char==(uint8_t)'\n')
+            else if (cur_char == (uint8_t)'\n')
             {
                 break_loop = 1;
             }
-            else if (cur_char==(uint8_t)0)
+            else if (cur_char == (uint8_t)0)
             {
                 break_loop = 1;
             }
@@ -203,11 +208,11 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
             else
             {
                 buf[idx] = (char)cur_char;
-                idx ++;
+                idx++;
                 break_loop = 0;
             }
 
-            if ( 1 == break_loop)
+            if (1 == break_loop)
             {
                 break;
             }
@@ -219,52 +224,53 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
         rd_idx = cpu_shared_mem->log_rd_idx;
     }
 
-    buf[idx]   = (char)0u;
-    *str_len   = idx;
+    buf[idx] = (char)0u;
+    *str_len = idx;
 
     return num_bytes;
 }
 
-void* appLogRdRun(app_log_rd_obj_t *obj)
+void *appLogRdRun(app_log_rd_obj_t *obj)
 {
     volatile uint32_t done = 0;
     uint32_t cpu_id = 0;
     uint32_t num_bytes, str_len;
 
-    while(!done)
+    while (!done)
     {
         appLogWaitMsecs(obj->log_rd_poll_interval_in_msecs);
 
-        for(cpu_id=0; cpu_id<obj->log_rd_max_cpus; cpu_id++)
+        for (cpu_id = 0; cpu_id < obj->log_rd_max_cpus; cpu_id++)
         {
             app_log_cpu_shared_mem_t *cpu_shared_mem;
 
             cpu_shared_mem = &obj->shared_mem->cpu_shared_mem[cpu_id];
 
-            if(cpu_shared_mem->log_area_is_valid == APP_LOG_AREA_VALID_FLAG)
+            if (cpu_shared_mem->log_area_is_valid == APP_LOG_AREA_VALID_FLAG)
             {
                 do
                 {
                     str_len = 0;
                     num_bytes = appLogRdGetString(cpu_shared_mem,
-                                    obj->buf,
-                                    APP_LOG_BUF_MAX,
-                                    &str_len );
-                    if(str_len > 0)
+                                                  obj->buf,
+                                                  APP_LOG_BUF_MAX,
+                                                  &str_len);
+                    if (str_len > 0)
                     {
-                        if(obj->device_write)
+                        if (obj->device_write)
                         {
                             snprintf(obj->print_buf, APP_LOG_PRINT_BUF_MAX, "[%-6s] %s\r\n",
-                                cpu_shared_mem->log_cpu_name,
-                                obj->buf);
+                                     cpu_shared_mem->log_cpu_name,
+                                     obj->buf);
 
                             obj->device_write(obj->print_buf, APP_LOG_PRINT_BUF_MAX);
                         }
                     }
-                } while(num_bytes);
+                }
+                while (num_bytes);
             }
         }
     }
+
     return NULL;
 }
-

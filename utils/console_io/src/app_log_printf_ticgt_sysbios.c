@@ -67,23 +67,38 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-
-
 #define APP_LOG_CIO_BUF_MAX_SIZE    ((uint32_t)1024U)
 
 static char g_app_log_cio_buf[APP_LOG_CIO_BUF_MAX_SIZE];
 static uint32_t g_app_log_cio_buf_idx = 0;
 static FILE *g_app_log_cio_fid = NULL;
 
-static int32_t appLogCioOpen(const char *path, uint32_t flags, int32_t llv_fd);
-static int32_t appLogCioClose(int32_t dev_fd);
-static int32_t appLogCioRead(int32_t dev_fd, char *buf, uint32_t count);
-static int32_t appLogCioWrite(int32_t dev_fd, const char *buf, uint32_t count);
-static off_t   appLogCioLseek(int32_t dev_fd, off_t offset, int32_t origin);
-static int32_t appLogCioUnlink(const char *path);
-static int32_t appLogCioRename(const char *old_name, const char *new_name);
+static int32_t appLogCioOpen(const char *path,
+                             uint32_t flags,
+                             int32_t llv_fd);
 
-static int32_t appLogCioOpen(const char *path, uint32_t flags, int32_t llv_fd)
+static int32_t appLogCioClose(int32_t dev_fd);
+
+static int32_t appLogCioRead(int32_t dev_fd,
+                             char *buf,
+                             uint32_t count);
+
+static int32_t appLogCioWrite(int32_t dev_fd,
+                              const char *buf,
+                              uint32_t count);
+
+static off_t   appLogCioLseek(int32_t dev_fd,
+                              off_t offset,
+                              int32_t origin);
+
+static int32_t appLogCioUnlink(const char *path);
+
+static int32_t appLogCioRename(const char *old_name,
+                               const char *new_name);
+
+static int32_t appLogCioOpen(const char *path,
+                             uint32_t flags,
+                             int32_t llv_fd)
 {
     g_app_log_cio_buf_idx = 0;
     return 0;
@@ -91,27 +106,32 @@ static int32_t appLogCioOpen(const char *path, uint32_t flags, int32_t llv_fd)
 
 static int32_t appLogCioClose(int32_t dev_fd)
 {
-    if(g_app_log_cio_buf_idx>0)
+    if (g_app_log_cio_buf_idx > 0)
     {
         g_app_log_cio_buf[g_app_log_cio_buf_idx] = (char)0;
         g_app_log_cio_buf_idx++;
         appLogPrintf(g_app_log_cio_buf);
         g_app_log_cio_buf_idx = 0;
     }
+
     return 0;
 }
 
-static int32_t appLogCioRead(int32_t dev_fd, char *buf, uint32_t count)
+static int32_t appLogCioRead(int32_t dev_fd,
+                             char *buf,
+                             uint32_t count)
 {
     return 0;
 }
 
-static int32_t appLogCioWrite(int32_t dev_fd, const char *buf, uint32_t count)
+static int32_t appLogCioWrite(int32_t dev_fd,
+                              const char *buf,
+                              uint32_t count)
 {
     uint32_t flush_buf = 0;
     uint32_t i;
 
-    for(i=0; i<count; i++)
+    for (i = 0; i < count; i++)
     {
         /* MISRA.PTR.ARITH
          * MISRAC_2004_Rule_11.1
@@ -121,35 +141,39 @@ static int32_t appLogCioWrite(int32_t dev_fd, const char *buf, uint32_t count)
          */
         g_app_log_cio_buf[g_app_log_cio_buf_idx] = buf[i];
         g_app_log_cio_buf_idx++;
+
         /* MISRA.PTR.ARITH
          * MISRAC_2004_Rule_11.1
          * MISRAC_WAIVER:
          * Pointer is accessed as an array.
          * For loop makes sure that the array is never accessed out of bound
          */
-        if(buf[i]==(char)'\n')
+        if (buf[i] == (char)'\n')
         {
             g_app_log_cio_buf[g_app_log_cio_buf_idx] = (char)0;
             g_app_log_cio_buf_idx++;
             flush_buf = 1;
         }
+
         /* MISRA.PTR.ARITH
          * MISRAC_2004_Rule_11.1
          * MISRAC_WAIVER:
          * Pointer is accessed as an array.
          * For loop makes sure that the array is never accessed out of bound
          */
-        if(buf[i]==(char)0)
+        if (buf[i] == (char)0)
         {
             flush_buf = 1;
         }
-        if(g_app_log_cio_buf_idx == (APP_LOG_CIO_BUF_MAX_SIZE-1U))
+
+        if (g_app_log_cio_buf_idx == (APP_LOG_CIO_BUF_MAX_SIZE - 1U))
         {
             g_app_log_cio_buf[g_app_log_cio_buf_idx] = (char)0;
             g_app_log_cio_buf_idx++;
             flush_buf = 1;
         }
-        if(flush_buf)
+
+        if (flush_buf)
         {
             appLogPrintf(g_app_log_cio_buf);
             g_app_log_cio_buf_idx = 0;
@@ -160,7 +184,9 @@ static int32_t appLogCioWrite(int32_t dev_fd, const char *buf, uint32_t count)
     return (int32_t)count;
 }
 
-static off_t appLogCioLseek(int32_t dev_fd, off_t offset, int32_t origin)
+static off_t appLogCioLseek(int32_t dev_fd,
+                            off_t offset,
+                            int32_t origin)
 {
     return -(int32_t)1;
 }
@@ -170,7 +196,8 @@ static int32_t appLogCioUnlink(const char *path)
     return 0;
 }
 
-static int32_t appLogCioRename(const char *old_name, const char *new_name)
+static int32_t appLogCioRename(const char *old_name,
+                               const char *new_name)
 {
     return 0;
 }
@@ -180,24 +207,24 @@ int32_t appLogCioInit(void)
     int32_t status = 0;
 
     status = add_device("appLog",
-                _SSA,
-                appLogCioOpen,
-                appLogCioClose,
-                appLogCioRead,
-                appLogCioWrite,
-                appLogCioLseek,
-                appLogCioUnlink,
-                appLogCioRename);
-    
-    if(status >= 0)
+                        _SSA,
+                        appLogCioOpen,
+                        appLogCioClose,
+                        appLogCioRead,
+                        appLogCioWrite,
+                        appLogCioLseek,
+                        appLogCioUnlink,
+                        appLogCioRename);
+
+    if (status >= 0)
     {
         /* MISRA.STDLIB.STDIO
          * MISRAC_2004 Rule_20.9
          * This function can use printf,fopen functions for debug purpose..
          */
-        g_app_log_cio_fid = fopen("appLog","w");
-        
-        if(g_app_log_cio_fid==NULL)
+        g_app_log_cio_fid = fopen("appLog", "w");
+
+        if (g_app_log_cio_fid == NULL)
         {
             status = -1;
         }
@@ -208,42 +235,46 @@ int32_t appLogCioInit(void)
              * MISRAC_WAIVER:
              * This is a requirement of this API and cannot be avoided
              */
+
             /* MISRA.STDLIB.STDIO
              * MISRAC_2004 Rule_20.9
              * This function can use printf,fopen functions for debug purpose..
              */
             freopen("appLog:", "w", stdout); /* redirect stdout to VpsLog */
+
             /* MISRA.EXPANSION.UNSAFE
              * MISRA C 20.1, 20.5, 20.6, 20.7
              * MISRAC_WAIVER:
              * This is a requirement of this API and cannot be avoided
              */
+
             /* MISRA.STDLIB.STDIO
              * MISRAC_2004 Rule_20.9
              * This function can use printf,fopen functions for debug purpose..
              */
             setvbuf(stdout, NULL, _IONBF, 0); /* turn off buffering for stdout */
-        
+
             /* MISRA.STDLIB.STDIO
              * MISRAC_2004 Rule_20.9
              * This function can use printf,fopen functions for debug purpose..
              */
             printf("CIO: Init ... Done !!!\r\n");
-            
+
             status = 0;
         }
     }
+
     return status;
 }
 
 void appLogCioDeInit(void)
 {
-    if(g_app_log_cio_fid != NULL)
+    if (g_app_log_cio_fid != NULL)
     {
-    /* MISRA.STDLIB.STDIO
-     * MISRAC_2004 Rule_20.9
-     * This function can use printf,fopen functions for debug purpose..
-     */
+        /* MISRA.STDLIB.STDIO
+         * MISRAC_2004 Rule_20.9
+         * This function can use printf,fopen functions for debug purpose..
+         */
         fclose(g_app_log_cio_fid);
     }
 }

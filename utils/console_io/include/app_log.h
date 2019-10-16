@@ -83,7 +83,7 @@
 #define APP_LOG_MAX_CPU_NAME    (16u)
 
 /** \brief Size of memory used for logging by one CPU */
-#define APP_LOG_PER_CPU_MEM_SIZE   (16*1024u - 32u)
+#define APP_LOG_PER_CPU_MEM_SIZE   (16 * 1024u - 32u)
 
 /** \brief Flag to check if log area is valid or not */
 #define APP_LOG_AREA_VALID_FLAG (0x1357231u)
@@ -95,24 +95,22 @@ typedef void (*app_log_device_send_string_f)(char *string, uint32_t max_size);
  *
  *  This state of the log buffer, user can ignore it.
  */
-typedef struct {
+typedef struct
+{
+    uint32_t log_rd_idx;                        /**< Init by reader to 0 */
 
-    uint32_t log_rd_idx; /**< Init by reader to 0 */
+    uint32_t log_wr_idx;                        /**< Init by writer to 0 */
 
-    uint32_t log_wr_idx; /**< Init by writer to 0 */
+    uint32_t log_area_is_valid;                 /**<  Init by writer to APP_LOG_AREA_VALID_FLAG.
+                                                 *    reader will ignore this CPU shared mem log
+                                                 *    until the writer sets this
+                                                 *    to APP_LOG_AREA_VALID_FLAG */
 
-    uint32_t log_area_is_valid; /**<  Init by writer to APP_LOG_AREA_VALID_FLAG.
-                                      reader will ignore this CPU shared mem log
-                                      until the writer sets this
-                                      to APP_LOG_AREA_VALID_FLAG */
+    uint32_t log_cpu_sync_state;                /**< CPU sync state */
 
-    uint32_t log_cpu_sync_state;    /**< CPU sync state */
+    uint8_t log_cpu_name[APP_LOG_MAX_CPU_NAME]; /**< Init by writer to CPU name, used by reader to add a prefix when writing to console device */
 
-    uint8_t  log_cpu_name[APP_LOG_MAX_CPU_NAME]; /**< Init by writer to CPU name, used by reader to add a prefix when writing to console device */
-    
-    
-
-    uint8_t  log_mem[APP_LOG_PER_CPU_MEM_SIZE]; /**< memory into which logs are written by this CPU */
+    uint8_t log_mem[APP_LOG_PER_CPU_MEM_SIZE];  /**< memory into which logs are written by this CPU */
 } app_log_cpu_shared_mem_t;
 
 /**< \brief Shared memory structure for all CPUs, used by reader and writer CPUs
@@ -120,20 +118,22 @@ typedef struct {
  * User application MUST map this to the same physical address across all CPUs.
  * For non-coherent CPUs, this MUST map to a non-cache region
  * */
-typedef struct {
+typedef struct
+{
     app_log_cpu_shared_mem_t cpu_shared_mem[APP_LOG_MAX_CPUS]; /**< CPU specific shared memory structure */
 } app_log_shared_mem_t;
 
 /** \brief Init parameters to use for appLogInit()
  *
  * */
-typedef struct {
-    app_log_shared_mem_t *shared_mem;       /**< Shared memory to use for logging, all CPUs must point to the same shared memory. This is physical address in case of linux */
-    uint32_t self_cpu_index;                /**< Index into shared memory area for self CPU to use to use when writing. Two CPUs must not use the same CPU index */
-    char     self_cpu_name[APP_LOG_MAX_CPU_NAME]; /**< self CPU name */
-    uint32_t log_rd_task_pri;               /**< task priority for log reader, set to 0xFFFFFFFF for default task priority */
-    uint32_t log_rd_poll_interval_in_msecs; /**< polling interval for log reader in msecs */
-    uint32_t log_rd_max_cpus;               /**< Maximum CPUs that log into the shared memory */
+typedef struct
+{
+    app_log_shared_mem_t *shared_mem;          /**< Shared memory to use for logging, all CPUs must point to the same shared memory. This is physical address in case of linux */
+    uint32_t self_cpu_index;                   /**< Index into shared memory area for self CPU to use to use when writing. Two CPUs must not use the same CPU index */
+    char self_cpu_name[APP_LOG_MAX_CPU_NAME];  /**< self CPU name */
+    uint32_t log_rd_task_pri;                  /**< task priority for log reader, set to 0xFFFFFFFF for default task priority */
+    uint32_t log_rd_poll_interval_in_msecs;    /**< polling interval for log reader in msecs */
+    uint32_t log_rd_max_cpus;                  /**< Maximum CPUs that log into the shared memory */
     app_log_device_send_string_f device_write; /**< Callback to write a string to a device specific function, by default this will be set to appUartWriteString() */
 } app_log_init_prm_t;
 
@@ -167,13 +167,15 @@ int32_t appLogWrInit(app_log_init_prm_t *prms);
  *
  * \return 0 on success, else failure.
  */
-int32_t appLogRdDeInit();
+int32_t appLogRdDeInit(
+                       );
 
 /** \brief De-init log reader and log writer
  *
  * \return 0 on success, else failure.
  */
-int32_t appLogWrDeInit();
+int32_t appLogWrDeInit(
+                       );
 
 /** \brief Write a string to shared memory
  *
@@ -181,8 +183,8 @@ int32_t appLogWrDeInit();
  *
  * \return 0 on success, else failure.
  */
-void appLogPrintf(const char *format, ...);
-
+void appLogPrintf(const char *format,
+                  ...);
 
 /** \brief Get current time in units of usecs
  *
@@ -196,7 +198,6 @@ uint64_t appLogGetTimeInUsec(void);
  */
 void appLogWaitMsecs(uint32_t time_in_msecs);
 
-
 /** \brief Redirect printf to appLogPrintf
  *
  * \return 0 on success, else failure.
@@ -208,15 +209,14 @@ int32_t appLogCioInit(void);
  */
 void appLogCioDeInit(void);
 
-
 /**
- * \brief Sync provided list of CPUs 
- */ 
-void appLogCpuSyncInit(uint32_t master_cpu_id, uint32_t self_cpu_id, 
-        uint32_t sync_cpu_id_list[], uint32_t num_cpus);
-
+ * \brief Sync provided list of CPUs
+ */
+void appLogCpuSyncInit(uint32_t master_cpu_id,
+                       uint32_t self_cpu_id,
+                       uint32_t sync_cpu_id_list[],
+                       uint32_t num_cpus);
 
 /* @} */
 
 #endif
-
