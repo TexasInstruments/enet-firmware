@@ -184,6 +184,7 @@ void CpswAppInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg)
      * is invoked
      */
     pCpswCfg->aleConfig.policerGlobalConfig.policingEnable = TRUE;
+    pCpswCfg->hostPortConfig.passPriorityTaggedUnchanged   = TRUE;
 
     pCpswCfg->aleConfig.modeFlags = CPSW_ALE_CONFIG_MASK_ALE_MODULE_ENABLE;
 

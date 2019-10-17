@@ -156,10 +156,10 @@ static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl;
 
 /* Test application stack size */
-#define APP_TSK_STACK_MAIN              (10U * 1024U)
-#define ETHFWAPP_PACKET_POLL_PERIOD_MS  (1U)
-#define ETHFWAPP_UART_READ_TIMEOUT      (5U)
-#define ETHFWAPP_UART_WRITE_TIMEOUT     (5U)
+#define APP_TSK_STACK_MAIN                             (10U * 1024U)
+#define ETHFWAPP_PACKET_POLL_PERIOD_MS                 (1U)
+#define ETHFWAPP_UART_READ_TIMEOUT                     (5U)
+#define ETHFWAPP_UART_WRITE_TIMEOUT                    (5U)
 
 #define ENABLE_NDKSERVERS
 
@@ -529,6 +529,12 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
     cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
 
     CpswAppInterVlan_setOpenPrms(&cpswCfg);
+
+    /* Policer Config */
+    cpswCfg.aleConfig.policerGlobalConfig.policingEnable     = true;
+    cpswCfg.aleConfig.policerGlobalConfig.yellowDropEnable   = false;
+    cpswCfg.aleConfig.policerGlobalConfig.redDropEnable      = true;
+    cpswCfg.aleConfig.policerGlobalConfig.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 
     /* Open UDMA */
     gCpswMainAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(cpswType, NULL);
