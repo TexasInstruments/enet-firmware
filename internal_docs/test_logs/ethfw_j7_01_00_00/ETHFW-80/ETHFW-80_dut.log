@@ -1,0 +1,129 @@
+
+ ===============
+ CPSW Test Select
+ ===============
+
+ Current/Default System Settings:
+ ------------------------
+ Uart timemout          : 10000 msec
+ Default Iteration count            : 1
+
+ 1: Manual testing (select specific test case to run)
+
+ s: System Settings
+
+ q: Quit
+
+ Enter Choice:
+
+ Manual testing
+
+ --------------------------------------
+ Select test to run as per below table:
+ --------------------------------------
+
+    1: CPSW9G Switching test
+    2: ALE auto learn test
+    3: ALE auto learn VLAN test
+    4: Mac speed test
+    5: Statistics test
+    6: VLAN test
+    8: CRC strip test
+    9: FIFO stats test
+   10: ALE source address update
+   11: ALE Table full
+   12: VLAN drop untagged
+   13: Multicast support
+   14: Policer test
+   15: Network security test
+   16: Host port Rx Filter
+   17: policer no match red drop enable test
+   18: policer no match yellow drop enable test
+   19: policer no match unregulated traffic test
+   20: Intervlan test
+   21: Default priority
+   22: Port VLAN ID
+   23: Sanity Test
+   24: Outer VLAN Test
+   25: Traffic shaping Test
+   26: 1-Gbps Full-Duplex Auto-Neg Test
+   27: 100-Mbps Full-Duplex Auto-Neg Test
+   28: 100-Mbps Half-Duplex Auto-Neg Test
+   29: DMA RxFlow Mtu Test
+   30: PHY Strap mode Test
+   31: Priority Regeneration
+   32: Wire rate switching for all frame sizes without VLAN
+   33: Wire rate switching for all frame sizes with VLAN (no packet modification)
+   34: Wire rate switching for all frame sizes with VLAN insertion
+   35: Wire rate switching for all frame sizes with VLAN stripping
+   36: Wire rate switching for all frame sizes with VLAN modification from ingress to egress port
+   37: Wire rate switching from ingress queue 1 - 8 to egress queue 1 - 8
+   38: Wire rate broadcast/Multicast traffic
+   39: Head of line blocking test
+
+ Enter Test to Run (Use UART1 console for all cores or MCU_UART1 console for MCU)
+
+83
+Invalid Test ID. Enter Again!!
+39
+39
+
+ |TEST START|:: 39 ::
+ |TEST NAME| :: Head of line blocking test ::
+ |TEST INFO| :: Num Tasks         : 1 ::
+ |TEST INFO| :: Data Check        : Disabled ::
+ |TEST INFO| :: Profiling         : Disabled ::
+ |TEST INFO| :: Print             : Disabled ::
+ |TEST INFO| :: Run Instructions  : Connect MAC ports 0-3 to IXIA. Test different packet sizes ::
+
+
+ |TEST ITEARATION NUMBER| ::      : 1 ::
+CPSW_9G Test on MAIN NAVSS
+CpswPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 1000 pkts
+Host MAC address: 70:ff:76:1d:84:ee
+PHY 0 is alive
+PHY 3 is alive
+PHY 12 is alive
+PHY 15 is alive
+Short Gap Threshold: 0
+MAC port 0: short gap: enabled, short gap lim: disabled
+MAC port 1: short gap: enabled, short gap lim: disabled
+MAC Port 4: link up
+MAC port 2: short gap: enabled, short gap lim: disabled
+MAC Port 5: link up
+MAC port 3: short gap: enabled, short gap lim: disabled
+MAC Port 6: link up
+Waiting for PHY link on enabled ports mask:0xF
+MAC Port 7: link up
+Cpsw_handleLinkUp: port 0: Link up: 100-Mbps Full-Duplex
+Cpsw_handleLinkUp: port 1: Link up: 100-Mbps Full-Duplex
+MAC Port 0: link up
+MAC Port 1: link up
+Waiting for PORT link on enabled ports
+Cpsw_handleLinkUp: port 2: Link up: 1-Gpbs Full-Duplex
+Cpsw_handleLinkUp: port 3: Link up: 1-Gpbs Full-Duplex
+MAC Port 2: link up
+MAC Port 3: link up
+
+Enter 'D' to dump ALE table, 'X' to exit the test
+
+     0: Vlanid: 00c8, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 20c81ff0 000001ff]
+     1: Vlanid: 0064, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 20641ff0 000001ff]
+     2: Vlanid: 0065, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 20651ff0 000001ff]
+     3: Vlanid: 0066, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 20661ff0 000001ff]
+     4: Vlanid: 0067, UTagged: 0, Mult: 1e, UMult: 1e, Member: 1e RAW:[0 206701e0 0001e01e]
+     5: Vlanid: 0068, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 20681ff0 000001ff]
+     6: Vlanid: 0069, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 20691ff0 000001ff]
+     7: Vlanid: 006a, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 206a1ff0 000001ff]
+     8: Vlanid: 006b, UTagged: 0, Mult: 1ff, UMult: 0, Member: 1ff RAW:[0 206b1ff0 000001ff]
+     9: Address: 70ff761d84ee, Port: 000 Se=1 Bl=0 TOUCH=0 AGE=0 TRUNK=0 RAW:[1 100070ff 761d84ee]
+    10: Address: 020102030405, Port: 000 Se=0 Bl=0 TOUCH=0 AGE=0 TRUNK=0 RAW:[0 10000201 02030405]
+    20: VlanId:067, Address: 000002000b00, Port: 004 Se=0 Bl=0 TOUCH=1 AGE=1 TRUNK=0 RAW:[0 f0670000 02000b00]
+
+1012 Free Entries
+
+Enter 'D' to dump ALE table, 'X' to exit the test

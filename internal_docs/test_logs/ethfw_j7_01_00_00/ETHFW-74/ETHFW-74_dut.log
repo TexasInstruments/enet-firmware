@@ -1,0 +1,213 @@
+
+ ===============
+ CPSW Test Select
+ ===============
+
+ Current/Default System Settings:
+ ------------------------
+ Uart timemout          : 10000 msec
+ Default Iteration count            : 1
+
+ 1: Manual testing (select specific test case to run)
+
+ s: System Settings
+
+ q: Quit
+
+ Enter Choice:
+
+ Manual testing
+
+ --------------------------------------
+ Select test to run as per below table:
+ --------------------------------------
+
+    1: CPSW9G Switching test
+    2: ALE auto learn test
+    3: ALE auto learn VLAN test
+    4: Mac speed test
+    5: Statistics test
+    6: VLAN test
+    8: CRC strip test
+    9: FIFO stats test
+   10: ALE source address update
+   11: ALE Table full
+   12: VLAN drop untagged
+   13: Multicast support
+   14: Policer test
+   15: Network security test
+   16: Host port Rx Filter
+   17: policer no match red drop enable test
+   18: policer no match yellow drop enable test
+   19: policer no match unregulated traffic test
+   20: Intervlan test
+   21: Default priority
+   22: Port VLAN ID
+   23: Sanity Test
+   24: Outer VLAN Test
+   25: Traffic shaping Test
+   26: 1-Gbps Full-Duplex Auto-Neg Test
+   27: 100-Mbps Full-Duplex Auto-Neg Test
+   28: 100-Mbps Half-Duplex Auto-Neg Test
+   29: DMA RxFlow Mtu Test
+   30: PHY Strap mode Test
+   31: Priority Regeneration
+   32: Wire rate switching for all frame sizes without VLAN
+   33: Wire rate switching for all frame sizes with VLAN (no packet modification)
+   34: Wire rate switching for all frame sizes with VLAN insertion
+   35: Wire rate switching for all frame sizes with VLAN stripping
+   36: Wire rate switching for all frame sizes with VLAN modification from ingress to egress port
+   37: Wire rate switching from ingress queue 1 - 8 to egress queue 1 - 8
+   38: Wire rate broadcast/Multicast traffic
+   39: Head of line blocking test
+
+ Enter Test to Run (Use UART1 console for all cores or MCU_UART1 console for MCU)
+33
+33
+
+ |TEST START|:: 33 ::
+ |TEST NAME| :: Wire rate switching for all frame sizes with VLAN (no packet modification) ::
+ |TEST INFO| :: Num Tasks         : 1 ::
+ |TEST INFO| :: Data Check        : Disabled ::
+ |TEST INFO| :: Profiling         : Disabled ::
+ |TEST INFO| :: Print             : Disabled ::
+ |TEST INFO| :: Run Instructions  : Connect MAC ports 0-3 to IXIA. Test different packet sizes ::
+
+
+ |TEST ITEARATION NUMBER| ::      : 1 ::
+CPSW_9G Test on MAIN NAVSS
+CpswPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 1000 pkts
+Host MAC address: 70:ff:76:1d:84:ee
+PHY 0 is alive
+PHY 3 is alive
+PHY 12 is alive
+PHY 15 is alive
+Short Gap Threshold: 0
+MAC port 0: short gap: enabled, short gap lim: disabled
+MAC port 1: short gap: enabled, short gap lim: disabled
+MAC Port 4: link up
+MAC port 2: short gap: enabled, short gap lim: disabled
+MAC Port 5: link up
+MAC port 3: short gap: enabled, short gap lim: disabled
+MAC Port 6: link up
+Waiting for PHY link on enabled ports mask:0xF
+MAC Port 7: link up
+Cpsw_handleLinkUp: port 0: Link up: 100-Mbps Full-Duplex
+MAC Port 0: link up
+Cpsw_handleLinkUp: port 1: Link up: 100-Mbps Full-Duplex
+MAC Port 1: link up
+Waiting for PORT link on enabled ports
+Cpsw_handleLinkUp: port 2: Link up: 1-Gpbs Full-Duplex
+Cpsw_handleLinkUp: port 3: Link up: 1-Gpbs Full-Duplex
+MAC Port 2: link up
+MAC Port 3: link up
+
+Enter 'D' to dump ALE table, 'X' to exit the test
+
+     0: Address: 70ff761d84ee, Port: 000 Se=1 Bl=0 TOUCH=0 AGE=0 TRUNK=0 RAW:[1 100070ff 761d84ee]
+     1: Address: 020102030405, Port: 000 Se=0 Bl=0 TOUCH=0 AGE=0 TRUNK=0 RAW:[0 10000201 02030405]
+     2: Address: 000002000800, Port: 001 Se=0 Bl=0 TOUCH=1 AGE=1 TRUNK=0 RAW:[4 d4000000 02000800]
+    23: Address: 000002000b00, Port: 004 Se=0 Bl=0 TOUCH=1 AGE=1 TRUNK=0 RAW:[0 d4000000 02000b00]
+    24: Address: 000002000a00, Port: 003 Se=0 Bl=0 TOUCH=1 AGE=1 TRUNK=0 RAW:[c d4000000 02000a00]
+    25: Address: 000002000900, Port: 002 Se=0 Bl=0 TOUCH=1 AGE=1 TRUNK=0 RAW:[8 d4000000 02000900]
+
+1018 Free Entries
+
+Enter 'D' to dump ALE table, 'X' to exit the test
+Exiting test...
+
+ Port 0 Statistics
+-----------------------------------------
+
+
+ External Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 56110022
+  rxOctets                = 43877799384
+  txGoodFrames            = 56110024
+  txOctets                = 43877799512
+  octetsFrames64          = 78096
+  octetsFrames65to127     = 4919922
+  octetsFrames128to255    = 9996032
+  octetsFrames256to511    = 19992064
+  octetsFrames512to1023   = 39984048
+  octetsFrames1024        = 37249884
+  netOctets               = 87755598896
+  aleUnknownUcast         = 1
+  aleUnknownUcastBcnt     = 64
+  txPri[7]                = 56110023
+  txPriBcnt[7]            = 43877798934
+
+
+ External Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 56110022
+  rxOctets                = 43877799384
+  txGoodFrames            = 56110024
+  txOctets                = 43877799512
+  octetsFrames64          = 78096
+  octetsFrames65to127     = 4919922
+  octetsFrames128to255    = 9996032
+  octetsFrames256to511    = 19992064
+  octetsFrames512to1023   = 39984048
+  octetsFrames1024        = 37249884
+  netOctets               = 87755598896
+  aleUnknownUcast         = 1
+  aleUnknownUcastBcnt     = 64
+  txPri[7]                = 56110022
+  txPriBcnt[7]            = 43877799512
+
+
+ External Port 2 Statistics
+-----------------------------------------
+  rxGoodFrames            = 561097574
+  rxOctets                = 438778048575
+  txGoodFrames            = 561097576
+  txOctets                = 438778048703
+  octetsFrames64          = 780932
+  octetsFrames65to127     = 49198590
+  octetsFrames128to255    = 99959040
+  octetsFrames256to511    = 199918080
+  octetsFrames512to1023   = 399835852
+  octetsFrames1024        = 372502656
+  netOctets               = 877556097278
+  aleUnknownUcast         = 1
+  aleUnknownUcastBcnt     = 64
+  txPri[7]                = 561097567
+  txPriBcnt[7]            = 438778041220
+
+
+ External Port 3 Statistics
+-----------------------------------------
+  rxGoodFrames            = 561097574
+  rxOctets                = 438778048575
+  txGoodFrames            = 561097576
+  txOctets                = 438778048703
+  octetsFrames64          = 780932
+  octetsFrames65to127     = 49198590
+  octetsFrames128to255    = 99959040
+  octetsFrames256to511    = 199918080
+  octetsFrames512to1023   = 399835852
+  octetsFrames1024        = 372502656
+  netOctets               = 877556097278
+  aleUnknownUcast         = 1
+  aleUnknownUcastBcnt     = 64
+  txPri[7]                = 561097567
+  txPriBcnt[7]            = 438778042164
+
+Cpsw_handleLinkDown: port 0: Link down
+Cpsw_handleLinkDown: port 1: Link down
+Cpsw_handleLinkDown: port 2: Link down
+Cpsw_handleLinkDown: port 3: Link down
+
+ |Hwi/Swi Stack Info::Allocated:8192 Used:992|
+ |Task Stack Info::Allocated:20480 Used:2812|
+ |TEST DURATION|:: 1189:25:47:362 ::
+ |TEST RESULT|PASS|33|
+ |TEST END|:: 33 ::
+ |TEST RESULT|:: CPSW Test Case 33 Successful!! ::
+
