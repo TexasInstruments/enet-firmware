@@ -206,6 +206,8 @@ static int32_t CpswApp_init(Cpsw_Type cpswType);
 
 void CpswApp_deInit(void);
 
+static void  app_ethrdev_srv_print_ethfw_device_data(uint32_t host_id);
+
 /* ========================================================================== */
 /*                          Extern variables                                  */
 /* ========================================================================== */
@@ -842,7 +844,7 @@ int main(void)
 {
     Task_Handle task;
     Task_Params taskParams;
-
+    uint32_t host_id = CpswAppSoc_getCoreId();
     /* Set ccsHaltFlag to 1 for halting core for CCS connection */
     volatile uint32_t ccsHaltFlag = 0U;
 
@@ -859,6 +861,8 @@ int main(void)
     CpswAppUtils_print("=======================================================\n");
     CpswAppUtils_print("           CPSW Ethernet Firmware Demo             \n");
     CpswAppUtils_print("=======================================================\n");
+
+    app_ethrdev_srv_print_ethfw_device_data(host_id);
 
     /* Initialize the task params */
     Task_Params_init(&taskParams);
@@ -1794,8 +1798,8 @@ static void app_ethrdev_srv_cb_client_notify_handler(uint32_t host_id,
 #define APP_DATE_OFFSET_DATE   (4)
 #define APP_DATE_OFFSET_YEAR   (7)
 
-static void  app_ethrdev_srv_cb_init_device_data_handler(uint32_t host_id,
-                                                         struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data)
+static void  app_ethrdev_srv_get_ethfw_device_data(uint32_t host_id,
+                                                   struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data)
 {
     /* __DATE__ is a string constant that contains eleven characters and
      * looks like "Feb 12 1996". If the day of the month is less than
@@ -1818,6 +1822,42 @@ static void  app_ethrdev_srv_cb_init_device_data_handler(uint32_t host_id,
     eth_dev_data->permission_flags = ((1 << RPMSG_KDRV_TP_ETHSWITCH_MAX) - 1);
     eth_dev_data->uart_connected = true;
     eth_dev_data->uart_id = CPSW_UTILS_MCU2_0_UART_INSTANCE;
+}
+
+static void  app_ethrdev_srv_print_ethfw_device_data(uint32_t host_id)
+{
+    char *tf[] = {"false", "true"};
+    struct rpmsg_kdrv_ethswitch_device_data eth_dev_data;
+
+    app_ethrdev_srv_get_ethfw_device_data(host_id, &eth_dev_data);
+
+    CpswAppUtils_print("ETHFW Version:%2d.%2d.%2d\n",
+                  eth_dev_data.fw_ver.major,
+                  eth_dev_data.fw_ver.minor,
+                  eth_dev_data.fw_ver.rev);
+    CpswAppUtils_print("ETHFW Build Date (YYYY/MMM/DD):%c%c%c%c/%c%c%c/%c%c\n",
+                  eth_dev_data.fw_ver.year[0], eth_dev_data.fw_ver.year[1], eth_dev_data.fw_ver.year[2], eth_dev_data.fw_ver.year[3],
+                  eth_dev_data.fw_ver.month[0], eth_dev_data.fw_ver.month[1], eth_dev_data.fw_ver.month[2],
+                  eth_dev_data.fw_ver.date[0], eth_dev_data.fw_ver.date[1]);
+    CpswAppUtils_print("ETHFW Commit SHA:%c%c%c%c%c%c%c%c\n",
+                  eth_dev_data.fw_ver.commit_hash[0],
+                  eth_dev_data.fw_ver.commit_hash[1],
+                  eth_dev_data.fw_ver.commit_hash[2],
+                  eth_dev_data.fw_ver.commit_hash[3],
+                  eth_dev_data.fw_ver.commit_hash[4],
+                  eth_dev_data.fw_ver.commit_hash[5],
+                  eth_dev_data.fw_ver.commit_hash[6],
+                  eth_dev_data.fw_ver.commit_hash[7]);
+    CpswAppUtils_print("ETHFW PermissionFlag:0x%x, UART Connected:%s,UART Id:%d",
+                  eth_dev_data.permission_flags,
+                  tf[eth_dev_data.uart_connected],
+                  eth_dev_data.uart_id);
+}
+
+static void  app_ethrdev_srv_cb_init_device_data_handler(uint32_t host_id,
+                                                         struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data)
+{
+    app_ethrdev_srv_get_ethfw_device_data(host_id, eth_dev_data);
 }
 
 static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl =
