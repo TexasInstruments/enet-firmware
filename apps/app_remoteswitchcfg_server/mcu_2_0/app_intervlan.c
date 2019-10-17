@@ -116,6 +116,10 @@
 #define CPSW_TEST_INTERVLAN_IPV4_ETHERTYPE              (0x0800)
 #define CPSW_TEST_IPV6_OCTET2ARRAY(x)                   0x00, x
 #define CPSW_TEST_IPV6_HEXTET2ARRAY(x)                  ((x) & 0xFF00) >> 8, ((x) & 0xFF)
+#define CPSW_TEST_IPV4_NXT_HDR_TCP                      (6U)
+#define CPSW_TEST_IPV4_NXT_HDR_UDP                      (17U)
+#define CPSW_TEST_IPV4_NXT_HDR_ICMP                     (1U)
+#define CPSW_TEST_IPV4_NXT_HDR_IGMP                     (2U)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -189,7 +193,13 @@ void CpswAppInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg)
     pCpswCfg->aleConfig.vlanConfig.aleVlanAwareMode = TRUE;
     pCpswCfg->aleConfig.vlanConfig.cpswVlanAwareMode = TRUE;
     pCpswCfg->aleConfig.vlanConfig.unknownVlanMemberListMask = 0;
-    pCpswCfg->aleConfig.nwSecCfg.enableVid0Mode = TRUE;
+
+    pCpswCfg->aleConfig.nwSecCfg.hostOuiNoMatchDeny                    = FALSE;
+    pCpswCfg->aleConfig.nwSecCfg.enableVid0Mode                        = TRUE;
+    pCpswCfg->aleConfig.nwSecCfg.ipPktCfg.enableDefaultNxtHdrWhitelist = TRUE;
+    pCpswCfg->aleConfig.nwSecCfg.ipPktCfg.ipNxtHdrWhitelistCount       = 2U;
+    pCpswCfg->aleConfig.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[0]         = CPSW_TEST_IPV4_NXT_HDR_TCP;
+    pCpswCfg->aleConfig.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[1]         = CPSW_TEST_IPV4_NXT_HDR_UDP;
 
     pCpswCfg->aleConfig.portCfg[CPSW_ALE_HOST_PORT_NUM].learningCfg.noLearn = FALSE;
     pCpswCfg->aleConfig.portCfg[CPSW_ALE_HOST_PORT_NUM].vlanCfg.dropUntagged = FALSE;

@@ -441,6 +441,7 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
         CpswAle_VlanEntryInfo inArgs;
         CpswAle_AddEntryOutArgs outArgs;
 
+        memset(&inArgs, 0U, sizeof (CpswAle_VlanEntryInfo));
         inArgs.vlanIdInfo.vlanId = pInterVlanCfg->ingVlanId;
         inArgs.vlanIdInfo.outerVlanFlag = false;
         inArgs.vlanMemberList = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
