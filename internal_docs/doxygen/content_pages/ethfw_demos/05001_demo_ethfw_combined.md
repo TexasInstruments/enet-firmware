@@ -8,10 +8,10 @@
 
 The applications that are part of this demo show Jacinto 7 integrated switch
 differentiating features like interVLAN routing in hardware, firewall, packet
-header based classification along with Layer-2 switching with VLAN, multicast
-and software-based interVLAN routing among the ports.  The traffic forwarding
-process among the ports don't require CPU involvement or DMA bandwidth as
-everything is completely handled by CPSW hardware.
+header based classification and rate limiting along with Layer-2 switching with
+VLAN, multicast and software-based interVLAN routing among the ports.  
+The traffic forwarding process among the ports don't require CPU involvement 
+or DMA bandwidth as everything is completely handled by CPSW hardware.
 
 The intention behind this demo which encompasses multiple sub-demos is to show
 the switching capabilities of the J721E integrated Ethernet Switch (CPSW9G) as
@@ -28,6 +28,8 @@ Below are top-level features demonstrated:
  - Support for remote cores (Linux and TI RTOS)
  - Software-based interVLAN routing
  - Hardware-based interVLAN routing
+ - IP next header filtering
+ - MAC address based rate limiting
 
 The Ethernet Firmware demo application is in charge of:
 
@@ -125,6 +127,9 @@ Not applicable.
 
 Install packETH packet generator tool on the Linux PC. The Ubuntu installation
 instructions can be found in their [website](http://packeth.sourceforge.net/packeth/Installation.html).
+
+The packEth configurations used in this demo are included in the Ethernet Firmware package at
+`<ETHFW_PATH>/docs/packeth_configurations/`
 
 > **Note:** Please check licensing information and terms of usage of packETH
 > tool and make sure it adheres to your organization's policy before using and
@@ -468,7 +473,10 @@ the external devices, **PC 1** or **PC 2**.
    can be verified by sending packets with VLAN ID using packETH tool.
 
 -# In the packETH tool on the **PC 1**, which has IP address `192.168.1.<pc1>`,
-   enter the details as shown in the below picture.
+   load the `swintervlanrouting` configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory.
+   
+   The loaded configuration should match with the below picture.
+
 
    ![](packethswintervlan.png "packETH settings for software interVLAN routing")
 
@@ -523,7 +531,9 @@ the external devices, **PC 1** or **PC 2**.
 -# Now that the hardware-based interVLAN routing is enabled, the functionality
    can be verified by sending packets with VLAN ID using packETH tool.
 
--# Change the configurations in packETH tool as show below.
+-# Load the `hwintervlanrouting` configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory.
+   
+   The loaded configuration should match with the below picture.
 
    ![](packethhwintervlan.png "packETH settings for hardware interVLAN routing")
 
@@ -559,6 +569,69 @@ the external devices, **PC 1** or **PC 2**.
 
 -# Since the routing is now offloaded to hardware, there will be no impact on
    the CPU load even for data rates as high as 1Gbps.
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
+### IP Next Header Filtering {#ethfw_ip_nxthdr_filtering}
+
+CPSW9G supports whitelisting of upto four different IP protocols for a VLAN group.
+This demo whitelists TCP and UDP protocols and hence blocking packets of other protocols in
+the VLAN network.
+
+-# Add a VLAN entry with `vlanId: 0x2BC(700 in decimal)` with Host Port, MAC ports 2 and 3 as 
+members of the VLAN group.
+
+-# Open the **CONFIGURATION FILE** tab of the GUI tool.
+
+-# To add the above mentioned VLAN entry, click on the **Open** button and
+   select the `ip_nxt_hdr_whitelisting_config.txt` file present in the
+   `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   directory.
+
+-# Always parse the configuration before sending to the EVM using the **Parse**
+   button.
+
+-# If the parsing succeeded, press the **Send Config** button to send the
+   configuration to the switch.
+
+-# Load the **ipnxthdr_tcp** configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory
+to the `packEth` tool and start sending packets.
+
+-# Since, TCP is whitelisted, the packets will be received at PC2. This can be verified by using `WireShark` in PC2 with `ip.addr eq 192.168.1.202 && vlan` filter.
+
+-# Similarly **ipnxthdr_udp** packEth configuration can be used to verify UDP.
+
+-# Since the ICMP protocol is not whitelisted, packets sent using **ipnxthdr_icmp_echorequest** from packEth won't be
+received at PC2.
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
+### Rate Limiting {#ethfw_rate_limiting}
+
+-# Rate Limiting can be enabled by adding a Policer entry with parameters like Source and 
+Destination MAC address of the traffic to be limited. The rate at which the traffic is limited is based on the
+values of `Peak Information Rate (PIR)` and `Committed Information Rate (CIR)` both in `bits per second(bps)` set 
+in the Policer entry.
+
+-# Open the **CONFIGURATION FILE** tab of the GUI tool.
+
+-# To enable rate limiting, click on the **Open** button and
+   select the `rate_limiting_config.txt` file present in the
+   `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   directory.
+
+-# Always parse the configuration before sending to the EVM using the **Parse**
+   button.
+
+-# If the parsing succeeded, press the **Send Config** button to send the
+   configuration to the switch.
+
+-# Load the **ratelimiting** configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory
+to the `packEth` tool and stat sending packets at a rate more than 200 Mbps.
+
+-# The packets received at the PC2 will not exceed the receive rate of 200Mbps (~25MBps), since the PIR is set
+to 200 Mbps. This can be verified by checking the receive rate using `bmon` or `System Monitor` in PC2.
+
 
 [Back To Top](@ref demo_ethfw_combined_top)
 

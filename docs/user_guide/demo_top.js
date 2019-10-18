@@ -5,12 +5,13 @@ var demo_top =
         [ "Dependencies", "demo_ethfw_combined_top.html#demo_ethfw_combined_depend", null ]
       ] ],
       [ "Compile Time Configurations", "demo_ethfw_combined_top.html#demo_ethfw_combined_cfg", null ],
-      [ "Test Setup", "demo_ethfw_combined_top.html#demo_ethfw_combined_setup_cfg", [
-        [ "Pre-requisites", "demo_ethfw_combined_top.html#demo_ethfw_combined_prerequisites", [
-          [ "Plex server set up", "demo_ethfw_combined_top.html#demo_ethfw_combined_prereq_plextv", null ],
-          [ "PackEth tool", "demo_ethfw_combined_top.html#demo_ethfw_combined_prereq_packEth", null ],
+      [ "Demo Setup", "demo_ethfw_combined_top.html#demo_ethfw_combined_setup_cfg", [
+        [ "Prerequisites", "demo_ethfw_combined_top.html#demo_ethfw_combined_prerequisites", [
+          [ "Plex server", "demo_ethfw_combined_top.html#demo_ethfw_combined_prereq_plextv", null ],
+          [ "packETH tool", "demo_ethfw_combined_top.html#demo_ethfw_combined_prereq_packEth", null ],
           [ "Python3 and Pip3", "demo_ethfw_combined_top.html#demo_ethfw_combined_prereq_python", null ],
-          [ "Setting static IPs", "demo_ethfw_combined_top.html#demo_ethfw_combined_static_ips", null ]
+          [ "Wireshark", "demo_ethfw_combined_top.html#demo_ethfw_combined_prereq_wireshark", null ],
+          [ "DHCP Server", "demo_ethfw_combined_top.html#demo_ethfw_dhcp_server", null ]
         ] ],
         [ "CCS Boot", "demo_ethfw_combined_top.html#demo_ethfw_combined_CCS", [
           [ "Prerequisites", "demo_ethfw_combined_top.html#demo_l2_switchin_CCS_prereqs", null ],
@@ -18,14 +19,23 @@ var demo_top =
         ] ],
         [ "SD Card Boot", "demo_ethfw_combined_top.html#demo_ethfw_combined_sdcard", [
           [ "Steps", "demo_ethfw_combined_top.html#demo_ethfw_combined_sdcard_steps", null ]
+        ] ]
+      ] ],
+      [ "Running the Demo", "demo_ethfw_combined_top.html#demo_ethfw_combined_execution", [
+        [ "Connecting External Devices", "demo_ethfw_combined_top.html#ethfw_demo_connections", null ],
+        [ "HTTP Server", "demo_ethfw_combined_top.html#ethfw_http_client_page", null ],
+        [ "Plex TV", "demo_ethfw_combined_top.html#ethfw_plex_tv_usage", [
+          [ "Plex TV Server", "demo_ethfw_combined_top.html#ethfw_plex_tv_server_usage", null ],
+          [ "Plex TV Client", "demo_ethfw_combined_top.html#ethfw_plex_tv_client_usage", null ]
         ] ],
-        [ "HTTP Client Page (http://192.168.1.203)", "demo_ethfw_combined_top.html#ethfw_http_client_page", null ],
-        [ "Plex TV Client", "demo_ethfw_combined_top.html#ethfw_plex_tv_client_usage", null ],
         [ "Virtual Net Driver on A72", "demo_ethfw_combined_top.html#ethfw_virt_net_driver", null ],
-        [ "GUI Configurator tool", "demo_ethfw_combined_top.html#ethfw_gui_tool_configuration", null ],
-        [ "Inter VLAN Routing", "demo_ethfw_combined_top.html#ethfw_intervlan_routing", [
-          [ "Software Inter VLAN Routing", "demo_ethfw_combined_top.html#ethfw_sw_intervlan_routing", null ],
-          [ "Hardware Inter VLAN Routing", "demo_ethfw_combined_top.html#ethfw_hw_intervlan_routing", null ]
+        [ "iperf", "demo_ethfw_combined_top.html#ethfw_running_iperf", null ],
+        [ "GUI Configurator Tool", "demo_ethfw_combined_top.html#ethfw_gui_tool_configuration", null ],
+        [ "InterVLAN Routing", "demo_ethfw_combined_top.html#ethfw_intervlan_routing", [
+          [ "Software InterVLAN Routing", "demo_ethfw_combined_top.html#ethfw_sw_intervlan_routing", null ],
+          [ "Hardware InterVLAN Routing", "demo_ethfw_combined_top.html#ethfw_hw_intervlan_routing", null ],
+          [ "IP Next Header Filtering", "demo_ethfw_combined_top.html#ethfw_ip_nxthdr_filtering", null ],
+          [ "Rate Limiting", "demo_ethfw_combined_top.html#ethfw_rate_limiting", null ]
         ] ],
         [ "Sample output", "demo_ethfw_combined_top.html#demo_ethfw_combined_output", null ]
       ] ],
