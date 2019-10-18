@@ -807,26 +807,6 @@ void IpAddrHookFxn(uint32_t IPAddr,
     CpswApp_swInterVlanRouting(gCpswMainAppObj.cpswType);
 }
 
-#if defined(SOC_J721E)
-
-/**
- * \brief PDK-4356 FIX - set to DLFO bit in ACTRL register of R5F
- *
- * This API uses assembly instruction to set DLFO bit in ACTRL register
- * of R5F.
- * This should be called from the Core reset callback.
- *
- */
-#pragma CODE_SECTION(CpswApp_setDLFOBitInACTRLReg,".text_boot")
-void CpswApp_setDLFOBitInACTRLReg(void)
-{
-    asm (" MRC p15, #0, r12, c1, c0, #1 ;");
-    asm (" ORR r12, r12, #8192 ;");
-    asm (" MCR p15, #0, r12, c1, c0, #1 ;");
-}
-
-#endif
-
 void netOpenHook(void)
 {
 #ifdef ENABLE_NDKSERVERS
