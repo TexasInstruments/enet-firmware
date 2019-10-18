@@ -342,7 +342,7 @@ and/or reconfigured via linker command files.
 Refer to @ref demo_top section for a full list of EthFw demo applications.
 
 For detailed steps to load and run the L2 Switching application, please refer
-to its @ref demo_ethfw_combined_cfg section.
+to its @ref demo_ethfw_combined_setup_cfg section.
 
 [Back To Top](@ref ethfw_c_ug_top)
 

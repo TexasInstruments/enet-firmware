@@ -572,14 +572,15 @@ the external devices, **PC 1** or **PC 2**.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
+
 ## IP Next Header Filtering {#ethfw_ip_nxthdr_filtering}
 
-CPSW9G supports whitelisting of upto four different IP protocols for a VLAN group.
-This demo whitelists TCP and UDP protocols and hence blocking packets of other protocols in
-the VLAN network.
+CPSW9G supports whitelisting of upto four different IP protocols for a VLAN
+group.  This demo whitelists TCP and UDP protocols and hence blocking packets
+of other protocols in the VLAN network.
 
--# Add a VLAN entry with `vlanId: 0x2BC(700 in decimal)` with Host Port, MAC ports 2 and 3 as
-members of the VLAN group.
+-# Add a VLAN entry with `vlanId: 0x2BC (700 in decimal)` with host port, MAC
+   ports 2 and 3 as members of the VLAN group.
 
 -# Open the **CONFIGURATION FILE** tab of the GUI tool.
 
@@ -594,29 +595,34 @@ members of the VLAN group.
 -# If the parsing succeeded, press the **Send Config** button to send the
    configuration to the switch.
 
--# Load the **ipnxthdr_tcp** configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory
-to the `packEth` tool and start sending packets.
+-# Load the `ipnxthdr_tcp` configuration file from
+   `<ETHFW_PATH>/docs/packeth_configurations/` directory to the packEth tool and
+   start sending packets.
 
--# Since, TCP is whitelisted, the packets will be received at PC2. This can be verified by using `WireShark` in PC2 with `ip.addr eq 192.168.1.202 && vlan` filter.
+-# Since TCP is whitelisted, the packets will be received at **PC 2**. This can
+   be verified by using Wireshark in **PC 2** with `ip.addr eq 192.168.1.202 && vlan`
+   filter.
 
--# Similarly **ipnxthdr_udp** packEth configuration can be used to verify UDP.
+-# Similarly, `ipnxthdr_udp` packETH configuration can be used to verify UDP.
 
--# Since the ICMP protocol is not whitelisted, packets sent using **ipnxthdr_icmp_echorequest** from packEth won't be
-received at PC2.
+-# Since the ICMP protocol is not whitelisted, packets sent using
+   `ipnxthdr_icmp_echorequest` from packETH won't be received at **PC 2**.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
+
 ## Rate Limiting {#ethfw_rate_limiting}
 
--# Rate Limiting can be enabled by adding a Policer entry with parameters like Source and
-Destination MAC address of the traffic to be limited. The rate at which the traffic is limited is based on the
-values of `Peak Information Rate (PIR)` and `Committed Information Rate (CIR)` both in `bits per second(bps)` set
-in the Policer entry.
+-# Rate Limiting can be enabled by adding a policer entry with parameters like
+   Source and Destination MAC address of the traffic to be limited.  The rate at
+   which the traffic is limited is based on the values of Peak Information Rate
+   (PIR) and Committed Information Rate (CIR) both in bits per second (bps) set
+   in the policer entry.
 
 -# Open the **CONFIGURATION FILE** tab of the GUI tool.
 
--# To enable rate limiting, click on the **Open** button and
-   select the `rate_limiting_config.txt` file present in the
+-# To enable rate limiting, click on the **Open** button and select the
+   `rate_limiting_config.txt` file present in the
    `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
 
@@ -626,11 +632,13 @@ in the Policer entry.
 -# If the parsing succeeded, press the **Send Config** button to send the
    configuration to the switch.
 
--# Load the **ratelimiting** configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory
-to the `packEth` tool and stat sending packets at a rate more than 200 Mbps.
+-# Load the `ratelimiting` configuration file from
+   `<ETHFW_PATH>/docs/packeth_configurations/` directory to the packETH tool
+   and stat sending packets at a rate more than 200 Mbps.
 
--# The packets received at the PC2 will not exceed the receive rate of 200Mbps (~25MBps), since the PIR is set
-to 200 Mbps. This can be verified by checking the receive rate using `bmon` or `System Monitor` in PC2.
+-# The packets received at the **PC 2** will not exceed the receive rate of
+   200Mbps (~25MBps), since the PIR is set to 200 Mbps. This can be verified by
+   checking the receive rate using `bmon` or `System Monitor` in **PC 2**.
 
 
 [Back To Top](@ref demo_ethfw_combined_top)
