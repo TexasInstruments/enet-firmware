@@ -1,0 +1,20 @@
+var searchData=
+[
+  ['regaddr',['regaddr',['../structrpmsg__kdrv__ethswitch__regwr__request.html#ad1e3e97cec676fe7cd06f0ab00882c60',1,'rpmsg_kdrv_ethswitch_regwr_request::regaddr()'],['../structrpmsg__kdrv__ethswitch__regrd__request.html#aa581134bbe3863193d7696266148e675',1,'rpmsg_kdrv_ethswitch_regrd_request::regaddr()']]],
+  ['register_5fmac_5fhandler',['register_mac_handler',['../structrdevEthSwitchServerCbFxn__t.html#a6cd2631cf6ab33fc94ffe22ccdbed954',1,'rdevEthSwitchServerCbFxn_t']]],
+  ['register_5fmac_5freq',['register_mac_req',['../unionrdevEthSwitchServerMessageList__t.html#a7fa8dcfaa92ae0a9fa2288d2541bdf59',1,'rdevEthSwitchServerMessageList_t']]],
+  ['register_5fmac_5fres',['register_mac_res',['../unionrdevEthSwitchServerMessageList__t.html#ab978479a56a54a86e60588668d32d8f9',1,'rdevEthSwitchServerMessageList_t']]],
+  ['register_5frx_5fdefault_5fhandler',['register_rx_default_handler',['../structrdevEthSwitchServerCbFxn__t.html#a662ec684a531b80e51f5649687db4c88',1,'rdevEthSwitchServerCbFxn_t']]],
+  ['register_5frx_5fdefault_5freq',['register_rx_default_req',['../unionrdevEthSwitchServerMessageList__t.html#a95e93421c3b48084295de4742eae7f6f',1,'rdevEthSwitchServerMessageList_t']]],
+  ['register_5frx_5fdefault_5fres',['register_rx_default_res',['../unionrdevEthSwitchServerMessageList__t.html#a6aef0fb2d09d0229b0595ab6ead9eb7b',1,'rdevEthSwitchServerMessageList_t']]],
+  ['regrd_5fhandler',['regrd_handler',['../structrdevEthSwitchServerCbFxn__t.html#a24ab63b5e91fc9ee4ad2c19783a5314e',1,'rdevEthSwitchServerCbFxn_t']]],
+  ['regrd_5freq',['regrd_req',['../unionrdevEthSwitchServerMessageList__t.html#a4bd74a1c35d33bf249fe6592e261f59f',1,'rdevEthSwitchServerMessageList_t']]],
+  ['regrd_5fres',['regrd_res',['../unionrdevEthSwitchServerMessageList__t.html#ab813ea90bf514aaa42e5c18bdab8c97f',1,'rdevEthSwitchServerMessageList_t']]],
+  ['regval',['regval',['../structrpmsg__kdrv__ethswitch__regwr__request.html#a1478faab3ac242aa3aa7e7ef2d9a7307',1,'rpmsg_kdrv_ethswitch_regwr_request::regval()'],['../structrpmsg__kdrv__ethswitch__regwr__response.html#a221776d215b79b3e71766817dd08603b',1,'rpmsg_kdrv_ethswitch_regwr_response::regval()'],['../structrpmsg__kdrv__ethswitch__regrd__response.html#a3a27588c9a443b100f4237c67efa3c58',1,'rpmsg_kdrv_ethswitch_regrd_response::regval()']]],
+  ['regwr_5fhandler',['regwr_handler',['../structrdevEthSwitchServerCbFxn__t.html#a508fa29ca5936e2ca82f45e7852c9d17',1,'rdevEthSwitchServerCbFxn_t']]],
+  ['regwr_5freq',['regwr_req',['../unionrdevEthSwitchServerMessageList__t.html#a5823c0a45d14e0fcafa554684c411076',1,'rdevEthSwitchServerMessageList_t']]],
+  ['regwr_5fres',['regwr_res',['../unionrdevEthSwitchServerMessageList__t.html#a270a2a316b46a06c877462b874bb0ade',1,'rdevEthSwitchServerMessageList_t']]],
+  ['rev',['rev',['../structrpmsg__kdrv__ethswitch__firmware__version__info.html#aafb2365474bf82840372ffd377c59e62',1,'rpmsg_kdrv_ethswitch_firmware_version_info']]],
+  ['rpmsg_5fbuf_5fsize',['rpmsg_buf_size',['../structrdevEthSwitchServerInitPrm__t.html#ab9fa927202fd92f74b04ef4512b7bf71',1,'rdevEthSwitchServerInitPrm_t']]],
+  ['rx_5fmtu',['rx_mtu',['../structrpmsg__kdrv__ethswitch__attach__response.html#a1618ac8cd000f167b5c154c1e93ffb5b',1,'rpmsg_kdrv_ethswitch_attach_response::rx_mtu()'],['../structrpmsg__kdrv__ethswitch__attach__extended__response.html#a278a85e120324855daf665c7fdc0ce5a',1,'rpmsg_kdrv_ethswitch_attach_extended_response::rx_mtu()']]]
+];

@@ -33,10 +33,10 @@ var demo_top =
         [ "GUI Configurator Tool", "demo_ethfw_combined_top.html#ethfw_gui_tool_configuration", null ],
         [ "InterVLAN Routing", "demo_ethfw_combined_top.html#ethfw_intervlan_routing", [
           [ "Software InterVLAN Routing", "demo_ethfw_combined_top.html#ethfw_sw_intervlan_routing", null ],
-          [ "Hardware InterVLAN Routing", "demo_ethfw_combined_top.html#ethfw_hw_intervlan_routing", null ],
-          [ "IP Next Header Filtering", "demo_ethfw_combined_top.html#ethfw_ip_nxthdr_filtering", null ],
-          [ "Rate Limiting", "demo_ethfw_combined_top.html#ethfw_rate_limiting", null ]
+          [ "Hardware InterVLAN Routing", "demo_ethfw_combined_top.html#ethfw_hw_intervlan_routing", null ]
         ] ],
+        [ "IP Next Header Filtering", "demo_ethfw_combined_top.html#ethfw_ip_nxthdr_filtering", null ],
+        [ "Rate Limiting", "demo_ethfw_combined_top.html#ethfw_rate_limiting", null ],
         [ "Sample output", "demo_ethfw_combined_top.html#demo_ethfw_combined_output", null ]
       ] ],
       [ "Document Revision History", "demo_ethfw_combined_top.html#demo_ethfw_combined_rev_history", null ]

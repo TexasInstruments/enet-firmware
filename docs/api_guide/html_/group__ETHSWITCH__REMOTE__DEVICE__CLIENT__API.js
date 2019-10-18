@@ -1,0 +1,33 @@
+var group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API =
+[
+    [ "rdevEthSwitchClientInitPrms_t", "structrdevEthSwitchClientInitPrms__t.html", [
+      [ "device_name", "structrdevEthSwitchClientInitPrms__t.html#a207d9e0dbba51bbdbfaa46244b9e83e5", null ],
+      [ "device_id", "structrdevEthSwitchClientInitPrms__t.html#a73367208cb310ee8b8cfa91ec8838b0b", null ],
+      [ "device_type", "structrdevEthSwitchClientInitPrms__t.html#ab30db3efa0b97046225c8c4066b2bb9a", null ],
+      [ "cbHandler", "structrdevEthSwitchClientInitPrms__t.html#a13233d7353cb94261f59753539926028", null ],
+      [ "eth_device_data", "structrdevEthSwitchClientInitPrms__t.html#aabc7b8d4357a971e297cb6e6079cf7b9", null ]
+    ] ],
+    [ "rdevEthSwitchClient_connect", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga1ddbdd3f8ad258c4deee212e5ae7b976", null ],
+    [ "rdevEthSwitchClient_sendping", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga1d6c9b61869e9e3f6186cc58a330a8af", null ],
+    [ "rdevEthSwitchClient_ipv4macunregister", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga57ce6f976da9134e308343970610f396", null ],
+    [ "rdevEthSwitchClient_ipv6macregister", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga71974412bb93479a99f7decd9453c503", null ],
+    [ "rdevEthSwitchClient_ipv4macregister", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga2b7a55a5db55447012ef4fb86fa931b9", null ],
+    [ "rdevEthSwitchClient_regrd", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga354dc498f8274730525170c93f20690c", null ],
+    [ "rdevEthSwitchClient_regwr", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#gae776e8a9f4945268665ccdff8eecf1f5", null ],
+    [ "rdevEthSwitchClient_ioctl", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#gaad2792b5579929eac573882971c86329", null ],
+    [ "rdevEthSwitchClient_detach", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga868f572a9fc2765fdf0b29814b66fce4", null ],
+    [ "rdevEthSwitchClient_freerx", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#gac267f9eec046b706f0fbe084b2aa871f", null ],
+    [ "rdevEthSwitchClient_freetx", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#gaf8603ab497886c3dea3ecd581852aa8a", null ],
+    [ "rdevEthSwitchClient_freemac", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga71deafd8fa7af4e894cebbad6a013004", null ],
+    [ "rdevEthSwitchClient_unregisterrxdefault", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#gad2d8d0fd2e524bc3973880718e7894fe", null ],
+    [ "rdevEthSwitchClient_unregistermac", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga114232e5c4c5189ba3a950da409650d5", null ],
+    [ "rdevEthSwitchClient_registermac", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga2dd3139cbcfd88497f8069239310a0ab", null ],
+    [ "rdevEthSwitchClient_allocmac", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga3797553681b61a95d0ba715764b22d8d", null ],
+    [ "rdevEthSwitchClient_registerrxdefault", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#gabcd76dda1b1b351e1e5135189a8b3a7b", null ],
+    [ "rdevEthSwitchClient_allocrx", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga4deba275106191dd68ba575cfd12f363", null ],
+    [ "rdevEthSwitchClient_alloctx", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga608859388ab850298f13688d290c1e89", null ],
+    [ "rdevEthSwitchClient_attach", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga9725264eac2b7b410adaca4a5367a1c5", null ],
+    [ "rdevEthSwitchClient_attachext", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga2954008acf69b6425a12de1bd85c1272", null ],
+    [ "rdevEthSwitchClient_sendNotify", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#gaa440f915bb717cb3dd938cca4a601912", null ],
+    [ "rdevEthSwitchClient_printText", "group__ETHSWITCH__REMOTE__DEVICE__CLIENT__API.html#ga7e4531d47f6bd093859071a22ab0920a", null ]
+];
