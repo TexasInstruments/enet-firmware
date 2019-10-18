@@ -9,8 +9,8 @@
 The applications that are part of this demo show Jacinto 7 integrated switch
 differentiating features like interVLAN routing in hardware, firewall, packet
 header based classification and rate limiting along with Layer-2 switching with
-VLAN, multicast and software-based interVLAN routing among the ports.  
-The traffic forwarding process among the ports don't require CPU involvement 
+VLAN, multicast and software-based interVLAN routing among the ports.
+The traffic forwarding process among the ports don't require CPU involvement
 or DMA bandwidth as everything is completely handled by CPSW hardware.
 
 The intention behind this demo which encompasses multiple sub-demos is to show
@@ -474,7 +474,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# In the packETH tool on the **PC 1**, which has IP address `192.168.1.<pc1>`,
    load the `swintervlanrouting` configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory.
-   
+
    The loaded configuration should match with the below picture.
 
 
@@ -532,7 +532,7 @@ the external devices, **PC 1** or **PC 2**.
    can be verified by sending packets with VLAN ID using packETH tool.
 
 -# Load the `hwintervlanrouting` configuration file from `<ETHFW_PATH>/docs/packeth_configurations/` directory.
-   
+
    The loaded configuration should match with the below picture.
 
    ![](packethhwintervlan.png "packETH settings for hardware interVLAN routing")
@@ -572,13 +572,13 @@ the external devices, **PC 1** or **PC 2**.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
-### IP Next Header Filtering {#ethfw_ip_nxthdr_filtering}
+## IP Next Header Filtering {#ethfw_ip_nxthdr_filtering}
 
 CPSW9G supports whitelisting of upto four different IP protocols for a VLAN group.
 This demo whitelists TCP and UDP protocols and hence blocking packets of other protocols in
 the VLAN network.
 
--# Add a VLAN entry with `vlanId: 0x2BC(700 in decimal)` with Host Port, MAC ports 2 and 3 as 
+-# Add a VLAN entry with `vlanId: 0x2BC(700 in decimal)` with Host Port, MAC ports 2 and 3 as
 members of the VLAN group.
 
 -# Open the **CONFIGURATION FILE** tab of the GUI tool.
@@ -606,11 +606,11 @@ received at PC2.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
-### Rate Limiting {#ethfw_rate_limiting}
+## Rate Limiting {#ethfw_rate_limiting}
 
--# Rate Limiting can be enabled by adding a Policer entry with parameters like Source and 
+-# Rate Limiting can be enabled by adding a Policer entry with parameters like Source and
 Destination MAC address of the traffic to be limited. The rate at which the traffic is limited is based on the
-values of `Peak Information Rate (PIR)` and `Committed Information Rate (CIR)` both in `bits per second(bps)` set 
+values of `Peak Information Rate (PIR)` and `Committed Information Rate (CIR)` both in `bits per second(bps)` set
 in the Policer entry.
 
 -# Open the **CONFIGURATION FILE** tab of the GUI tool.

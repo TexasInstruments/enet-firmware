@@ -438,6 +438,7 @@ Revision | Date          | Author                 | Description
 0.2      | 02 Apr 2019   | Prasad J               | 0.8 Docs review meeting fixes
 0.3      | 12 Jun 2019   | Prasad J               | Updates for EVM demo (.85 release)
 0.4      | 17 Jul 2019   | Misael Lopez           | Updates for v.0.09.00
+0.5      | 15 Oct 2019   | Misael Lopez, Santhana Bharati | Updates for v.1.00.00
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)
