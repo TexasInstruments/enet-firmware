@@ -1,0 +1,98 @@
+a0132233@a0132233pc:/ti/j7presi/workarea/pdk/packages/ti/drv/cpsw/unit_test/host$ telnet 192.168.1.29
+Trying 192.168.1.29...
+Connected to 192.168.1.29.
+Escape character is '^]'.
+
+NDK Telnet Console
+Welcome connection : 192.168.1.1:37520
+
+
+Welcome to the console program.
+Enter '?' or 'help' for a list of commands.
+
+>?
+
+NDK Telnet Console
+
+[Help Command]
+
+The basic commands are:
+  acct     - Manage PPP user accounts
+  bye      - Logoff the console
+  echo     - Perform echo test
+  help     - Displays this message
+  mem      - Display memory status
+  nslookup - Lookup hostname or IP address
+  pswd     - Change console password
+  ping     - Test echo request
+  quit     - Logoff the console
+  reboot   - Reboot system (terminates session)
+  route    - Maintain route table
+  shutdown - Shutdown stack (terminates session)
+  socket   - Print socket table
+  stat     - Print internal stack statistics
+  tftp     - Test TFTP file transfer
+  lli      - Test Static LLI (ARP) Configuration
+  vlan     - Add/Delete VLAN devices
+  ipaddr   - Configuration of IPAddress
+  ipv6     - IPv6 Configuration.
+  ping6    - Test echo request over IPv6
+  v6nslookup - Lookup hostname or IPv6 address
+
+Some commands have additional help information. For example
+entering 'route' gives more information on the route command.
+
+>ipad
+Invalid command - Enter '?' or 'help' for a list of commands.
+>ip
+Invalid command - Enter '?' or 'help' for a list of commands.
+>ipaddr
+
+[ipaddr Command]
+
+Use this to configure NIMU Objects
+
+ipaddr all                       - Display configuration for all NIMU object
+ipaddr <if>                      - Display configuration for the specified NIMU object
+ipaddr <if> mac <MAC-ADDR>       - Configure the MAC Address of the NIMU Object
+ipaddr <if> mtu <MTU>            - Configure the MTU of the NIMU Object
+ipaddr <if> <ip_addr> <netmask>  - Configure the IP Address/Netmask
+ipaddr <if> del <ip_addr>        - Delete the IP Address from specified interface
+>ipaddr all
+Interface Name: eth0
+Interface Id  : 1
+IP Address    : 192.168.1.29
+IP Mask       : 255.255.255.0
+MTU           : 1500 bytes
+MAC Address   : 0x70-0xff-0x76-0x1d-0x87-0x97
+
+
+>stat
+
+[Stat Command]
+
+Called to dump out internal stack statistics.
+
+stat ip      - Print out IP statistics
+stat icmp    - Print out ICMP statistics
+stat tcp     - Print out TCP statistics
+stat udp     - Print out UDP and RAW statistics
+stat nat     - Print out NAT statistics
+
+>stat ip
+
+IP Statistics:
+   Total         = 0000000074     Odropped      = 0000000000
+   Badsum        = 0000000000     Badhlen       = 0000000000
+   Badlen        = 0000000000     Badoptions    = 0000000000
+   Badvers       = 0000000000     Forward       = 0000000000
+   Noproto       = 0000000000     Delivered     = 0000000074
+   Cantforward   = 0000000000     CantforwardBA = 0000000000
+   Expired       = 0000000000     Redirectsent  = 0000000000
+   Localout      = 0000000073     Localnoroute  = 0000000000
+   CacheHit      = 0000000000     CacheMiss     = 0000000001
+   Fragments     = 0000000000     Fragdropped   = 0000000000
+   Fragtimeout   = 0000000000     Reassembled   = 0000000000
+   Ofragments    = 0000000000     Fragmented    = 0000000000
+   Cantfrag      = 0000000000     Filtered      = 0000000000
+>

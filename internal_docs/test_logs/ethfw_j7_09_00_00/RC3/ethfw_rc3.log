@@ -1,0 +1,194 @@
+ÿEnabling clocks for CPSW_9G!
+=======================================================
+           EthFw L2 Switching APP          
+=======================================================
+Host MAC address: 04:01:02:03:04:05
+CPSW_9G Test on MAIN NAVSS
+PHY 0 is alive
+PHY 3 is alive
+PHY 12 is alive
+PHY 15 is alive
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
+PHY 23 is alive
+[NIMU_NDK] CPSW has been started successfully
+
+CPSW NIMU application, IP address I/F 1: 192.168.1.203
+
+PU Load: 100%
+P: 192.168.1.203
+=================================================
+                   Switch Options                
+=================================================
+ 1. Enable/Disable VLAN 
+ 2. Enable/Disable Multicast
+ 3. Enable/Disable Rate Limiting 
+ 4. Enable/Disable InterVLAN 
+ 5. Print ALE & Policer Table 
+ Enter your choice: 
+
+=================================================
+                   Switch Options                
+=================================================
+ 1. Enable/Disable VLAN 
+ 2. Enable/Disable Multicast
+ 3. Enable/Disable Rate Limiting 
+ 4. Enable/Disable InterVLAN 
+ 5. Print ALE & Policer Table 
+ Enter your choice: 
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+
+
+EthFw: BOARD IP: 192.168.1.203
+=================================================
+                   Switch Options                
+=================================================
+ 1. Enable/Disable VLAN 
+ 2. Enable/Disable Multicast
+ 3. Enable/Disable Rate Limiting 
+ 4. Enable/Disable InterVLAN 
+ 5. Print ALE & Policer Table 
+ Enter your choice: 
+CPU Load: 4%
+
+
+EthFw: BOARD IP: 192.168.1.203
+=================================================
+                   Switch Options                
+=================================================
+ 1. Enable/Disable VLAN 
+ 2. Enable/Disable Multicast
+ 3. Enable/Disable Rate Limiting 
+ 4. Enable/Disable InterVLAN 
+ 5. Print ALE & Policer Table 
+ Enter your choice: 
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+
+
+EthFw: BOARD IP: 192.168.1.203
+=================================================
+                   Switch Options                
+=================================================
+ 1. Enable/Disable VLAN 
+ 2. Enable/Disable Multicast
+ 3. Enable/Disable Rate Limiting 
+ 4. Enable/Disable InterVLAN 
+ 5. Print ALE & Policer Table 
+ Enter your choice: 
+qCPU Load: 3%
+ q 1
+
+ Enter VLAN ID: CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 4%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 4%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 4%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%
+CPU Load: 3%

@@ -1,0 +1,54 @@
+GESI board detected
+Enabling clocks for CPSW_9G!
+=======================================================
+           CPSW Ethernet Firmware Demo             
+=======================================================
+CPSW_9G Test on MAIN NAVSS
+IPC_echo_test (core : mcu2_0) .....
+Remote device (core : mcu2_1) .....
+CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+Remote demo device (core : mcu2_0) .....
+CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+PHY 0 is alive
+PHY 3 is alive
+PHY 12 is alive
+PHY 15 is alive
+PHY 23 is alive
+Host MAC address: 70:ff:76:1d:87:96
+[NIMU_NDK] CPSW has been started successfully
+Cpsw_handleLinkUp: port 3: Link up: 1-Gpbs Full-Duplex
+Cpsw_handleLinkUp: port 2: Link up: 1-Gpbs Full-Duplex
+
+CPSW NIMU application, IP address I/F 1: 192.168.1.20
+
+Rx Flow for Software Inter-VLAN Routing is up
+Function:app_ethrdev_srv_cb_attach_ext_handler,HostId:0,CpswType:1
+Function:app_ethrdev_srv_cb_register_mac_handler,HostId:0,Handle:a298d184,CoreKey:38acb7e6, MacAddress:70:ff:76:1d:87:95, FlowIdx:172, FlowIdxOffset:0
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:10, Policer Entry:0Function:app_ethrdev_srv_cb_register_ipv4_mac_handler,HostId:0,Handle:a298d184,CoreKey:38acb7e6, MacAddress:70:ff:76:1d:87:95 IPv4Addr:192.168.1.30
+
+================LLI Table entries=========== 
+
+Number of Static ARP Entries: 1 
+
+SNo.      IP Address         MAC Address  
+------    -------------      --------------- 
+0         192.168.1.30       70:FF:76:1D:87:95
+Function:app_ethrdev_srv_cb_unregister_mac_handler,HostId:0,Handle:a298d184,CoreKey:38acb7e6, MacAddress:70:ff:76:1d:87:95, FlowIdx:172, FlowIdOffset:0
+Function:app_ethrdev_srv_cb_unregister_ipv4_mac_handler,HostId:0,Handle:a298d184,CoreKey:38acb7e6,IPv4Addr:c0:a8:1:1e
+
+================LLI Table entries=========== 
+
+Number of Static ARP Entries: 0 
+
+SNo.      IP Address         MAC Address  
+------    -------------      --------------- 
+Function:app_ethrdev_srv_cb_register_mac_handler,HostId:0,Handle:a298d184,CoreKey:38acb7e6, MacAddress:70:ff:76:1d:87:95, FlowIdx:172, FlowIdxOffset:0
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:10, Policer Entry:0Function:app_ethrdev_srv_cb_register_ipv4_mac_handler,HostId:0,Handle:a298d184,CoreKey:38acb7e6, MacAddress:70:ff:76:1d:87:95 IPv4Addr:192.168.1.30
+
+================LLI Table entries=========== 
+
+Number of Static ARP Entries: 1 
+
+SNo.      IP Address         MAC Address  
+------    -------------      --------------- 
+0         192.168.1.30       70:FF:76:1D:87:95
