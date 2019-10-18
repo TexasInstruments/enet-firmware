@@ -441,7 +441,7 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
  * \param device_id Device id returned by rdevEthSwitchClient_connect
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
- * \param notifyid  Client to server notify id of type enum rpmsg_kdrv_ethswitch_client_notify_type
+ * \param notify_id Client to server notify id of type enum rpmsg_kdrv_ethswitch_client_notify_type
  * \param notify_info Notify info associated with the notify id
  * \param notify_info_len Notify info length
  */
