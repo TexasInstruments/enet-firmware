@@ -31,7 +31,7 @@ BUILD_APP_TIRTOS?=yes
 # Build TI-RTOS + Linux binaries
 BUILD_APP_TIRTOS_LINUX?=no
 #Build Profile
-PROFILE?=debug
+PROFILE?=release
 
 # Treat compiler warning as error
 # Supported Values: yes | no
