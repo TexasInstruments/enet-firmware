@@ -33,7 +33,7 @@ ifeq ($(BUILD_TARGET_MODE),yes)
   ifneq ($(PROFILE), $(filter $(PROFILE), release all))
 	PROFILE_LIST := $(filter-out release,$(PROFILE_LIST))
   endif
-  
+
   ifneq ($(BUILD_ISA_R5F),yes)
     ISA_LIST := $(filter-out R5F,$(ISA_LIST))
   endif
@@ -45,7 +45,7 @@ ifeq ($(BUILD_TARGET_MODE),yes)
   ifneq ($(BUILD_ISA_A53),yes)
     ISA_LIST := $(filter-out A53,$(ISA_LIST))
   endif
-  
+
   ifneq ($(BUILD_ISA_C6x),yes)
     ISA_LIST := $(filter-out C66,$(ISA_LIST))
   endif
@@ -57,7 +57,7 @@ ifeq ($(BUILD_TARGET_MODE),yes)
   ifneq ($(BUILD_LINUX_A72),yes)
     OS_LIST := $(filter-out LINUX,$(OS_LIST))
   endif
-  
+
   ifeq (,$(filter $(BUILD_SOC_LIST),J721E))
     SOC_LIST := $(filter-out J721E,$(SOC_LIST))
   endif
@@ -86,7 +86,6 @@ include makerules/makefile_ndk.mak
 #Add ndk and ndk_clean dependent rules for ethfw_all/ethfw_all_clean once NDK bug is fixed
 .NOTPARALLEL:
 ethfw_all: pdk remotedevicefw all
-ethfw_app_ndk_switch_tirtos: pdk_custom_libs ethfw_app_ndk_switch_tirtos_mcu_2_0
 remoteswitchcfg_all: | pdk_custom_libs remotedevicefw ndk app_remoteswitchcfg_client app_remoteswitchcfg_server
 ethfw_all_clean: pdk_custom_libs_clean clean scrub
 remotedevicefw:
