@@ -263,7 +263,7 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
      further details
 
 -# For loading demo application binaries through CCS on J721E, please refer to
-   @ref load_example_binaries_on_j7 section.
+   CCS setup section in SDK top level documentation.
    * Main R5F core 0: app_remoteswitchcfg_server.xer5f
    * Main R5F core 1: app_remoteswitchcfg_client.xer5f
 
