@@ -1,0 +1,30 @@
+@startuml
+'API Teardown Sequence for A72 remote core
+
+entity A72_LINUX as "A72 Linux"
+entity SWITCH_R5 as "Switch R5F"
+
+A72_LINUX -> A72_LINUX : Close Tx DMA channel \nDeInit Tx CQ/FQ rings
+A72_LINUX -> SWITCH_R5 : <b>Free CPSW PSIL Dst Thread (coreKey)</b>
+SWITCH_R5 -> A72_LINUX : return
+
+A72_LINUX -> SWITCH_R5 : <b>Cpsw_unregisterIPAddress(coreKey, IPAddress)</b>
+SWITCH_R5 -> SWITCH_R5 : Remove IPAddress:MacAddress mapping in  ARP table
+SWITCH_R5 -> A72_LINUX : return
+
+A72_LINUX -> SWITCH_R5 : <b>Cpsw_unregisterMacAddress(coreKey, macAddress)</b>
+SWITCH_R5 -> SWITCH_R5 : Purge Classifier entry for given macAddress
+SWITCH_R5 -> A72_LINUX : return
+
+A72_LINUX -> A72_LINUX : DeInit Rx FQ/CQ
+A72_LINUX -> SWITCH_R5 : <b>Free RxFlow (coreKey)</b>
+
+A72_LINUX -> SWITCH_R5 : <b> Free Mac Address (coreKey, macAddress)</b>
+SWITCH_R5 -> A72_LINUX : return
+
+A72_LINUX -> SWITCH_R5 : <b>Cpsw_detach(coreKey)</b>
+SWITCH_R5 -> SWITCH_R5 : Purge all classifiers and threadMapVal associated with coreId
+SWITCH_R5 -> SWITCH_R5 : Free all MAC, TxPeerThread, RxFlow Id resources allocated by core
+SWITCH_R5 -> A72_LINUX : return
+
+@enduml

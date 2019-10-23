@@ -1,0 +1,28 @@
+@startuml
+'API Teardown Sequence for Master Core (Switch R5F)
+
+entity SWITCH_R5_App as "Switch R5F App"
+entity SWITCH_R5 as "Switch R5F"
+
+SWITCH_R5_App -> SWITCH_R5     : Close Tx DMA channel \nDeInit Tx CQ/FQ rings
+SWITCH_R5     -> SWITCH_R5     : <b>Free CPSW PSIL Dst Thread (coreKey)</b>
+SWITCH_R5     -> SWITCH_R5_App : return
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Cpsw_unregisterDefaultFlow(coreKey, defaultFlowId)</b>
+SWITCH_R5     -> SWITCH_R5     : Switch ALE default thread id to reserved flow id
+SWITCH_R5     -> SWITCH_R5_App : return
+
+SWITCH_R5_App -> SWITCH_R5     : DeInit Rx FQ/CQ
+SWITCH_R5_App -> SWITCH_R5     : <b>Free RxFlow (coreKey)</b>
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Cpsw_detach(coreKey)</b>
+SWITCH_R5     -> SWITCH_R5     : Purge all classifiers and threadMapVal associated with coreId
+SWITCH_R5     -> SWITCH_R5     : Free all MAC, TxPeerThread, RxFlow Id resources allocated by core
+SWITCH_R5     -> SWITCH_R5_App : return
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Cpsw_disableHostPort (coreKey)</b>
+SWITCH_R5     -> SWITCH_R5     : Disable host port
+SWITCH_R5     -> SWITCH_R5     : Set ALE Host port state to DISABLED
+SWITCH_R5     -> SWITCH_R5_App : return
+
+@enduml

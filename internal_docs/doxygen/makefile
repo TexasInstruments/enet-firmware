@@ -22,13 +22,16 @@ endif
 
 
 .PHONY : all clean allclean
-.PHONY : user_design user_design_clean api_guide api_guide_clean
+.PHONY : diagrams user_design user_design_clean api_guide api_guide_clean design_doc design_doc_clean
 
-all: user_design api_guide
+all: diagrams user_design api_guide design_doc
 
-clean : user_design_clean api_guide_clean
+clean : user_design_clean api_guide_clean design_doc_clean
 
 allclean: clean
+
+diagrams:
+	$(MAKE) -C diagrams/ all
 
 user_design:
 	$(DOXYGEN) docs.cfg 1>output.txt
@@ -44,5 +47,11 @@ api_guide_clean:
 	 $(RM) -R ../../docs/api_guide
 	 $(RM) -R ./content_pages/api_guide/output.txt
 
-# Nothing beyond this point
+design_doc:
+	cd ./content_pages/design_doc && $(MAKE) design_doc
+
+design_doc_clean:
+	 $(RM) -R ../../docs/design_doc
+	 $(RM) -R ./content_pages/design_doc/output.txt
+
 # Nothing beyond this point

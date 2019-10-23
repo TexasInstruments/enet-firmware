@@ -1,0 +1,31 @@
+@startuml
+'API Init Sequence for A72 remote core
+
+entity A72_LINUX as "A72 Linux"
+entity SWITCH_R5 as "Switch R5F"
+
+A72_LINUX -> SWITCH_R5 : <b>Cpsw_attach(coreId)</b>
+SWITCH_R5 -> A72_LINUX : return (rxMtu, txMtu[PRIORITY], FeaturesBitMask, coreKey)
+
+A72_LINUX -> SWITCH_R5 : <b>Alloc CPSW PSIL Dst Thread (coreKey)</b>
+SWITCH_R5 -> A72_LINUX : return CPSW PSIL Dst Thread {Tx Ch Peer Id}
+
+A72_LINUX -> A72_LINUX : Open Tx DMA channel/Setup PSIL thread mux \nInit Tx CQ/FQ rings
+
+A72_LINUX -> SWITCH_R5 : <b> Alloc Rx Flow (coreKey)</b>
+SWITCH_R5 -> A72_LINUX : return Rx Flow Id
+
+A72_LINUX -> A72_LINUX : Init Rx CQ/FQ rings \nSetup FlowCfg for RxFlowId \nPopulate RxFQ with empty buffer descriptors
+
+A72_LINUX -> SWITCH_R5 : <b>Alloc MAC Address (coreKey)</b>
+SWITCH_R5 -> A72_LINUX : return macAddress
+
+A72_LINUX -> SWITCH_R5 : <b>Cpsw_registerMacAddressFlow(coreKey, macAddress, flowId)</b>
+SWITCH_R5 -> SWITCH_R5 : Add ALE unicast entry for macAddress with port set to host port
+SWITCH_R5 -> SWITCH_R5 : Add ALE classifier and threadmapVal for given {macAddress,flowId}
+SWITCH_R5 -> A72_LINUX : return
+
+A72_LINUX -> SWITCH_R5 : <b>Cpsw_registerIPAddress(coreKey, macAddress, IPAddress)</b>
+SWITCH_R5 -> SWITCH_R5 : Add IPAddress:MacAddress to ARP table
+
+@enduml

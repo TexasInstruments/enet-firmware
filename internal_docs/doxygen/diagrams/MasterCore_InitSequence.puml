@@ -1,0 +1,29 @@
+@startuml
+'API Init Sequence for Master Core (Switch R5F)
+
+entity SWITCH_R5_App as "Switch R5F App"
+entity SWITCH_R5 as "Switch R5F"
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Cpsw_attach(coreId)</b>
+SWITCH_R5     -> SWITCH_R5_App : return (rxMtu, txMtu[PRIORITY], FeaturesBitMask, coreKey)
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Alloc CPSW PSIL Dst Thread (coreKey)</b>
+SWITCH_R5     -> SWITCH_R5_App : return CPSW PSIL Dst Thread {Tx Ch Peer Id}
+
+SWITCH_R5_App -> SWITCH_R5     : Open Tx DMA channel/Setup PSIL thread mux \nInit Tx CQ/FQ rings
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Alloc Rx Flow (coreKey)</b>
+SWITCH_R5     -> SWITCH_R5_App : return Rx Flow Id
+
+SWITCH_R5_App -> SWITCH_R5     : Init Rx CQ/FQ rings \nSetup FlowCfg for RxFlowId \nPopulate RxFQ with empty buffer descriptors
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Register Default Flow (coreKey, flowId)</b>
+SWITCH_R5     -> SWITCH_R5     : Set ALE Default Thread Id to the given flowId
+SWITCH_R5     -> SWITCH_R5_App : return
+
+SWITCH_R5_App -> SWITCH_R5     : <b>Cpsw_enableHostPort(coreKey)</b>
+SWITCH_R5     -> SWITCH_R5     : Enable host port
+SWITCH_R5     -> SWITCH_R5     : Set ALE Host port state to FORWARD
+SWITCH_R5     -> SWITCH_R5_App : return
+
+@enduml
