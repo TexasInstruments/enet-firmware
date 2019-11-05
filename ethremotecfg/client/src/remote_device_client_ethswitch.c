@@ -633,7 +633,7 @@ int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
                                   uint64_t id,
                                   uint32_t core_key,
                                   uint32_t cmd,
-                                  void *inargs,
+                                  const void *inargs,
                                   uint32_t inargs_len,
                                   void *outargs,
                                   uint32_t outargs_len)
@@ -868,3 +868,68 @@ int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id,
 
     return ret;
 }
+
+int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
+                                        uint64_t id,
+                                        uint32_t core_key,
+                                        uint32_t flow_idx,
+                                        uint16_t ether_type)
+{
+    rdevEthSwitchClientMessageList_t clientMsg;
+    struct rpmsg_kdrv_ethswitch_register_ethertype_request *msg = &clientMsg.rdevEthSwitchMsg.register_ethertype_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t register_ethertype_reponse;
+
+    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    msg->flow_idx = flow_idx;
+    msg->ether_type = ether_type;
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &register_ethertype_reponse, sizeof(register_ethertype_reponse), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(register_ethertype_reponse.hdr) + sizeof(register_ethertype_reponse.rdevEthSwitchMsg.register_ethertype_res)));
+        if (register_ethertype_reponse.rdevEthSwitchMsg.register_ethertype_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+
+    return ret;
+}
+
+int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
+                                          uint64_t id,
+                                          uint32_t core_key,
+                                          uint32_t flow_idx,
+                                          uint16_t ether_type)
+{
+    rdevEthSwitchClientMessageList_t clientMsg;
+    struct rpmsg_kdrv_ethswitch_unregister_ethertype_request *msg = &clientMsg.rdevEthSwitchMsg.unregister_ethertype_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t unregister_ethertype_response;
+
+    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    msg->flow_idx = flow_idx;
+    msg->ether_type = ether_type;
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &unregister_ethertype_response, sizeof(unregister_ethertype_response), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(unregister_ethertype_response.hdr) + sizeof(unregister_ethertype_response.rdevEthSwitchMsg.unregister_ethertype_res)));
+        if (unregister_ethertype_response.rdevEthSwitchMsg.unregister_ethertype_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+
+    return ret;
+}
+

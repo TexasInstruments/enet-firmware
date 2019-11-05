@@ -7,7 +7,7 @@ TARGET      := app_remoteswitchcfg_client
 TARGETTYPE  := exe 
 
 CSOURCES    := main_tirtos.c
-CSOURCES    := $(call all-c-files-in,$($(_MODULE)_SDIR)/.)
+
 
 XDC_BLD_FILE = $($(_MODULE)_SDIR)/../../bios_cfg/config_r5f.bld
 XDC_CFG_FILE = $($(_MODULE)_SDIR)/mcu2_1.cfg

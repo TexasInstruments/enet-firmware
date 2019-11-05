@@ -60,58 +60,15 @@
  *
  */
 
-var biosCommonCfg = xdc.loadCapsule("bios_common.cfg");
-var biosCommonCfgArg =
-{
-    core:"mcu2_1",
-    /* Two Timers per core:
-     *  -- One for sysbios tick
-     *  -- One for NimuCpsw Interrupt Pacing
-     */
-    timerAllocation:[
-        {core: "mcu2_0", timer: ["DMTimer12", "DMTimer13"]},
-        {core: "mcu2_1", timer: ["DMTimer14", "DMTimer15"]},
-    ],
-}
-biosCommonCfg.init(biosCommonCfgArg)
+#ifndef __CPSWPROXYCFG_H__
+#define __CPSWPROXYCFG_H__
 
-var Core = xdc.useModule('ti.sysbios.family.arm.v7r.keystone3.Core');
-Core.id = 1;
+#include <stdint.h>
+
+#define CPSWPROXY_RDEVCMD_TSK_PRI                (2U)
+#define CPSWPROXY_RDEVCMD_TSK_STACKSIZE          (8U * 1024U)
 
 
-var Hwi = xdc.useModule('ti.sysbios.family.arm.v7r.keystone3.Hwi');
-Hwi.vimBaseAddress = 0x0ff80000;
+                                           
 
-var Cache = xdc.useModule('ti.sysbios.family.arm.v7r.Cache');
-Cache.enableCache = true;
-
-/* DMTimer #x - in general, address is 0x024x0000 where x is timer # */
-var Timer = xdc.useModule('ti.sysbios.timers.dmtimer.Timer');
-
-var Clock = xdc.useModule('ti.sysbios.knl.Clock');
-Clock.timerId = 0;
-
-/* Create default heap and hook it into Memory */
-var HeapMem = xdc.useModule('ti.sysbios.heaps.HeapMem');
-var Memory = xdc.module('xdc.runtime.Memory')
-var heapMemParams = new HeapMem.Params;
-heapMemParams.size = 640*1024;
-var heap0 = HeapMem.create(heapMemParams);
-Memory.defaultHeapInstance = heap0;
-
-/*
- * Initialize MPU and enable it
- *
- * Note: MPU must be enabled and properly configured for caching to work.
- */
-xdc.loadCapsule("r5_mpu.xs");
-
-var Reset = xdc.useModule("xdc.runtime.Reset");
-Reset.fxns[Reset.fxns.length++] = "&CpswAppUtils_setDLFOBitInACTRLReg";
-
-var ndkCfg = xdc.loadCapsule("ndk.cfg");
-var ndkCfgArg =
-{
-    core:"mcu2_1"
-}
-ndkCfg.init(ndkCfgArg)
+#endif /* #ifndef __CPSWPROXYCFG_H__ */

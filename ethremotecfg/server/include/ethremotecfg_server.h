@@ -64,6 +64,7 @@
 #define __ETHREMOTECFG_SERVER_H__
 
 #include <stdint.h>
+#include <string.h>
 
 #include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 
@@ -99,6 +100,8 @@
 /*! Ethernet Switch Remote Device Name Advertised on MPU_1_0 core.Client on MPU_1_0 core should connect with this name */
 #define ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0 "mpu_1_0_ethswitch-device-0"
 
+/*! Service name of the remote device framework */
+#define ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE "rpmsg-kdrv"
 
 /*!
  * \brief Ethernet Switch Remote device server instance initialization parameters
@@ -314,6 +317,26 @@ typedef void (*ethrdev_srv_cb_client_notify_handler_t)(uint32_t host_id, uint64_
  *  \param eth_dev_data Ethernet Switch Remote Device Data to be populated by the callback handler
  */
 typedef void (*ethrdev_srv_cb_init_device_data_t)(uint32_t host_id, struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
+
+/*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE
+ *  \param host_id Remote Core Id
+ *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
+ *  \param core_key  Core key returned by attach / attach ext CMD
+ *  \param ether_type  Ethertype to be registered
+ *  \param flow_idx  Rx Flow Index to eb associated with the destination MAC address
+*/
+typedef int32_t (*ethrdev_srv_cb_register_ethertype_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint16_t ether_type, uint32_t flow_idx);
+
+/*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE
+ *  \param host_id Remote Core Id
+ *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
+ *  \param core_key  Core key returned by attach / attach ext CMD
+ *  \param ether_type  Ethertype to be unregistered
+ *  \param flow_idx  Rx Flow Index to eb disassociated with the destination MAC address
+*/
+typedef int32_t (*ethrdev_srv_cb_unregister_ethertype_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint16_t ether_type, uint32_t flow_idx);
+
+
 /*  @} */
 
 /*! \brief Ethernet Switch Remote Device Server Callback function table 
@@ -369,6 +392,11 @@ typedef struct rdevEthSwitchServerCbFxn_s
     ethrdev_srv_cb_client_notify_handler_t client_notify_handler;
     /*! Server Callback Handler for Remote Device Framework Device attach */
     ethrdev_srv_cb_init_device_data_t init_device_data_handler;
+    /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE */
+    ethrdev_srv_cb_register_ethertype_handler_t register_ethertype_handler;
+    /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE */
+    ethrdev_srv_cb_unregister_ethertype_handler_t unregister_ethertype_handler;
+
 } rdevEthSwitchServerCbFxn_t;
 
 /*!
@@ -469,6 +497,14 @@ typedef union rdevEthSwitchServerMessageList_u
     struct rpmsg_kdrv_ethswitch_s2c_notify s2c_notify;
     /*! Message associated with Client to Server Notify CMD */
     struct rpmsg_kdrv_ethswitch_c2s_notify c2s_notify;
+    /*! Request Message associated with RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE command. Sent from client to server */
+    struct rpmsg_kdrv_ethswitch_register_ethertype_request register_ethertype_req;
+    /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE command. Sent from server to client */
+    struct rpmsg_kdrv_ethswitch_register_ethertype_response register_ethertype_res;
+    /*! Request Message associated with RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE command. Sent from client to server  */
+    struct rpmsg_kdrv_ethswitch_unregister_ethertype_request unregister_ethertype_req;
+    /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE command. Sent from server to client  */
+    struct rpmsg_kdrv_ethswitch_unregister_ethertype_response unregister_ethertype_res;
 } __packed rdevEthSwitchServerMessageList_t;
 
 /**

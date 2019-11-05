@@ -396,10 +396,38 @@ enum rpmsg_kdrv_ethswitch_message_type
      *   Response Message (Sent from server to client): NONE (Notify commands do nto have any response)
      */
     RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY              = 0x16,
+
+    /*!
+     * \brief CMD to register a Ethertype by the remote core client to a specific rx flow id
+     *
+     *  Commands allows remote core client to register all traffic received on
+     *  the host port with a specific ethertype to be routed to 
+     *  the given rx flow id 
+     *
+     *  Command parameters:
+     *   Request Message (Sent from client to server): struct rpmsg_kdrv_ethswitch_register_ethertype_request
+     *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_register_ethertype_response
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE            = 0x17,
+    /*!
+     * \brief CMD to unregister a Ethertype by the remote core client 
+     *
+     *  This is inverse operation of RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE and
+     *  disables the routing of traffic with given ethertype to a 
+     *  specific rx flow id.
+     *  Once unregistered further traffic with the given ethertype
+     *  will be routed to default rx flow
+     *
+     *  Command parameters:
+     *   Request Message (Sent from client to server): struct rpmsg_kdrv_ethswitch_unregister_ethertype_request
+     *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_unregister_ethertype_response
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE          = 0x18,
+
     /*!
      * \brief Max value of Ethernet Switch Remote Device. For internal use only
      */
-    RPMSG_KDRV_TP_ETHSWITCH_MAX                     = 0x17,
+    RPMSG_KDRV_TP_ETHSWITCH_MAX                     = 0x19,
 };
 
 /*!
@@ -422,6 +450,11 @@ enum rpmsg_kdrv_ethswitch_client_notify_type
 {
     /*! Client to server notify command to dump CPSW stats on master core UART console */
     RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS,
+    /*! Client to server notify command that is app specific.
+     *  Application on server will receive callback and can
+     *  typecast the notify info to handle the notify 
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM,
     /*! Client to server notify command max. For internal use */
     RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_MAX,
 };
@@ -1023,6 +1056,55 @@ struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_response
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
+
+/*!
+ * \brief Register Ethertype CMD request params
+ */
+struct rpmsg_kdrv_ethswitch_register_ethertype_request
+{
+    /*! Common CMD header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Ether type to be associated with flow */
+    u16 ether_type;
+    /*! Flow's index associated with the mac address to be registered in ALE */
+    u32 flow_idx;
+} __packed;
+
+/*!
+ * \brief Register Ethertype CMD response params
+ */
+struct rpmsg_kdrv_ethswitch_register_ethertype_response
+{
+    /*! common response info */
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+
+/*!
+ * \brief UnRegister Ethertype CMD request params
+ */
+struct rpmsg_kdrv_ethswitch_unregister_ethertype_request
+{
+    /*! Common CMD header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Ether type to be unregistered from the rx flow  */
+    u16 ether_type;
+    /*! rx flow index from which the mac_address association will be removed  */
+    u32 flow_idx;
+} __packed;
+
+/*!
+ * \brief UnRegister Ethertype CMD response params
+ */
+struct rpmsg_kdrv_ethswitch_unregister_ethertype_response
+{
+    /*! common response info */
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
 
 
 /*!

@@ -95,6 +95,8 @@ SECTIONS
 
     /* USB or any other LLD buffer for benchmarking */
     .data_buffer: {} palign(128) > DDR_MCU2_0
+    
+    .benchmark_buffer: {} palign(128) > DDR_MCU2_0
 
     ipc_data_buffer (NOINIT) : {} palign(128) > DDR_MCU2_0
     .resource_table : {

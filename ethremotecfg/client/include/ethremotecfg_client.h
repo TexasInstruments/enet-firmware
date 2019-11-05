@@ -211,7 +211,7 @@ int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
                                   uint64_t id,
                                   uint32_t core_key,
                                   uint32_t cmd,
-                                  void *inargs,
+                                  const void *inargs,
                                   uint32_t inargs_len,
                                   void *outargs,
                                   uint32_t outargs_len);
@@ -463,6 +463,43 @@ int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id,
  */
 uint32_t rdevEthSwitchClient_printText(void *priv,
                                        void *data);
+
+
+/*!
+ * \brief Register Ethertype with the given flow index.
+ *
+ * This function registers the ethertype to the given rx flow index.
+ * This causes all packets with the given ethertype to be 
+ * routed to the given rx flow index.
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param flow_idx  Flow Id to which the traffic with the given DST mac address will directed
+ * \param ether_type Ethertype to be registered
+ */
+
+int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
+                                        uint64_t id,
+                                        uint32_t core_key,
+                                        uint32_t flow_idx,
+                                        uint16_t ether_type);
+
+/*!
+ * \brief Unregister Ethertype from the given flow index.
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param flow_idx  Flow Id from to which the traffic with the given DST mac address will no longer be directed
+ * \param ether_type Ethertype to be unregistered
+ */
+
+int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
+                                          uint64_t id,
+                                          uint32_t core_key,
+                                          uint32_t flow_idx,
+                                          uint16_t ether_type);
 
 /* @} */
 

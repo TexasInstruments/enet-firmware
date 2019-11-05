@@ -148,7 +148,7 @@ typedef struct
     /* Semaphore for signalling packet ready for processing*/
     Semaphore_Handle completionSem;
 
-    uint8_t hostMacAddr[ETH_MAC_ADDR_LEN];
+    uint8_t hostMacAddr[CPSW_MAC_ADDR_LEN];
 
     uint32_t num_pkts;
 
@@ -514,7 +514,7 @@ int32_t CpswApp_addSwIVlanClasifierEntries(CpswCfgServer_InterVlanConfig *pInter
     /* Copy the Dst MAC address to use it in routing */
     memcpy(&testDstMacAddr[0U],
            &pInterVlanCfg->dstMacAddr[0U],
-           ETH_MAC_ADDR_LEN);
+           CPSW_MAC_ADDR_LEN);
 
     if (status == CPSW_SOK)
     {
@@ -536,11 +536,11 @@ int32_t CpswApp_addSwIVlanClasifierEntries(CpswCfgServer_InterVlanConfig *pInter
 
         memcpy(&setPolicerEntryInArgs.policerMatch.srcMacAddr.addr.addr[0U],
                &pInterVlanCfg->srcMacAddr[0U],
-               ETH_MAC_ADDR_LEN);
+               CPSW_MAC_ADDR_LEN);
 
         memcpy(&setPolicerEntryInArgs.policerMatch.dstMacAddr.addr.addr[0U],
                &gCpswInterVlanAppObj.hostMacAddr[0U],
-               ETH_MAC_ADDR_LEN);
+               CPSW_MAC_ADDR_LEN);
 
         setPolicerEntryInArgs.policerMatch.srcMacAddr.addr.vlanId = 0U;
         setPolicerEntryInArgs.policerMatch.dstMacAddr.addr.vlanId = 0U;
@@ -776,8 +776,8 @@ static void CpswApp_pktRxTx(void)
                  * Modify VLAN ID
                  * Modify TTL
                  */
-                memcpy(frame->hdr.dstMac, testDstMacAddr, ETH_MAC_ADDR_LEN);
-                memcpy(frame->hdr.srcMac, gCpswInterVlanAppObj.hostMacAddr, ETH_MAC_ADDR_LEN);
+                memcpy(frame->hdr.dstMac, testDstMacAddr, CPSW_MAC_ADDR_LEN);
+                memcpy(frame->hdr.srcMac, gCpswInterVlanAppObj.hostMacAddr, CPSW_MAC_ADDR_LEN);
                 status = EthFrame_changeVlanId(frame,
                                                APP_INTERVLAN_EGRESS_VLANID);
                 if (status == CPSW_SOK)

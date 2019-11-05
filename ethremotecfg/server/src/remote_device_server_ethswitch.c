@@ -410,6 +410,51 @@ static int32_t rdevEthSwitchServerHandleUnRegisterMac(rdevEthSwitchServerInstanc
     return ret;
 }
 
+static int32_t rdevEthSwitchServerHandleRegisterEthertype(rdevEthSwitchServerInstanceState_t *inst,
+                                                    app_remote_device_channel_t *channel,
+                                                    uint32_t request_id,
+                                                    union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                    rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_register_ethertype_response *resp;
+    struct rpmsg_kdrv_ethswitch_register_ethertype_request *req = &reqMsg->register_ethertype_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst, sizeof(*resp), request_id, &msg);
+    if (ret == 0)
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status = cb->register_ethertype_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->ether_type, req->flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleUnRegisterEthertype(rdevEthSwitchServerInstanceState_t *inst,
+                                                      app_remote_device_channel_t *channel,
+                                                      uint32_t request_id,
+                                                      union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                      rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_unregister_ethertype_response *resp;
+    struct rpmsg_kdrv_ethswitch_unregister_ethertype_request *req = &reqMsg->unregister_ethertype_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst, sizeof(*resp), request_id, &msg);
+    if (ret == 0)
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status = cb->unregister_ethertype_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->ether_type, req->flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+
+    return ret;
+}
+
+
 static int32_t rdevEthSwitchServerHandleUnRegisterDefaultFlow(rdevEthSwitchServerInstanceState_t *inst,
                                                               app_remote_device_channel_t *channel,
                                                               uint32_t request_id,
@@ -742,6 +787,8 @@ rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER)] = &rdevEthSwitchServerHandleIPV4MacRegisterRequest,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER)] = &rdevEthSwitchServerHandleIPV6MacRegisterRequest,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER)] = &rdevEthSwitchServerHandleUnRegisterIPv4Mac,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE)] = &rdevEthSwitchServerHandleRegisterEthertype,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE)] = &rdevEthSwitchServerHandleUnRegisterEthertype,
 };
 
 static int32_t rdevEthSwitchServerRequest(uint32_t device_id,
