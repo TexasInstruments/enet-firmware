@@ -26,7 +26,8 @@ SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
 STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
 
-RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT := ${shell cd ${ETHFW_PATH};git rev-parse --short=8 HEAD}
+RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT := ${shell cd ${ETHFW_PATH};git rev-parse --short=8 HEAD 2>/dev/null}
+
 
 DEFS +=RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT="\"${RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT}\""
 include $(ETHFW_PATH)/apps/concerto_inc.mak
