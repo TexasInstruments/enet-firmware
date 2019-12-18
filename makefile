@@ -87,7 +87,12 @@ include makerules/makefile_ndk.mak
 .NOTPARALLEL:
 ethfw_all: pdk remotedevicefw all
 remoteswitchcfg_all: | pdk_custom_libs remotedevicefw ndk app_remoteswitchcfg_client app_remoteswitchcfg_server
-ethfw_all_clean: pdk_custom_libs_clean clean scrub
+
+ethfw_all_clean: pdk_custom_libs_clean remotedevicefw_clean clean scrub
+remoteswitchcfg_all_clean: | pdk_custom_libs_clean remotedevicefw_clean clean scrub
+
 remotedevicefw:
 	make -C ${REMOTE_DEVICE_PATH} -f Makefile lib_remote_device_client
 	make -C ${REMOTE_DEVICE_PATH} -f Makefile lib_remote_device
+remotedevicefw_clean:
+	make -C ${REMOTE_DEVICE_PATH} -f Makefile clean scrub

@@ -53,6 +53,5 @@ ndk:
 
 ndk_clean:
 	make -C $(NDK_PATH) -f ndk.mak clean $(sort ${NDK_ENV_SETTINGS})
-	
 
 .PHONY: ndk ndk_clean
