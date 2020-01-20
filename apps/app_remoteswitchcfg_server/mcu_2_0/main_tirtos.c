@@ -491,7 +491,8 @@ static void CpswApp_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
     Cpsw_initMacPortParams(macConfig);
 
     CpswAppBoardUtils_setPhyConfig(gCpswMainAppObj.cpswType,
-                                   macPort,
+                                   linkArgs->portNum,
+                                   macConfig,
                                    interface,
                                    phyConfig);
 
@@ -550,7 +551,7 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
 
     memcpy(&cpswMcmCfg.macPortList[0U],
            gCpswMainAppObj.macPorts,
-           gCpswMainAppObj.numMacPorts);
+           sizeof(gCpswMainAppObj.macPorts));
 
     status = CpswMcm_init(&cpswMcmCfg);
     CpswAppUtils_assert(status == CPSW_SOK);
@@ -855,8 +856,7 @@ int main(void)
 
     CpswAppBoardUtils_initEthFw();
 
-    CpswAppUtils_enableClocks(gCpswMainAppObj.cpswType,
-                              MAC_CONN_TYPE_RGMII_FORCE_1000_FULL);
+    CpswAppUtils_enableClocks(gCpswMainAppObj.cpswType);
 
     CpswAppUtils_print("=======================================================\n");
     CpswAppUtils_print("           CPSW Ethernet Firmware Demo             \n");
