@@ -322,6 +322,28 @@ void netCloseHook(void)
 #endif
 }
 
+void ServiceReportHook(uint32_t Item, uint32_t Status, uint32_t Report, void * h)
+{
+    if( (Item == CFGITEM_SERVICE_DHCPCLIENT) && ((Report & 0xFF) == POLLOUT))
+    {
+        CI_SERVICE_DHCPC dhcpc;
+        int status;
+
+        System_printf("DHCP client timed out. Retrying..... \n");
+
+        /* By default, DHCP client service timeouts after three minutes and the
+         * service gets terminated. So we have to restart DHCP client service after
+         * timeout happens by adding a DHCP client service entry*/
+        memset(&dhcpc, 0U, sizeof(dhcpc));
+        dhcpc.cisargs.Mode   = CIS_FLG_IFIDXVALID;
+        dhcpc.cisargs.IfIdx  = CIS_FLG_IFIDXVALID;
+        dhcpc.cisargs.pCbSrv = &ServiceReportHook;
+        status = CfgAddEntry(0, CFGTAG_SERVICE, CFGITEM_SERVICE_DHCPCLIENT, 0,
+                             sizeof(dhcpc), (unsigned char *)&dhcpc, 0);
+        localAssert(status >= 0);
+    }
+}
+
 void appLogPrintf(const char *format,
                   ...)
 {
@@ -1115,14 +1137,12 @@ static bool CpswRemoteApp_isAllPortLinked(Cpsw_Handle hCpsw)
     {
         for (i = 0; i < gRemoteAppObj.numMacPorts; i++)
         {
-            if (0 == i)
-            {
-                isPhyLinked = CpswRemoteApp_isPhyLinked(gRemoteAppObj.hCmdMbx, gRemoteAppObj.hResponseMbx, hCpsw, gRemoteAppObj.coreKey, gRemoteAppObj.macPorts[i]);
-            }
-            else
-            {
-                isPhyLinked = (isPhyLinked && CpswRemoteApp_isPhyLinked(gRemoteAppObj.hCmdMbx, gRemoteAppObj.hResponseMbx, hCpsw, gRemoteAppObj.coreKey, gRemoteAppObj.macPorts[i]));
-            }
+            isPhyLinked = (isPhyLinked ||
+                           CpswRemoteApp_isPhyLinked(gRemoteAppObj.hCmdMbx,
+                                                     gRemoteAppObj.hResponseMbx,
+                                                     hCpsw,
+                                                     gRemoteAppObj.coreKey,
+                                                     gRemoteAppObj.macPorts[i]));
         }
     }
 

@@ -573,14 +573,7 @@ static bool CpswApp_isAllPortLinked(Cpsw_Handle hCpsw)
 
     for (i = 0; i < gCpswMainAppObj.numMacPorts; i++)
     {
-        if (0 == i)
-        {
-            isPhyLinked = CpswAppUtils_isPortLinkUp(hCpsw, CpswAppSoc_getCoreId(), gCpswMainAppObj.macPorts[i]);
-        }
-        else
-        {
-            isPhyLinked = (isPhyLinked && CpswAppUtils_isPortLinkUp(hCpsw, CpswAppSoc_getCoreId(), gCpswMainAppObj.macPorts[i]));
-        }
+        isPhyLinked = (isPhyLinked || CpswAppUtils_isPortLinkUp(hCpsw, CpswAppSoc_getCoreId(), gCpswMainAppObj.macPorts[i]));
     }
 
     return isPhyLinked;
@@ -839,6 +832,28 @@ void netCloseHook(void)
     DaemonFree(hEcho);
     DaemonFree(hSock);
 #endif
+}
+
+void ServiceReportHook(uint32_t Item, uint32_t Status, uint32_t Report, void * h)
+{
+    if( (Item == CFGITEM_SERVICE_DHCPCLIENT) && ((Report & 0xFF) == POLLOUT))
+    {
+        CI_SERVICE_DHCPC dhcpc;
+        int status;
+
+        CpswAppUtils_print("DHCP client timed out. Retrying..... \n");
+
+        /* By default, DHCP client service timeouts after three minutes and the
+         * service gets terminated. So we have to restart DHCP client service after
+         * timeout happens by adding a DHCP client service entry*/
+        memset(&dhcpc, 0U, sizeof(dhcpc));
+        dhcpc.cisargs.Mode   = CIS_FLG_IFIDXVALID;
+        dhcpc.cisargs.IfIdx  = CIS_FLG_IFIDXVALID;
+        dhcpc.cisargs.pCbSrv = &ServiceReportHook;
+        status = CfgAddEntry(0, CFGTAG_SERVICE, CFGITEM_SERVICE_DHCPCLIENT, 0,
+                             sizeof(dhcpc), (unsigned char *)&dhcpc, 0);
+        CpswAppUtils_assert(status >= 0);
+    }
 }
 
 int main(void)
