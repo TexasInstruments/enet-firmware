@@ -177,12 +177,6 @@ typedef struct
     /* CPSW instance type */
     Cpsw_Type cpswType;
 
-    /* MAC ports */
-    Cpsw_MacPort *macPorts;
-
-    /* Number of MAC ports */
-    uint32_t numMacPorts;
-
     /* Multiclient manager handles */
     CpswMcm_CmdIf mcmCmdIf[CPSW_COUNT];
 
@@ -245,7 +239,7 @@ static HANDLE hSock = 0;
 
 char *VerStr = "NIMU CPSW Example";
 
-static Cpsw_MacPort gCpswMainAppMacPorts[] =
+static const Cpsw_MacPort gCpswMainAppMacPorts[] =
 {
 #if defined(SOC_AM65XX)
     CPSW_MAC_PORT_0,
@@ -262,8 +256,6 @@ static CpswMain_AppObj gCpswMainAppObj =
 #elif defined(SOC_J721E)
     .cpswType         = CPSW_9G,
 #endif
-    .macPorts         = gCpswMainAppMacPorts,
-    .numMacPorts      = CPSWAPPUTILS_ARRAY_SIZE(gCpswMainAppMacPorts),
     .useDefaultRxFlow = true,
 };
 
@@ -516,7 +508,7 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
     Cpsw_Config cpswCfg;
     int32_t status = CPSW_SOK;
 
-    CpswAppUtils_assert(gCpswMainAppObj.numMacPorts <= CPSW_MAC_PORT_NUM);
+    CpswAppUtils_assert(CPSW_UTILS_ARRAYSIZE(gCpswMainAppMacPorts) <= CPSW_MAC_PORT_NUM);
 
     /* Set configuration parameters */
     Cpsw_initParams(&cpswCfg);
@@ -547,12 +539,10 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
     cpswMcmCfg.pCpswCfg = &cpswCfg;
     cpswMcmCfg.cpswType = cpswType;
     cpswMcmCfg.setPortLinkCfg = CpswApp_initLinkArgs;
-    cpswMcmCfg.numMacPorts = gCpswMainAppObj.numMacPorts;
+    cpswMcmCfg.numMacPorts = CPSW_UTILS_ARRAYSIZE(gCpswMainAppMacPorts);
     cpswMcmCfg.periodicTaskPeriod = CPSW_PHY_FSM_TICK_PERIOD_MS; /* msecs */
 
-    memcpy(&cpswMcmCfg.macPortList[0U],
-           gCpswMainAppObj.macPorts,
-           sizeof(gCpswMainAppObj.macPorts));
+    memcpy(&cpswMcmCfg.macPortList[0U], &gCpswMainAppMacPorts[0U], sizeof(gCpswMainAppMacPorts));
 
     status = CpswMcm_init(&cpswMcmCfg);
     CpswAppUtils_assert(status == CPSW_SOK);
@@ -572,9 +562,11 @@ static bool CpswApp_isAllPortLinked(Cpsw_Handle hCpsw)
     uint32_t i;
     bool isPhyLinked = false;
 
-    for (i = 0; i < gCpswMainAppObj.numMacPorts; i++)
+    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(gCpswMainAppMacPorts); i++)
     {
-        isPhyLinked = (isPhyLinked || CpswAppUtils_isPortLinkUp(hCpsw, CpswAppSoc_getCoreId(), gCpswMainAppObj.macPorts[i]));
+        isPhyLinked = (isPhyLinked ||
+                       CpswAppUtils_isPortLinkUp(hCpsw, CpswAppSoc_getCoreId(),
+                       gCpswMainAppMacPorts[i]));
     }
 
     return isPhyLinked;
