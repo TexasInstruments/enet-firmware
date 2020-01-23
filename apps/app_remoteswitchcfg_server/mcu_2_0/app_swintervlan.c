@@ -709,7 +709,7 @@ static void CpswApp_pktRxTx(void)
      *  is reclaimed we then add it back to Rx Free Q (this implicitly acts SW flow control)
      */
     CpswUtils_initQ(&gCpswInterVlanAppObj.rxReadyQ);
-    Task_setPri(Task_self(), 14);
+    Task_setPri(Task_self(), 5);
 
     do
     {

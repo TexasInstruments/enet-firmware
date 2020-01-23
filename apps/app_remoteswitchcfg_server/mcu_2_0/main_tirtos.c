@@ -677,7 +677,14 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     outArgs->hUdmaDrv = handleInfo.hUdmaDrv;
     outArgs->printFxnCb = &CpswAppUtils_print;
     outArgs->isPortLinkedFxn = &CpswApp_isAllPortLinked;
-    outArgs->isRingMonUsed = false;
+    /* TODO: NIMU's polling timer is getting corrupted at times of sudden burst of
+     * traffic, because of which timer callback is never called.
+     * With polling timer not functional, packets are never serviced then after.
+     * As a workaround setting isRingMonUsed to true (irrespective of ring monitor
+     * is enabled or not) to ensure interrupts are used instead of polling.
+     * Timer corruption needs to be root-caused and fixed.
+     */
+    outArgs->isRingMonUsed = true;
     outArgs->clkPeriodMs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
 }
 
