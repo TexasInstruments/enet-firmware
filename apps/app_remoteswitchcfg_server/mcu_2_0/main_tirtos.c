@@ -779,11 +779,45 @@ void stackDeleteHook(void *hCfg)
     RemoveWebFiles();
 }
 
+int32_t CpswApp_setAleMulticastEntry(uint8_t macAddr[CPSW_MAC_ADDR_LEN],
+                                     uint32_t vlanId,
+                                     uint32_t numIgnBits,
+                                     uint32_t portMask)
+{
+    int32_t status;
+    Cpsw_Handle hCpsw = Cpsw_getHandle(gCpswMainAppObj.cpswType);
+    Cpsw_IoctlPrms prms;
+    CpswAle_AddEntryOutArgs setMcastOutArgs;
+    CpswAle_SetMcastEntryInArgs setMcastInArgs;
+
+    memcpy(&setMcastInArgs.addr.addr[0], macAddr,
+           sizeof(setMcastInArgs.addr.addr));
+    setMcastInArgs.addr.vlanId = vlanId;
+
+    setMcastInArgs.info.superFlag  = false;
+    setMcastInArgs.info.fwdState   = CPSW_ALE_FWDSTLVL_FORWARDING;
+    setMcastInArgs.info.portMask   = portMask;
+    setMcastInArgs.info.numIgnBits = numIgnBits;
+
+    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setMcastInArgs, &setMcastOutArgs);
+
+    status = Cpsw_ioctl(hCpsw, CpswAppSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_MULTICAST,
+                        &prms);
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("CpswApp_setAleMulticastEntry() failed CPSW_ALE_IOCTL_ADD_MULTICAST: %d\n",
+                           status);
+    }
+
+    return status;
+}
+
 void IpAddrHookFxn(uint32_t IPAddr,
                    uint32_t IfIdx,
                    uint32_t fAdd)
 {
     volatile uint32_t ipAddrHex = 0U;
+    uint8_t bCastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     char ipAddr[20];
     int32_t status;
 
@@ -807,6 +841,14 @@ void IpAddrHookFxn(uint32_t IPAddr,
     status = CpswCfgServer_init(gCpswMainAppObj.cpswType);
     CpswAppUtils_assert(CPSW_SOK == status);
 
+    /* Add ALE entry for broadcast mac address. Note this is needed as the broadcast
+     * is disabled via unknownRegMcastFloodMask and other flags in ALE init config.
+     * In EthFw we need broadcast to handle ARP entries for clients
+     */
+    CpswApp_setAleMulticastEntry(&bCastAddr[0U],
+                                 0U, /* vlanId */
+                                 0U, /* numIgnBits */
+                                 CPSW_ALE_ALL_PORTS_MASK);
     CpswApp_swInterVlanRouting(gCpswMainAppObj.cpswType);
 }
 
