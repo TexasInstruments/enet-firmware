@@ -1107,6 +1107,14 @@ int main(void)
     Task_Handle task;
     Task_Params taskParams;
 
+    /* Set ccsHaltFlag to 1 for halting core for CCS connection */
+    volatile uint32_t ccsHaltFlag = 0U;
+
+    while (ccsHaltFlag)
+    {
+        ;
+    }
+
     /* Initialize the task params */
     Task_Params_init(&taskParams);
     /* Set the task priority higher than the default priority (1) */

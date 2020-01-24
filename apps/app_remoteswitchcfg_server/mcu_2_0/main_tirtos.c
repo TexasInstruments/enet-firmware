@@ -529,7 +529,8 @@ static int32_t CpswApp_init(Cpsw_Type cpswType)
 
     CpswApp_setAleConfig(&cpswCfg.aleConfig);
 
-    cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
+    /* Use high priority RX channel to get higher priority on the UDMA */
+    cpswCfg.dmaConfig.rxChInitPrms.dmaPriority = TISCI_MSG_VALUE_RM_UDMAP_CH_SCHED_PRIOR_HIGH;
 
     CpswAppInterVlan_setOpenPrms(&cpswCfg);
 
