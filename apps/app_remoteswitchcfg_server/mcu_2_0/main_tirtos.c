@@ -1542,7 +1542,8 @@ static void app_dump_lli_table(LLI_INFO *llitable,
     CpswAppUtils_print("------    -------------      --------------- \n");
 
     entry = (LLI_INFO *)list_get_head((NDK_LIST_NODE **)&llitable);
-    entryIdx = 0;
+    /* start with 1 as when table is printed via telnet it is indexed with 1 */
+    entryIdx = 1U;
     while (entry != NULL)
     {
         app_print_lli_entry(entryIdx, entry);
