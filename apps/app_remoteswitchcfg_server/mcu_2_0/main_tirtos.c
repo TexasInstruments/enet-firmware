@@ -241,11 +241,19 @@ char *VerStr = "NIMU CPSW Example";
 
 static const Cpsw_MacPort gCpswMainAppMacPorts[] =
 {
-#if defined(SOC_AM65XX)
     CPSW_MAC_PORT_0,
-#elif defined(SOC_J721E)
-    CPSW_MAC_PORT_2,
-    CPSW_MAC_PORT_3,
+#if defined(SOC_J721E)
+    /* On J721E EVM to use all 8 ports simultaneously, we use below configuration
+       RGMII Ports - 1,3,4,8. QSGMII ports - 2,5,6,7 */
+    CPSW_MAC_PORT_2, /* RGMII */
+    CPSW_MAC_PORT_3, /* RGMII */
+    CPSW_MAC_PORT_7, /* RGMII */
+#if defined(ENABLE_QSGMII_PORTS) //kept it disabled for 6.2
+    CPSW_MAC_PORT_1, /* QSGMII main */
+    CPSW_MAC_PORT_4, /* QSGMII sub */
+    CPSW_MAC_PORT_5, /* QSGMII sub */
+    CPSW_MAC_PORT_6, /* QSGMII sub */
+#endif
 #endif
 };
 
