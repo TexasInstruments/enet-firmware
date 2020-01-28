@@ -137,7 +137,7 @@ The packEth configurations used in this demo are included in the Ethernet Firmwa
 
 ### Python3 and Pip3 {#demo_ethfw_combined_prereq_python}
 
-The GUI tool to send configurations is developed using Python3 and PyQt. Pip3
+The CPSW Remote Configuration GUI tool is developed using Python3 and PyQt. Pip3
 can be used to install additional Python modules required by the GUI tool.
 
 > **Note:** The GUI tool can be executed from either **PC 1** or **PC 2**, so
@@ -235,7 +235,8 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
 ### Steps {#demo_ethfw_combined_CCS_steps}
 
 -# Connect a micro USB cable to JTAG port of J721E_EVM. The XDS110 JTAG
-   connector is labeled `XDS110` (J3).
+   connector is labeled `XDS110` (J3).  Alternatively, XDS560v2 debugger can
+   be connected to the JTAG connected labeled `JTAG MIPI` (J16).
 
 -# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM. It's
    labeled `UART` (J44).
@@ -258,14 +259,21 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
 -# Connect the laptops/PCs as per demo connections diagram above.
    * **Important:** DHCP server (if required) must be connected to
      **MAC Port 1**.
-   * **Note:** Do not connect any device to **MAC Port 0** as it may not be
-     functional, please refer to the @ref ethfw_known_issues sections for
-     further details
+   * **Note:** Do not connect any device to **MAC Port 0** if using J7 EVM alpha
+     version as it may not be functional, please refer to the
+     @ref ethfw_known_issues sections for further details
 
--# For loading demo application binaries through CCS on J721E, please refer to
-   CCS setup section in SDK top level documentation.
-   * Main R5F core 0: app_remoteswitchcfg_server.xer5f
-   * Main R5F core 1: app_remoteswitchcfg_client.xer5f
+-# Load application binaries to Main R5F cores in the following sequence:
+   * Load Main R5F core 0: app_remoteswitchcfg_server.xer5f
+   * Load Main R5F core 1: app_remoteswitchcfg_client.xer5f
+   * Run Main R5F core 1
+   * Run Main R5F core 0
+   * **Note:** For loading demo application binaries through CCS on J721E,
+     please refer to CCS setup section in SDK top level documentation.
+
+-# Start Runtime Object View (ROV) in CCS for the Main R5F core 1 and navigate
+   to the SysMin component in order to see the MCU2_1 client application's logs.
+   This application doesn't use an UART port for logging.
 
 > **Note:** Linux running on A72 core is not compatible with CCS boot mode.
 
@@ -567,7 +575,7 @@ the external devices, **PC 1** or **PC 2**.
 
 ## IP Next Header Filtering {#ethfw_ip_nxthdr_filtering}
 
-CPSW9G supports whitelisting of upto four different IP protocols for a VLAN
+CPSW9G supports whitelisting of up to four different IP protocols for a VLAN
 group.  This demo whitelists TCP and UDP protocols and hence blocking packets
 of other protocols in the VLAN network.
 
@@ -632,38 +640,63 @@ of other protocols in the VLAN network.
 
 Below is a sample log from the execution of this demo application.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-### UART Console Logs
 
+### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Enabling clocks for CPSW_9G!
 =======================================================
+           CPSW Ethernet Firmware Demo
+=======================================================
+ETHFW Version: 0. 1. 1
+ETHFW Build Date (YYYY/MMM/DD):2020/Feb/ 6
+ETHFW Commit SHA:ETHFW PermissionFlag:0x1ffffff, UART Connected:true,UART Id:2IPC_echo_test (core : mcu2_0) .....
 CPSW_9G Test on MAIN NAVSS
-           CPSW L2 Switching APP
-CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
-=======================================================
-CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
-IPC_echo_test (core : mcu2_0) .....
-Remote device (core : mcu2_1) .....
-PHY 0 is alive
 Remote demo device (core : mcu2_0) .....
+CpswPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:1
+CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+CpswPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+PHY 0 is alive
 PHY 3 is alive
 PHY 12 is alive
 PHY 15 is alive
 PHY 16 is alive
 PHY 17 is alive
 PHY 18 is alive
+PHY 19 is alive
 PHY 23 is alive
-Host MAC address: 70:ff:76:1d:87:8c
+Host MAC address: Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:5000d,InArgsLen:0, OutArgsLen:4
+70:ff:76:1d:92:c2
 [NIMU_NDK] CPSW has been started successfully
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:20000,InArgsLen:24, OutArgsLen:4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:178, FlowIdxOffset:6
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:10, Policer Entry:0Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
+Cpsw_handleLinkUp: port 3: Link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: port 2: Link up: 1-Gbps Full-Duplex
 
-CPSW NIMU application, IP address I/F 1: 192.168.1.203
+CPSW NIMU application, IP address I/F 1: 192.168.1.150
 
-
- Rx Flow for Software Inter-VLAN Routing is up
-Cpsw_handleLinkUp: port 3: Link up: 1-Gpbs Full-Duplex
-Cpsw_handleLinkUp: port 2: Link up: 1-Gpbs Full-Duplex
-Function:app_ethrdev_srv_cb_attach_ext_handler,HostId:0,CpswType:1
-Function:app_ethrdev_srv_cb_register_mac_handler,HostId:0,Handle:a2b336c0,CoreKey:38acb7e60
-Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:10, Policer Entry:0Function:app5
+Rx Flow for Software Inter-VLAN Routing is up
+Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.1.151
 
 ================LLI Table entries===========
 
@@ -671,9 +704,25 @@ Number of Static ARP Entries: 1
 
 SNo.      IP Address         MAC Address
 ------    -------------      ---------------
-0         192.168.1.205      70:FF:76:1D:87:8B
+1         192.168.1.151      70:FF:76:1D:92:C3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+### SysMin Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
+Registered a device name = mcu_2_1_ethswitch-device-0, id = 0, type = 3
+ETHFW Version: 0. 1. 1
+ETHFW Build Date (YYYY/MMM/DD):2020/Feb/ 6
+ETHFW Commit SHA:0@-?
+ETHFW PermissionFlag:0x1ffffff, UART Connected:true,UART Id:2Function:CpswProxy_cmdHandler,Handle:@a2cef4f4,CoreKey:38acb976, RxMtu:1518, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
+[NIMU_NDK] Registration of the CPSW Successful
+CPSW NIMU application, IP address I/F 1: 192.168.1.151
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 [Back To Top](@ref demo_ethfw_combined_top)
 

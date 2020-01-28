@@ -15,9 +15,8 @@ Sections below lists various validation reports that are included in the release
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Unit Test Reports {#val_unit_rep}
 
-[EthFw Requirement to Test Traceability Report](../test_report/ethfw_traceability.xls)
-
-[EthFw Test Report](../test_report/ethfw_testreport.xlsx)
+Please refer to the Unit Test Reports provided in the Processor SDK release
+containing this EthFw release.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Performance Measurements {#val_perform_measurements}

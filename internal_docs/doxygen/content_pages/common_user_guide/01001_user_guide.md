@@ -1,40 +1,52 @@
 # User Guide {#ethfw_c_ug_top}
 
-This user guide describes EthFw feature list along with steps to build and run
-EthFw demo applications.
+This user guide presents the list of features supported by the Ethernet Firmware
+(EthFw) and describes the steps required to build and run the EthFw demo
+applications.
 
-For additional information about EthFw refer to [EthFw Introduction](@ref ethfw_c_ug_switch)
+For additional information about EthFw refer to [EthFw Introduction](@ref ethfw_c_ug_switch).
 
 [TOC]
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Demos {#ethfw_c_ug_ethfw_demos}
 
+The EthFw demos showcase the integration and usage of the Ethernet Firmware
+which provides a high-level interface for applications to configure and use the
+integrated Ethernet switch peripheral (CPSW9G).
 
-EthFw Demos showcases usage and integration of EthFw to use & configure CPSW9G IP
-in the Jacinto 7 devices. These peripheral/board level sample/demo examples
-demonstrates the capabilities of the CPSW9G IP features & EthFw stack.
+The following sample applications are key to demonstrate the capabilities of the
+CPSW9G hardware as welll as the EthFw stack.
 
-Listed below are some of the key applications.
 Demo                               | Comments
 -----------------------------------|--------------
-L2 Switching | Configures Switch to enable switching between its external ports
-L2/L3 address based classification | Illustrates traffic steering to A72(linux) and R5F(RTOS) based on L2 header. Illustrate with iperf and web server traffic from PC1/PC2
-Inter-VLAN Routing (SW)| Showcases Inter-VLAN routing using  lookup and forward operations being done in SW(R5). Showcase low-level lookup and forwarding on top of CPSW LLD
-Inter-VLAN Routing (HW)| Illustrates hardware offload support for Inter-VLAN routing. Illustrate Line rate routing with no additional impact on R5 CPU load
-
+L2 Switching | Configures CPSW9G switch to enable switching between its external ports
+L2/L3 address based classification | Illustrates traffic steering to A72 (Linux) and R5F (RTOS) based on Layer-2 Ethernet header. iperf tool and web servers are used to demonstrate traffic steering to/from PCs connected to the switch
+Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of CPSW LLD
+Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load
 
 
 ## EthFw Switching & TCP/IP Apps Demo {#ethfw_switching_demo}
-This demo showcases switching capabilities of the J721E integrated Ethernet Switch
-(CPSW9G) for features like VLAN, Multicast etc. This demo also showcases TI NDK (TCP/IP) integration into EthFw. In this demo we showcase usage of HTTP server.
 
-## Inter-VLAN Routing {#ethfw_intervlan_demo}
-This demo illustrates Line-rate Inter-VLAN routing in hardware without any additional load on EthFw core.
-This demo showcases InterVLAN routing capability of CPSW IP along with software fall-back support.
-CPSW ALE classifier feature is used per flow to characterize the route and configure the egress operation.
+This demo showcases switching capabilities of the J721E integrated Ethernet
+Switch (CPSW9G) for features like VLAN, Multicast, etc.  It also demonstrates
+TI NDK (TCP/IP stack) integration into the EthFw, incorporating a sample
+HTTP server.
 
-Available egress operations
+
+## Inter-VLAN Routing Demo {#ethfw_intervlan_demo}
+
+This demo illustrates hardware and software based inter-VLAN routing.  The
+hardware inter-VLAN routing makes use of the CPSW9G hardware features which
+enable line-rate inter-VLAN routing without any additional CPU load on
+the EthFw core.  The software inter-VLAN routing is implemented as a
+fall-back alternative.
+
+The hardware inter-VLAN route demo exercises the CPSW ALE classifier feature,
+which is used per flow to characterize the route and configure the egress
+operation.
+
+Available egress operations:
 - Replace Destination (MAC) Address
 - Replace Source (MAC) Address
 - Replace VLAN ID
@@ -53,11 +65,11 @@ application documentation.
 
 Feature         | Comments
 ----------------|--------------
-L2 Switching    | Support for configuration of switch to enable L2 Switching between external ports with VLAN, multi-cast
-Inter-VLAN Routing  | Inter-VLAN routing configuration in HW with software fall-back support
-NDK Integration | Integration of TCP/IP stack enabling TCP, UDP, HTTP apps
+L2 switching    | Support for configuration of the Ethernet Switch to enable L2 switching between external ports with VLAN, multi-cast
+Inter-VLAN routing | Inter-VLAN routing configuration in hardware with software fall-back support
+NDK integration | Integration of TCP/IP stack enabling TCP, UDP, HTTP apps
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
-Resource management library | Resource management library for CPSW resource sharing across cores.
+Resource management library | Resource management library for CPSW resource sharing across cores
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -75,6 +87,7 @@ vs running demo applications only).
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Hardware Dependencies {#ethfw_depend_hw}
 
@@ -82,8 +95,11 @@ EthFw is supported on the boards/EVM listed below
 - @ref ethfw_depend_evm_j721e
 - @ref ethfw_depend_evm_gesi_j721e
 
+
 ### J721E EVM {#ethfw_depend_evm_j721e}
+
 ![](J7EVM_CPSW_TopView.png "J721E EVM connections")
+
 
 ### J721E EVM GESI Expansion Board {#ethfw_depend_evm_gesi_j721e}
 
@@ -100,12 +116,15 @@ started of J721E EVM.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Software Dependencies {#ethfw_depend_sw}
 
 Below listed dependencies are part of Processor SDK package.
 
+
 ### PDK {#ethfw_depend_pdk}
+
 Platform Development Kit (PDK) is a component within the Processor SDK RTOS which provides
 Chip Support Library (CSL), Low-Level Drivers (LLD), Boot, Diagnostics, etc.
 
@@ -116,13 +135,16 @@ of PDK/SDK.
 
 
 #### CSL {#ethfw_depend_pdk_csl}
+
 Chip Support Library (CSL) implements peripheral register level and functional level
 APIs. CSL also provides peripheral base addresses, register offset, C macros to program
 peripheral registers.
 
 EthFw uses CSL to determine peripheral addresses and program peripheral registers.
 
+
 #### UDMA {#ethfw_depend_pdk_udma}
+
 Unified DMA (UDMA) is an integral part of the Jacinto 7 devices and is in charge of
 moving data between peripherals and memory.
 
@@ -136,8 +158,9 @@ commands/configuration from application and uses CPSW LLD to configure CPSW9G.
 
 
 ### NDK {#ethfw_depend_ndk}
-The Network Developer's Kit (NDK) is a platform for development of network enabled
-applications on TI embedded processors.
+
+The Network Developer's Kit (NDK) is a platform for development of network
+enabled applications on TI embedded processors.
 
 NDK provides the TCP/IP stack which used in EthFw for running local TCP/IP applications
 and for running switch resident protocols like telnet and EAPoL, as shown in the
@@ -151,12 +174,13 @@ section.
 ## IDE (CCS) {#ethfw_instal_ccs}
 
 -# Install Code Composer Studio and setup a <b>Target Configuration</b> for
-   use with J721E EVM.(refer to @ref ccs_setup_top)
+   use with J721E EVM.
 
 -# Refer to the instructions in @ref ccs_setup_top section for Code Code Composer
-   and emulation packs installation as well as Target Configuration File creation.
+   and emulation packs installation as well as Target Configuration file creation.
 
 [Back To Top](@ref ethfw_c_ug_top)
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Installation Steps {#ethfw_instal_steps}
@@ -181,15 +205,17 @@ EthFw software is an add-on package, and it's provided as an archive file (tarba
 # Directory Structure {#ethfw_dir}
 
 Post installation of EthFw, the following directory would be created. Please
-note that this is an indicative snap-shot. Modules could be added/modified.
+note that this is an indicative snap-shot, modules could be added/modified.
 
 The top-level EthFw makefile as well as the auxiliary makefiles for build flags
 (**ethfw_build_flags.mak**) and build paths (**ethfw_tools_path.mak**)
 can be found at the EthFw top-level directory.
 
+
 ## Post Install Directory Structure {#ethfw_post_install_j721e}
 
 ![](c_ug_dir_top.png "Top Level Directory Structure")
+
 
 ## Utilities Directory Structure {#ethfw_dir_utils}
 
@@ -198,20 +224,20 @@ applications.
 
 ![](c_ug_dir_utils.png "Utilities Directory Structure")
 
+
 ## Demo Aplication Sources Directory Structure {#ethfw_dir_demo}
 
 Source code of the EthFw demo applications is in the **apps** directory.
-For instance, below image shows the directory structure of the L2 Switching
-application.
+For instance, below image shows the directory structure of the server application
+which implements L2 switch, inter-VLAN routing, etc.
 
-![](c_ug_dir_l2_switching_demo.png "Layer-2 Switching Application Directory Structure")
+![](c_ug_dir_l2_switching_demo.png "EthFw Server-side Application Directory Structure")
 
-Pre-compiled binaries are also provided as part of the EthFw release, which can be
-found in the **out** directory. For instance, below image shows the directory
-structure of the J721E R5F binary.
+Pre-compiled binaries are also provided as part of the EthFw release, which can
+be found in the **out** directory. For instance, below image shows the EthFw
+output directory structure with precompiled server and client binaries.
 
 ![](c_ug_dir_j721_r5f_demo.png "Demo Binaries Directory Structure")
-
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -227,8 +253,8 @@ Refer to @ref demo_top section for a full list of EthFw demo applications.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Build {#ethfw_build_top}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-EthFw employs Concerto make based build mechanism. When building on Windows based machine,
-tool such as [Cygwin](https://www.cygwin.com/) could be used.
+EthFw employs Concerto makefile-based build system. When building on a Windows based
+machine, tools such as [Cygwin](https://www.cygwin.com/) could be used.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -238,7 +264,7 @@ tool such as [Cygwin](https://www.cygwin.com/) could be used.
 
 The tool paths required by the build system are defined in the `ethfw_tools_path.mak`
 makefile. The default paths in `ethfw_tools_path.mak` are defined based on the assumption
-that the EthFw package has been installed inside the main Processor SDK directory.
+that the EthFw package has been installed inside the Processor SDK main directory.
 
 Typically, the Processor SDK installation path is `~/ti` in Linux-based systems.
 So, a typical EthFw installation would be at `~/ti/ethfw_xx_yy_zz_bb`. In this case,
@@ -265,6 +291,7 @@ list of valid targets:
 The make commands listed below require the environment setup according to
 @ref ethfw_build_setup_env section.
 
+
 ### Build All {#ethfw_build_all}
 
 Build EthFw components as well as its dependencies, including PDK, NDK, etc.
@@ -278,6 +305,15 @@ shown below:
 
 On successful compilation, the output folder would be created at
 `<ethfw_xx.yy.xx.bb>/out`.
+
+**Note:** If building the Ethernet Firmware for integration in Linux, please
+uncomment below in CPSW LLD's makefile located at
+`<PDK_PATH>/packages/ti/drv/cpsw/cpsw_component.mk`:
+
+    #CPSW_CFLAGS += -DSDK_6_2_CORE_SDK_IMAGE
+
+This change is required to avoid board-level settings conflicts with Linux
+bootloader.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -294,6 +330,7 @@ The make commands listed below require the environment setup according to
 Clean EthFw components as well as its dependencies:
 
     make ethfw_all_clean
+
 
 ### Remove build output {#ethfw_build_clean_binaries}
 
@@ -341,8 +378,8 @@ and/or reconfigured via linker command files.
 
 Refer to @ref demo_top section for a full list of EthFw demo applications.
 
-For detailed steps to load and run the L2 Switching application, please refer
-to its @ref demo_ethfw_combined_setup_cfg section.
+For detailed steps to load and run the demo application, please refer to the
+@ref demo_ethfw_combined_setup_cfg section.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -355,14 +392,18 @@ Delete the complete `ethfw_xx_yy_zz_bb` folder.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Known issues {#ethfw_known_issues}
 
 JIRA ID       | Issue Summary | Workaround
 --------------|---------------|------------
-PROC_BRDS-658 |MAC PORT 0 packet drop seen of Rx/TX - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J7 EVM. This port is labelled as PRG1_RGMII1_B (image below) | Don’t connect this port
+PROC_BRDS-658 | MAC PORT 0 packet drop seen of Rx/TX - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J721E EVM alpha version. This port is labeled as PRG1_RGMII1_B in the GESI board connections figure in @ref ethfw_depend_evm_gesi_j721e section.<br>This issue is not applicable to J721E EVM beta version | Reduce MAC port 0 speed to 100Mbps in J721E EVM alpha version
+PROC_BRDS-671 | External 50MHz RMII clock from PHY is not connected by default to SoC's RMII_REF_CLOCK pin in GESI boards of J721E EVM alpha version<br>This issue is not applicable to J721E EVM beta version | To get RMII_50MHZ_CLK, resistor R225 needs to be populated. Move R226 to R225 on GESI board to get this clock |
+PROC_BRDS-659 | QSGMII expansion board is causing instabilities in the MDIO bus in J721E EVM alpha version. After a few mins, MDIO register access fail.<br>This issue is not applicable to J721E EVM beta version | Disable QSGMII PHY on J721E EVM alpha version |
 
 [Back To Top](@ref ethfw_known_issues)
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Compiler Flags used {#ethfw_cflag}
@@ -439,6 +480,7 @@ Revision | Date          | Author                 | Description
 0.3      | 12 Jun 2019   | Prasad J               | Updates for EVM demo (.85 release)
 0.4      | 17 Jul 2019   | Misael Lopez           | Updates for v.0.09.00
 0.5      | 15 Oct 2019   | Misael Lopez, Santhana Bharati | Updates for v.1.00.00
+0.6      | 28 Jan 2020   | Misael Lopez           | Updates for SDK 6.02.00
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)
