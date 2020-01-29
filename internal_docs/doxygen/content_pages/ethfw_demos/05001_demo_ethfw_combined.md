@@ -460,14 +460,10 @@ the external devices, **PC 1** or **PC 2**.
    and select the `sw_intervlan_routing_config.txt` file present in the
    `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
-
--# Always parse the configuration before sending to the EVM using the **Parse**
-   button.
    * **Note:** The list of allowed commands and the configurations are present in
      the `schemas.py` file in the `cpsw_configclient/inc` directory.
 
--# If the parsing succeeded, press the **Send Config** button to send the
-   configuration to the switch.
+-# Press **Send Config** button to send the configuration to the switch.
 
 -# Now that the software-based interVLAN routing is enabled, the functionality
    can be verified by sending packets with VLAN ID using packETH tool.
@@ -522,11 +518,7 @@ the external devices, **PC 1** or **PC 2**.
    `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
 
--# Always parse the configuration before sending to the EVM using the **Parse**
-   button.
-
--# If the parsing succeeded, press the **Send Config** button to send the
-   configuration to the switch.
+-# Press **Send Config** button to send the configuration to the switch.
 
 -# Now that the hardware-based interVLAN routing is enabled, the functionality
    can be verified by sending packets with VLAN ID using packETH tool.
@@ -589,11 +581,7 @@ of other protocols in the VLAN network.
    `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
 
--# Always parse the configuration before sending to the EVM using the **Parse**
-   button.
-
--# If the parsing succeeded, press the **Send Config** button to send the
-   configuration to the switch.
+-# Press **Send Config** button to send the configuration to the switch.
 
 -# Load the `ipnxthdr_tcp` configuration file from
    `<ETHFW_PATH>/docs/packeth_configurations/` directory to the packEth tool and
@@ -626,11 +614,7 @@ of other protocols in the VLAN network.
    `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
 
--# Always parse the configuration before sending to the EVM using the **Parse**
-   button.
-
--# If the parsing succeeded, press the **Send Config** button to send the
-   configuration to the switch.
+-# Press **Send Config** button to send the configuration to the switch.
 
 -# Load the `ratelimiting` configuration file from
    `<ETHFW_PATH>/docs/packeth_configurations/` directory to the packETH tool
