@@ -29,12 +29,12 @@ The directory structure of the Ethernet Firmware is shown below::
     ├── docs                                # User documentation
     │   ├── api_guide                       # Ethernet Firmware API guide
     │   │   └── html_
-    │   ├── api_guide                       # Ethernet Firmware design document
+    │   ├── design_doc                      # Ethernet Firmware design document
     │   │   └── html_
     │   ├── misrac                          # MISRA-C reports
     │   ├── packeth_configurations          # packETH tool configurations (used for demo)
     │   ├── test_report                     # Test and traceability reports
-    │   └── user_guide                      # User guide
+    │   └── user_guide                      # Ethernet Firmware User's guide
     ├── ethremotecfg                        # EthSwitch Remote Device
     │   ├── client                          # Client side of the EthSwitch remote device
     │   │   ├── include
@@ -62,7 +62,7 @@ The directory structure of the Ethernet Firmware is shown below::
 The *Ethernet Firmware* running on the *master core* interacts with the CPSW LLD
 running natively on the same core.  The Ethernet Firmware has access to all
 functionality provided by CPSW LLD public APIs for control path configuration
-and data Rx and Tx transfers.  The Ethernet Firmware also configures and makes
+and Rx and Tx data transfers.  The Ethernet Firmware also configures and makes
 use of the TCP/IP stack enabled by CPSW LLD by the means of NDK/NIMU.
 
 The *Ethernet Firmware* on the *master core* interacts with *remote cores*

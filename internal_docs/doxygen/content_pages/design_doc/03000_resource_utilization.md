@@ -33,12 +33,15 @@
     <td>Abstracted by RPMSG
     <td>IPC with remote cores
 <tr>
-    <td rowspan="2">Control Module
+    <td rowspan="3">Control Module
     <td>ENET_CTRL
     <td>MAC interface type, RGMII delay
 <tr>
     <td>CLKOUT_CTRL
     <td>RMII clock out
+<tr>
+    <td>CPSW_CLKSEL
+    <td>CPTS reference clock selection
 </table>
 
 [Back To Top](@ref ethfw_resource_top)
@@ -84,6 +87,7 @@
 | -------------- | ----------------------------------------------------------------------------------------- |
 | MDIO_PEND      | MDIO pending interrupt (combined MDIO_LINKINT and MDIO_USERINT events)                    |
 | STAT_PEND      | Statistics pending interrupt (half roll-over)                                             |
+| EVNT_PEND      | Event pending interrupt (event is pushed into CPTS Event FIFO)                            |
 | UDMA Tx Completion | UDMA Transmit completion (abstracted by UDMA LLD, event notifications given in EthFw) |
 | UDMA Rx Completion | UDMA Receive completion (abstracted by UDMA LLD, event notifications given in EthFw)  |
 
@@ -100,5 +104,6 @@
 | RGMII_MHZ_50_CLK  | TISCI_DEV_CPSW0_RGMII_MHZ_50_CLK  | 50-MHz RGMII reference clock                                               |
 | RGMII_MHZ_5_CLK   | TISCI_DEV_CPSW0_RGMII_MHZ_5_CLK   | 5-MHz RGMII reference clock                                                |
 | RMII_MHZ_50_CLK   | -                                 | 50-MHz RMII reference clock (internal (CLKOUT) or external (RMII_REF_CLK)) |
+| MAIN_SYSCLK0      | -                                 | 500-MHz CPTS reference clock                                               |
 
 [Back To Top](@ref ethfw_resource_top)

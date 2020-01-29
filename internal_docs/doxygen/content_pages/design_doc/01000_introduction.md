@@ -62,13 +62,15 @@ peripherals like UDMA, UART, etc.
 
 - Basic L2 switching
 - VLAN
-- RMII and RGMII interface types
+- RMII, RGMII, SGMII and QSGMII interface types
 - 100Mbps and 1Gbps
 - Clause-22 PHY
+- Clause-45 register read/write APIs
 - Host port (CPPI) packet Tx/Rx
 - IPC-based switch configuration from remote client cores
 - Linux integration on Cortex-A72 remote core (PSDKLA)
 - RTOS integration on Cortex-R5F remote core (PSDKRA)
+- AUTOSAR integration on MCU Cortex-R5F remote core (PSDKRA)
 - TCP/IP stack
 - Multicast switching
 - InterVLAN routing
@@ -76,6 +78,7 @@ peripherals like UDMA, UART, etc.
 - Classifier and policer
 - QoS and packet priority regeneration
 - Traffic shaping
+- Time synchronization (CPTS APIs)
 
 [Back To Top](@ref ethfw_design_top)
 
@@ -85,17 +88,14 @@ peripherals like UDMA, UART, etc.
 
 The following features are not supported in the current release:
 
-- Time synchronization
+- Time synchronization (gPTP)
 - Time-aware scheduling
-- SGMII, QSGMII interface types
-- Clause-45 PHY
 - QNX integration
-- AUTOSAR integration
 - Port mirroring
 - Port trunking
 - Interspersing express traffic
-- Switch compliance
 - Time sensitive networking
+- Switch compliance
 
 [Back To Top](@ref ethfw_design_top)
 
@@ -103,6 +103,7 @@ The following features are not supported in the current release:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Document Revision History {#ethfw_design_rev_hist}
 
-Revision | Date          | Author         | Description         | Status
----------|---------------|----------------|---------------------|-------
-0.1      | 22 Oct 2019   | Misael Lopez   | First version       | Approved
+Revision | Date          | Author         | Description              | Status
+---------|---------------|----------------|--------------------------|-------
+0.1      | 22 Oct 2019   | Misael Lopez   | First version            | Approved
+0.2      | 28 Jan 2020   | Misael Lopez   | Updates for SDK 06.02.00 | Approved
