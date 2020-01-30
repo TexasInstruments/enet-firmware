@@ -68,6 +68,7 @@ LDIRS += $(REMOTE_DEVICE_PATH)/out/${REMOTE_DEVICE_SOC_FOLDER}/${TARGET_CPU}/${T
 
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_utils_console_io
+STATIC_LIBS += app_utils_profile
 
 ifeq (${TARGET_CPU},R5F)
      ADDITIONAL_STATIC_LIBS += ti.board.ae$(call lowercase,$(TARGET_CPU))

@@ -125,7 +125,7 @@
 
 #include "app_intervlan.h"
 #include "app_swintervlan.h"
-#include "app_profile.h"
+#include <utils/profile/include/app_profile.h>
 
 #define IPC_RPMESSAGE_OBJ_SIZE  (256U)
 #define VQ_BUF_SIZE             (2048U)

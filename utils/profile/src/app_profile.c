@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2018
+ *  Copyright (c) Texas Instruments Incorporated 2020
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -71,7 +71,7 @@
 #include <ti/csl/arch/r5/csl_arm_r5_pmu.h>
 
 /* This module's Header files */
-#include "app_profile.h"
+#include <utils/profile/include/app_profile.h>
 
 
 #define PMU_EVENT_COUNTER_1 (CSL_ARM_R5_PMU_EVENT_TYPE_CYCLE_CNT)
@@ -131,7 +131,7 @@ typedef struct loadEntryTbl {
   appProfileConfig     profileConfig;
   Event_Struct         profileControlEvt;
   Event_Handle         hProfileControlEvt;
-  Task_Struct          taskProfileObj;
+  Task_Handle          taskProfile;
   uint32_t             loadEntryIdx;
   loadEntryRecord      record[THRLOAD_LOAD_TABLE_LENGTH];
 } loadEntryTbl;
@@ -159,7 +159,7 @@ fxnProfile FXNPROFILE[APP_MAX_PROFILE_FXNS];
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-static void app_loadInit()
+static void app_loadInit(void)
 {
 
     apploadEntryTbl.loadEntryIdx = 0;
@@ -341,7 +341,7 @@ static void loadPrint (void)
   return;
 }
 
-void app_profileStart()
+void app_profileStart(void)
 {
     if (apploadEntryTbl.hProfileControlEvt)
     {
@@ -470,10 +470,11 @@ void app_profile(UArg a0, UArg a1)
     }
 }
 
-void app_profileAccumulateFxnLoad(struct appProfileFxnLoad_s *avgFxnLoad, fxnProfile *fxnProfile)
+void app_profileAccumulateFxnLoad(struct appProfileFxnLoad_s *avgFxnLoad, fxnProfile *fxnProfile, uint32_t *numActiveFxns)
 {
     uint32_t i, j;
 
+    *numActiveFxns = 0;
     for (i = 0; i < APP_MAX_PROFILE_FXNS; i++)
     {
         for (j = 0; j < UTILS_ARRAYSIZE(avgFxnLoad->deltaTime); j++)
@@ -481,6 +482,7 @@ void app_profileAccumulateFxnLoad(struct appProfileFxnLoad_s *avgFxnLoad, fxnPro
             if (fxnProfile[i].count)
             {
                 avgFxnLoad[i].deltaTime[j] += fxnProfile[i].deltaTotalTime[j] / fxnProfile[i].count;
+                *numActiveFxns = *numActiveFxns + 1;
             }
         }
     }
@@ -500,7 +502,7 @@ void app_profileGetAvgFxnLoad(struct appProfileFxnLoad_s *avgFxnLoad, uint32_t n
     }
 }
 
-void app_profileRegisterTaskLoad(struct appProfileTskLoad_s * avgTaskLoad, loadEntry *curTaskRecord, uint32_t  *activeTaskCount)
+void app_profileRegisterTaskLoad(struct appProfileTskLoad_s * avgTaskLoad, loadEntry *curTaskRecord, uint32_t  *activeTaskCount, uint32_t maxTaskCount)
 {
     uint32_t i;
 
@@ -515,9 +517,12 @@ void app_profileRegisterTaskLoad(struct appProfileTskLoad_s * avgTaskLoad, loadE
     }
     if (i == *activeTaskCount)
     {
-        avgTaskLoad[*activeTaskCount].tskName = curTaskRecord->tskName;
-        avgTaskLoad[*activeTaskCount].load    = Load_calculateLoad(&curTaskRecord->load_stat);
-        *activeTaskCount = *activeTaskCount + 1;
+        if ((Load_calculateLoad(&curTaskRecord->load_stat) > 0) && (*activeTaskCount < maxTaskCount))
+        {
+            avgTaskLoad[*activeTaskCount].tskName = curTaskRecord->tskName;
+            avgTaskLoad[*activeTaskCount].load    = Load_calculateLoad(&curTaskRecord->load_stat);
+            *activeTaskCount = *activeTaskCount + 1;
+        }
     }
 }
 
@@ -528,7 +533,7 @@ void app_profileGetAvgTaskLoad(appProfileAvgLoadInfo * avgProfileInfo, struct lo
     
     for (i = 0; i < curRecord->activeTaskCount; i++)
     {
-        app_profileRegisterTaskLoad(avgProfileInfo->tskLoad, &curRecord->tsk[i], &avgProfileInfo->activeTaskCount);
+        app_profileRegisterTaskLoad(avgProfileInfo->tskLoad, &curRecord->tsk[i], &avgProfileInfo->activeTaskCount, UTILS_ARRAYSIZE(avgProfileInfo->tskLoad));
     }
 }
 
@@ -540,6 +545,10 @@ void app_profileGetAvgLoad(uint32_t avgTimePeriod, appProfileAvgLoadInfo *avgPro
     int32_t curRecordIndex;
 
     iterCount = 0;
+    if (numRecords >= UTILS_ARRAYSIZE(apploadEntryTbl.record))
+    {
+        numRecords = UTILS_ARRAYSIZE(apploadEntryTbl.record);
+    }
     curRecordIndex = apploadEntryTbl.loadEntryIdx;
     curRecordIndex--;
     memset(avgProfileInfo, 0, sizeof(*avgProfileInfo));
@@ -553,18 +562,49 @@ void app_profileGetAvgLoad(uint32_t avgTimePeriod, appProfileAvgLoadInfo *avgPro
         avgProfileInfo->cpuLoad += curRecord->cpuLoad;
         avgProfileInfo->isr += Load_calculateLoad(&curRecord->isr);
         avgProfileInfo->swi += Load_calculateLoad(&curRecord->swi);
-        app_profileAccumulateFxnLoad(avgProfileInfo->fxn, curRecord->fxn);
+        avgProfileInfo->packetCount += curRecord->packetCount;
+        if (avgProfileInfo->totalTaskCount < curRecord->totalTaskCount)
+        {
+            avgProfileInfo->totalTaskCount = curRecord->totalTaskCount;
+        }
         app_profileGetAvgTaskLoad(avgProfileInfo, curRecord);
         iterCount++;
         curRecordIndex--;
     }
-    app_profileGetAvgFxnLoad(avgProfileInfo->fxn, numRecords);
     avgProfileInfo->cpuLoad  /= numRecords;
     avgProfileInfo->isr /= numRecords;
     avgProfileInfo->swi /= numRecords;
-    
+    avgProfileInfo->packetCount /= numRecords;
 }
 
+void app_profileGetFxnLoad(uint32_t avgTimePeriod, appProfileFxnLoadInfo *fxnLoadInfo)
+{
+    uint32_t numRecords = avgTimePeriod / APP_PROFILE_WINDOW_MS;
+    uint32_t iterCount;
+    struct loadEntryRecord_s *curRecord;
+    int32_t curRecordIndex;
+
+    iterCount = 0;
+    if (numRecords >= UTILS_ARRAYSIZE(apploadEntryTbl.record))
+    {
+        numRecords = UTILS_ARRAYSIZE(apploadEntryTbl.record);
+    }
+    curRecordIndex = apploadEntryTbl.loadEntryIdx;
+    curRecordIndex--;
+    memset(fxnLoadInfo, 0, sizeof(*fxnLoadInfo));
+    while (iterCount < numRecords)
+    {
+        if (curRecordIndex < 0)
+        {
+            curRecordIndex = UTILS_ARRAYSIZE(apploadEntryTbl.record) - 1;
+        }
+        curRecord = &apploadEntryTbl.record[curRecordIndex];
+        app_profileAccumulateFxnLoad(fxnLoadInfo->fxn, curRecord->fxn, &fxnLoadInfo->numFunctions);
+        iterCount++;
+        curRecordIndex--;
+    }
+    app_profileGetAvgFxnLoad(fxnLoadInfo->fxn, numRecords);
+}
 
 
 void app_profileInit(appProfileConfig *profileConfig)
@@ -580,7 +620,7 @@ void app_profileInit(appProfileConfig *profileConfig)
     tskParams.stackSize = APP_PROFILE_TSK_STACK_SIZE;
     tskParams.instance->name = "app_profile_task";
 
-    Task_construct(&apploadEntryTbl.taskProfileObj, &app_profile, &tskParams, &ebOj);
+    apploadEntryTbl.taskProfile = Task_create(&app_profile, &tskParams, &ebOj);
     Assert_isTrue((Error_check(&ebOj) == FALSE), Assert_E_assertFailed);
 }
 
@@ -588,13 +628,13 @@ void app_profileDeInit()
 {
     Task_Handle hPktTask;
 
-    hPktTask = Task_handle(&apploadEntryTbl.taskProfileObj);
+    hPktTask = apploadEntryTbl.taskProfile;
     Event_post(apploadEntryTbl.hProfileControlEvt,APP_PROFILE_DEINIT_EVENT_ID);
     while (Task_getMode(hPktTask) != Task_Mode_TERMINATED)
     {
         Task_sleep(1);
     }
-    Task_destruct(&apploadEntryTbl.taskProfileObj);
+    Task_delete(&apploadEntryTbl.taskProfile);
 
 
 }
