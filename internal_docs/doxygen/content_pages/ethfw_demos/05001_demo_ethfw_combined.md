@@ -576,7 +576,7 @@ the external devices, **PC 1** or **PC 2**.
 ## IP Next Header Filtering {#ethfw_ip_nxthdr_filtering}
 
 CPSW9G supports whitelisting of up to four different IP protocols for a VLAN
-group.  This demo whitelists TCP and UDP protocols and hence blocking packets
+group.  This demo white-lists TCP and UDP protocols and hence blocking packets
 of other protocols in the VLAN network.
 
 -# Add a VLAN entry with `vlanId: 0x2BC (700 in decimal)` with host port, MAC

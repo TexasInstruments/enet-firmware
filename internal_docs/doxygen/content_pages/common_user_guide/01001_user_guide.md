@@ -16,7 +16,7 @@ which provides a high-level interface for applications to configure and use the
 integrated Ethernet switch peripheral (CPSW9G).
 
 The following sample applications are key to demonstrate the capabilities of the
-CPSW9G hardware as welll as the EthFw stack.
+CPSW9G hardware as well as the EthFw stack.
 
 Demo                               | Comments
 -----------------------------------|--------------
@@ -225,7 +225,7 @@ applications.
 ![](c_ug_dir_utils.png "Utilities Directory Structure")
 
 
-## Demo Aplication Sources Directory Structure {#ethfw_dir_demo}
+## Demo Application Sources Directory Structure {#ethfw_dir_demo}
 
 Source code of the EthFw demo applications is in the **apps** directory.
 For instance, below image shows the directory structure of the server application
@@ -235,7 +235,7 @@ which implements L2 switch, inter-VLAN routing, etc.
 
 Pre-compiled binaries are also provided as part of the EthFw release, which can
 be found in the **out** directory. For instance, below image shows the EthFw
-output directory structure with precompiled server and client binaries.
+output directory structure with pre-compiled server and client binaries.
 
 ![](c_ug_dir_j721_r5f_demo.png "Demo Binaries Directory Structure")
 
@@ -359,7 +359,7 @@ Remove EthFw build output directory only.
 ## Examples Linker File (Select memory location to hold example binary) {#ethfw_build_eg_linker}
 
 The example applications use different memories and this could be changed
-and/or reconfigured via linker command files.
+and/or re-configured via linker command files.
 
 - **linker_mem_map.cmd** is auto generated file using PyTI_PSDK_RTOS tool
   which defines memory layout (addresses and sizes)
@@ -479,7 +479,7 @@ Revision | Date          | Author                 | Description
 0.2      | 02 Apr 2019   | Prasad J               | 0.8 Docs review meeting fixes
 0.3      | 12 Jun 2019   | Prasad J               | Updates for EVM demo (.85 release)
 0.4      | 17 Jul 2019   | Misael Lopez           | Updates for v.0.09.00
-0.5      | 15 Oct 2019   | Misael Lopez, Santhana Bharati | Updates for v.1.00.00
+0.5      | 15 Oct 2019   | Misael Lopez, Santhana Bharathi | Updates for v.1.00.00
 0.6      | 28 Jan 2020   | Misael Lopez           | Updates for SDK 6.02.00
 
 [Back To Top](@ref ethfw_c_ug_top)

@@ -32,7 +32,7 @@ peripherals like UDMA, UART, etc.
   paths to processing cores internal of the Jacinto 7 devices.
 - *Ethernet Firmware* enables automotive use-cases like I/O hub, central
   gateway, network firewall, security, etc.
-- *Ethernet Firmware* enables multicore architectures where network data can
+- *Ethernet Firmware* enables multi-core architectures where network data can
   be steered towards processing cores by means of classification of network
   traffic based on packet characteristics like L2/L3 header.
 - *Ethernet Firmware* offers switch resident protocols via NDK.

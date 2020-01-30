@@ -24,14 +24,14 @@ carried out by the master core.
 to submit and retrieve packets.  Similarly, the *master core* also has its own
 DMA resources which are not shared with the remote cores.
 
-The following sequence diagram shows the initialization and deinitialization
+The following sequence diagram shows the initialization and de-initialization
 sequences performed by the *master core*.
 
 ![](MasterCore_InitSequence.png "Master Core Init API Sequence")
 
 <br>
 
-![](MasterCore_DeinitSequence.png "Master Core Deinit API Sequence")
+![](MasterCore_DeinitSequence.png "Master Core De-init API Sequence")
 
 [Back To Top](@ref ethfw_remotecore_top)
 
@@ -55,7 +55,7 @@ shown in the following call sequence diagram.
 The Linux remote core interaction with the master core during teardown is shown
 in the following call sequence diagram.
 
-![](RemoteCore_Linux_DeinitSequence.png "Linux Remote Core Deinit API Sequence")
+![](RemoteCore_Linux_DeinitSequence.png "Linux Remote Core De-init API Sequence")
 
 [Back To Top](@ref ethfw_remotecore_top)
 
