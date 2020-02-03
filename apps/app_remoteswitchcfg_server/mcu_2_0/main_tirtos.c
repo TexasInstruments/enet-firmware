@@ -163,7 +163,7 @@ static rdevEthSwitchServerCbFxn_t appRdevEthSwitchServerCbFxnTbl;
 
 #define ENABLE_NDKSERVERS
 
-#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS (1U)
+#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US         (1000U)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -686,7 +686,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
      * Timer corruption needs to be root-caused and fixed.
      */
     outArgs->isRingMonUsed = true;
-    outArgs->clkPeriodMs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
+    outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
 }
 
 void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)

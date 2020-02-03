@@ -97,8 +97,8 @@
 
 #include "webpage.h"
 
-#define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL (100)
-#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS (1U)
+#define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL  (100)
+#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
 
 #define IPC_RPMESSAGE_OBJ_SIZE  (256)
 #define VQ_TIMEOUT              (100)
@@ -1849,7 +1849,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     outArgs->printFxnCb = (Cpsw_PrintFxnCb) & ConPrintf;
     outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
     outArgs->isRingMonUsed = false;
-    outArgs->clkPeriodMs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_MS;
+    outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
 
     gRemoteAppObj.hDma = CpswRemoteApp_initCpswDma(cpswType, outArgs->hUdmaDrv);
 
