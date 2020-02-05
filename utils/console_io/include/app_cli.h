@@ -89,10 +89,10 @@ typedef struct
 } app_cli_init_prm_t;
 
 /* set default parameters for CLI */
-void appCliInitPrmSetDefault(app_cli_init_prm_t *);
+void appCliInitPrmSetDefault(app_cli_init_prm_t *prm);
 
 /* init CLI */
-int32_t appCliInit(app_cli_init_prm_t *);
+int32_t appCliInit(app_cli_init_prm_t *prm);
 
 /* de-init CLI */
 int32_t appCliDeInit(void);

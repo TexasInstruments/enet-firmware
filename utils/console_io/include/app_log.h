@@ -167,15 +167,13 @@ int32_t appLogWrInit(app_log_init_prm_t *prms);
  *
  * \return 0 on success, else failure.
  */
-int32_t appLogRdDeInit(
-                       );
+int32_t appLogRdDeInit(void);
 
 /** \brief De-init log reader and log writer
  *
  * \return 0 on success, else failure.
  */
-int32_t appLogWrDeInit(
-                       );
+int32_t appLogWrDeInit(void);
 
 /** \brief Write a string to shared memory
  *
