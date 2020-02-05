@@ -123,6 +123,7 @@
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
 
+#include "webpage.h"
 #include "app_intervlan.h"
 #include "app_swintervlan.h"
 #include <utils/profile/include/app_profile.h>
@@ -694,12 +695,12 @@ void stackInitHook(void *hCfg)
     rc = 16384;
     CfgAddEntry(hCfg, CFGTAG_OS, CFGITEM_OS_TASKSTKBOOT,
                 CFG_ADDMODE_UNIQUE, sizeof(uint32_t), (uint8_t *)&rc, 0);
-
+    AddWebFiles();
 }
 
 void stackDeleteHook(void *hCfg)
 {
-
+    RemoveWebFiles();
 }
 
 int32_t CpswApp_setAleMulticastEntry(uint8_t macAddr[CPSW_MAC_ADDR_LEN],
