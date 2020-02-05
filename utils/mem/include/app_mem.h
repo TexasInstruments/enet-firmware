@@ -65,7 +65,7 @@
 
 #include <stdint.h>
 
-/**
+/*!
  * \defgroup group_vision_apps_utils_mem Memory allocation APIs
  *
  * \brief This section contains APIs for memory allocation
@@ -75,22 +75,23 @@
  * @{
  */
 
-/** \brief Max characters to use for heap name */
-#define APP_MEM_HEAP_NAME_MAX   (16u)
+/*! \brief Max characters to use for heap name */
+#define APP_MEM_HEAP_NAME_MAX   (16U)
 
-/** \brief Heap located in DDR */
-#define APP_MEM_HEAP_DDR        (0u)
+/*! \brief Heap located in DDR */
+#define APP_MEM_HEAP_DDR        (0U)
 
-/** \brief Heap located in L3 memory (MSMC) */
-#define APP_MEM_HEAP_L3_MSMC    (1u)
+/*! \brief Heap located in L3 memory (MSMC) */
+#define APP_MEM_HEAP_L3_MSMC    (1U)
 
-/** \brief Heap located in L2 local memory of a CPU */
-#define APP_MEM_HEAP_L2_LOCAL   (2u)
+/*! \brief Heap located in L2 local memory of a CPU */
+#define APP_MEM_HEAP_L2_LOCAL   (2U)
 
-/** \brief Max heaps in system */
-#define APP_MEM_HEAP_MAX        (3u)
+/*! \brief Max heaps in system */
+#define APP_MEM_HEAP_MAX        (3U)
 
-/** \brief Heap flag to indicate heap is of type "linear allocater"
+/*!
+ * \brief Heap flag to indicate heap is of type "linear allocater"
  *
  * Here alloc increments a offset by alloc size and free resets
  * the offset. This is used typically for L2 memory to allocate it
@@ -98,47 +99,63 @@
  *
  * When this flag is not set heap type is normal dynamic memory allocator heap
  */
-#define APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE     (0x00000001u)
+#define APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE     (0x00000001U)
 
-/** \brief Heap flag to indicate if memory that is allcoate will be shared with another CPU
+/*!
+ * \brief Heap flag to indicate if memory that is allcoate will be shared
+ *        with another CPU
  */
-#define APP_MEM_HEAP_FLAGS_IS_SHARED                (0x00000004u)
+#define APP_MEM_HEAP_FLAGS_IS_SHARED                (0x00000004U)
 
-/** \brief Heap flag to indicate if memory should be set to 0 after alloc
- */
-#define APP_MEM_HEAP_FLAGS_DO_CLEAR_ON_ALLOC        (0x00000008u)
+/*! \brief Heap flag to indicate if memory should be set to 0 after alloc */
+#define APP_MEM_HEAP_FLAGS_DO_CLEAR_ON_ALLOC        (0x00000008U)
 
-/**
+/*!
  * \brief Heap initialization parameters
  */
 typedef struct
 {
-    void *base;                       /**< heap memory base address */
-    char name[APP_MEM_HEAP_NAME_MAX]; /**< heap name */
-    uint32_t size;                    /**< heap size in bytes */
-    uint32_t flags;                   /**< flags, see APP_MEM_HEAP_FLAGS_* */
+    /*! Heap memory base address */
+    void *base;
+
+    /*! Heap name */
+    char name[APP_MEM_HEAP_NAME_MAX];
+
+    /*! Heap size in bytes */
+    uint32_t size;
+
+    /*! Flags, see APP_MEM_HEAP_FLAGS_* */
+    uint32_t flags;
 } app_mem_heap_prm_t;
 
-/**
+/*!
  * \brief Memory module initialization parameters
  */
 typedef struct
 {
-    app_mem_heap_prm_t heap_info[APP_MEM_HEAP_MAX]; /**< heap init parameters */
+    /*! Heap init parameters */
+    app_mem_heap_prm_t heap_info[APP_MEM_HEAP_MAX];
 } app_mem_init_prm_t;
 
-/**
+/*!
  * \brief Heap statistics and information
  */
 typedef struct
 {
-    uint32_t heap_id;                       /**< Heap ID, see APP_MEM_HEAP_* */
-    char heap_name[APP_MEM_HEAP_NAME_MAX];  /**< Heap name */
-    uint32_t heap_size;                     /**< Heap size in bytes */
-    uint32_t free_size;                     /**< Free space in bytes */
+    /*! Heap ID, see APP_MEM_HEAP_* */
+    uint32_t heap_id;
+
+    /*! Heap name */
+    char heap_name[APP_MEM_HEAP_NAME_MAX];
+
+    /*! Heap size in bytes */
+    uint32_t heap_size;
+
+    /*! Free space in bytes */
+    uint32_t free_size;
 } app_mem_stats_t;
 
-/**
+/*!
  * \brief Align ptr value to 'align' bytes
  */
 static inline void *APP_MEM_ALIGNPTR(void *val,
@@ -147,7 +164,7 @@ static inline void *APP_MEM_ALIGNPTR(void *val,
     return (void *)((((uintptr_t)val + align - 1) / align) * align);
 }
 
-/**
+/*!
  * \brief Align 64b value to 'align' bytes
  */
 static inline uint64_t APP_MEM_ALIGN64(uint64_t val,
@@ -156,7 +173,7 @@ static inline uint64_t APP_MEM_ALIGN64(uint64_t val,
     return (uint64_t)((uint64_t)(val + align - 1) / align) * align;
 }
 
-/**
+/*!
  * \brief Align 32b value to 'align' bytes
  */
 static inline uint32_t APP_MEM_ALIGN32(uint32_t val,
@@ -165,7 +182,7 @@ static inline uint32_t APP_MEM_ALIGN32(uint32_t val,
     return (uint32_t)((uint32_t)(val + align - 1) / align) * align;
 }
 
-/**
+/*!
  * \brief Set defaults to app_mem_init_prm_t
  *
  * Recommend to be called before calling appMemInit()
@@ -177,7 +194,7 @@ static inline uint32_t APP_MEM_ALIGN32(uint32_t val,
  */
 void    appMemInitPrmSetDefault(app_mem_init_prm_t *prm);
 
-/**
+/*!
  * \brief Init heaps for memory allocation
  *
  * \param prm [in] Initialization parameters
@@ -186,32 +203,32 @@ void    appMemInitPrmSetDefault(app_mem_init_prm_t *prm);
  */
 int32_t appMemInit(app_mem_init_prm_t *prm);
 
-/**
+/*!
  * \brief De-Init heaps for memory allocation
  *
  * \return 0 on success else failure
  */
 int32_t appMemDeInit(void);
 
-/**
+/*!
  * \brief Alloc memory from specific heap
  *
  * \param heap_id [in] See APP_MEM_HEAP_*
  * \param size    [in] Size in bytes to allocate
  * \param align   [in] Minimum alignment requested
  *
- * \return pointer to memory or NULL in case of failure
+ * \return Pointer to memory or NULL in case of failure
  */
 void *appMemAlloc(uint32_t heap_id,
                   uint32_t size,
                   uint32_t align);
 
-/**
+/*!
  * \brief Free memory that was previously allocated
  *
  * \param heap_id [in] See APP_MEM_HEAP_*
- * \param ptr     [in] pointer to allocated memory
- * \param size    [in] size of allocated memory
+ * \param ptr     [in] Pointer to allocated memory
+ * \param size    [in] Size of allocated memory
  *
  * \return 0 on success else failure
  */
@@ -219,7 +236,7 @@ int32_t appMemFree(uint32_t heap_id,
                    void *ptr,
                    uint32_t size);
 
-/**
+/*!
  * \brief Return heap statistics and information
  *
  * \param heap_id [in] See APP_MEM_HEAP_*

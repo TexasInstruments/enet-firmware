@@ -69,76 +69,135 @@ extern "C" {
 
 #include <stdint.h>
 
-#define APP_CLI_MAX_PROMPT_NAME     (16u)
+/*! \brief Maximum number of characters in prompt name */
+#define APP_CLI_MAX_PROMPT_NAME     (16U)
 
-/* command handler callback */
+/*! \brief Command handler callback */
 typedef int32_t (*app_cli_cmd_handler_f)(int argc, char *argv[]);
 
-/* callback to write string to console device */
+/*! \brief Callback to write string to console device */
 typedef int (*app_cli_device_send_string_f)(char *string, uint32_t max_size);
 
-/* callback to read string from console device */
+/*! \brief Callback to read string from console device */
 typedef int (*app_cli_device_get_string_f)(char *string, uint32_t max_size, uint32_t *string_size);
 
-/* CLI init parameters */
+/*!
+ * \brief CLI init parameters
+ */
 typedef struct
 {
-    app_cli_device_send_string_f device_write;     /* device specific callback to write string to device, by default appUartWriteString() is used */
-    app_cli_device_get_string_f device_read;       /* device specific callback to read string from device, by default appUartReadString() is used */
-    char cli_prompt_name[APP_CLI_MAX_PROMPT_NAME]; /* CLI prompt name, by default "ti" will be used */
+    /*! Device specific callback to write string to device, by default
+     *  appUartWriteString() is used */
+    app_cli_device_send_string_f device_write;
+
+    /*! Device specific callback to read string from device, by default
+     *  appUartReadString() is used */
+    app_cli_device_get_string_f device_read;
+
+    /*! CLI prompt name, by default "ti" will be used */
+    char cli_prompt_name[APP_CLI_MAX_PROMPT_NAME];
 } app_cli_init_prm_t;
 
-/* set default parameters for CLI */
+/*!
+ * \brief Set default parameters for CLI
+ *
+ * \param prm [in] Init parameters to be set
+ */
 void appCliInitPrmSetDefault(app_cli_init_prm_t *prm);
 
-/* init CLI */
+/*!
+ * \brief Init CLI
+ *
+ * \param prm [in] Init parameters
+ *
+ * \return 0 on success, else failure
+ */
 int32_t appCliInit(app_cli_init_prm_t *prm);
 
-/* de-init CLI */
+/*!
+ * \brief De-init CLI
+ *
+ * \return 0 on success, else failure
+ */
 int32_t appCliDeInit(void);
 
-/* Register a handler for system command 'cmd'
- * A system command is a command that can be invoked at point during application invokation
- * ex, while a application use-case is running
+/*!
+ * \brief Register a handler for system command 'cmd'
+ *
+ * A system command is a command that can be invoked at point during application
+ * invokation, i.e. while a application use-case is running.
+ *
+ * \param prm          [in] System command id
+ * \param desc         [in] Command description
+ * \param cmd_handler  [in] Command handler
+ *
+ * \return 0 on success, else failure
  */
 int32_t appCliRegisterSystemCmd(char *cmd,
                                 char *desc,
                                 app_cli_cmd_handler_f cmd_handler);
 
-/* Register a handler for application command 'cmd'
- * Once a application command is invoke, additional application commands
- * cannot be invoked until this application finishes execution.
+/*!
+ * \brief Register a handler for application command 'cmd'
+ *
+ * Once a application command is invoke, additional application commands cannot
+ * be invoked until this application finishes execution.
+ *
  * System commands and "Application sub-commands" can be invoked while
  * a application is running.
+ *
  * An application handler should register application specific sub-commands
- * which can be invoked while a application runs
+ * which can be invoked while a application runs.
+ *
+ * \param prm          [in] Application command id
+ * \param desc         [in] Command description
+ * \param cmd_handler  [in] Command handler
+ *
+ * \return 0 on success, else failure
  */
 int32_t appCliRegisterAppCmd(char *cmd,
                              char *desc,
                              app_cli_cmd_handler_f cmd_handler);
 
-/* Register a handler for application sub-commands 'cmd'
- * This are commands specific to the currently running application
- * ex, handler to stop current application would be different for different
- * applications.
+/*!
+ * \brief Register a handler for application sub-commands 'cmd'
+ *
+ * This are commands specific to the currently running application, i.e. handler
+ * to stop current application would be different for different applications.
  *
  * This commands can be invoked only after a application command is executed
+ *
+ * \param prm          [in] Sub-command id
+ * \param desc         [in] Sub-command description
+ * \param cmd_handler  [in] Sub-Command handler
+ *
+ * \return 0 on success, else failure
  */
 int32_t appCliRegisterAppSubCmd(char *cmd,
                                 char *desc,
                                 app_cli_cmd_handler_f cmd_handler);
 
-/* waits to read input from user and invokes handler based on
- * the command that is entered.
- * After handling one command, the function returns.
- * If unsupport command is entered, function returns.
+/*!
+ * \brief Waits to read input from user and invokes handler based on
+ *        the command that is entered
+ *
+ * After handling one command, the function returns. If unsupport command is
+ * entered, function returns.
+ *
  * User should call this function in a loop to get the effect of a CLI.
- * If user enters 'exit', is_exit flag is set to 1
- * User can use this flag to break out of the loop.
+ *
+ * If user enters 'exit', #is_exit flag is set to 1. User can use this flag
+ * to break out of the loop.
+ *
+ * \param is_exit   [in] Flag to break the prompt loop
+ *
+ * \return 0 on success, else failure
  */
 int32_t appCliShowPrompt(uint32_t *is_exit);
 
-/* Show Cli Bannner */
+/*!
+ * \brief Show CLI bannner
+ */
 void appCliShowBanner(void);
 
 #ifdef __cplusplus
