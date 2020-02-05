@@ -109,6 +109,9 @@
 // #define APP_PRINTPKTCNT
 
 #define CPSW_FRWD_APP_NUM_PKTS          (192U)
+/* Time in ms for which app pends waiting for completion semaphore to be
+ * posted. This is time blocked waiting for new Rx packet arrival
+ */
 #define RX_TX_COMPLETION_TIMEOUT        (1U)
 #define PKT_HEADER_SIZE                 (64U)
 #define APP_TSK_STACK_SIZE              (6U * 1024U)
@@ -227,7 +230,7 @@ static Void CpswApp_InterVlanRouting(UArg a0,
     }
 
     Semaphore_Params_init(&semParams);
-    semParams.mode = Semaphore_Mode_COUNTING;
+    semParams.mode = Semaphore_Mode_BINARY;
 
     gCpswInterVlanAppObj.completionSem = Semaphore_create(0, &semParams, NULL);
 
