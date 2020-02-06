@@ -99,7 +99,7 @@
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
 
-#include "Eth_Rpc.h"
+#include <ethremotecfg/protocol/Eth_Rpc.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */

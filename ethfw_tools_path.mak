@@ -43,7 +43,6 @@ NDK_PATH ?= $(PSDK_PATH)/ndk_3_61_01_01
 NS_PATH  ?= $(PSDK_PATH)/ns_2_60_01_06
 CTOOLSLIB_PATH ?= $(PSDK_PATH)/ctoolslib
 REMOTE_DEVICE_PATH ?= $(PSDK_PATH)/remote_device
-MCUSW_PATH ?= $(PSDK_PATH)/mcusw
 
 PDK_PATH ?= $(PSDK_PATH)/pdk
 
