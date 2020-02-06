@@ -123,6 +123,10 @@
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
 
+#include <utils/remote_service/include/app_remote_service.h>
+#include <utils/perf_stats/include/app_perf_stats.h>
+#include <utils/ethfw_stats/include/app_ethfw_stats_sysbios.h>
+
 #include "webpage.h"
 #include "app_intervlan.h"
 #include "app_swintervlan.h"
@@ -199,6 +203,7 @@ void CpswApp_deInit(void);
 static void  app_ethrdev_srv_print_ethfw_device_data(uint32_t host_id);
 
 static int32_t CpswApp_proxyServerInit(void);
+static int32_t CpswApp_initPerfRemoteService(void);
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -287,6 +292,56 @@ void appLogPrintf(const char *format,
     va_end(args);
 }
 
+static int32_t CpswApp_initPerfRemoteService(void)
+{
+    int32_t status;
+    app_remote_service_init_prms_t remoteServicePrms;
+
+    appRemoteServiceInitSetDefault(&remoteServicePrms);
+    status = appRemoteServiceInit(&remoteServicePrms);
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("Remote service init failed: %d !!!\n", status);
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appPerfStatsInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Perf stats init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appPerfStatsRemoteServiceInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Perf stats remote service init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appEthfwStatsInit(gCpswMainAppObj.cpswType);
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Ethfw stats init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appEthfwStatsRemoteServiceInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Ethfw stats remote service init failed: %d !!!\n", status);
+        }
+    }
+    return status;
+}
+
 static void rpmsg_vdevMonitorFxn(UArg arg0,
                                  UArg arg1)
 {
@@ -317,6 +372,15 @@ static void rpmsg_vdevMonitorFxn(UArg arg0,
     if (status != IPC_SOK)
     {
         CpswAppUtils_print("%s: RPMessage_announce() failed\n", __func__);
+        return;
+    }
+
+    /* Register the services after remote core is Ready */
+    status = CpswApp_initPerfRemoteService();
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("%s: Performance Remote service init failed\n", __func__);
+        return;
     }
 }
 
