@@ -80,18 +80,17 @@
 
 #include "app_ethfw_stats.h"
 
-/**
- *
+/*!
  * \ingroup app_ethfw_stats
  *
  * @{
  */
 
-/**
+/*!
  * \brief Initialize Ethfw statistics collector module
  *
- *        TI-RTOS only API
- *        MUST be called before any other API
+ * TI-RTOS only API
+ * MUST be called before any other API
  *
  * \param cpswType     [IN] CPSW instance type
  *
@@ -99,20 +98,20 @@
  */
 int32_t appEthfwStatsInit(Cpsw_Type cpswType);
 
-/**
+/*!
  * \brief Initialize Ethfw remote service
  *
- *        TI-RTOS only API
- *        MUST be called after IPC init
+ * TI-RTOS only API
+ *  MUST be called after IPC init
  *
  * \return \ref Cpsw_ErrorCodes
  */
 int32_t appEthfwStatsRemoteServiceInit(void);
 
-/**
+/*!
  * \brief De-Initialize Ethfw statistics collector module
  *
- *        TI-RTOS only API
+ * TI-RTOS only API
  */
 void appEthfwStatsDeInit(void);
 

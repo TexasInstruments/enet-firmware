@@ -72,17 +72,18 @@
 extern "C" {
 #endif
 
-/**
+/*!
  * \defgroup CPSW_PROXY_SERVER_API Ethernet Switch Proxy Server APIs
  *
  * \brief This section contains APIs for CPSW Proxy Server APIs
  *
- * The CPSW proxy server resides on the master core and enables
- * clients on remote cores to configure the Ethernet Switch
- * The CPSW Proxy server is the application interface to the ethernet remote device server
- * The application configures and instantiates a CPSW Proxy Server instance
- * Once instantiated the CPSW will listen to , process and respond to 
- * CPSW_PROXY_CLIENT messages from remote cores
+ * The CPSW Proxy Server resides on the master core and enables clients on
+ * remote cores to configure the Ethernet Switch. The CPSW Proxy Server is the
+ * application interface to the ethernet remote device server.
+ *
+ * The application configures and instantiates a CPSW Proxy Server instance.
+ * Once instantiated the CPSW will listen to, process and respond to
+ * CPSW_PROXY_CLIENT messages from remote cores.
  *
  *  @{
  */
@@ -93,44 +94,52 @@ extern "C" {
  * @{
  */
 
-/**
- *  \name Application Callback function pointers to initialize ethernet firmware data
+/*!
+ * \brief Application callback function pointer to initialize Ethernet Firmware data
  *
- *  When a client connection from remote core to  cpsw proxy server is established,
- *  The server will invoke this application callback to populate firmware 
- *  info which is exported as remote device data to the remote core client
- *  \param host_id Remote Core Id
- *  \param eth_dev_data Firmware device data to be populated
+ * When a client connection from remote core to  cpsw proxy server is
+ * established, the server will invoke this application callback to populate
+ * firmware info which is exported as remote device data to the remote core
+ * client.
+ *
+ * \param host_id       Remote Core Id
+ * \param eth_dev_data  Firmware device data to be populated
  */
 typedef void  (*CpswProxyServer_InitEthfwDeviceDataCb)(uint32_t host_id,
                                                        struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
 
-/**
- *  \name Application Callback function pointers to get Multiclient manager command mailbox.
+/*!
+ * \brief Application callback function pointer to get Multiclient Manager (MCM)
+ *        command mailbox.
  *
- *  The MCM manages access to single CPSW LLD handle across multiple clients on 
- *  both remote core and local core.
- *  The CPSW Proxy server needs the MCM command interface to perform 
- *  ATTACH. The MCM Command interface is obtained by invoking this application
- *  callback
- *  \param cpswType CPSW type indentifier (CPSW2G/CPSW9G)
- *  \param pMcmCmdIfHandle Pointer to Mcm Command Interface structure which will be populated by application
+ * The MCM manages access to single CPSW LLD handle across multiple clients on 
+ * both remote core and local core.
+ *
+ * The CPSW Proxy server needs the MCM command interface to perform ATTACH.
+ * The MCM command interface is obtained by invoking this application callback.
+ *
+ * \param cpswType         CPSW instance type
+ * \param pMcmCmdIfHandle  Pointer to MCM command interface structure which will
+ *                         be populated by application
  */
 typedef void  (*CpswProxyServer_GetMcmCmdIfCb)(Cpsw_Type  cpswType, CpswMcm_CmdIf  **pMcmCmdIfHandle);
 
-/**
- *  \name Application Callback function pointers to handle custom notification from remote client
+/*!
+ * \brief Application Callback function pointer to handle custom notification
+ *        from remote client
  *
- *  This is application handler for custom client to server notification from remote cores.
- *  The proxy layer just passes the notify info and notify_info_len .
- *  The client and server application interpretation of the custom notify info should
- *  match.
- *  \param host_id      Remote Core IPC core id
- *  \param hCpsw        Handle to CPSW
- *  \param cpswType     CPSW Type identifier
- *  \param notifyid     Custom notify id. Will be RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM
- *  \param notify_info  Notify info
- *  \param notify_info_len Notify info length
+ * This is application handler for custom client to server notification from
+ * remote cores.
+ * The proxy layer just passes the notify info and notify_info_len.
+ * The client and server application interpretation of the custom notify info
+ * should match.
+ *
+ * \param host_id      Remote Core IPC core id
+ * \param hCpsw        Handle to CPSW
+ * \param cpswType     CPSW instance type
+ * \param notifyid     Custom notify id. Will be #RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM
+ * \param notify_info  Notify info
+ * \param notify_info_len Notify info length
  */
 typedef void  (*CpswProxyServer_NotifyCb)(uint32_t host_id,
                                           Cpsw_Handle hCpsw,
@@ -142,38 +151,47 @@ typedef void  (*CpswProxyServer_NotifyCb)(uint32_t host_id,
 
 
 /*!
- * Cpsw Proxy Server Remote Core Configuration structure
+ * \brief Cpsw Proxy Server Remote Core Configuration structure
  */
 typedef struct CpswProxyServer_RemoteCoreConfig_s
 {
     /*! Remote Core Id that can attach */
     uint32_t remoteCoreId;
+
     /*! Name advertised to remote core */
     char     serverName[ETHREMOTECFG_SERVER_MAX_NAME_LEN];
 } CpswProxyServer_RemoteCoreConfig;
 
 /*!
- * Cpsw Proxy Server Remote Configuration structure
+ * \brief Cpsw Proxy Server Remote Configuration structure
  *
- * Structure passed by application to configure the CPSW Proxy server
+ * Structure passed by application to configure the CPSW Proxy server.
  */
 typedef struct CpswProxyServer_Config_s
 {
-    /*! Application callback to populate Ethernet Remote Device Data */
+    /*! Application callback to populate Ethernet Remote Device data */
     CpswProxyServer_InitEthfwDeviceDataCb initEthfwDeviceDataCb;
-    /*! Application callback to get Mcm Command interface */
+
+    /*! Application callback to get MCM command interface */
     CpswProxyServer_GetMcmCmdIfCb         getMcmCmdIfCb;
+
     /*! Application callback to handle custom notify from client */
     CpswProxyServer_NotifyCb              notifyCb;
-    /*! IPC RpMsg endpoint id.This is the local endpoint at which proxy server will listen for msgs */
+
+    /*! IPC RpMsg endpoint id. This is the local endpoint at which proxy
+     *  server will listen for msgs */
     uint32_t rpmsgEndPointId;
-    /*! Autosar Ethernet Device RpMsg endpoint id */
+
+    /*! AUTOSAR Ethernet Device RpMsg endpoint id */
     uint32_t autosarEthDeviceEndPointId;
+
     /*! Number of remote cores that can attach to remote device */
     uint32_t numRemoteCores;
-    /*! Remote Core Id for autosar core */
+
+    /*! Remote Core Id for AUTOSAR core */
     uint32_t autosarEthDriverRemoteCoreId;
-    /*! Remote Core Configuration */
+
+    /*! Remote Core configuration */
     CpswProxyServer_RemoteCoreConfig remoteCoreCfg[ETHREMOTECFG_SERVER_MAX_INSTANCES];
 } CpswProxyServer_Config_t;
 
@@ -185,9 +203,11 @@ typedef struct CpswProxyServer_Config_s
 int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg);
 
 /*!
- * \brief Start the Cpsw proxy server. 
+ * \brief Start the Cpsw proxy server
  *
- *  Starts the remote device framework 
+ * Starts the remote device framework.
+ *
+ * \return CPSW_SOK if succeeded, an error code otherwise.
  */
 int32_t  CpswProxyServer_start(void);
 

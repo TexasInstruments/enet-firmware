@@ -66,7 +66,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/**
+/*!
  * \defgroup apps_ethfw_stats Ethernet Firmware statistics reporting APIs
  *
  * \brief These APIs allows user to get Ethernet firmware related information
@@ -76,16 +76,19 @@
  * @{
  */
 
-/** \brief Number of statistics provided by CPSW IP */
+/*! \brief Number of statistics provided by CPSW IP */
 #define APP_ETHFW_STATS_BLOCK_ELEM_NUM             (128U)
-/** \brief EthFw statistics service name */
+
+/*! \brief EthFw statistics service name */
 #define APP_ETHFW_STATS_SERVICE_NAME  "com.ti.ethfw_stats"
-/** \brief Maximum number of Ethernet ports */
+
+/*! \brief Maximum number of Ethernet ports */
 #define APP_ETHFW_PORT_NUM_MAX                     (9U)
 
-/** \brief Command to reset bandwidth data of all Ethernet ports*/
+/*! \brief Command to reset bandwidth data of all Ethernet ports*/
 #define APP_ETHFW_STATS_CMD_RESET_BANDWIDTH        (0x0001)
-/** \brief Command to get bandwidth data for all Ethernet ports */
+
+/*! \brief Command to get bandwidth data for all Ethernet ports */
 #define APP_ETHFW_STATS_CMD_GET_BANDWIDTH          (0x0002)
 
 /*!
@@ -97,8 +100,10 @@ typedef struct
 {
     /*! Status of ethernet port: enabled/disabled (true/false)  */
     bool isportenabled[APP_ETHFW_PORT_NUM_MAX];
+
     /*! Tx bandwidth of Ethernet ports */
     uint64_t tx_bandwidth[APP_ETHFW_PORT_NUM_MAX];
+
     /*! Rx bandwidth of Ethernet ports */
     uint64_t rx_bandwidth[APP_ETHFW_PORT_NUM_MAX];
 } app_ethfw_port_bandwidth_t;
