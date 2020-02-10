@@ -121,7 +121,10 @@ $(document).ready(function(){initNavTree('demo_ethfw_combined_top.html','');});
 </li>
 <li class="level2"><a href="#ethfw_ip_nxthdr_filtering">IP Next Header Filtering</a></li>
 <li class="level2"><a href="#ethfw_rate_limiting">Rate Limiting</a></li>
-<li class="level2"><a href="#demo_ethfw_combined_output">Sample output</a></li>
+<li class="level2"><a href="#demo_ethfw_combined_output">Sample output</a><ul><li class="level3"><a href="#demo_ethfw_combined_logs_uart">UART Console Logs (MCU2_0 Server Application)</a></li>
+<li class="level3"><a href="#demo_ethfw_combined_logs_sysmin">SysMin Logs (MCU2_1 Client Application)</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="level1"><a href="#demo_ethfw_combined_rev_history">Document Revision History</a></li>
@@ -221,7 +224,7 @@ packETH tool</h3>
 </blockquote>
 <h3><a class="anchor" id="demo_ethfw_combined_prereq_python"></a>
 Python3 and Pip3</h3>
-<p>The GUI tool to send configurations is developed using Python3 and PyQt. Pip3 can be used to install additional Python modules required by the GUI tool.</p>
+<p>The CPSW Remote Configuration GUI tool is developed using Python3 and PyQt. Pip3 can be used to install additional Python modules required by the GUI tool.</p>
 <blockquote class="doxtable">
 <p><b>Note:</b> The GUI tool can be executed from either <b>PC 1</b> or <b>PC 2</b>, so Python and its dependencies must be installed only on the selected PC. </p>
 </blockquote>
@@ -294,7 +297,7 @@ Prerequisites</h3>
 <h3><a class="anchor" id="demo_ethfw_combined_CCS_steps"></a>
 Steps</h3>
 <ol type="1">
-<li>Connect a micro USB cable to JTAG port of J721E_EVM. The XDS110 JTAG connector is labeled <code>XDS110</code> (J3).</li>
+<li>Connect a micro USB cable to JTAG port of J721E_EVM. The XDS110 JTAG connector is labeled <code>XDS110</code> (J3). Alternatively, XDS560v2 debugger can be connected to the JTAG connected labeled <code>JTAG MIPI</code> (J16).</li>
 <li>Connect a micro USB cable to MAIN Domain UART port on J721E_EVM. It's labeled <code>UART</code> (J44).</li>
 <li>Set EVM's DIP switches <code>SW8</code> and <code>SW9</code> for no-boot mode:<ul>
 <li>SW8 = 10001000</li>
@@ -314,14 +317,18 @@ Serial Port Settings in Minicom</div></div>
 <li>Power on the J721E EVM board. Ensure that SD card is not present or QSPI flashed.</li>
 <li>Connect the laptops/PCs as per demo connections diagram above.<ul>
 <li><b>Important:</b> DHCP server (if required) must be connected to <b>MAC Port 1</b>.</li>
-<li><b>Note:</b> Do not connect any device to <b>MAC Port 0</b> as it may not be functional, please refer to the <a class="el" href="ethfw_c_ug_top.html#ethfw_known_issues">Known issues</a> sections for further details</li>
+<li><b>Note:</b> Do not connect any device to <b>MAC Port 0</b> if using J7 EVM alpha version as it may not be functional, please refer to the <a class="el" href="ethfw_c_ug_top.html#ethfw_known_issues">Known issues</a> sections for further details</li>
 </ul>
 </li>
-<li>For loading demo application binaries through CCS on J721E, please refer to <a class="el" href="ccs_setup_top.html#load_example_binaries_on_j7">Load Example Binaries on J721E</a> section.<ul>
-<li>Main R5F core 0: app_remoteswitchcfg_server.xer5f</li>
-<li>Main R5F core 1: app_remoteswitchcfg_client.xer5f</li>
+<li>Load application binaries to Main R5F cores in the following sequence:<ul>
+<li>Load Main R5F core 0: app_remoteswitchcfg_server.xer5f</li>
+<li>Load Main R5F core 1: app_remoteswitchcfg_client.xer5f</li>
+<li>Run Main R5F core 1</li>
+<li>Run Main R5F core 0</li>
+<li><b>Note:</b> For loading demo application binaries through CCS on J721E, please refer to CCS setup section in SDK top level documentation.</li>
 </ul>
 </li>
+<li>Start Runtime Object View (ROV) in CCS for the Main R5F core 1 and navigate to the SysMin component in order to see the MCU2_1 client application's logs. This application doesn't use an UART port for logging.</li>
 </ol>
 <blockquote class="doxtable">
 <p><b>Note:</b> Linux running on A72 core is not compatible with CCS boot mode. </p>
@@ -453,12 +460,11 @@ InterVLAN Routing</h2>
 Software InterVLAN Routing</h3>
 <ol type="1">
 <li>Open the <b>CONFIGURATION FILE</b> tab of the GUI tool. Configuration files can be sent to the switch in order to enable or disable features of the CPSW9G.</li>
-<li>To enable software-based interVLAN routing, click on the <b>Open</b> button and select the <code>sw_intervlan_routing_config.txt</code> file present in the <code>&lt;SDK_INSTALL_PATH&gt;/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files</code> directory.</li>
-<li>Always parse the configuration before sending to the EVM using the <b>Parse</b> button.<ul>
+<li>To enable software-based interVLAN routing, click on the <b>Open</b> button and select the <code>sw_intervlan_routing_config.txt</code> file present in the <code>&lt;SDK_INSTALL_PATH&gt;/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files</code> directory.<ul>
 <li><b>Note:</b> The list of allowed commands and the configurations are present in the <code>schemas.py</code> file in the <code>cpsw_configclient/inc</code> directory.</li>
 </ul>
 </li>
-<li>If the parsing succeeded, press the <b>Send Config</b> button to send the configuration to the switch.</li>
+<li>Press <b>Send Config</b> button to send the configuration to the switch.</li>
 <li>Now that the software-based interVLAN routing is enabled, the functionality can be verified by sending packets with VLAN ID using packETH tool.</li>
 <li><p class="startli">In the packETH tool on the <b>PC 1</b>, which has IP address <code>192.168.1.&lt;pc1&gt;</code>, load the <code>swintervlanrouting</code> configuration file from <code>&lt;ETHFW_PATH&gt;/docs/packeth_configurations/</code> directory.</p>
 <p class="startli">The loaded configuration should match with the below picture.</p>
@@ -497,8 +503,7 @@ Hardware InterVLAN Routing</h3>
 <ol type="1">
 <li>Open the <b>CONFIGURATION FILE</b> tab of the GUI tool.</li>
 <li>To enable hardware-based interVLAN routing, click on the <b>Open</b> button and select the <code>hw_intervlan_routing_config.txt</code> file present in the <code>&lt;SDK_INSTALL_PATH&gt;/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files</code> directory.</li>
-<li>Always parse the configuration before sending to the EVM using the <b>Parse</b> button.</li>
-<li>If the parsing succeeded, press the <b>Send Config</b> button to send the configuration to the switch.</li>
+<li>Press <b>Send Config</b> button to send the configuration to the switch.</li>
 <li>Now that the hardware-based interVLAN routing is enabled, the functionality can be verified by sending packets with VLAN ID using packETH tool.</li>
 <li><p class="startli">Load the <code>hwintervlanrouting</code> configuration file from <code>&lt;ETHFW_PATH&gt;/docs/packeth_configurations/</code> directory.</p>
 <p class="startli">The loaded configuration should match with the below picture.</p>
@@ -535,13 +540,12 @@ packETH settings for hardware interVLAN routing</div></div>
 <p><a class="el" href="demo_ethfw_combined_top.html">Back To Top</a></p>
 <h2><a class="anchor" id="ethfw_ip_nxthdr_filtering"></a>
 IP Next Header Filtering</h2>
-<p>CPSW9G supports whitelisting of upto four different IP protocols for a VLAN group. This demo whitelists TCP and UDP protocols and hence blocking packets of other protocols in the VLAN network.</p>
+<p>CPSW9G supports whitelisting of up to four different IP protocols for a VLAN group. This demo white-lists TCP and UDP protocols and hence blocking packets of other protocols in the VLAN network.</p>
 <ol type="1">
 <li>Add a VLAN entry with <code>vlanId: 0x2BC (700 in decimal)</code> with host port, MAC ports 2 and 3 as members of the VLAN group.</li>
 <li>Open the <b>CONFIGURATION FILE</b> tab of the GUI tool.</li>
 <li>To add the above mentioned VLAN entry, click on the <b>Open</b> button and select the <code>ip_nxt_hdr_whitelisting_config.txt</code> file present in the <code>&lt;SDK_INSTALL_PATH&gt;/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files</code> directory.</li>
-<li>Always parse the configuration before sending to the EVM using the <b>Parse</b> button.</li>
-<li>If the parsing succeeded, press the <b>Send Config</b> button to send the configuration to the switch.</li>
+<li>Press <b>Send Config</b> button to send the configuration to the switch.</li>
 <li>Load the <code>ipnxthdr_tcp</code> configuration file from <code>&lt;ETHFW_PATH&gt;/docs/packeth_configurations/</code> directory to the packEth tool and start sending packets.</li>
 <li>Since TCP is whitelisted, the packets will be received at <b>PC 2</b>. This can be verified by using Wireshark in <b>PC 2</b> with <code>ip.addr eq 192.168.1.202 &amp;&amp; vlan</code> filter.</li>
 <li>Similarly, <code>ipnxthdr_udp</code> packETH configuration can be used to verify UDP.</li>
@@ -554,8 +558,7 @@ Rate Limiting</h2>
 <li>Rate Limiting can be enabled by adding a policer entry with parameters like Source and Destination MAC address of the traffic to be limited. The rate at which the traffic is limited is based on the values of Peak Information Rate (PIR) and Committed Information Rate (CIR) both in bits per second (bps) set in the policer entry.</li>
 <li>Open the <b>CONFIGURATION FILE</b> tab of the GUI tool.</li>
 <li>To enable rate limiting, click on the <b>Open</b> button and select the <code>rate_limiting_config.txt</code> file present in the <code>&lt;SDK_INSTALL_PATH&gt;/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files</code> directory.</li>
-<li>Always parse the configuration before sending to the EVM using the <b>Parse</b> button.</li>
-<li>If the parsing succeeded, press the <b>Send Config</b> button to send the configuration to the switch.</li>
+<li>Press <b>Send Config</b> button to send the configuration to the switch.</li>
 <li>Load the <code>ratelimiting</code> configuration file from <code>&lt;ETHFW_PATH&gt;/docs/packeth_configurations/</code> directory to the packETH tool and stat sending packets at a rate more than 200 Mbps.</li>
 <li>The packets received at the <b>PC 2</b> will not exceed the receive rate of 200Mbps (~25MBps), since the PIR is set to 200 Mbps. This can be verified by checking the receive rate using <code>bmon</code> or <code>System Monitor</code> in <b>PC 2</b>.</li>
 </ol>
@@ -564,7 +567,11 @@ Rate Limiting</h2>
  <h2><a class="anchor" id="demo_ethfw_combined_output"></a>
 Sample output</h2>
 <p>Below is a sample log from the execution of this demo application.</p>
-<div class="fragment"><div class="line">### UART Console Logs</div><div class="line"></div><div class="line">=======================================================</div><div class="line">CPSW_9G Test on MAIN NAVSS</div><div class="line">           CPSW L2 Switching APP</div><div class="line">CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 &lt;-&gt; &#39;dp83867&#39; : OK</div><div class="line">=======================================================</div><div class="line">CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 &lt;-&gt; &#39;dp83867&#39; : OK</div><div class="line">IPC_echo_test (core : mcu2_0) .....</div><div class="line">Remote device (core : mcu2_1) .....</div><div class="line">PHY 0 is alive</div><div class="line">Remote demo device (core : mcu2_0) .....</div><div class="line">PHY 3 is alive</div><div class="line">PHY 12 is alive</div><div class="line">PHY 15 is alive</div><div class="line">PHY 16 is alive</div><div class="line">PHY 17 is alive</div><div class="line">PHY 18 is alive</div><div class="line">PHY 23 is alive</div><div class="line">Host MAC address: 70:ff:76:1d:87:8c</div><div class="line">[NIMU_NDK] CPSW has been started successfully</div><div class="line"></div><div class="line">CPSW NIMU application, IP address I/F 1: 192.168.1.203</div><div class="line"></div><div class="line"></div><div class="line"> Rx Flow for Software Inter-VLAN Routing is up</div><div class="line">Cpsw_handleLinkUp: port 3: Link up: 1-Gpbs Full-Duplex</div><div class="line">Cpsw_handleLinkUp: port 2: Link up: 1-Gpbs Full-Duplex</div><div class="line">Function:app_ethrdev_srv_cb_attach_ext_handler,HostId:0,CpswType:1</div><div class="line">Function:app_ethrdev_srv_cb_register_mac_handler,HostId:0,Handle:a2b336c0,CoreKey:38acb7e60</div><div class="line">Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:10, Policer Entry:0Function:app5</div><div class="line"></div><div class="line">================LLI Table entries===========</div><div class="line"></div><div class="line">Number of Static ARP Entries: 1</div><div class="line"></div><div class="line">SNo.      IP Address         MAC Address</div><div class="line">------    -------------      ---------------</div><div class="line">0         192.168.1.205      70:FF:76:1D:87:8B</div></div><!-- fragment --><p><a class="el" href="demo_ethfw_combined_top.html">Back To Top</a></p>
+<h3><a class="anchor" id="demo_ethfw_combined_logs_uart"></a>
+UART Console Logs (MCU2_0 Server Application)</h3>
+<div class="fragment"><div class="line">Enabling clocks for CPSW_9G!</div><div class="line">=======================================================</div><div class="line">           CPSW Ethernet Firmware Demo</div><div class="line">=======================================================</div><div class="line">ETHFW Version: 0. 1. 1</div><div class="line">ETHFW Build Date (YYYY/MMM/DD):2020/Feb/ 6</div><div class="line">ETHFW Commit SHA:ETHFW PermissionFlag:0x1ffffff, UART Connected:true,UART Id:2IPC_echo_test (core : mcu2_0) .....</div><div class="line">CPSW_9G Test on MAIN NAVSS</div><div class="line">Remote demo device (core : mcu2_0) .....</div><div class="line">CpswPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 &lt;-&gt; &#39;dp83867&#39; : OK</div><div class="line">Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:1</div><div class="line">CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 &lt;-&gt; &#39;dp83867&#39; : OK</div><div class="line">CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 &lt;-&gt; &#39;dp83867&#39; : OK</div><div class="line">CpswPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 &lt;-&gt; &#39;dp83867&#39; : OK</div><div class="line">PHY 0 is alive</div><div class="line">PHY 3 is alive</div><div class="line">PHY 12 is alive</div><div class="line">PHY 15 is alive</div><div class="line">PHY 16 is alive</div><div class="line">PHY 17 is alive</div><div class="line">PHY 18 is alive</div><div class="line">PHY 19 is alive</div><div class="line">PHY 23 is alive</div><div class="line">Host MAC address: Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:5000d,InArgsLen:0, OutArgsLen:4</div><div class="line">70:ff:76:1d:92:c2</div><div class="line">[NIMU_NDK] CPSW has been started successfully</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:20000,InArgsLen:24, OutArgsLen:4</div><div class="line">Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:178, FlowIdxOffset:6</div><div class="line">Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:10, Policer Entry:0Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1</div><div class="line">Cpsw_handleLinkUp: port 3: Link up: 1-Gbps Full-Duplex</div><div class="line">Cpsw_handleLinkUp: port 2: Link up: 1-Gbps Full-Duplex</div><div class="line"></div><div class="line">CPSW NIMU application, IP address I/F 1: 192.168.1.150</div><div class="line"></div><div class="line">Rx Flow for Software Inter-VLAN Routing is up</div><div class="line">Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.1.151</div><div class="line"></div><div class="line">================LLI Table entries===========</div><div class="line"></div><div class="line">Number of Static ARP Entries: 1</div><div class="line"></div><div class="line">SNo.      IP Address         MAC Address</div><div class="line">------    -------------      ---------------</div><div class="line">1         192.168.1.151      70:FF:76:1D:92:C3</div></div><!-- fragment --><h3><a class="anchor" id="demo_ethfw_combined_logs_sysmin"></a>
+SysMin Logs (MCU2_1 Client Application)</h3>
+<div class="fragment"><div class="line">Remote Device Framework Endpoint locate failed. Retrying !!!</div><div class="line">Remote Device Framework Endpoint locate failed. Retrying !!!</div><div class="line">Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26</div><div class="line">Registered a device name = mcu_2_1_ethswitch-device-0, id = 0, type = 3</div><div class="line">ETHFW Version: 0. 1. 1</div><div class="line">ETHFW Build Date (YYYY/MMM/DD):2020/Feb/ 6</div><div class="line">ETHFW Commit SHA:0@-?</div><div class="line">ETHFW PermissionFlag:0x1ffffff, UART Connected:true,UART Id:2Function:CpswProxy_cmdHandler,Handle:@a2cef4f4,CoreKey:38acb976, RxMtu:1518, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1</div><div class="line">[NIMU_NDK] Registration of the CPSW Successful</div><div class="line">CPSW NIMU application, IP address I/F 1: 192.168.1.151</div></div><!-- fragment --><p><a class="el" href="demo_ethfw_combined_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="demo_ethfw_combined_rev_history"></a>
 Document Revision History</h1>

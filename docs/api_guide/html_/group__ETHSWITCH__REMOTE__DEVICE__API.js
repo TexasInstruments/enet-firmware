@@ -181,6 +181,24 @@ var group__ETHSWITCH__REMOTE__DEVICE__API =
     [ "rpmsg_kdrv_ethswitch_ipv6_unregister_mac_response", "structrpmsg__kdrv__ethswitch__ipv6__unregister__mac__response.html", [
       [ "info", "structrpmsg__kdrv__ethswitch__ipv6__unregister__mac__response.html#a84f43246dabd77b0e7eee87c8d025cdb", null ]
     ] ],
+    [ "rpmsg_kdrv_ethswitch_register_ethertype_request", "structrpmsg__kdrv__ethswitch__register__ethertype__request.html", [
+      [ "header", "structrpmsg__kdrv__ethswitch__register__ethertype__request.html#a6ad6450f5af83c288758c1a397ea5a4e", null ],
+      [ "info", "structrpmsg__kdrv__ethswitch__register__ethertype__request.html#a02bab0d740fee4dd15b92607764721c8", null ],
+      [ "ether_type", "structrpmsg__kdrv__ethswitch__register__ethertype__request.html#aa90ff64617c194437d7146799af54bd7", null ],
+      [ "flow_idx", "structrpmsg__kdrv__ethswitch__register__ethertype__request.html#a4cf55399b93cf19b573d180718c4acbb", null ]
+    ] ],
+    [ "rpmsg_kdrv_ethswitch_register_ethertype_response", "structrpmsg__kdrv__ethswitch__register__ethertype__response.html", [
+      [ "info", "structrpmsg__kdrv__ethswitch__register__ethertype__response.html#a5e4ed41bdd19eb7e099105c05583bee5", null ]
+    ] ],
+    [ "rpmsg_kdrv_ethswitch_unregister_ethertype_request", "structrpmsg__kdrv__ethswitch__unregister__ethertype__request.html", [
+      [ "header", "structrpmsg__kdrv__ethswitch__unregister__ethertype__request.html#a85f618f4e889dd6cc4faab29d8b5af8b", null ],
+      [ "info", "structrpmsg__kdrv__ethswitch__unregister__ethertype__request.html#a4ed2837a92e1e2ab6b2273dea6c83e63", null ],
+      [ "ether_type", "structrpmsg__kdrv__ethswitch__unregister__ethertype__request.html#acdc9bad46de25ce7965f9daf8af3f207", null ],
+      [ "flow_idx", "structrpmsg__kdrv__ethswitch__unregister__ethertype__request.html#a9b091c38133ad9e2084e7b6b13a1acc6", null ]
+    ] ],
+    [ "rpmsg_kdrv_ethswitch_unregister_ethertype_response", "structrpmsg__kdrv__ethswitch__unregister__ethertype__response.html", [
+      [ "info", "structrpmsg__kdrv__ethswitch__unregister__ethertype__response.html#a21069b9320a2794c61a88c3040180f52", null ]
+    ] ],
     [ "rpmsg_kdrv_ethswitch_firmware_version_info", "structrpmsg__kdrv__ethswitch__firmware__version__info.html", [
       [ "major", "structrpmsg__kdrv__ethswitch__firmware__version__info.html#aab4259202443641db732c833d43f9b32", null ],
       [ "minor", "structrpmsg__kdrv__ethswitch__firmware__version__info.html#a49814820bd888b5608be91596d4e1007", null ],
@@ -257,6 +275,8 @@ var group__ETHSWITCH__REMOTE__DEVICE__API =
       [ "RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga1b509c0b041d7f1b625cc66e53cf1bbaaa8562917381aeb7197c710e7c6bf61b0", null ],
       [ "RPMSG_KDRV_TP_ETHSWITCH_S2C_NOTIFY", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga1b509c0b041d7f1b625cc66e53cf1bbaa84f21273ed324cb945faac82b6d5870f", null ],
       [ "RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga1b509c0b041d7f1b625cc66e53cf1bbaaa70675a6dadc880e3af71f18b34760c7", null ],
+      [ "RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga1b509c0b041d7f1b625cc66e53cf1bbaa71757d7c6fc97fb3c196438a1d3380f9", null ],
+      [ "RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga1b509c0b041d7f1b625cc66e53cf1bbaa4e697855925655f6a53078f460198011", null ],
       [ "RPMSG_KDRV_TP_ETHSWITCH_MAX", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga1b509c0b041d7f1b625cc66e53cf1bbaa4730b1327d42abaeeccafc27faa3f29f", null ]
     ] ],
     [ "rpmsg_kdrv_ethswitch_cpsw_type", "group__ETHSWITCH__REMOTE__DEVICE__API.html#ga3469871f4eb395a41f09a12d731dbff8", [
@@ -266,6 +286,7 @@ var group__ETHSWITCH__REMOTE__DEVICE__API =
     ] ],
     [ "rpmsg_kdrv_ethswitch_client_notify_type", "group__ETHSWITCH__REMOTE__DEVICE__API.html#ga940ee9cf4cbf0a8bb84abcb8d581025f", [
       [ "RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga940ee9cf4cbf0a8bb84abcb8d581025fa403c5e499d7c0b6936ec695b40cc18a8", null ],
+      [ "RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga940ee9cf4cbf0a8bb84abcb8d581025fab2dee58a6e6b194891e25cdc41d6fe04", null ],
       [ "RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_MAX", "group__ETHSWITCH__REMOTE__DEVICE__API.html#gga940ee9cf4cbf0a8bb84abcb8d581025fa0f3f37e6026a647c0a6b9c6e222142b3", null ]
     ] ],
     [ "__packed", "group__ETHSWITCH__REMOTE__DEVICE__API.html#ga35fd84f172c0b6d1e84e3c39f42233b1", null ]

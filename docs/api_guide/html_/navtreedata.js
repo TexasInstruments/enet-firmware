@@ -7,8 +7,8 @@ var NAVTREE =
 
 var NAVTREEINDEX =
 [
-"group__ETHSWITCH__REMOTE__DEVICE__API.html",
-"structrpmsg__kdrv__ethswitch__ipv4__unregister__mac__response.html#a963aa33826d0f588d881f8677082e2ac"
+"group__CPSW__PROXY__API.html",
+"structrpmsg__kdrv__ethswitch__register__rx__default__request.html#a0703eb27f024dd482a528e1a35772a65"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

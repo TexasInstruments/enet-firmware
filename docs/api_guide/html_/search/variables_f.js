@@ -1,11 +1,5 @@
 var searchData=
 [
-  ['uart_5fconnected',['uart_connected',['../structrpmsg__kdrv__ethswitch__device__data.html#ac5290855de6d8be97e3a17a080934b8f',1,'rpmsg_kdrv_ethswitch_device_data']]],
-  ['uart_5fid',['uart_id',['../structrpmsg__kdrv__ethswitch__device__data.html#a84af249e450643cf9421c3b355b31f36',1,'rpmsg_kdrv_ethswitch_device_data']]],
-  ['unregister_5fmac_5fhandler',['unregister_mac_handler',['../structrdevEthSwitchServerCbFxn__t.html#a29ad842817f5876e045d02d933e9e9cc',1,'rdevEthSwitchServerCbFxn_t']]],
-  ['unregister_5fmac_5freq',['unregister_mac_req',['../unionrdevEthSwitchServerMessageList__t.html#a5e29e38c864b44fe2ab57f2142c03d6a',1,'rdevEthSwitchServerMessageList_t']]],
-  ['unregister_5fmac_5fres',['unregister_mac_res',['../unionrdevEthSwitchServerMessageList__t.html#adf1cfd33438f74f755c16d78b853d32a',1,'rdevEthSwitchServerMessageList_t']]],
-  ['unregister_5frx_5fdefault_5fhandler',['unregister_rx_default_handler',['../structrdevEthSwitchServerCbFxn__t.html#a62118e1af604e406e0d7a6019c7ec469',1,'rdevEthSwitchServerCbFxn_t']]],
-  ['unregister_5frx_5fdefault_5freq',['unregister_rx_default_req',['../unionrdevEthSwitchServerMessageList__t.html#ac2c5b1510d79af6febeda757b58c478f',1,'rdevEthSwitchServerMessageList_t']]],
-  ['unregister_5frx_5fdefault_5fres',['unregister_rx_default_res',['../unionrdevEthSwitchServerMessageList__t.html#a67e1f10a37ba55d56e264cea63ab44c4',1,'rdevEthSwitchServerMessageList_t']]]
+  ['tx_5fcpsw_5fpsil_5fdst_5fid',['tx_cpsw_psil_dst_id',['../structrpmsg__kdrv__ethswitch__attach__extended__response.html#ad7354715ab799cf5cc7393fc7e8b0179',1,'rpmsg_kdrv_ethswitch_attach_extended_response::tx_cpsw_psil_dst_id()'],['../structrpmsg__kdrv__ethswitch__alloc__tx__response.html#ab1c7744fd81b5d1c2fdc0f5d1a6111bb',1,'rpmsg_kdrv_ethswitch_alloc_tx_response::tx_cpsw_psil_dst_id()'],['../structrpmsg__kdrv__ethswitch__free__tx__request.html#ac70d4d20bb18cd7dece2dc5cf4cd7b38',1,'rpmsg_kdrv_ethswitch_free_tx_request::tx_cpsw_psil_dst_id()']]],
+  ['tx_5fmtu',['tx_mtu',['../structrpmsg__kdrv__ethswitch__attach__response.html#ac61d4340188745d45a96e1e3a883fd17',1,'rpmsg_kdrv_ethswitch_attach_response::tx_mtu()'],['../structrpmsg__kdrv__ethswitch__attach__extended__response.html#a64d1e9ad4c3faaccb59effc5a3fb8066',1,'rpmsg_kdrv_ethswitch_attach_extended_response::tx_mtu()']]]
 ];

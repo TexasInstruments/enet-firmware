@@ -37,7 +37,10 @@ var demo_top =
         ] ],
         [ "IP Next Header Filtering", "demo_ethfw_combined_top.html#ethfw_ip_nxthdr_filtering", null ],
         [ "Rate Limiting", "demo_ethfw_combined_top.html#ethfw_rate_limiting", null ],
-        [ "Sample output", "demo_ethfw_combined_top.html#demo_ethfw_combined_output", null ]
+        [ "Sample output", "demo_ethfw_combined_top.html#demo_ethfw_combined_output", [
+          [ "UART Console Logs (MCU2_0 Server Application)", "demo_ethfw_combined_top.html#demo_ethfw_combined_logs_uart", null ],
+          [ "SysMin Logs (MCU2_1 Client Application)", "demo_ethfw_combined_top.html#demo_ethfw_combined_logs_sysmin", null ]
+        ] ]
       ] ],
       [ "Document Revision History", "demo_ethfw_combined_top.html#demo_ethfw_combined_rev_history", null ]
     ] ]

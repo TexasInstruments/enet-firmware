@@ -87,7 +87,7 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
 <ul><li class="level1"><a href="#ethfw_c_ug_ethfw_demos">EthFw Demos</a><ul><li class="level2"><a href="#ethfw_switching_demo">EthFw Switching &amp; TCP/IP Apps Demo</a></li>
-<li class="level2"><a href="#ethfw_intervlan_demo">Inter-VLAN Routing</a></li>
+<li class="level2"><a href="#ethfw_intervlan_demo">Inter-VLAN Routing Demo</a></li>
 </ul>
 </li>
 <li class="level1"><a href="#ethfw_c_ug_features_list">Supported Features</a></li>
@@ -109,7 +109,7 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <li class="level1"><a href="#ethfw_instal_steps">Installation Steps</a></li>
 <li class="level1"><a href="#ethfw_dir">Directory Structure</a><ul><li class="level2"><a href="#ethfw_post_install_j721e">Post Install Directory Structure</a></li>
 <li class="level2"><a href="#ethfw_dir_utils">Utilities Directory Structure</a></li>
-<li class="level2"><a href="#ethfw_dir_demo">Demo Aplication Sources Directory Structure</a></li>
+<li class="level2"><a href="#ethfw_dir_demo">Demo Application Sources Directory Structure</a></li>
 <li class="level2"><a href="#ethfw_dir_switch_demos">EthFw Demonstration Applications</a></li>
 </ul>
 </li>
@@ -138,31 +138,33 @@ $(document).ready(function(){initNavTree('ethfw_c_ug_top.html','');});
 <li class="level1"><a href="#ethfw_rev_history">Document Revision History</a></li>
 </ul>
 </div>
-<div class="textblock"><p>This user guide describes EthFw feature list along with steps to build and run EthFw demo applications.</p>
-<p>For additional information about EthFw refer to <a class="el" href="index.html#ethfw_c_ug_switch">EthFw Introduction</a></p>
+<div class="textblock"><p>This user guide presents the list of features supported by the Ethernet Firmware (EthFw) and describes the steps required to build and run the EthFw demo applications.</p>
+<p>For additional information about EthFw refer to <a class="el" href="index.html#ethfw_c_ug_switch">EthFw Introduction</a>.</p>
 <hr/>
  <h1><a class="anchor" id="ethfw_c_ug_ethfw_demos"></a>
 EthFw Demos</h1>
-<p>EthFw Demos showcases usage and integration of EthFw to use &amp; configure CPSW9G IP in the Jacinto 7 devices. These peripheral/board level sample/demo examples demonstrates the capabilities of the CPSW9G IP features &amp; EthFw stack.</p>
-<p>Listed below are some of the key applications. </p><table class="doxtable">
+<p>The EthFw demos showcase the integration and usage of the Ethernet Firmware which provides a high-level interface for applications to configure and use the integrated Ethernet switch peripheral (CPSW9G).</p>
+<p>The following sample applications are key to demonstrate the capabilities of the CPSW9G hardware as well as the EthFw stack.</p>
+<table class="doxtable">
 <tr>
 <th>Demo </th><th>Comments  </th></tr>
 <tr>
-<td>L2 Switching </td><td>Configures Switch to enable switching between its external ports </td></tr>
+<td>L2 Switching </td><td>Configures CPSW9G switch to enable switching between its external ports </td></tr>
 <tr>
-<td>L2/L3 address based classification </td><td>Illustrates traffic steering to A72(linux) and R5F(RTOS) based on L2 header. Illustrate with iperf and web server traffic from PC1/PC2 </td></tr>
+<td>L2/L3 address based classification </td><td>Illustrates traffic steering to A72 (Linux) and R5F (RTOS) based on Layer-2 Ethernet header. iperf tool and web servers are used to demonstrate traffic steering to/from PCs connected to the switch </td></tr>
 <tr>
-<td>Inter-VLAN Routing (SW)</td><td>Showcases Inter-VLAN routing using lookup and forward operations being done in SW(R5). Showcase low-level lookup and forwarding on top of CPSW LLD </td></tr>
+<td>Inter-VLAN Routing (SW) </td><td>Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of CPSW LLD </td></tr>
 <tr>
-<td>Inter-VLAN Routing (HW)</td><td>Illustrates hardware offload support for Inter-VLAN routing. Illustrate Line rate routing with no additional impact on R5 CPU load </td></tr>
+<td>Inter-VLAN Routing (HW) </td><td>Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load </td></tr>
 </table>
 <h2><a class="anchor" id="ethfw_switching_demo"></a>
 EthFw Switching &amp; TCP/IP Apps Demo</h2>
-<p>This demo showcases switching capabilities of the J721E integrated Ethernet Switch (CPSW9G) for features like VLAN, Multicast etc. This demo also showcases TI NDK (TCP/IP) integration into EthFw. In this demo we showcase usage of HTTP server.</p>
+<p>This demo showcases switching capabilities of the J721E integrated Ethernet Switch (CPSW9G) for features like VLAN, Multicast, etc. It also demonstrates TI NDK (TCP/IP stack) integration into the EthFw, incorporating a sample HTTP server.</p>
 <h2><a class="anchor" id="ethfw_intervlan_demo"></a>
-Inter-VLAN Routing</h2>
-<p>This demo illustrates Line-rate Inter-VLAN routing in hardware without any additional load on EthFw core. This demo showcases InterVLAN routing capability of CPSW IP along with software fall-back support. CPSW ALE classifier feature is used per flow to characterize the route and configure the egress operation.</p>
-<p>Available egress operations</p><ul>
+Inter-VLAN Routing Demo</h2>
+<p>This demo illustrates hardware and software based inter-VLAN routing. The hardware inter-VLAN routing makes use of the CPSW9G hardware features which enable line-rate inter-VLAN routing without any additional CPU load on the EthFw core. The software inter-VLAN routing is implemented as a fall-back alternative.</p>
+<p>The hardware inter-VLAN route demo exercises the CPSW ALE classifier feature, which is used per flow to characterize the route and configure the egress operation.</p>
+<p>Available egress operations:</p><ul>
 <li>Replace Destination (MAC) Address</li>
 <li>Replace Source (MAC) Address</li>
 <li>Replace VLAN ID</li>
@@ -179,15 +181,15 @@ Supported Features</h1>
 <tr>
 <th>Feature </th><th>Comments  </th></tr>
 <tr>
-<td>L2 Switching </td><td>Support for configuration of switch to enable L2 Switching between external ports with VLAN, multi-cast </td></tr>
+<td>L2 switching </td><td>Support for configuration of the Ethernet Switch to enable L2 switching between external ports with VLAN, multi-cast </td></tr>
 <tr>
-<td>Inter-VLAN Routing </td><td>Inter-VLAN routing configuration in HW with software fall-back support </td></tr>
+<td>Inter-VLAN routing </td><td>Inter-VLAN routing configuration in hardware with software fall-back support </td></tr>
 <tr>
-<td>NDK Integration </td><td>Integration of TCP/IP stack enabling TCP, UDP, HTTP apps </td></tr>
+<td>NDK integration </td><td>Integration of TCP/IP stack enabling TCP, UDP, HTTP apps </td></tr>
 <tr>
 <td>Remote configuration server </td><td>Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver </td></tr>
 <tr>
-<td>Resource management library </td><td>Resource management library for CPSW resource sharing across cores. </td></tr>
+<td>Resource management library </td><td>Resource management library for CPSW resource sharing across cores </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
@@ -213,7 +215,7 @@ J721E EVM</h3>
 <img src="J7EVM_CPSW_TopView.png" alt="J7EVM_CPSW_TopView.png"/>
 <div class="caption">
 J721E EVM connections</div></div>
- <h3><a class="anchor" id="ethfw_depend_evm_gesi_j721e"></a>
+<h3><a class="anchor" id="ethfw_depend_evm_gesi_j721e"></a>
 J721E EVM GESI Expansion Board</h3>
 <div class="image">
 <img src="GESI_Board.jpg" alt="GESI_Board.jpg"/>
@@ -255,8 +257,8 @@ NDK</h3>
  <h2><a class="anchor" id="ethfw_instal_ccs"></a>
 IDE (CCS)</h2>
 <ol type="1">
-<li>Install Code Composer Studio and setup a <b>Target Configuration</b> for use with J721E EVM.(refer to <a class="el" href="ccs_setup_top.html">CCS setup</a>)</li>
-<li>Refer to the instructions in <a class="el" href="ccs_setup_top.html">CCS setup</a> section for Code Code Composer and emulation packs installation as well as Target Configuration File creation.</li>
+<li>Install Code Composer Studio and setup a <b>Target Configuration</b> for use with J721E EVM.</li>
+<li>Refer to the instructions in <a class="el" href="ccs_setup_top.html">CCS setup</a> section for Code Code Composer and emulation packs installation as well as Target Configuration file creation.</li>
 </ol>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
@@ -274,7 +276,7 @@ Installation Steps</h1>
 <hr/>
  <h1><a class="anchor" id="ethfw_dir"></a>
 Directory Structure</h1>
-<p>Post installation of EthFw, the following directory would be created. Please note that this is an indicative snap-shot. Modules could be added/modified.</p>
+<p>Post installation of EthFw, the following directory would be created. Please note that this is an indicative snap-shot, modules could be added/modified.</p>
 <p>The top-level EthFw makefile as well as the auxiliary makefiles for build flags (<b>ethfw_build_flags.mak</b>) and build paths (<b>ethfw_tools_path.mak</b>) can be found at the EthFw top-level directory.</p>
 <h2><a class="anchor" id="ethfw_post_install_j721e"></a>
 Post Install Directory Structure</h2>
@@ -282,26 +284,26 @@ Post Install Directory Structure</h2>
 <img src="c_ug_dir_top.png" alt="c_ug_dir_top.png"/>
 <div class="caption">
 Top Level Directory Structure</div></div>
- <h2><a class="anchor" id="ethfw_dir_utils"></a>
+<h2><a class="anchor" id="ethfw_dir_utils"></a>
 Utilities Directory Structure</h2>
 <p>The <b>utils</b> directory contains miscellaneous utilities required by the EthFw applications.</p>
 <div class="image">
 <img src="c_ug_dir_utils.png" alt="c_ug_dir_utils.png"/>
 <div class="caption">
 Utilities Directory Structure</div></div>
- <h2><a class="anchor" id="ethfw_dir_demo"></a>
-Demo Aplication Sources Directory Structure</h2>
-<p>Source code of the EthFw demo applications is in the <b>apps</b> directory. For instance, below image shows the directory structure of the L2 Switching application.</p>
+<h2><a class="anchor" id="ethfw_dir_demo"></a>
+Demo Application Sources Directory Structure</h2>
+<p>Source code of the EthFw demo applications is in the <b>apps</b> directory. For instance, below image shows the directory structure of the server application which implements L2 switch, inter-VLAN routing, etc.</p>
 <div class="image">
 <img src="c_ug_dir_l2_switching_demo.png" alt="c_ug_dir_l2_switching_demo.png"/>
 <div class="caption">
-Layer-2 Switching Application Directory Structure</div></div>
-<p> Pre-compiled binaries are also provided as part of the EthFw release, which can be found in the <b>out</b> directory. For instance, below image shows the directory structure of the J721E R5F binary.</p>
+EthFw Server-side Application Directory Structure</div></div>
+<p> Pre-compiled binaries are also provided as part of the EthFw release, which can be found in the <b>out</b> directory. For instance, below image shows the EthFw output directory structure with pre-compiled server and client binaries.</p>
 <div class="image">
 <img src="c_ug_dir_j721_r5f_demo.png" alt="c_ug_dir_j721_r5f_demo.png"/>
 <div class="caption">
 Demo Binaries Directory Structure</div></div>
-<p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
+<p> <a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h2><a class="anchor" id="ethfw_dir_switch_demos"></a>
 EthFw Demonstration Applications</h2>
@@ -311,12 +313,12 @@ EthFw Demonstration Applications</h2>
  <h1><a class="anchor" id="ethfw_build_top"></a>
 Build</h1>
 <hr/>
-<p> EthFw employs Concerto make based build mechanism. When building on Windows based machine, tool such as <a href="https://www.cygwin.com/">Cygwin</a> could be used.</p>
+<p> EthFw employs Concerto makefile-based build system. When building on a Windows based machine, tools such as <a href="https://www.cygwin.com/">Cygwin</a> could be used.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h2><a class="anchor" id="ethfw_build_setup_env"></a>
 Setup Environment</h2>
-<p>The tool paths required by the build system are defined in the <code>ethfw_tools_path.mak</code> makefile. The default paths in <code>ethfw_tools_path.mak</code> are defined based on the assumption that the EthFw package has been installed inside the main Processor SDK directory.</p>
+<p>The tool paths required by the build system are defined in the <code>ethfw_tools_path.mak</code> makefile. The default paths in <code>ethfw_tools_path.mak</code> are defined based on the assumption that the EthFw package has been installed inside the Processor SDK main directory.</p>
 <p>Typically, the Processor SDK installation path is <code>~/ti</code> in Linux-based systems. So, a typical EthFw installation would be at <code>~/ti/ethfw_xx_yy_zz_bb</code>. In this case, no additional environment setup steps are required.</p>
 <p>If either Processor SDK or EthFw have been installed at different locations that those mentioned in previous paragraph, the following variables can be passed to the make command: </p><pre class="fragment">make &lt;target&gt; PSDK_PATH=&lt;Processor SDK installation path&gt; ETHFW_PATH=&lt;EthFw installation path&gt;
 </pre><p>Please refer to the <a class="el" href="ethfw_c_ug_top.html#ethfw_build">Build</a> and <a class="el" href="ethfw_c_ug_top.html#ethfw_build_clean">Clean</a> sections for a list of recommended targets. Alternatively, run the following command to get the full list of valid targets: </p><pre class="fragment">make help
@@ -330,6 +332,8 @@ Build All</h3>
 <p>Build EthFw components as well as its dependencies, including PDK, NDK, etc. </p><pre class="fragment">make ethfw_all
 </pre><p>Verbose build can be enabled by setting the <b>SHOW_COMMANDS</b> variable as shown below: </p><pre class="fragment">make ethfw_all SHOW_COMMANDS=1
 </pre><p>On successful compilation, the output folder would be created at <code>&lt;ethfw_xx.yy.xx.bb&gt;/out</code>.</p>
+<p><b>Note:</b> If building the Ethernet Firmware for integration in Linux, please uncomment below in CPSW LLD's makefile located at <code>&lt;PDK_PATH&gt;/packages/ti/drv/cpsw/cpsw_component.mk</code>: </p><pre class="fragment">#CPSW_CFLAGS += -DSDK_6_2_CORE_SDK_IMAGE
+</pre><p>This change is required to avoid board-level settings conflicts with Linux bootloader.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h2><a class="anchor" id="ethfw_build_clean"></a>
@@ -355,7 +359,7 @@ Profiles</h2>
 <hr/>
  <h2><a class="anchor" id="ethfw_build_eg_linker"></a>
 Examples Linker File (Select memory location to hold example binary)</h2>
-<p>The example applications use different memories and this could be changed and/or reconfigured via linker command files.</p>
+<p>The example applications use different memories and this could be changed and/or re-configured via linker command files.</p>
 <ul>
 <li><b>linker_mem_map.cmd</b> is auto generated file using PyTI_PSDK_RTOS tool which defines memory layout (addresses and sizes)<ul>
 <li>Available at <code>&lt;ethfw_xx_yy_zz_bb&gt;/apps/app_&lt;name&gt;/&lt;core&gt;/linker_mem_map.cmd</code></li>
@@ -375,7 +379,7 @@ Running Examples</h1>
 <h2><a class="anchor" id="ethfw_run_ccs_load_binary"></a>
 Load Example Binaries</h2>
 <p>Refer to <a class="el" href="demo_top.html">EthFw Demo Applications</a> section for a full list of EthFw demo applications.</p>
-<p>For detailed steps to load and run the L2 Switching application, please refer to its <a class="el" href="demo_ethfw_combined_top.html#demo_ethfw_combined_setup_cfg">Demo Setup</a> section.</p>
+<p>For detailed steps to load and run the demo application, please refer to the <a class="el" href="demo_ethfw_combined_top.html#demo_ethfw_combined_setup_cfg">Demo Setup</a> section.</p>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a></p>
 <hr/>
  <h1><a class="anchor" id="ethfw_uninstall"></a>
@@ -390,7 +394,14 @@ Known issues</h1>
 <tr>
 <th>JIRA ID </th><th>Issue Summary </th><th>Workaround  </th></tr>
 <tr>
-<td>PROC_BRDS-658 </td><td>MAC PORT 0 packet drop seen of Rx/TX - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J7 EVM. This port is labelled as PRG1_RGMII1_B (image below) </td><td>Don’t connect this port </td></tr>
+<td>PROC_BRDS-658 </td><td>MAC PORT 0 packet drop seen of Rx/TX - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J721E EVM alpha version. This port is labeled as PRG1_RGMII1_B in the GESI board connections figure in <a class="el" href="ethfw_c_ug_top.html#ethfw_depend_evm_gesi_j721e">J721E EVM GESI Expansion Board</a> section.<br />
+This issue is not applicable to J721E EVM beta version </td><td>Reduce MAC port 0 speed to 100Mbps in J721E EVM alpha version </td></tr>
+<tr>
+<td>PROC_BRDS-671 </td><td>External 50MHz RMII clock from PHY is not connected by default to SoC's RMII_REF_CLOCK pin in GESI boards of J721E EVM alpha version<br />
+This issue is not applicable to J721E EVM beta version </td><td>To get RMII_50MHZ_CLK, resistor R225 needs to be populated. Move R226 to R225 on GESI board to get this clock </td></tr>
+<tr>
+<td>PROC_BRDS-659 </td><td>QSGMII expansion board is causing instabilities in the MDIO bus in J721E EVM alpha version. After a few mins, MDIO register access fail.<br />
+This issue is not applicable to J721E EVM beta version </td><td>Disable QSGMII PHY on J721E EVM alpha version </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html#ethfw_known_issues">Back To Top</a></p>
 <hr/>
@@ -497,7 +508,9 @@ Document Revision History</h1>
 <tr>
 <td>0.4 </td><td>17 Jul 2019 </td><td>Misael Lopez </td><td>Updates for v.0.09.00 </td></tr>
 <tr>
-<td>0.5 </td><td>15 Oct 2019 </td><td>Misael Lopez, Santhana Bharati </td><td>Updates for v.1.00.00 </td></tr>
+<td>0.5 </td><td>15 Oct 2019 </td><td>Misael Lopez, Santhana Bharathi </td><td>Updates for v.1.00.00 </td></tr>
+<tr>
+<td>0.6 </td><td>28 Jan 2020 </td><td>Misael Lopez </td><td>Updates for SDK 6.02.00 </td></tr>
 </table>
 <p><a class="el" href="ethfw_c_ug_top.html">Back To Top</a> (<a class="el" href="ethfw_c_ug_top.html">User Guide</a>) </p>
 </div></div><!-- contents -->

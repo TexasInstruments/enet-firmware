@@ -9,7 +9,7 @@ var NAVTREE =
     [ "User Guide", "ethfw_c_ug_top.html", [
       [ "EthFw Demos", "ethfw_c_ug_top.html#ethfw_c_ug_ethfw_demos", [
         [ "EthFw Switching & TCP/IP Apps Demo", "ethfw_c_ug_top.html#ethfw_switching_demo", null ],
-        [ "Inter-VLAN Routing", "ethfw_c_ug_top.html#ethfw_intervlan_demo", null ]
+        [ "Inter-VLAN Routing Demo", "ethfw_c_ug_top.html#ethfw_intervlan_demo", null ]
       ] ],
       [ "Supported Features", "ethfw_c_ug_top.html#ethfw_c_ug_features_list", null ],
       [ "Dependencies", "ethfw_c_ug_top.html#ethfw_instal_top", [
@@ -31,7 +31,7 @@ var NAVTREE =
       [ "Directory Structure", "ethfw_c_ug_top.html#ethfw_dir", [
         [ "Post Install Directory Structure", "ethfw_c_ug_top.html#ethfw_post_install_j721e", null ],
         [ "Utilities Directory Structure", "ethfw_c_ug_top.html#ethfw_dir_utils", null ],
-        [ "Demo Aplication Sources Directory Structure", "ethfw_c_ug_top.html#ethfw_dir_demo", null ],
+        [ "Demo Application Sources Directory Structure", "ethfw_c_ug_top.html#ethfw_dir_demo", null ],
         [ "EthFw Demonstration Applications", "ethfw_c_ug_top.html#ethfw_dir_switch_demos", null ]
       ] ],
       [ "Build", "ethfw_c_ug_top.html#ethfw_build_top", [
@@ -65,12 +65,7 @@ var NAVTREE =
       [ "EthFw Unit Test Reports", "val_notes_mainpage.html#val_unit_rep", null ],
       [ "Performance Measurements", "val_notes_mainpage.html#val_perform_measurements", null ]
     ] ],
-    [ "CCS setup", "ccs_setup_top.html", [
-      [ "Download and Install CCS", "ccs_setup_top.html#ethfw_download_instal_ccs", null ],
-      [ "Setup for J721E EVM", "ccs_setup_top.html#ethfw_instal_ccs_gel_setup", null ],
-      [ "Creating a Target Configuration File", "ccs_setup_top.html#ethfw_target_config", null ],
-      [ "Load Example Binaries on J721E", "ccs_setup_top.html#load_example_binaries_on_j7", null ]
-    ] ],
+    [ "CCS setup", "ccs_setup_top.html", null ],
     [ "EthFw Demo Applications", "demo_top.html", "demo_top" ],
     [ "TI Disclaimer", "TI_DISCLAIMER.html", null ]
   ] ]
