@@ -66,6 +66,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#if defined(__KLOCWORK__)
+#include <stdlib.h>
+#endif
+
 /* XDCtools Header files */
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
@@ -98,9 +102,13 @@
 
 #define CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT          (10U)
 
+#if defined(__KLOCWORK__)
+#define CpswProxy_assert(cond)               do { if (!(cond)) abort(); } while (0)
+#else
 #define CpswProxy_assert(cond)                                   \
     (CpswProxy_assertLocal((bool) (cond), (const char *) # cond, \
                     (const char *) __FILE__, (int32_t) __LINE__))
+#endif
 
 
 typedef enum CpswProxy_RdevCmd_tag
@@ -430,6 +438,8 @@ static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
+
+#if !defined(__KLOCWORK__)
 static void CpswProxy_assertLocal(bool condition,
                                   const char *str,
                                   const char *fileName,
@@ -448,6 +458,7 @@ static void CpswProxy_assertLocal(bool condition,
 
     return;
 }
+#endif
 
 static void  CpswProxy_createMbx(Mailbox_Handle *pMailboxHandle)
 {

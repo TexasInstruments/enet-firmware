@@ -289,6 +289,9 @@ void appPerfStatsHwiSwiLoadUpdate(uint32_t is_hwi, app_perf_stats_load_t *load)
 {
     Load_Stat bios_load_stat;
 
+    bios_load_stat.totalTime = 0U;
+    bios_load_stat.threadTime = 0U;
+
     if(is_hwi)
     {
         Load_getGlobalHwiLoad(&bios_load_stat);

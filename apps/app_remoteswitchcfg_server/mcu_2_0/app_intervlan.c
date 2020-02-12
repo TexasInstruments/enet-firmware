@@ -383,7 +383,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
         memcpy(inArgs.inPktMatchCfg.dstIp.ipv6.ipv6Addr, testDstIpv6Addr, sizeof(inArgs.inPktMatchCfg.dstIp.ipv6.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnableMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
-        memcpy(inArgs.inPktMatchCfg.dstMacAddr.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddr.addr));
+        memcpy(inArgs.inPktMatchCfg.dstMacAddr.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddr.addr.addr));
         inArgs.inPktMatchCfg.dstMacAddr.addr.vlanId = 0;
         inArgs.inPktMatchCfg.dstMacAddr.egressPortNum = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum);
 
@@ -506,7 +506,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
         memcpy(inArgs.inPktMatchCfg.dstIp.ipv6.ipv6Addr, testSrcIpv6Addr, sizeof(inArgs.inPktMatchCfg.dstIp.ipv6.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnableMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
-        memcpy(inArgs.inPktMatchCfg.dstMacAddr.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddr.addr));
+        memcpy(inArgs.inPktMatchCfg.dstMacAddr.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddr.addr.addr));
         inArgs.inPktMatchCfg.dstMacAddr.addr.vlanId = 0;
         inArgs.inPktMatchCfg.dstMacAddr.egressPortNum = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum);
 
@@ -586,7 +586,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
         memcpy(inArgs.inPktMatchCfg.dstIp.ipv4.ipv4Addr, &pInterVlanCfg->dstIpv4Addr[0U], sizeof(inArgs.inPktMatchCfg.dstIp.ipv4.ipv4Addr));
         inArgs.inPktMatchCfg.packetMatchEnableMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
-        memcpy(inArgs.inPktMatchCfg.dstMacAddr.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddr.addr));
+        memcpy(inArgs.inPktMatchCfg.dstMacAddr.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddr.addr.addr));
         inArgs.inPktMatchCfg.dstMacAddr.addr.vlanId = 0;
         inArgs.inPktMatchCfg.dstMacAddr.egressPortNum = CPSW_ALE_HOST_PORT_NUM;
 

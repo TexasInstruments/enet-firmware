@@ -62,6 +62,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#if defined(__KLOCWORK__)
+#include <stdlib.h>
+#endif
+
 /* XDCtools Header files */
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
@@ -237,7 +241,14 @@ char *VerStr = "NIMU CPSW Example";
 // hack for release mode build fix TODO fix this
 void localAssert(bool cond)
 {
+#if defined(__KLOCWORK__)
+    if (!cond)
+    {
+        abort();
+    }
+#else
     assert(cond);
+#endif
 }
 
 void stackInitHook(void *hCfg)
