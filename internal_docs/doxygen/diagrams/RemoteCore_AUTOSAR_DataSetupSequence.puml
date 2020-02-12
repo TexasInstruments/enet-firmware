@@ -1,0 +1,39 @@
+@startuml
+'AUTOSAR / MCAL Data Path Setup
+
+entity AUTOSAR_App as "AUTOSAR App"
+entity ETH_DRV as "Eth Driver"
+entity SWITCH_R5 as "Switch R5F"
+
+AUTOSAR_App -> ETH_DRV         : <b>Eth_init()</b>
+ETH_DRV     -> SWITCH_R5       : <b>Eth_RpcAnnounce()</b>
+SWITCH_R5   -> SWITCH_R5       : Send Ethernet Firmware info
+SWITCH_R5   -> ETH_DRV
+ETH_DRV     -> AUTOSAR_App     : fwRegisteredCb()
+
+AUTOSAR_App -> ETH_DRV         : <b>Eth_DispatchVirtmacInit()</b>
+ETH_DRV     -> SWITCH_R5       : <b>Eth_RpcExtendedAttachReq()</b>
+SWITCH_R5   -> SWITCH_R5       : Allocate txCh, rxFlow, macAddress
+SWITCH_R5   -> ETH_DRV         : return (txCh, rxFlowId, macAddress)
+ETH_DRV     -> AUTOSAR_App
+
+AUTOSAR_App -> ETH_DRV         : <b>Eth_ControllerInit()</b>
+ETH_DRV     -> ETH_DRV         : Init Tx DMA / Rings / Queues\nInit Rx DMA / Rings / Queues
+ETH_DRV     -> AUTOSAR_App
+
+AUTOSAR_App -> ETH_DRV         : <b>Eth_SetControllerMode(ACTIVE)</b>
+ETH_DRV     -> AUTOSAR_App
+
+AUTOSAR_App -> ETH_DRV         : <b>Eth_DispatchVirtmacSubscribeDstMac(macAddress)</b>
+ETH_DRV     -> SWITCH_R5
+SWITCH_R5   -> SWITCH_R5       : Add ALE classifier to map DA to rxFlowId
+SWITCH_R5   -> ETH_DRV
+ETH_DRV     -> AUTOSAR_App
+
+AUTOSAR_App -> ETH_DRV         : <b>Eth_DispatchVirtmacAddUnicastAddress(macAddress)</b>
+ETH_DRV     -> SWITCH_R5
+SWITCH_R5   -> SWITCH_R5       : Add ALE unicast entry with port set to host port
+SWITCH_R5   -> ETH_DRV
+ETH_DRV     -> AUTOSAR_App
+
+@enduml

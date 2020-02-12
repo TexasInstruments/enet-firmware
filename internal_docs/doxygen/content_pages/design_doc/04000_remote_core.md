@@ -79,3 +79,29 @@ The application `app_remoteswitchcfg_client` demonstrates the remote core IOCTL
 invocation using the `CPSW_IOCTL_IS_PORT_LINK_UP` to query PHY status.
 
 [Back To Top](@ref ethfw_remotecore_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# AUTOSAR {#ethfw_remotecore_autosar}
+
+The Ethernet Firmware is capable of interfacing with a remote core running an
+AUTOSAR stack.  The remote core side must implement a MCAL Ethernet driver with
+support for virtual MAC.
+
+In virtual MAC mode, the role of the Etherner driver is restricted from any
+configuration of CPSW registers as well as management of Ethernet PHYs, which
+are solely owned by the Ethernet Firmware.
+
+The virtual MAC Ethernet driver communicates with the master core via IPC to
+establish a data path by requesting DMA resources such as Tx channel and Rx
+flow, destination MAC address, etc.  The IPC communication is enabled in the
+AUTOSAR stack through a MCAL Complex Device Driver called CddIpc.
+
+The following diagram shows the AUTOSAR / MCAL data setup sequence.
+
+![](RemoteCore_AUTOSAR_DataSetupSequence.png "AUTOSAR/MCAL Remote Core Data Path Setup API Sequence")
+
+Please refer to the TI MCUSW package for further details on the AUTOSAR / MCAL
+side of the integration and enablement of the virtual MAC feature.
+
+[Back To Top](@ref ethfw_remotecore_top)
