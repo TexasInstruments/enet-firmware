@@ -1,0 +1,36 @@
+var group__CPSW__PROXY__API =
+[
+    [ "CpswProxy_Config", "structCpswProxy__Config.html", [
+      [ "rpmsgEndPointId", "structCpswProxy__Config.html#ad3741c68fafa7a2a22d572cd22333dac", null ],
+      [ "masterCoreId", "structCpswProxy__Config.html#ac87d038cff775758e9bddfffaa1cd66b", null ],
+      [ "device_name", "structCpswProxy__Config.html#ab1a022aed5ac3f5eb7981425f7b72ea8", null ],
+      [ "deviceDataNotifyCb", "structCpswProxy__Config.html#ab5259410c82e9a2d0c967dd805a98de5", null ]
+    ] ],
+    [ "CpswProxy_deviceDataNotifyCbFxn", "group__CPSW__PROXY__API.html#gaa4968de98a34edee19d9c8412209d45d", null ],
+    [ "CpswProxy_Handle", "group__CPSW__PROXY__API.html#ga25bd37511adb54a0b9ca7d0946afc6ea", null ],
+    [ "CpswProxy_init", "group__CPSW__PROXY__API.html#ga4e2e19d860c31f8df2e7fb90b397991f", null ],
+    [ "CpswProxy_deInit", "group__CPSW__PROXY__API.html#gaee800a1786444cdb370c3de6c7c70e2c", null ],
+    [ "CpswProxy_start", "group__CPSW__PROXY__API.html#ga309c7327e2e16ddf545a86754d014c30", null ],
+    [ "CpswProxy_attach", "group__CPSW__PROXY__API.html#gad5c665dfdeef2cef06c23fe6a2b01219", null ],
+    [ "CpswProxy_attachExtended", "group__CPSW__PROXY__API.html#ga5609056ee36bcfa6ca3ab678174b5477", null ],
+    [ "CpswProxy_detach", "group__CPSW__PROXY__API.html#gaf9f74119665222e62185d68faf695f0d", null ],
+    [ "CpswProxy_allocTxCh", "group__CPSW__PROXY__API.html#gad4a1c11bc94c5c7b33799fa6e31c32e1", null ],
+    [ "CpswProxy_freeTxCh", "group__CPSW__PROXY__API.html#ga6534006ffd25a06d147bf7af0cad5baa", null ],
+    [ "CpswProxy_allocRxFlow", "group__CPSW__PROXY__API.html#gae1c1725fa510a4fa8fd2b2c6b734b76b", null ],
+    [ "CpswProxy_freeRxFlow", "group__CPSW__PROXY__API.html#ga65d9d955ce5f13a86ef109aaef12a229", null ],
+    [ "CpswProxy_allocMac", "group__CPSW__PROXY__API.html#ga7ce4129b75954d19adb02a395a039afd", null ],
+    [ "CpswProxy_freeMac", "group__CPSW__PROXY__API.html#ga36edad0f26c0233bf43754e6b0b6d3e3", null ],
+    [ "CpswProxy_registerDstMacRxFlow", "group__CPSW__PROXY__API.html#ga9cc920979520d4295f5132e09dbb07c7", null ],
+    [ "CpswProxy_unregisterDstMacRxFlow", "group__CPSW__PROXY__API.html#ga3f50b8e7421af72a9525f3f4223310d8", null ],
+    [ "CpswProxy_registerEthertypeRxFlow", "group__CPSW__PROXY__API.html#ga9a0a6502df8d2835f44c979bdbb46831", null ],
+    [ "CpswProxy_unregisterEthertypeRxFlow", "group__CPSW__PROXY__API.html#ga9ae258ed08ee50476a6f4e81c116e5e8", null ],
+    [ "CpswProxy_registerDefaultRxFlow", "group__CPSW__PROXY__API.html#ga91554b4a64f2a5cd6a6c7908b4c05679", null ],
+    [ "CpswProxy_unregisterDefaultRxFlow", "group__CPSW__PROXY__API.html#ga9f6cb488838b1a0d7e3685fce3331ff3", null ],
+    [ "CpswProxy_registerIPV4Addr", "group__CPSW__PROXY__API.html#ga602f6d66737b8907718b9b6ec1f4e2fe", null ],
+    [ "CpswProxy_unregisterIPV4Addr", "group__CPSW__PROXY__API.html#gac83319dbddcaa5bdcb4ee8c48251d410", null ],
+    [ "CpswProxy_addHostPortEntry", "group__CPSW__PROXY__API.html#ga0b952d4ae6654cb0892a4406539b9c76", null ],
+    [ "CpswProxy_delAddrEntry", "group__CPSW__PROXY__API.html#ga61d37edcea0361aa918c9e4816af42ed", null ],
+    [ "CpswProxy_ioctl", "group__CPSW__PROXY__API.html#ga7f8e3e7f7bb4e58a64a286b27905f607", null ],
+    [ "CpswProxy_isPhyLinked", "group__CPSW__PROXY__API.html#gae92672099f4dce0e8da629b66294d405", null ],
+    [ "CpswProxy_sendNotify", "group__CPSW__PROXY__API.html#ga46c5058b8da4c5c48575078a45e45607", null ]
+];
