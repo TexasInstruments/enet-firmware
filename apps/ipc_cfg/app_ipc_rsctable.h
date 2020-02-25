@@ -91,7 +91,7 @@ extern "C" {
 #define RPMSG_C66_DSP_FEATURES  1
 #define RPMSG_C7X_DSP_FEATURES  1
 
-extern char xdc_runtime_SysMin_Module_State_0_outbuf__A;
+extern xdc_Char xdc_runtime_SysMin_Module_State_0_outbuf__A[];
 #define TRACEBUFADDR ((uintptr_t)&xdc_runtime_SysMin_Module_State_0_outbuf__A)
 
 const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(".resource_table"), aligned(4096))) =
