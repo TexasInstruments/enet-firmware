@@ -7,7 +7,6 @@ var NAVTREE =
       [ "Document Revision History", "ethfw_design_top.html#ethfw_design_rev_hist", null ]
     ] ],
     [ "Top-Level Design", "ethfw_tldesign_top.html", [
-      [ "Requirements Addressed", "ethfw_tldesign_top.html#ethfw_tldesign_reqs", null ],
       [ "Top-Level Directory Structure", "ethfw_tldesign_top.html#ethfw_tldesign_dir_struct", null ]
     ] ],
     [ "Resource Utilization", "ethfw_resource_top.html", [

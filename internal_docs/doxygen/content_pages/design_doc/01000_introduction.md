@@ -105,5 +105,5 @@ The following features are not supported in the current release:
 
 Revision | Date          | Author         | Description              | Status
 ---------|---------------|----------------|--------------------------|-------
-0.1      | 22 Oct 2019   | Misael Lopez   | First version            | Approved
-0.2      | 28 Jan 2020   | Misael Lopez   | Updates for SDK 06.02.00 | Approved
+0.1      | 22 Oct 2019   | Misael Lopez   | First version            | Draft
+1.0      | 28 Jan 2020   | Misael Lopez   | Updates for SDK 06.02.00 | Approved

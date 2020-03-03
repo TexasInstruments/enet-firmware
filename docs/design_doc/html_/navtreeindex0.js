@@ -14,8 +14,7 @@ var NAVTREEINDEX0 =
 "ethfw_resource_top.html#ethfw_resource_irqs":[2,2],
 "ethfw_resource_top.html#ethfw_resource_peripherals":[2,0],
 "ethfw_tldesign_top.html":[1],
-"ethfw_tldesign_top.html#ethfw_tldesign_dir_struct":[1,1],
-"ethfw_tldesign_top.html#ethfw_tldesign_reqs":[1,0],
+"ethfw_tldesign_top.html#ethfw_tldesign_dir_struct":[1,0],
 "index.html":[],
 "pages.html":[]
 };

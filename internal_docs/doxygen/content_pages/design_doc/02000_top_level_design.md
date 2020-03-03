@@ -3,13 +3,6 @@
 [TOC]
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Requirements Addressed {#ethfw_tldesign_reqs}
-
-- [ADAS_SW-240](https://jira.itg.ti.com/browse/ADAS_SW-240) - CPSW benchmarking for throughput, latency
-- [ADAS_SW-380](https://jira.itg.ti.com/browse/ADAS_SW-380) - Basic Ethernet Switch firmware on Main domain R5
-
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Top-Level Directory Structure {#ethfw_tldesign_dir_struct}
 
 The directory structure of the Ethernet Firmware is shown below::
