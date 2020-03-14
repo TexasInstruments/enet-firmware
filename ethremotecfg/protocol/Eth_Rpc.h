@@ -180,7 +180,7 @@ typedef enum
 /*!
  * Maximum length of ethernet switch remote device message data in rpmsg_kdrv_ethswitch_ping_request
  */
-#define ETH_RPC_MESSAGE_DATA_LEN    (128)
+#define ETH_RPC_MESSAGE_DATA_LEN    (384)
 
 /*!
  * Number of priorities supported by CPSW

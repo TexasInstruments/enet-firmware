@@ -67,6 +67,8 @@ extern "C" {
 #define APP_PROFILE_FXN_ID_3                 (3)
 #define APP_PROFILE_FXN_ID_4                 (4)
 
+#define APP_PROFILE_TSK_NAME_SIZE            (20U)
+
 
 typedef void (* AppProfilePrintFxn)(const char *format, ...);
 typedef uint32_t (* AppProfileGetPacketCountFxn)(void);
@@ -93,12 +95,12 @@ typedef struct appProfileFxnLoadInfo_s {
     uint32_t numFunctions;
     appProfileFxnLoad fxn[APP_MAX_PROFILE_FXNS];
 } appProfileFxnLoadInfo;
-    
+
 
 typedef struct appProfileAvgLoadInfo_s
 {
     struct appProfileTskLoad_s {
-        char      *tskName;
+        char      tskName[APP_PROFILE_TSK_NAME_SIZE];
         uint32_t  load;
     } tskLoad[THRLOAD_MAX_NUM_TASKS];
     uint32_t             isr;

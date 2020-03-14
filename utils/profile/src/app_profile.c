@@ -146,7 +146,7 @@ typedef struct loadEntryTbl {
 /*                            Global Variables                                */
 /* ========================================================================== */
 #pragma DATA_SECTION(apploadEntryTbl,".benchmark_buffer")
-loadEntryTbl apploadEntryTbl = 
+loadEntryTbl apploadEntryTbl =
 {.hProfileControlEvt = NULL};
 volatile uint32_t appLoadDebugFlag = 1;
 
@@ -263,7 +263,7 @@ void app_loadUpdateCb(void)
         curTask = nextTask;
         if (NULL != curTask) {
             app_GetTaskLoad(curTask,pLocalLoadEntry,&activeTaskCnt);
-            
+
             nTaskCnt++;
             nextTask = Task_Object_next(curTask);
         }
@@ -282,7 +282,7 @@ void app_loadUpdateCb(void)
 
 static void loadPrintLoadStats(Load_Stat *stats)
 {
-    
+
     apploadEntryTbl.profileConfig.printFxn("%u,",
                 Load_calculateLoad(stats));
 
@@ -346,7 +346,7 @@ void app_profileStart(void)
     if (apploadEntryTbl.hProfileControlEvt)
     {
         Types_Timestamp64    windowTs64;
-        
+
         Timestamp_get64(&windowTs64);
         apploadEntryTbl.profileConfig.printFxn ("\n\nStartTime: Hi:Lo::%u:%u\n\n",windowTs64.hi,windowTs64.lo);
         Event_post(apploadEntryTbl.hProfileControlEvt,APP_PROFILE_START_EVENT_ID);
@@ -362,16 +362,16 @@ void app_profileStop()
     if (apploadEntryTbl.hProfileControlEvt)
     {
         Types_Timestamp64    windowTs64;
-        
+
         Timestamp_get64(&windowTs64);
         apploadEntryTbl.profileConfig.printFxn ("\n\nStopTime: Hi:Lo::%u:%u\n\n",windowTs64.hi,windowTs64.lo);
-        
+
         Event_post(apploadEntryTbl.hProfileControlEvt,APP_PROFILE_STOP_EVENT_ID);
     }
     else
     {
         while (appLoadDebugFlag);
-    }    
+    }
 }
 
 
@@ -406,7 +406,7 @@ void app_profile(UArg a0, UArg a1)
     bool enableProfiling;
     uint32_t profileElapsedTime;
     bool exitTask;
-    
+
     Event_Params_init(&evtParams);  // Initialize this config-params structure with supplier-specified defaults before instance creation
     Event_construct(&apploadEntryTbl.profileControlEvt,&evtParams);
     apploadEntryTbl.hProfileControlEvt = Event_handle(&apploadEntryTbl.profileControlEvt);
@@ -420,7 +420,7 @@ void app_profile(UArg a0, UArg a1)
     exitTask = false;
     while (exitTask != true)
     {
-        postedEvent = 
+        postedEvent =
                    Event_pend(apploadEntryTbl.hProfileControlEvt,
                    0,
                    (APP_PROFILE_START_EVENT_ID | APP_PROFILE_STOP_EVENT_ID | APP_PROFILE_DEINIT_EVENT_ID),
@@ -465,7 +465,7 @@ void app_profile(UArg a0, UArg a1)
                 loadPrint();
                 app_loadInit();
                 profileElapsedTime = 0;
-            }            
+            }
         }
     }
 }
@@ -508,7 +508,7 @@ void app_profileRegisterTaskLoad(struct appProfileTskLoad_s * avgTaskLoad, loadE
 
     for (i = 0; i < *activeTaskCount; i++)
     {
-        if (avgTaskLoad[i].tskName == curTaskRecord->tskName)
+        if (strcmp(&avgTaskLoad[i].tskName[0U], curTaskRecord->tskName))
         {
             avgTaskLoad[i].load += Load_calculateLoad(&curTaskRecord->load_stat);
             avgTaskLoad[i].load /= 2;
@@ -519,7 +519,8 @@ void app_profileRegisterTaskLoad(struct appProfileTskLoad_s * avgTaskLoad, loadE
     {
         if ((Load_calculateLoad(&curTaskRecord->load_stat) > 0) && (*activeTaskCount < maxTaskCount))
         {
-            avgTaskLoad[*activeTaskCount].tskName = curTaskRecord->tskName;
+            strncpy(&avgTaskLoad[*activeTaskCount].tskName[0U], curTaskRecord->tskName, APP_PROFILE_TSK_NAME_SIZE);
+            avgTaskLoad[*activeTaskCount].tskName[APP_PROFILE_TSK_NAME_SIZE - 1] = '\0';
             avgTaskLoad[*activeTaskCount].load    = Load_calculateLoad(&curTaskRecord->load_stat);
             *activeTaskCount = *activeTaskCount + 1;
         }
