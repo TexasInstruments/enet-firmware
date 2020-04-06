@@ -100,7 +100,6 @@
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
 
-#include "webpage.h"
 
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL  (100)
 #define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
@@ -259,12 +258,10 @@ void stackInitHook(void *hCfg)
     rc = 16384;
     CfgAddEntry(hCfg, CFGTAG_OS, CFGITEM_OS_TASKSTKBOOT,
                 CFG_ADDMODE_UNIQUE, sizeof(uint32_t), (uint8_t *)&rc, 0);
-    AddWebFiles();
 }
 
 void stackDeleteHook(void *hCfg)
 {
-    RemoveWebFiles();
 }
 
 void IpAddrHookFxn(uint32_t IPAddr,

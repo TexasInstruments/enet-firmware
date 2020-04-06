@@ -9,7 +9,6 @@ TARGETTYPE  := exe
 CSOURCES    := main_tirtos.c
 CSOURCES    += app_intervlan.c
 CSOURCES    += app_swintervlan.c
-CSOURCES    += webpage.c
 
 
 XDC_BLD_FILE = $($(_MODULE)_SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
