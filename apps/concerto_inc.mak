@@ -1,4 +1,11 @@
-TARGET_CPU_FOLDER := $(call lowercase,$(TARGET_CPU))
+ifeq ($(TARGET_CPU),R5Ft)
+    TARGET_CPU_FOLDER := r5f
+    REMOTE_DEVICE_TARGET_CPU := R5F
+else
+    TARGET_CPU_FOLDER := $(call lowercase,$(TARGET_CPU))
+    REMOTE_DEVICE_TARGET_CPU := $(TARGET_CPU)
+endif
+
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 TARGET_BOARD_FOLDER := $(call lowercase,${$(TARGET_PLATFORM)_BOARD})
 CPU_ID_FOLDER       := $(strip $(if $(filter $(call lowercase,${CPU_ID}),mpu1),mpu1_0,$(call lowercase,${CPU_ID})))
@@ -18,7 +25,7 @@ endif
 XDC_INCLUDE_PACKAGES_PATH    += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
 
 ifeq ($(TARGET_PLATFORM),J721E)
-    ifeq (${TARGET_CPU},R5F)
+    ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
         ifneq (,$(filter ${CPU_ID},mcu_1_0 mcu_1_1))
             XDC_PLATFORM = ti.platforms.cortexR:J7ES_MCU
         else
@@ -31,7 +38,7 @@ ifeq ($(TARGET_PLATFORM),J721E)
     endif
 else
     ifeq ($(TARGET_PLATFORM),AM65XX)
-        ifeq (${TARGET_CPU},R5F)
+        ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
         XDC_PLATFORM = ti.platforms.cortexR:AM65X
         else
             ifeq (${TARGET_CPU},A53)
@@ -64,7 +71,7 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/udma/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLD
 LDIRS += $(PDK_PATH)/packages/ti/drv/sciclient/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/pm/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/ipc/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
-LDIRS += $(REMOTE_DEVICE_PATH)/out/${REMOTE_DEVICE_SOC_FOLDER}/${TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
+LDIRS += $(REMOTE_DEVICE_PATH)/out/${REMOTE_DEVICE_SOC_FOLDER}/${REMOTE_DEVICE_TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
 
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_utils_console_io
@@ -73,21 +80,24 @@ STATIC_LIBS += app_remote_service
 STATIC_LIBS += app_perf_stats
 STATIC_LIBS += app_ethfw_stats
 
-ifeq (${TARGET_CPU},R5F)
-     ADDITIONAL_STATIC_LIBS += ti.board.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += nimucpsw.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += cpswsoc.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += cpsw_cfgserver.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += cpsw_apputils.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += cpsw.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += udma.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += ipc.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += sciclient.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += ti.drv.i2c.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += ti.csl.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += ti.osal.ae$(call lowercase,$(TARGET_CPU))
-     ADDITIONAL_STATIC_LIBS += pm_lib.ae$(call lowercase,$(TARGET_CPU))
+ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
+     # Same extension is kept for R5F or R5Ft (Thumb mode)
+     # in PDK build system for backwards compatibility reasons
+     TARGET_CPU_SUFFIX=r5f
+     ADDITIONAL_STATIC_LIBS += ti.board.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += nimucpsw.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += cpswsoc.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += cpsw_cfgserver.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += cpsw_apputils.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += cpsw.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += udma.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += ipc.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += sciclient.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += ti.drv.i2c.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += ti.csl.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += pm_lib.ae$(TARGET_CPU_SUFFIX)
 else
     CORTEX_A_LIB_SUFFIX := $(if $(filter $(TARGET_BUILD),debug),g,)
     ifneq (,$(filter ${TARGET_CPU},A72 A53))

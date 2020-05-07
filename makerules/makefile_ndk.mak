@@ -26,18 +26,26 @@ endif
 #NDK_ENV_SETTINGS  += ti.targets.arm.elf.M3=${TIARMCGT_ROOT}      
 #NDK_ENV_SETTINGS  += ti.targets.arm.elf.M4=${TIARMCGT_ROOT}      
 #NDK_ENV_SETTINGS  += ti.targets.arm.elf.M4F=${TIARMCGT_ROOT}     
+
 ifeq ($(BUILD_ISA_R5F),yes)
 NDK_ENV_SETTINGS  += ti.targets.arm.elf.R5F=${TIARMCGT_ROOT_$(TARGET_PLATFORM)}
 endif
+
+ifeq ($(BUILD_ISA_R5Ft),yes)
+NDK_ENV_SETTINGS  += ti.targets.arm.elf.R5Ft=${TIARMCGT_ROOT_$(TARGET_PLATFORM)}
+endif
+
 #NDK_ENV_SETTINGS  += gnu.targets.arm.M3=${GCC_SYSBIOS_ARM_ROOT}  
 #NDK_ENV_SETTINGS  += gnu.targets.arm.M4=${GCC_SYSBIOS_ARM_ROOT}  
 #NDK_ENV_SETTINGS  += gnu.targets.arm.M4F=${GCC_SYSBIOS_ARM_ROOT} 
 #NDK_ENV_SETTINGS  += gnu.targets.arm.A8F=${GCC_SYSBIOS_ARM_ROOT} 
 #NDK_ENV_SETTINGS  += gnu.targets.arm.A9F=${GCC_SYSBIOS_ARM_ROOT} 
 #NDK_ENV_SETTINGS  +=  gnu.targets.arm.A15F=${GCC_SYSBIOS_ARM_ROOT}
+
 ifeq ($(BUILD_ISA_A72),yes)
 NDK_ENV_SETTINGS  +=  gnu.targets.arm.A53F=${GCC_SYSBIOS_ARM_ROOT}
 endif
+
 ifeq ($(BUILD_ISA_A53),yes)
 NDK_ENV_SETTINGS  +=  gnu.targets.arm.A53F=${GCC_SYSBIOS_ARM_ROOT}
 endif

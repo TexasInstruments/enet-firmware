@@ -12,12 +12,12 @@ SECTIONS
     } palign(8) > ATCM_START
 
     .text_boot {
-        *boot.aer5f<*boot.o*>(.text)
-        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_keystone3_Hwi_*)
-        -lti.targets.arm.rtsarm.aer5f<*.o*>(.text:xdc_runtime_*)
-        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_Cache*)
-        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_MPU*)
-        -lsysbios.aer5f<BIOS.o*>(.text:ti_sysbios_family_arm_exc*)
+        *boot.aer5f*<*boot.o*>(.text)
+        -lsysbios.aer5f*<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_keystone3_Hwi_*)
+        -lti.targets.arm.rtsarm.aer5f*<*.o*>(.text:xdc_runtime_*)
+        -lsysbios.aer5f*<BIOS.o*>(.text:ti_sysbios_family_arm_v7r_Cache*)
+        -lsysbios.aer5f*<BIOS.o*>(.text:ti_sysbios_family_arm_MPU*)
+        -lsysbios.aer5f*<BIOS.o*>(.text:ti_sysbios_family_arm_exc*)
         *(*:xdc_runtime_Startup*)
         *(*:ti_sysbios_family_arm_v7r*)
         *(*:ti_sysbios_family_arm_MPU*)

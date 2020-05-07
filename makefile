@@ -15,7 +15,7 @@ TARGET_COMBOS :=
 
 SOC_LIST := J721E AM65XX
 OS_LIST  := SYSBIOS LINUX
-ISA_LIST := R5F A72 A53 C66 C71
+ISA_LIST := R5F R5Ft A72 A53 C66 C71
 PROFILE_LIST := debug release
 CGT_LIST := TIARMCGT GCC_SYSBIOS_ARM CGT6X CGT7X GCC_LINUX_ARM
 
@@ -36,6 +36,10 @@ ifeq ($(BUILD_TARGET_MODE),yes)
 
   ifneq ($(BUILD_ISA_R5F),yes)
     ISA_LIST := $(filter-out R5F,$(ISA_LIST))
+  endif
+
+  ifneq ($(BUILD_ISA_R5Ft),yes)
+    ISA_LIST := $(filter-out R5Ft,$(ISA_LIST))
   endif
 
   ifneq ($(BUILD_ISA_A72),yes)

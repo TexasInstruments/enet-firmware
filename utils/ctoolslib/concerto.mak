@@ -1,6 +1,6 @@
 BUILD_CCS_PROJECT := $(and $(wildcard ${CCS_PATH}/.),TRUE)
 ifneq (,$(filter $(TARGET_PLATFORM),J721E AM65XX))
-ifeq ($(TARGET_CPU),R5F)
+ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
 ifeq ($(TARGET_OS),SYSBIOS)
 
 ifeq ($(BUILD_CCS_PROJECT),TRUE)

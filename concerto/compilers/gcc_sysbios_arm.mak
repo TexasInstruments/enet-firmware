@@ -51,7 +51,7 @@ ifeq ($(strip $($(_MODULE)_TYPE)),library)
     BIN_EXT=.a
 else
     BIN_PRE=
-    ifneq (,$(filter ${TARGET_CPU},R5F))
+    ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     BIN_EXT=.xe$(strip $(call lowercase,$(TARGET_CPU)))
     else
         ifneq (,$(filter ${TARGET_CPU},A72 A53))

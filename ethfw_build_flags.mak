@@ -23,6 +23,10 @@ BUILD_CPU_MCU2_1?=yes
 BUILD_CPU_MCU3_1?=no
 BUILD_SOC_LIST ?= J721E
 
+# R5F Thumb mode
+# Temporarily disabled until PDK and EthFw move to NDK/NS versions that support Thumb mode
+BUILD_R5F_THUMB?=no
+
 # PDK build board
 PDK_BUILD_BOARD ?= j721e_evm
 
@@ -39,9 +43,16 @@ TREAT_WARNINGS_AS_ERROR ?= false
 
 # Build a specific CPU type's based on CPU flags status defined above
 ifneq (,$(filter yes,$(BUILD_CPU_MCU1_0) $(BUILD_CPU_MCU1_1) $(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0) $(BUILD_CPU_MCU3_1)))
-BUILD_ISA_R5F=yes
+    ifeq ($(BUILD_R5F_THUMB),yes)
+        BUILD_ISA_R5F=no
+        BUILD_ISA_R5Ft=yes
+    else
+        BUILD_ISA_R5F=yes
+        BUILD_ISA_R5Ft=no
+    endif
 else
-BUILD_ISA_R5F=no
+    BUILD_ISA_R5F=no
+    BUILD_ISA_R5Ft=no
 endif
 
 ifneq (,$(filter yes,$(BUILD_CPU_C6x_1) $(BUILD_CPU_C6x_2)))

@@ -12,7 +12,7 @@ ifeq ($(TARGET_CPU),A72)
 CSOURCES += src/app_log_printf_gcc_sysbios.c   
 endif 
 
-ifeq ($(TARGET_CPU),$(filter $(TARGET_CPU), R5F C66 C71))
+ifeq ($(TARGET_CPU),$(filter $(TARGET_CPU), R5F R5Ft C66 C71))
 CSOURCES += src/app_log_printf_ticgt_sysbios.c
 endif
 
