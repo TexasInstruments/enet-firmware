@@ -1041,12 +1041,15 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     CpswProxyServer_validateHandle(hCpsw);
 
     ConCmdRoute(1, "print", NULL, NULL, NULL);
-    status = LLIAddStaticEntry(ipaddr,
-                               mac_address);
+
+    status = LLIAddStaticEntryWithFlags(ipaddr,
+                                        mac_address,
+                                        (FLG_RTE_HOST|FLG_RTE_STATIC|FLG_RTE_PROXYPUB));
     if (status != 0)
     {
-        status = LLIAddStaticEntry(ipaddr,
-                                   mac_address);
+        status = LLIAddStaticEntryWithFlags(ipaddr,
+                                            mac_address,
+                                            (FLG_RTE_HOST|FLG_RTE_STATIC|FLG_RTE_PROXYPUB));
     }
 
     if (status != 0)
