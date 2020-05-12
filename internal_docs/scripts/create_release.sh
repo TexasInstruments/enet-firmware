@@ -135,7 +135,7 @@ BIOS_VERSION_AM65XX=${BIOS_VERSION}
 CGT_ARM_VERSION_AM65XX=${CGT_ARM_VERSION}
 
 # Get J721E's current dependency version info
-make --no-print-directory -C ../.repo/manifests/ SOC=j721e BOARD=j721e_sim get_component_versions > .component_versions
+make --no-print-directory -C ../.repo/manifests/ SOC=j721e BOARD=j721e_evm get_component_versions > .component_versions
 source .component_versions
 BIOS_VERSION_J721E=${BIOS_VERSION}
 CGT_ARM_VERSION_J721E=${CGT_ARM_VERSION}
