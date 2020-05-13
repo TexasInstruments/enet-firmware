@@ -1,9 +1,7 @@
 
 include ../../ethfw_tools_path.mak
 
-export DOXYGEN_VERSION ?= 1.8.13
-export DOXYGEN_PATH ?= $(PSDK_PATH)
-export DOXYGEN ?= $(DOXYGEN_PATH)/doxygen-$(DOXYGEN_VERSION)/bin/doxygen
+export DOXYGEN ?= doxygen
 
 # Commands commonly used within the make files
 RM = $(UTILSPATH)rm -f
