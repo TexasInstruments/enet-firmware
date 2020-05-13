@@ -1,0 +1,704 @@
+/*
+ *
+ * Copyright (c) 2020 Texas Instruments Incorporated
+ *
+ * All rights reserved not granted herein.
+ *
+ * Limited License.
+ *
+ * Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
+ * license under copyrights and patents it now or hereafter owns or controls to make,
+ * have made, use, import, offer to sell and sell ("Utilize") this software subject to the
+ * terms herein.  With respect to the foregoing patent license, such license is granted
+ * solely to the extent that any such patent is necessary to Utilize the software alone.
+ * The patent license shall not apply to any combinations which include this software,
+ * other than combinations with devices manufactured by or for TI ("TI Devices").
+ * No hardware patent is licensed hereunder.
+ *
+ * Redistributions must preserve existing copyright notices and reproduce this license
+ * (including the above copyright notice and the disclaimer and (if applicable) source
+ * code license limitations below) in the documentation and/or other materials provided
+ * with the distribution
+ *
+ * Redistribution and use in binary form, without modification, are permitted provided
+ * that the following conditions are met:
+ *
+ * *       No reverse engineering, decompilation, or disassembly of this software is
+ * permitted with respect to any software provided in binary form.
+ *
+ * *       any redistribution and use are licensed by TI for use only with TI Devices.
+ *
+ * *       Nothing shall obligate TI to provide you with source code for the software
+ * licensed and provided to you in object code.
+ *
+ * If software source code is provided to you, modification and redistribution of the
+ * source code are permitted provided that the following conditions are met:
+ *
+ * *       any redistribution and use of the source code, including any resulting derivative
+ * works, are licensed by TI for use only with TI Devices.
+ *
+ * *       any redistribution and use of any object code compiled from the source code
+ * and any resulting derivative works, are licensed by TI for use only with TI Devices.
+ *
+ * Neither the name of Texas Instruments Incorporated nor the names of its suppliers
+ *
+ * may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * DISCLAIMER.
+ *
+ * THIS SOFTWARE IS PROVIDED BY TI AND TI'S LICENSORS "AS IS" AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL TI AND TI'S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+/**
+ *  \file ethfw.c
+ *
+ *  \brief Main file for Ethernet Firmware
+ */
+
+/* ========================================================================== */
+/*                             Include Files                                  */
+/* ========================================================================== */
+
+#include <stdio.h>
+#include <stdint.h>
+
+/* XDCtools header files */
+#include <xdc/std.h>
+#include <xdc/runtime/System.h>
+#include <xdc/runtime/Error.h>
+
+/* BIOS header files */
+#include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Task.h>
+#include <ti/osal/SemaphoreP.h>
+#include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/utils/Load.h>
+#include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Mailbox.h>
+
+/* EthFw header files */
+#include <ethfw/ethfw.h>
+
+/* PDK Driver header files */
+#include <ti/osal/osal.h>
+#include <ti/drv/ipc/ipc.h>
+#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/udma/udma.h>
+#include <ti/drv/uart/UART_stdio.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
+#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
+#include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
+
+/* EthFw utils header files */
+#include <utils/remote_service/include/app_remote_service.h>
+#include <utils/perf_stats/include/app_perf_stats.h>
+#include <utils/ethfw_stats/include/app_ethfw_stats_sysbios.h>
+
+/* EthFw remote configuration header files */
+#include <ethremotecfg/server/include/ethremotecfg_server.h>
+#include <ethremotecfg/server/include/cpsw_proxy_server.h>
+
+#include <server-rtos/remote-device.h>
+
+#include <utils/profile/include/app_profile.h>
+
+/* ========================================================================== */
+/*                           Macros & Typedefs                                */
+/* ========================================================================== */
+
+/*! Month substring offset in date string */
+#define ETHFW_VERSION_OFFSET_MONTH                    (0)
+
+/*! Date substring offset in date string */
+#define ETHFW_VERSION_OFFSET_DATE                     (4)
+
+/*! Year substring offset in data string */
+#define ETHFW_VERSION_OFFSET_YEAR                     (7)
+
+/*! Month substring offset in date string */
+#define ETHFW_VERSION_OFFSET_HOUR                     (0)
+
+/*! Date substring offset in date string */
+#define ETHFW_VERSION_OFFSET_MIN                      (3)
+
+/*! Year substring offset in data string */
+#define ETHFW_VERSION_OFFSET_SEC                      (6)
+
+/*! Remote device endpoint number */
+#define REMOTE_DEVICE_ENDPT                           (26U)
+
+/*! AUTOSAR Eth driver endpoint number */
+#define AUTOSAR_ETHDRIVER_DEVICE_ENDPT                (28U)
+
+/* ========================================================================== */
+/*                         Structure Declarations                             */
+/* ========================================================================== */
+
+typedef struct EthFw_Obj_s
+{
+    /* Core Id */
+    uint32_t coreId;
+
+    /* CPSW instance type */
+    Cpsw_Type cpswType;
+
+    /*! CPSW configuration */
+    Cpsw_Config cpswCfg;
+
+    /*! Firmware version */
+    EthFw_Version version;
+
+    /*! MAC ports owned by EthFw */
+    EthFw_Port ports[CPSW_MAC_PORT_NUM];
+
+    /*! Number of MAC ports owned by EthFw */
+    uint32_t numPorts;
+
+    /* Multiclient Manager (MCM) handle */
+    CpswMcm_CmdIf mcmCmdIf;
+} EthFw_Obj;
+
+/* ========================================================================== */
+/*                          Function Declarations                             */
+/* ========================================================================== */
+
+static int32_t EthFw_initMcm(void);
+
+static void EthFw_deinitMcm(void);
+
+static void EthFw_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
+                               Cpsw_MacPort macPort);
+
+static int32_t EthFw_setAleBcastEntry(void);
+
+static int32_t EthFw_initPerfRemoteService(void);
+
+static void EthFw_getMcmCmdIfCb(Cpsw_Type cpswType,
+                                CpswMcm_CmdIf **pMcmCmdIfHandle);
+
+static void EthFw_getDeviceData(uint32_t host_id,
+                                struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
+
+static void EthFw_handleProfileInfoNotify(uint32_t host_id,
+                                          Cpsw_Handle hCpsw,
+                                          Cpsw_Type cpswType,
+                                          uint32_t core_key,
+                                          enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
+                                          uint8_t *notify_info,
+                                          uint32_t notify_info_len);
+
+/* ========================================================================== */
+/*                          Extern variables                                  */
+/* ========================================================================== */
+
+/* None */
+
+/* ========================================================================== */
+/*                            Global Variables                                */
+/* ========================================================================== */
+
+/*! Ethernet Firmware object */
+EthFw_Obj gEthFwObj;
+
+/* ========================================================================== */
+/*                          Function Definitions                              */
+/* ========================================================================== */
+
+void EthFw_initConfigParams(Cpsw_Type cpswType,
+                            EthFw_Config *config)
+{
+    Cpsw_Config *cpswCfg = &config->cpswConfig;
+    CpswAle_Config *aleCfg = &cpswCfg->aleConfig;
+    CpswDma_Config *dmaCfg = &cpswCfg->dmaConfig;
+    Cpsw_VlanConfig *vlanCfg = &cpswCfg->vlanConfig;
+    CpswHostPort_Config *hostPortCfg = &cpswCfg->hostPortConfig;
+    CpswRm_ResourceConfig *resCfg = &cpswCfg->resourceConfig;
+
+    /* MAC port ownership */
+    config->ports = NULL;
+    config->numPorts = 0U;
+
+    /* Start with CPSW LLD's default configuration */
+    Cpsw_initParams(cpswCfg);
+    CpswAppUtils_initResourceConfig(cpswType, CpswAppSoc_getCoreId(), resCfg);
+
+    /* VLAN configuration */
+    vlanCfg->vlanAware = true;
+
+    /* Host port configuration */
+    hostPortCfg->removeCrc = true;
+    hostPortCfg->padShortPacket = true;
+    hostPortCfg->passCrcErrors = true;
+    hostPortCfg->enableCsumOffload = true;
+
+    /* ALE configuration */
+    aleCfg->modeFlags = CPSW_ALE_CONFIG_MASK_ALE_MODULE_ENABLE |
+                        CPSW_ALE_CONFIG_MASK_UNKNOWN_UNICAST_FLOOD2HOST;
+    aleCfg->agingConfig.enableAutoAging = TRUE;
+    aleCfg->agingConfig.agingPeriodInMs = 1000;
+    aleCfg->nwSecCfg.enableVid0Mode = FALSE;
+    aleCfg->vlanConfig.aleVlanAwareMode = TRUE;
+    aleCfg->vlanConfig.cpswVlanAwareMode = FALSE;
+    aleCfg->vlanConfig.unknownUnregMcastFloodMask = 0U;
+    aleCfg->vlanConfig.unknownRegMcastFloodMask = 0U;
+    aleCfg->vlanConfig.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
+    aleCfg->vlanConfig.autoLearnWithVLAN = false;
+    aleCfg->policerGlobalConfig.policingEnable = true;
+    aleCfg->policerGlobalConfig.yellowDropEnable = false;
+    aleCfg->policerGlobalConfig.redDropEnable = true;
+    aleCfg->policerGlobalConfig.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
+    aleCfg->portCfg[0].learningCfg.noLearn = FALSE;
+    aleCfg->portCfg[0].vlanCfg.dropUntagged = FALSE;
+    aleCfg->portCfg[1].learningCfg.noLearn = FALSE;
+    aleCfg->portCfg[1].vlanCfg.dropUntagged = FALSE;
+
+    /* DMA configuration */
+    dmaCfg->hUdmaDrv = NULL;
+    /* Use high priority RX channel to get higher priority on the UDMA */
+    dmaCfg->rxChInitPrms.dmaPriority = TISCI_MSG_VALUE_RM_UDMAP_CH_SCHED_PRIOR_HIGH;
+
+    /* ALE policer configuration */
+    aleCfg->policerGlobalConfig.policingEnable = true;
+    aleCfg->policerGlobalConfig.yellowDropEnable = false;
+    aleCfg->policerGlobalConfig.redDropEnable = true;
+    aleCfg->policerGlobalConfig.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
+}
+
+EthFw_Handle EthFw_init(Cpsw_Type cpswType,
+                        const EthFw_Config *config)
+{
+    char *date = __DATE__;
+    char *time = __TIME__;
+    int32_t status;
+
+    CpswAppUtils_assert(config != NULL);
+    CpswAppUtils_assert(config->ports != NULL);
+    CpswAppUtils_assert(config->numPorts <= CPSW_MAC_PORT_NUM);
+    CpswAppUtils_assert(config->cpswConfig.dmaConfig.hUdmaDrv != NULL);
+
+    memset(&gEthFwObj, 0, sizeof(gEthFwObj));
+
+    /* Save config parameters */
+    gEthFwObj.cpswCfg = config->cpswConfig;
+    gEthFwObj.numPorts = config->numPorts;
+    memcpy(&gEthFwObj.ports[0U],
+           config->ports,
+           gEthFwObj.numPorts * sizeof(EthFw_Port));
+
+    gEthFwObj.coreId = CpswAppSoc_getCoreId();
+    gEthFwObj.cpswType = cpswType;
+
+    /* Populate EthFw version */
+    gEthFwObj.version.major = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR;
+    gEthFwObj.version.minor = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR;
+    gEthFwObj.version.rev = RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION;
+
+    /* __DATE__ is a string constant that contains eleven characters and
+     * looks like "Feb 12 1996". If the day of the month is less than
+     * 10, it is padded with a space on the left */
+    memcpy(&gEthFwObj.version.month[0U],
+           &date[ETHFW_VERSION_OFFSET_MONTH],
+           ETHFW_VERSION_MONTHLEN);
+    memcpy(&gEthFwObj.version.date[0U],
+           &date[ETHFW_VERSION_OFFSET_DATE],
+           ETHFW_VERSION_DATELEN);
+    memcpy(&gEthFwObj.version.year[0U],
+           &date[ETHFW_VERSION_OFFSET_YEAR],
+           ETHFW_VERSION_YEARLEN);
+
+    /* __TIME__ is a string in 24 hour time format */
+    memcpy(&gEthFwObj.version.hour[0U],
+           &time[ETHFW_VERSION_OFFSET_HOUR],
+           ETHFW_VERSION_HOURLEN);
+    memcpy(&gEthFwObj.version.min[0U],
+           &time[ETHFW_VERSION_OFFSET_MIN],
+           ETHFW_VERSION_MINLEN);
+    memcpy(&gEthFwObj.version.sec[0U],
+           &time[ETHFW_VERSION_OFFSET_SEC],
+           ETHFW_VERSION_SECLEN);
+
+    /* RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT is defined by the build system */
+    memcpy(&gEthFwObj.version.commitHash[0U],
+           RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT,
+           ETHFW_VERSION_COMMITSHALEN);
+
+    gEthFwObj.version.month[ETHFW_VERSION_MONTHLEN] = '\0';
+    gEthFwObj.version.date[ETHFW_VERSION_DATELEN] = '\0';
+    gEthFwObj.version.year[ETHFW_VERSION_YEARLEN] = '\0';
+    gEthFwObj.version.hour[ETHFW_VERSION_HOURLEN] = '\0';
+    gEthFwObj.version.min[ETHFW_VERSION_MINLEN] = '\0';
+    gEthFwObj.version.sec[ETHFW_VERSION_SECLEN] = '\0';
+    gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
+
+    /* Initialize MCM */
+    status = EthFw_initMcm();
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("ETHFW: failed to init CPSW MCM: %d\n", status);
+    }
+    CpswAppUtils_assert(status == CPSW_SOK);
+
+    /* Add ALE entry for broadcast MAC address. Note this is needed as the broadcast
+     * is disabled via unknownRegMcastFloodMask and other flags in ALE init config.
+     * In EthFw we need broadcast to handle ARP entries for clients */
+    if (status == CPSW_SOK)
+    {
+        EthFw_setAleBcastEntry();
+    }
+
+    return (status == CPSW_SOK) ? &gEthFwObj : NULL;
+}
+
+void EthFw_deinit(EthFw_Handle hEthFw)
+{
+    CpswAppUtils_assert(hEthFw != NULL);
+
+    /* De-initialize MCM */
+    EthFw_deinitMcm();
+
+    gEthFwObj.numPorts = 0U;
+    memset(&gEthFwObj.cpswCfg, 0, sizeof(Cpsw_Config));
+}
+
+int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
+{
+    CpswProxyServer_Config_t cfg;
+    int32_t status;
+
+    CpswAppUtils_assert(hEthFw != NULL);
+
+    /* Initialize Proxy Server */
+    memset(&cfg, 0, sizeof(cfg));
+    cfg.getMcmCmdIfCb = &EthFw_getMcmCmdIfCb;
+    cfg.initEthfwDeviceDataCb = &EthFw_getDeviceData;
+    cfg.notifyCb = &EthFw_handleProfileInfoNotify;
+    cfg.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
+
+    /* Remote cores: mcu2_1, mpu1_0 */
+    cfg.numRemoteCores = 2;
+    cfg.remoteCoreCfg[0].remoteCoreId = IPC_MCU2_1;
+    snprintf(cfg.remoteCoreCfg[0].serverName, ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1);
+    cfg.remoteCoreCfg[1].remoteCoreId = IPC_MPU1_0;
+    snprintf(cfg.remoteCoreCfg[1].serverName, ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0);
+
+    /* AUTOSAR core: mcu2_1 */
+    cfg.autosarEthDriverRemoteCoreId = IPC_MCU2_1;
+    cfg.autosarEthDeviceEndPointId = AUTOSAR_ETHDRIVER_DEVICE_ENDPT;
+
+    status = CpswProxyServer_init(&cfg);
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("EthFw_initRemoteConfig() failed to init CPSW Proxy: %d\n", status);
+    }
+
+    /* Start Proxy Server */
+    if (status == CPSW_SOK)
+    {
+        status = CpswProxyServer_start();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("EthFw_initRemoteConfig() failed to start CPSW Proxy: %d\n", status);
+        }
+    }
+
+    return status;
+}
+
+int32_t EthFw_initRemoteServices(EthFw_Handle hEthFw)
+{
+    int32_t status;
+
+    CpswAppUtils_assert(hEthFw != NULL);
+
+    /* Late announcement of server's endpoint to MPU */
+    status = appRemoteDeviceLateAnnounce(IPC_MPU1_0);
+    if (status != IPC_SOK)
+    {
+        CpswAppUtils_print("EthFw_initRemoteConfig: device late announcement failed: %d\n", status);
+    }
+
+    /* Register the services after remote core is ready */
+    if (status == IPC_SOK)
+    {
+        status = EthFw_initPerfRemoteService();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("EthFw_initRemoteConfig: failed to init perf remote service: %d\n", status);
+        }
+    }
+
+    return status;
+}
+
+void EthFw_getVersion(EthFw_Handle hEthFw,
+                      EthFw_Version *version)
+{
+    CpswAppUtils_assert(hEthFw != NULL);
+
+    *version = gEthFwObj.version;
+}
+
+void appLogPrintf(const char *format,
+                  ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    System_vprintf(format, args);
+    CpswAppUtils_print(format, args);
+    va_end(args);
+}
+
+static int32_t EthFw_initMcm(void)
+{
+    CpswMcm_InitConfig cpswMcmCfg;
+    CpswMcm_HandleInfo handleInfo;
+    uint32_t i;
+    int32_t status;
+
+    /* Initialize CPSW MCM */
+    cpswMcmCfg.pCpswCfg = &gEthFwObj.cpswCfg;
+    cpswMcmCfg.cpswType = gEthFwObj.cpswType;
+    cpswMcmCfg.setPortLinkCfg = EthFw_initLinkArgs;
+    cpswMcmCfg.numMacPorts = gEthFwObj.numPorts;
+    cpswMcmCfg.periodicTaskPeriod = CPSW_PHY_FSM_TICK_PERIOD_MS;
+
+    for (i = 0U; i < gEthFwObj.numPorts; i++)
+    {
+        cpswMcmCfg.macPortList[i] = gEthFwObj.ports[i].portNum;
+    }
+
+    status = CpswMcm_init(&cpswMcmCfg);
+    CpswAppUtils_assert(status == CPSW_SOK);
+
+    /* Get MCM command interface */
+    if (status == CPSW_SOK)
+    {
+        CpswMcm_getCmdIf(gEthFwObj.cpswType, &gEthFwObj.mcmCmdIf);
+        CpswAppUtils_assert(gEthFwObj.mcmCmdIf.hMboxCmd != NULL);
+        CpswAppUtils_assert(gEthFwObj.mcmCmdIf.hMboxResponse != NULL);
+    }
+
+    /* Get MCM handle - CPSW driver should be open as a consequence */
+    if (status == CPSW_SOK)
+    {
+        CpswMcm_acquireHandleInfo(&gEthFwObj.mcmCmdIf, &handleInfo);
+    }
+
+    return status;
+}
+
+static void EthFw_deinitMcm(void)
+{
+    /* Release MCM handle - CPSW should close if we're last client */
+    CpswMcm_releaseHandleInfo(&gEthFwObj.mcmCmdIf);
+
+    /* De-initialize CPSW MCM */
+    CpswMcm_deInit(gEthFwObj.cpswType);
+}
+
+static void EthFw_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
+                               Cpsw_MacPort macPort)
+{
+    CpswMacPort_Config *macConfig = &linkArgs->macConfig;
+    CpswMacPort_LinkConfig *linkConfig = &linkArgs->linkConfig;
+    CpswMacPort_Interface *interface = &linkArgs->interface;
+    CpswPhy_Config *phyConfig = &linkArgs->phyConfig;
+    uint32_t i;
+
+    linkArgs->portNum = macPort;
+
+    Cpsw_initMacPortParams(macConfig);
+
+    /* PHY parameters from board specific code */
+    CpswAppBoardUtils_setPhyConfig(gEthFwObj.cpswType,
+                                   linkArgs->portNum,
+                                   macConfig,
+                                   interface,
+                                   phyConfig);
+
+    if (phyConfig->phyAddr == CPSW_PHY_INVALID_PHYADDR)
+    {
+        linkConfig->speed = CPSW_SPEED_1GBIT;
+        linkConfig->duplexity = CPSW_DUPLEX_FULL;
+    }
+    else
+    {
+        linkConfig->speed = CPSW_SPEED_AUTO;
+        linkConfig->duplexity = CPSW_DUPLEX_AUTO;
+    }
+
+    /* Use VLAN config from parameters given to EthFw */
+    for (i = 0U; i < gEthFwObj.numPorts; i++)
+    {
+        if (gEthFwObj.ports[i].portNum == macPort)
+        {
+            macConfig->vlanConfig = gEthFwObj.ports[i].vlanConfig;
+        }
+    }
+}
+
+static int32_t EthFw_setAleBcastEntry(void)
+{
+    Cpsw_Handle hCpsw = Cpsw_getHandle(gEthFwObj.cpswType);
+    Cpsw_IoctlPrms prms;
+    CpswAle_AddEntryOutArgs setMcastOutArgs;
+    CpswAle_SetMcastEntryInArgs setMcastInArgs;
+    uint8_t bCastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    int32_t status;
+
+    memcpy(&setMcastInArgs.addr.addr[0], &bCastAddr[0U], sizeof(setMcastInArgs.addr.addr));
+    setMcastInArgs.addr.vlanId = 0U;
+    setMcastInArgs.info.superFlag  = false;
+    setMcastInArgs.info.fwdState   = CPSW_ALE_FWDSTLVL_FORWARDING;
+    setMcastInArgs.info.portMask   = CPSW_ALE_ALL_PORTS_MASK;
+    setMcastInArgs.info.numIgnBits = 0U;
+
+    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setMcastInArgs, &setMcastOutArgs);
+
+    status = Cpsw_ioctl(hCpsw,
+                        gEthFwObj.coreId,
+                        CPSW_ALE_IOCTL_ADD_MULTICAST,
+                        &prms);
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("EthFw_setAleBcastEntry() ADD_MULTICAST ioctl failed: %d\n", status);
+    }
+
+    return status;
+}
+
+static int32_t EthFw_initPerfRemoteService(void)
+{
+    int32_t status;
+    app_remote_service_init_prms_t remoteServicePrms;
+
+    appRemoteServiceInitSetDefault(&remoteServicePrms);
+    status = appRemoteServiceInit(&remoteServicePrms);
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("Remote service init failed: %d !!!\n", status);
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appPerfStatsInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Perf stats init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appPerfStatsRemoteServiceInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Perf stats remote service init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appEthfwStatsInit(gEthFwObj.cpswType);
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Ethfw stats init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appEthfwStatsRemoteServiceInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Ethfw stats remote service init failed: %d !!!\n", status);
+        }
+    }
+
+    return status;
+}
+
+/* Proxy Server callbacks */
+
+static void EthFw_getMcmCmdIfCb(Cpsw_Type cpswType,
+                                CpswMcm_CmdIf **pMcmCmdIfHandle)
+{
+    *pMcmCmdIfHandle = &gEthFwObj.mcmCmdIf;
+}
+
+static void EthFw_getDeviceData(uint32_t host_id,
+                                struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data)
+{
+    eth_dev_data->fw_ver.major = gEthFwObj.version.major;
+    eth_dev_data->fw_ver.minor = gEthFwObj.version.minor;
+    eth_dev_data->fw_ver.rev = gEthFwObj.version.rev;
+
+    memcpy(eth_dev_data->fw_ver.month,
+           &gEthFwObj.version.month[0U],
+           sizeof(eth_dev_data->fw_ver.month));
+
+    memcpy(eth_dev_data->fw_ver.date,
+           &gEthFwObj.version.date[0U],
+           sizeof(eth_dev_data->fw_ver.date));
+
+    memcpy(eth_dev_data->fw_ver.year,
+           &gEthFwObj.version.year[0U],
+           sizeof(eth_dev_data->fw_ver.year));
+
+    memcpy(eth_dev_data->fw_ver.commit_hash,
+           &gEthFwObj.version.commitHash[0U],
+           sizeof(eth_dev_data->fw_ver.commit_hash));
+
+    /* Enable permission for all ETHDEV remote commands without consideration of cores.
+     * This should be changed based on trusted cores */
+    eth_dev_data->permission_flags = ((1 << RPMSG_KDRV_TP_ETHSWITCH_MAX) - 1);
+    eth_dev_data->uart_connected = true;
+    eth_dev_data->uart_id = CPSW_UTILS_MCU2_0_UART_INSTANCE;
+}
+
+static void EthFw_handleProfileInfoNotify(uint32_t host_id,
+                                          Cpsw_Handle hCpsw,
+                                          Cpsw_Type cpswType,
+                                          uint32_t core_key,
+                                          enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
+                                          uint8_t *notify_info,
+                                          uint32_t notify_info_len)
+{
+    appProfileAvgLoadInfo *info = (appProfileAvgLoadInfo *)notify_info;
+    uint32_t i;
+
+    CpswAppUtils_assert(Cpsw_getHandle(cpswType) == hCpsw);
+    CpswAppUtils_assert(notifyid == RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM);
+    CpswAppUtils_assert(notify_info_len == sizeof(appProfileAvgLoadInfo));
+
+    CpswAppUtils_print("\n***********************************\n");
+    CpswAppUtils_print(" CPU Load         : %d\n", info->cpuLoad);
+    CpswAppUtils_print(" Packet count     : %d\n", info->packetCount);
+    CpswAppUtils_print(" ISR              : %d\n", info->isr);
+    CpswAppUtils_print(" SWI              : %d\n", info->swi);
+    CpswAppUtils_print(" Total task count : %d\n", info->totalTaskCount);
+    CpswAppUtils_print(" Active task count: %d\n", info->activeTaskCount);
+
+    for (i = 0U; i < info->activeTaskCount; i++)
+    {
+        CpswAppUtils_print(" Task: %s: %d %%\n",
+                           info->tskLoad[i].tskName,
+                           info->tskLoad[i].load);
+    }
+
+    CpswAppUtils_print("***********************************\n");
+}

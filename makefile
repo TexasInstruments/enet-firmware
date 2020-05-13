@@ -10,6 +10,7 @@ DIRECTORIES :=
 DIRECTORIES += utils
 DIRECTORIES += apps
 DIRECTORIES += ethremotecfg
+DIRECTORIES += ethfw
 
 TARGET_COMBOS :=
 

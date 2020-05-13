@@ -61,9 +61,9 @@
  */
 
 /*!
- * \file     app_intervlan.c
+ * \file     eth_hwintervlan.c
  *
- * \brief    This file contains the app_switch test implementation.
+ * \brief    This file contains the hardware interVLAN utils implementation.
  */
 
 /* ========================================================================== */
@@ -96,7 +96,7 @@
 
 #include <ti/board/board.h>
 
-#include "app_intervlan.h"
+#include <utils/intervlan/include/eth_hwintervlan.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -175,7 +175,7 @@ uint8_t testDstIpv6AddrMcast[] = {CPSW_TEST_IPV6_HEXTET2ARRAY(0x2FFF),
 
 static uint8_t testHostMacAddr[] = {0x02, 0x00, 0x00, 0x00, 0x00, 0x02};
 
-void CpswAppInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg)
+void EthHwInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg)
 {
     Cpsw_MacPort i;
 
@@ -237,14 +237,12 @@ void CpswAppInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg)
     pCpswCfg->vlanConfig.vlanAware = TRUE;
 }
 
-void CpswAppInterVlan_setMacConfig(Cpsw_OpenPortLinkInArgs *pLinkArgs,
-                                   uint32_t portNum)
+void EthHwInterVlan_setVlanConfig(CpswPort_VlanConfig *vlanCfg,
+                                  uint32_t portNum)
 {
-    pLinkArgs->macConfig.enableLoopback = FALSE;
-
-    pLinkArgs->macConfig.vlanConfig.portPri = CPSW_NORMALIZE_MACPORT(portNum);
-    pLinkArgs->macConfig.vlanConfig.portCfi = 0;
-    pLinkArgs->macConfig.vlanConfig.portVID = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + CPSW_NORMALIZE_MACPORT(portNum);
+    vlanCfg->portPri = CPSW_NORMALIZE_MACPORT(portNum);
+    vlanCfg->portCfi = 0;
+    vlanCfg->portVID = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + CPSW_NORMALIZE_MACPORT(portNum);
 }
 
 static uint32_t CpswAppInterVlan_getIngressVlanMembershipMask(CpswCfgServer_InterVlanConfig *pInterVlanCfg)
@@ -689,8 +687,8 @@ static int32_t CpswAppInterVlan_setShortIPG(Cpsw_Handle hCpsw)
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-void CpswApp_hwInterVlanRouting(Cpsw_Type cpswType,
-                                CpswCfgServer_InterVlanConfig *pInterVlanCfg)
+void EthHwInterVlan_setupRouting(Cpsw_Type cpswType,
+                               CpswCfgServer_InterVlanConfig *pInterVlanCfg)
 {
     int32_t status = CPSW_SOK;
     uint32_t numRoutesAllocated = 0;
@@ -700,7 +698,6 @@ void CpswApp_hwInterVlanRouting(Cpsw_Type cpswType,
     hCpsw = Cpsw_getHandle(cpswType);
 
     status = CpswAppInterVlan_setShortIPG(hCpsw);
-
     if (CPSW_SOK == status)
     {
         status = CpswAppInterVlan_setInterVlanUniEgress(hCpsw,

@@ -61,9 +61,9 @@
  */
 
 /*!
- * \file     app_intervlanrouting.c
+ * \file     eth_swintervlan.c
  *
- * \brief    This file contains the app_intervlanrouting test implementation.
+ * \brief    This file contains the software interVLAN utils implementation.
  */
 
 /* ========================================================================== */
@@ -100,7 +100,7 @@
 #include <ti/osal/osal.h>
 #include <ti/sysbios/hal/Cache.h>
 
-#include "app_swintervlan.h"
+#include <utils/intervlan/include/eth_swintervlan.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -503,7 +503,7 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
     return status;
 }
 
-int32_t CpswApp_addSwIVlanClasifierEntries(CpswCfgServer_InterVlanConfig *pInterVlanCfg)
+int32_t EthSwInterVlan_addClassifierEntries(CpswCfgServer_InterVlanConfig *pInterVlanCfg)
 {
     int32_t status = CPSW_SOK;
     Cpsw_IoctlPrms prms;
@@ -839,7 +839,8 @@ static uint32_t CpswApp_receivePkts(void)
     return rxReadyCnt;
 }
 
-void CpswApp_swInterVlanRouting(Cpsw_Type cpswType)
+void EthSwInterVlan_setupRouting(Cpsw_Type cpswType,
+                                 uint32_t swInterVlanTaskPri)
 {
     Task_Params params;
     Error_Block eb;
@@ -850,10 +851,10 @@ void CpswApp_swInterVlanRouting(Cpsw_Type cpswType)
     /* Initialize the task params. Set the task priority higher than the
      * default priority (1) */
     Task_Params_init(&params);
-    params.priority = 2U;
+    params.priority = swInterVlanTaskPri;
     params.stack = gAppTskStackMain;
     params.stackSize = sizeof(gAppTskStackMain);
-    params.instance->name = "Forwarding_Task";
+    params.instance->name = "Eth SW InterVLAN Task";
 
     task = Task_create(CpswApp_InterVlanRouting, &params, &eb);
     if (task == NULL)

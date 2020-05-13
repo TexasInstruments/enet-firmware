@@ -60,14 +60,14 @@
  *
  */
 
-/**
- *  \file app_swintervlan.h
+/*!
+ *  \file eth_swintervlan.h
  *
- *  \brief CPSW Inter VLAN Routing app interface header file.
+ *  \brief Header file of the Ethernet software interVLAN utils
  */
 
-#ifndef APP_SWINTERVLAN_H_
-#define APP_SWINTERVLAN_H_
+#ifndef ETH_SWINTERVLAN_H_
+#define ETH_SWINTERVLAN_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
@@ -81,17 +81,22 @@ extern "C" {
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
+#define ETH_SWINTERVLAN_TASK_PRI                (2U)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
+
+/* None */
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void             CpswApp_swInterVlanRouting(Cpsw_Type cpswType);
+void EthSwInterVlan_setupRouting(Cpsw_Type cpswType,
+                                 uint32_t swInterVlanTaskPri);
 
-int32_t          CpswApp_addSwIVlanClasifierEntries(CpswCfgServer_InterVlanConfig *pInterVlanCfg);
+int32_t EthSwInterVlan_addClassifierEntries(CpswCfgServer_InterVlanConfig *pInterVlanCfg);
 
 /* ========================================================================== */
 /*                       Static Function Definitions                          */
@@ -103,4 +108,4 @@ int32_t          CpswApp_addSwIVlanClasifierEntries(CpswCfgServer_InterVlanConfi
 }
 #endif
 
-#endif /* #ifndef APP_SWINTERVLANROUTING_H_ */
+#endif /* ETH_SWINTERVLAN_H_ */

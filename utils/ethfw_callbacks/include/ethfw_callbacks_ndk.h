@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2020 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -61,13 +61,13 @@
  */
 
 /*!
- * \file app_intervlan.h
+ *  \file ethfw_callbacks_ndk.h
  *
- * \brief App intervlan config header file
+ *  \brief Header file for Ethernet Firmware common NDK callbacks
  */
 
-#ifndef APP_INTERVLAN_H_
-#define APP_INTERVLAN_H_
+#ifndef ETHFW_CALLBACKS_NDK_H_
+#define ETHFW_CALLBACKS_NDK_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
@@ -77,16 +77,20 @@
 extern "C" {
 #endif
 
-#include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+/* ========================================================================== */
+/*                                 Macros                                     */
+/* ========================================================================== */
+
+/* None*/
 
 /* ========================================================================== */
-/*                           Macros & Typedefs                                */
+/*                         Structures and Enums                               */
 /* ========================================================================== */
 
 /* None */
 
 /* ========================================================================== */
-/*                         Structure Declarations                             */
+/*                         Global Variables Declarations                      */
 /* ========================================================================== */
 
 /* None */
@@ -94,16 +98,26 @@ extern "C" {
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
-void CpswApp_hwInterVlanRouting(Cpsw_Type cpswType,
-                                CpswCfgServer_InterVlanConfig *pInterVlanCfg);
 
-void CpswAppInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg);
+void EthFwCallbacks_stackInitHook(void *hCfg);
 
-void CpswAppInterVlan_setMacConfig(Cpsw_OpenPortLinkInArgs *pLinkArgs,
-                                   uint32_t portNum);
+void EthFwCallbacks_stackDeleteHook(void *hCfg);
+
+void EthFwCallbacks_netOpenHook(void);
+
+void EthFwCallbacks_netCloseHook(void);
+
+void EthFwCallbacks_ipAddrHookFxn(uint32_t IPAddr,
+                                  uint32_t IfIdx,
+                                  uint32_t fAdd);
+
+void EthFwCallbacks_serviceReportHook(uint32_t Item,
+                                      uint32_t Status,
+                                      uint32_t Report,
+                                      void * h);
 
 /* ========================================================================== */
-/*                       Static Function Definitions                          */
+/*                        Deprecated Function Declarations                    */
 /* ========================================================================== */
 
 /* None */
@@ -112,4 +126,4 @@ void CpswAppInterVlan_setMacConfig(Cpsw_OpenPortLinkInArgs *pLinkArgs,
 }
 #endif
 
-#endif /* APP_INTERVLAN_H_ */
+#endif /* ETHFW_CALLBACKS_NDK_H_ */
