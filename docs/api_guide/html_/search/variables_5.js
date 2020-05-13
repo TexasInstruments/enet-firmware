@@ -1,6 +1,0 @@
-var searchData=
-[
-  ['features',['features',['../structrpmsg__kdrv__ethswitch__attach__response.html#a7cbfe629e97edfe76d6ab5568b6edba6',1,'rpmsg_kdrv_ethswitch_attach_response::features()'],['../structrpmsg__kdrv__ethswitch__attach__extended__response.html#a40ec0fe45e8097000ae4a28056668b5a',1,'rpmsg_kdrv_ethswitch_attach_extended_response::features()']]],
-  ['flow_5fidx',['flow_idx',['../structrpmsg__kdrv__ethswitch__register__mac__request.html#a14d605d4a29b34ce3ff66b2beb49c1b5',1,'rpmsg_kdrv_ethswitch_register_mac_request::flow_idx()'],['../structrpmsg__kdrv__ethswitch__unregister__mac__request.html#a30c2a20733fda847b9e6387101ea49bf',1,'rpmsg_kdrv_ethswitch_unregister_mac_request::flow_idx()'],['../structrpmsg__kdrv__ethswitch__register__ethertype__request.html#a4cf55399b93cf19b573d180718c4acbb',1,'rpmsg_kdrv_ethswitch_register_ethertype_request::flow_idx()'],['../structrpmsg__kdrv__ethswitch__unregister__ethertype__request.html#a9b091c38133ad9e2084e7b6b13a1acc6',1,'rpmsg_kdrv_ethswitch_unregister_ethertype_request::flow_idx()']]],
-  ['fw_5fver',['fw_ver',['../structrpmsg__kdrv__ethswitch__device__data.html#a5f7fbce9450f5109c8c95ace19356fc5',1,'rpmsg_kdrv_ethswitch_device_data']]]
-];
