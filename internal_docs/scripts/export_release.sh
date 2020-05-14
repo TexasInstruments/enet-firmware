@@ -101,6 +101,7 @@ tar -C ${PKG_NAME}_${REL_VER} -xf ${PKG_TAR}
 
 # Build the library
 pushd ${PKG_NAME}_${REL_VER}
+make -C internal_docs/doxygen -s all
 make ethfw_all
 popd > /dev/null
 
