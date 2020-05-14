@@ -22,7 +22,7 @@ endif
 .PHONY : all clean allclean
 .PHONY : diagrams user_design user_design_clean api_guide api_guide_clean design_doc design_doc_clean
 
-all: diagrams user_design api_guide design_doc
+all: user_design api_guide design_doc
 
 clean : user_design_clean api_guide_clean design_doc_clean
 
