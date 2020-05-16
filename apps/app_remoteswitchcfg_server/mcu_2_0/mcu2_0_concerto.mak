@@ -10,6 +10,7 @@ CSOURCES    := main_tirtos.c
 CSOURCES    += app_intervlan.c
 CSOURCES    += app_swintervlan.c
 
+ASSEMBLY    := utilsCopyVecs2ATmc.asm
 
 XDC_BLD_FILE = $($(_MODULE)_SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
 XDC_CFG_FILE = $($(_MODULE)_SDIR)/mcu2_0.cfg

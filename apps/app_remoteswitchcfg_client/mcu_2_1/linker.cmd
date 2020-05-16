@@ -4,6 +4,7 @@
 #define ATCM_START 0x00000000
 
 -e __VECS_ENTRY_POINT
+--retain="*(.utilsCopyVecsToAtcm)"
 
 SECTIONS
 {
@@ -23,7 +24,8 @@ SECTIONS
         *(*:ti_sysbios_family_arm_MPU*)
     }    >> R5F_TCMB0
 
-    
+    .utilsCopyVecsToAtcm : {} palign(8) > R5F_TCMB0
+
     .text_fast {
         *(.text:CpswDma_retrieveRxPackets*)
         *(.text:CpswDma_retrieveTxDonePackets*)
