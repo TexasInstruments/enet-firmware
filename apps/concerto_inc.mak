@@ -72,6 +72,8 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/sciclient/lib/${TARGET_SOC_FOLDER}/${CPU_ID
 LDIRS += $(PDK_PATH)/packages/ti/drv/pm/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/ipc/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(REMOTE_DEVICE_PATH)/out/${REMOTE_DEVICE_SOC_FOLDER}/${REMOTE_DEVICE_TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
+LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_utils_console_io
@@ -98,6 +100,8 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
      ADDITIONAL_STATIC_LIBS += ti.csl.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += pm_lib.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += ti.timesync.hal.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.ae$(TARGET_CPU_SUFFIX)     
 else
     CORTEX_A_LIB_SUFFIX := $(if $(filter $(TARGET_BUILD),debug),g,)
     ifneq (,$(filter ${TARGET_CPU},A72 A53))
@@ -114,6 +118,8 @@ else
     ADDITIONAL_STATIC_LIBS += ti.csl.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.osal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += pm_lib.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.timesync.hal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX) 
     endif
 endif
 

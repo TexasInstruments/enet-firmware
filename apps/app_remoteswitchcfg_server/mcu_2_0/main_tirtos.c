@@ -100,6 +100,10 @@
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_ndk.h>
 #include <ethfw/ethfw.h>
 
+/* Timesync header files */
+#include <ti/transport/timeSync/v2/include/timeSync.h>
+#include <ti/transport/timeSync/v2/protocol/ptp/include/timeSync_ptp.h>
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -136,6 +140,15 @@ typedef struct
 
     /* Semaphore for synchronizing EthFw and NDK initialization */
     Semaphore_Handle hInitSem;
+
+    /* Host MAC address */
+    uint8_t hostMacAddr[CPSW_MAC_ADDR_LEN];
+
+    /* Host IP address */
+    uint8_t hostIpAddr[CPSW_ALE_IPV4ADDR_NUM_OCTETS];
+
+    /* Handle to PTP stack */
+    TimeSyncPtp_Handle hTimeSyncPtp;
 } EthAppObj;
 
 /* ========================================================================== */
@@ -149,6 +162,8 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1);
 static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1);
 
 static int32_t EthApp_initEthFw(void);
+
+static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig);
 
 static void EthApp_startSwInterVlan(char *recvBuff,
                                     char *sendBuff);
@@ -459,6 +474,25 @@ static int32_t EthApp_initEthFw(void)
     return status;
 }
 
+/* PTP related functions */
+
+static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
+{
+    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
+    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
+    ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
+    ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
+    ptpConfig->portMask            |= CPSW_SET_BIT(2U);
+
+    memcpy(&ptpConfig->ifMacID[0U],
+           &gEthAppObj.hostMacAddr[0U],
+           CPSW_MAC_ADDR_LEN);
+
+    memcpy(&ptpConfig->ipAddr[0U],
+           &gEthAppObj.hostIpAddr[0U],
+           CPSW_ALE_IPV4ADDR_NUM_OCTETS);
+}
+
 /* NIMU callbacks (exact name required) */
 
 bool EthFwCallbacks_isPortLinked(Cpsw_Handle hCpsw)
@@ -484,6 +518,11 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     Semaphore_pend(gEthAppObj.hInitSem, BIOS_WAIT_FOREVER);
 
     EthFwCallbacks_nimuCpswGetHandle(inArgs, outArgs);
+
+    /* Save host port MAC address */
+    memcpy(&gEthAppObj.hostMacAddr[0U],
+           &outArgs->rxInfo.macAddr[0U],
+           CPSW_MAC_ADDR_LEN);
 }
 
 void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
@@ -497,10 +536,25 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
                           uint32_t IfIdx,
                           uint32_t fAdd)
 {
+    volatile uint32_t ipAddrHex = 0U;
+    TimeSyncPtp_Config ptpConfig;
     int32_t status;
 
     /* Use default/generic hook function */
     EthFwCallbacks_ipAddrHookFxn(IPAddr, IfIdx, fAdd);
+
+    /* Save host port IP address */
+    ipAddrHex = ntohl(IPAddr);
+    memcpy(&gEthAppObj.hostIpAddr[0U],
+           (uint8_t *)&ipAddrHex,
+           CPSW_ALE_IPV4ADDR_NUM_OCTETS);
+
+    /* Initialize and enable PTP stack */
+    TimeSyncPtp_setDefaultPtpConfig(&ptpConfig);
+    CpswApp_setPtpConfig(&ptpConfig);
+    gEthAppObj.hTimeSyncPtp = TimeSyncPtp_init(&ptpConfig);
+    CpswAppUtils_assert(gEthAppObj.hTimeSyncPtp != NULL);
+    TimeSyncPtp_enable(gEthAppObj.hTimeSyncPtp);
 
     /* Assign functions that are to be called based on actions in GUI.
      * These cannot be dynamically pushed to function pointer array, as the
