@@ -191,6 +191,12 @@ typedef struct CpswProxyServer_Config_s
     /*! Remote Core Id for AUTOSAR core */
     uint32_t autosarEthDriverRemoteCoreId;
 
+    /*! CPSW type for which notify service is enabled */
+    Cpsw_Type notifyServiceCpswType;
+
+    /*! Remote Core Id for Notification service */
+    uint32_t notifyServiceRemoteCoreId;
+
     /*! Remote Core configuration */
     CpswProxyServer_RemoteCoreConfig remoteCoreCfg[ETHREMOTECFG_SERVER_MAX_INSTANCES];
 } CpswProxyServer_Config_t;

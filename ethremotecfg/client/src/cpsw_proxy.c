@@ -135,6 +135,8 @@ typedef enum CpswProxy_RdevCmd_tag
     CPSWPROXY_RDEVCMD_UNREGDEFAULT,
     CPSWPROXY_RDEVCMD_REGETHTYPE,
     CPSWPROXY_RDEVCMD_UNREGETHTYPE,
+    CPSWPROXY_RDEVCMD_REGREMOTETIMER,
+    CPSWPROXY_RDEVCMD_UNREGREMOTETIMER,
     CPSWPROXY_RDEVCMD_NOTIFY,
     CPSWPROXY_RDEVCMD_PING,
     CPSWPROXY_RDEVCMD_EXIT,
@@ -346,6 +348,21 @@ typedef struct CpswProxy_rdevCmdUnRegEthertypeReq_s
     uint16_t ether_type;
 } CpswProxy_rdevCmdUnRegEthertypeReq_t;
 
+typedef struct CpswProxy_rdevCmdRegRemoteTimerReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint8_t timerId;
+    uint8_t hwPushNum;
+} CpswProxy_rdevCmdRegRemoteTimerReq_t;
+
+typedef struct CpswProxy_rdevCmdUnRegRemoteTimerReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint8_t hwPushNum;
+} CpswProxy_rdevCmdUnRegRemoteTimerReq_t;
+
 typedef struct CpswProxy_rdevCmdNotifyReq_s
 {
     uint64_t id;
@@ -381,6 +398,8 @@ typedef struct CpswProxy_rdevCmdReqMsg_s
         CpswProxy_rdevCmdFreeMacReq_t freemac;
         CpswProxy_rdevCmdRegEthertypeReq_t regethtype;
         CpswProxy_rdevCmdUnRegEthertypeReq_t unregethtype;
+        CpswProxy_rdevCmdRegRemoteTimerReq_t regremotetimer;
+        CpswProxy_rdevCmdUnRegRemoteTimerReq_t unregremotetimer;
         CpswProxy_rdevCmdNotifyReq_t notify;
         rdecEthSwitchAppPingReq_t ping;
     } u;
@@ -409,6 +428,14 @@ typedef struct CpswProxy_rdevCmdMsg_s
     CpswProxy_rdevCmdResMsg_t res;
 } CpswProxy_rdevCmd_t;
 
+typedef struct CpswProxy_notifyServiceObj_s
+{
+    Task_Handle hNotifyServiceTsk;
+    RPMessage_Handle hNotifyServicRpMsgEp;
+    uint32_t localEp;
+    CpswRemoteNotifyService_CallbackHandlers cb;
+} CpswProxy_notifyServiceObj;
+
 typedef struct CpswProxy_Obj_s
 {
     CpswProxy_Config cfg;
@@ -417,6 +444,7 @@ typedef struct CpswProxy_Obj_s
     SemaphoreP_Handle hRdevStartSem;
     SemaphoreP_Handle hRdevCmdTskStartSem;
     Task_Handle      hRdevCmdTsk;
+    CpswProxy_notifyServiceObj notifyServiceObj;
 } CpswProxy_Obj;
 
 /* ========================================================================== */
@@ -434,6 +462,9 @@ static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
+
+/**< Buffer to store received messages for remote notify service */
+static uint8_t gCpswProxyNotifyServiceRpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -738,6 +769,23 @@ static void CpswProxy_cmdHandler(Mailbox_Handle hMailbox,
                 msg.res.retVal = rdevEthSwitchClient_unregisterethtype(deviceId, msg.req.u.unregethtype.id, msg.req.u.unregethtype.core_key, msg.req.u.unregethtype.rx_flow_allocidx, msg.req.u.unregethtype.ether_type);
                 break;
             }
+            case CPSWPROXY_RDEVCMD_REGREMOTETIMER:
+            {
+                msg.res.retVal = rdevEthSwitchClient_registerremotetimer(deviceId,
+                                                                         msg.req.u.regremotetimer.id,
+                                                                         msg.req.u.regremotetimer.core_key,
+                                                                         msg.req.u.regremotetimer.timerId,
+                                                                         msg.req.u.regremotetimer.hwPushNum);
+                break;
+            }
+            case CPSWPROXY_RDEVCMD_UNREGREMOTETIMER:
+            {
+                msg.res.retVal = rdevEthSwitchClient_unregisterremotetimer(deviceId,
+                                                                           msg.req.u.unregremotetimer.id,
+                                                                           msg.req.u.unregremotetimer.core_key,
+                                                                           msg.req.u.unregremotetimer.hwPushNum);
+                break;
+            }
             case CPSWPROXY_RDEVCMD_NOTIFY:
             {
                 System_printf("%s: sending message\n", __func__);
@@ -800,6 +848,98 @@ static void CpswProxy_rdevCmdTskFxn(UArg a0, UArg a1)
     CpswProxy_cmdHandler(hProxy->hCmdMbx, prm.device_id);
 }
 
+static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
+{
+    int32_t ret = 0;
+    CpswProxy_Handle hProxy = (CpswProxy_Handle) a0;
+    RPMessage_Params rpmsgPrm;
+    uint32_t localEp;
+    uint32_t remoteProcId, remoteEndPt;
+    uint32_t remoteProc, remoteEp;
+    CpswRemoteNotifyService_MessageHeader *header = NULL;
+    uint16_t len;
+    uint64_t msgBuffer[(CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE / sizeof(uint64_t))];
+    volatile bool exitTask = false;
+
+    /* Create RPMsg */
+    RPMessageParams_init(&rpmsgPrm);
+    rpmsgPrm.requestedEndpt = CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID;
+    rpmsgPrm.buf = gCpswProxyNotifyServiceRpmsgBuf;
+    rpmsgPrm.bufSize = sizeof(gCpswProxyNotifyServiceRpmsgBuf);
+    rpmsgPrm.numBufs = CPSW_REMOTE_NOTIFY_SERVICE_NUM_RPMSG_BUFS;
+
+    hProxy->notifyServiceObj.hNotifyServicRpMsgEp = RPMessage_create(&rpmsgPrm, &localEp);
+
+    if (NULL == hProxy->notifyServiceObj.hNotifyServicRpMsgEp)
+    {
+        System_printf("Could not create communication channel\n");
+        ret = CPSW_EFAIL;
+    }
+
+    if (CPSW_SOK == ret)
+    {
+        if (localEp != CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID)
+        {
+            System_printf("Could not create required End Point");
+        }
+        else
+        {
+            hProxy->notifyServiceObj.localEp = localEp;
+        }
+    }
+
+    /* Wait for Remote EP to active */
+    ret = RPMessage_getRemoteEndPt(hProxy->cfg.masterCoreId,
+                                  CPSW_REMOTE_NOTIFY_SERVICE,
+                                  &remoteProcId,
+                                  &remoteEndPt,
+                                  BIOS_WAIT_FOREVER);
+    if(ret != 0)
+    {
+        System_printf("Remote Notify service locate failed\n");
+    }
+
+    while (!exitTask)
+    {
+        ret = RPMessage_recv(hProxy->notifyServiceObj.hNotifyServicRpMsgEp,
+                            (Ptr)msgBuffer,
+                            &len,
+                            &remoteEp,
+                            &remoteProc,
+                            IPC_RPMESSAGE_TIMEOUT_FOREVER);
+        if (IPC_SOK == ret)
+        {
+            CpswProxy_assert(len <= sizeof(msgBuffer));
+            CpswProxy_assert(remoteEp == remoteEndPt);
+            CpswProxy_assert(remoteProcId == remoteProc);
+
+            /* Process received message */
+            header = (CpswRemoteNotifyService_MessageHeader *)msgBuffer;
+            switch(header->messageId)
+            {
+                case CPSW_REMOTE_NOTIFY_SERVICE_CMD_HWPUSH:
+                {
+                    CpswRemoteNotifyService_HwPushMsg *hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)msgBuffer;
+
+                    CpswProxy_assert(hwPushMsg->header.messageLen == sizeof(CpswRemoteNotifyService_HwPushMsg));
+                    if(hProxy->notifyServiceObj.cb.hwPushCb != NULL)
+                    {
+                        hProxy->notifyServiceObj.cb.hwPushCb(hwPushMsg->hwPushNum,
+                                                             hwPushMsg->timeStamp);
+                    }
+
+                    break;
+                }
+                default:
+                {
+                    System_printf("CpswProxy_notifyServiceTskFxn: Received unknown notify command: %u\n", header->messageId);
+                    break;
+                }
+            }
+        }
+    }
+}
+
 static void CpswProxy_remoteDeviceInit(SemaphoreP_Handle rdevStartSem, const CpswProxy_Config * cfg )
 {
     app_remote_device_init_prm_t remote_dev_init_prm;
@@ -830,6 +970,21 @@ static void  CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
     CpswProxy_assert((Error_check(&eb) == FALSE) && (hProxy->hRdevCmdTsk != NULL));
 }
 
+static void  CpswProxy_createNotifyServiceTask(CpswProxy_Handle hProxy)
+{
+    Task_Params taskParams;
+    Error_Block eb;
+
+    memset(&hProxy->notifyServiceObj, 0, sizeof(CpswProxy_notifyServiceObj));
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.priority = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
+    taskParams.arg0 = (UArg) hProxy;
+    taskParams.stackSize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
+    hProxy->notifyServiceObj.hNotifyServiceTsk = Task_create(CpswProxy_notifyServiceTskFxn, &taskParams, &eb);
+    CpswProxy_assert((Error_check(&eb) == FALSE) && (hProxy->notifyServiceObj.hNotifyServiceTsk != NULL));
+}
+
 static void  CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Config *cfg)
 {
     hProxy->cfg = *cfg;
@@ -840,7 +995,7 @@ static void  CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Con
     CpswProxy_createSem(&hProxy->hRdevCmdTskStartSem);
     CpswProxy_remoteDeviceInit(hProxy->hRdevStartSem, cfg);
     CpswProxy_createRDevCmdTask(hProxy);
-
+    CpswProxy_createNotifyServiceTask(hProxy);
 }
 
 static void  CpswProxy_instanceDeInit(CpswProxy_Handle hProxy)
@@ -1336,6 +1491,34 @@ void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
     CpswProxy_sendCmd(hProxy->hCmdMbx, hProxy->hResponseMbx, CPSWPROXY_RDEVCMD_UNREGETHTYPE, &msg);
 }
 
+void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
+                                   Cpsw_Handle hCpsw,
+                                   uint32_t coreKey,
+                                   uint8_t timerId,
+                                   uint8_t hwPushNum)
+{
+    CpswProxy_rdevCmd_t msg;
+
+    msg.req.u.regremotetimer.id = (uint64_t)hCpsw;
+    msg.req.u.regremotetimer.core_key = coreKey;
+    msg.req.u.regremotetimer.timerId = timerId;
+    msg.req.u.regremotetimer.hwPushNum = hwPushNum;
+    CpswProxy_sendCmd(hProxy->hCmdMbx, hProxy->hResponseMbx, CPSWPROXY_RDEVCMD_REGREMOTETIMER, &msg);
+}
+
+void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
+                                     Cpsw_Handle hCpsw,
+                                     uint32_t coreKey,
+                                     uint8_t hwPushNum)
+{
+    CpswProxy_rdevCmd_t msg;
+
+    msg.req.u.unregremotetimer.id = (uint64_t)hCpsw;
+    msg.req.u.unregremotetimer.core_key = coreKey;
+    msg.req.u.unregremotetimer.hwPushNum = hwPushNum;
+    CpswProxy_sendCmd(hProxy->hCmdMbx, hProxy->hResponseMbx, CPSWPROXY_RDEVCMD_UNREGREMOTETIMER, &msg);
+}
+
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
                           Cpsw_Handle hCpsw,
                           uint32_t coreKey,
@@ -1351,4 +1534,22 @@ void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
     CpswProxy_sendCmd(hProxy->hCmdMbx, hProxy->hResponseMbx, CPSWPROXY_RDEVCMD_NOTIFY, &msg);
 }
 
+int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
+                                         CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn)
+{
+    int status = CPSW_SOK;
 
+    if ((NULL != hProxy) && (NULL != cbFxn))
+    {
+        if (hProxy->notifyServiceObj.cb.hwPushCb == NULL)
+        {
+            hProxy->notifyServiceObj.cb.hwPushCb = cbFxn;
+        }
+        else
+        {
+            status = CPSW_EALREADY_OPEN;
+        }
+    }
+
+    return status;
+}

@@ -396,7 +396,6 @@ enum rpmsg_kdrv_ethswitch_message_type
      *   Response Message (Sent from server to client): NONE (Notify commands do nto have any response)
      */
     RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY              = 0x16,
-
     /*!
      * \brief CMD to register a Ethertype by the remote core client to a specific rx flow id
      *
@@ -423,11 +422,32 @@ enum rpmsg_kdrv_ethswitch_message_type
      *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_unregister_ethertype_response
      */
     RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE          = 0x18,
-
+    /*!
+     * \brief CMD to register a remote timer with ethfw for time synchronization
+     *
+     *  Commands allows remote core client to register a timer used by it
+     *  to be synchronized with CPTS timer using timer sync router and hardware push
+     *  events
+     *
+     *  Command parameters:
+     *   Request Message (Sent from client to server): struct rpmsg_kdrv_ethswitch_register_remotetimer_request
+     *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_register_remotetimer_response
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER         = 0x19,
+    /*!
+     * \brief CMD to unregister remote timer with ethfw for time synchronization
+     *
+     *  Commands allows remote core client to unregister a timer used by for synchronization with CPTS timer
+     *
+     *  Command parameters:
+     *   Request Message (Sent from client to server): struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request
+     *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER       = 0x1A,
     /*!
      * \brief Max value of Ethernet Switch Remote Device. For internal use only
      */
-    RPMSG_KDRV_TP_ETHSWITCH_MAX                     = 0x19,
+    RPMSG_KDRV_TP_ETHSWITCH_MAX                         = 0x1B,
 };
 
 /*!
@@ -1106,6 +1126,51 @@ struct rpmsg_kdrv_ethswitch_unregister_ethertype_response
     struct rpmsg_kdrv_ethswitch_common_response_info info;
 }  __packed;
 
+/*!
+ * \brief Register Remote timer CMD request params
+ */
+struct rpmsg_kdrv_ethswitch_register_remotetimer_request
+{
+    /*! Common CMD header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Timer id to be used for timesync router configuration */
+    u8 timer_id;
+    /*! CPTS hardware push number to be used for timesync router configuration */
+    u8 hwPushNum;
+} __packed;
+
+/*!
+ * \brief Register Remote timer CMD response params
+ */
+struct rpmsg_kdrv_ethswitch_register_remotetimer_response
+{
+    /*! common response info */
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
+
+/*!
+ * \brief UnRegister Remote timer CMD request params
+ */
+struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request
+{
+    /*! Common CMD header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! CPTS hardware push number used for timesync router configuration */
+    u8 hwPushNum;
+} __packed;
+
+/*!
+ * \brief UnRegister Remote timer CMD response params
+ */
+struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response
+{
+    /*! common response info */
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+}  __packed;
 
 /*!
  * \brief Firmware version info returned by remote device attach to the ethernet switch device

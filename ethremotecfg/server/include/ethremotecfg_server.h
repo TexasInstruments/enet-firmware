@@ -336,6 +336,24 @@ typedef int32_t (*ethrdev_srv_cb_register_ethertype_handler_t)(uint32_t host_id,
 */
 typedef int32_t (*ethrdev_srv_cb_unregister_ethertype_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint16_t ether_type, uint32_t flow_idx);
 
+/*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER
+ *  \param host_id Remote Core Id
+ *  \param name Remote Core name
+ *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
+ *  \param core_key  Core key returned by attach / attach ext CMD
+ *  \param timer_id  Timer to be registered with CPTS for time synchronization
+ *  \param hwPushNum CPTS hardware push number used for time synchronization
+*/
+typedef int32_t (*ethrdev_srv_cb_register_remotetimer_handler_t)(uint32_t host_id, uint8_t *name, uint64_t handle, uint32_t core_key, uint8_t timer_id, uint8_t hwPushNum);
+
+/*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER
+ *  \param host_id Remote Core Id
+ *  \param name Remote Core name
+ *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
+ *  \param core_key  Core key returned by attach / attach ext CMD
+ *  \param hwPushNum CPTS hardware push number used for time synchronization
+*/
+typedef int32_t (*ethrdev_srv_cb_unregister_remotetimer_handler_t)(uint32_t host_id, uint8_t *name, uint64_t handle, uint32_t core_key, uint8_t hwPushNum);
 
 /*  @} */
 
@@ -396,7 +414,10 @@ typedef struct rdevEthSwitchServerCbFxn_s
     ethrdev_srv_cb_register_ethertype_handler_t register_ethertype_handler;
     /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE */
     ethrdev_srv_cb_unregister_ethertype_handler_t unregister_ethertype_handler;
-
+    /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER */
+    ethrdev_srv_cb_register_remotetimer_handler_t register_remotetimer_handler;
+    /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER */
+    ethrdev_srv_cb_unregister_remotetimer_handler_t unregister_remotetimer_handler;
 } rdevEthSwitchServerCbFxn_t;
 
 /*!
@@ -505,6 +526,14 @@ typedef union rdevEthSwitchServerMessageList_u
     struct rpmsg_kdrv_ethswitch_unregister_ethertype_request unregister_ethertype_req;
     /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE command. Sent from server to client  */
     struct rpmsg_kdrv_ethswitch_unregister_ethertype_response unregister_ethertype_res;
+    /*! Request Message associated with RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER command. Sent from client to server  */
+    struct rpmsg_kdrv_ethswitch_register_remotetimer_request register_remotetimer_req;
+    /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER command. Sent from server to client */
+    struct rpmsg_kdrv_ethswitch_register_remotetimer_response register_remotetimer_res;
+    /*! Request Message associated with RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER command. Sent from client to server  */
+    struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request unregister_remotetimer_req;
+    /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER command. Sent from server to client */
+    struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response unregister_remotetimer_res;
 } __packed rdevEthSwitchServerMessageList_t;
 
 /**

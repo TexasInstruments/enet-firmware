@@ -411,10 +411,10 @@ static int32_t rdevEthSwitchServerHandleUnRegisterMac(rdevEthSwitchServerInstanc
 }
 
 static int32_t rdevEthSwitchServerHandleRegisterEthertype(rdevEthSwitchServerInstanceState_t *inst,
-                                                    app_remote_device_channel_t *channel,
-                                                    uint32_t request_id,
-                                                    union rdevEthSwitchServerMessageList_u *reqMsg,
-                                                    rdevEthSwitchServerCbFxn_t *cb)
+                                                          app_remote_device_channel_t *channel,
+                                                          uint32_t request_id,
+                                                          union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                          rdevEthSwitchServerCbFxn_t *cb)
 {
     int32_t ret = 0;
     rdevEthSwitchServerMessage_t *msg;
@@ -433,10 +433,10 @@ static int32_t rdevEthSwitchServerHandleRegisterEthertype(rdevEthSwitchServerIns
 }
 
 static int32_t rdevEthSwitchServerHandleUnRegisterEthertype(rdevEthSwitchServerInstanceState_t *inst,
-                                                      app_remote_device_channel_t *channel,
-                                                      uint32_t request_id,
-                                                      union rdevEthSwitchServerMessageList_u *reqMsg,
-                                                      rdevEthSwitchServerCbFxn_t *cb)
+                                                            app_remote_device_channel_t *channel,
+                                                            uint32_t request_id,
+                                                            union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                            rdevEthSwitchServerCbFxn_t *cb)
 {
     int32_t ret = 0;
     rdevEthSwitchServerMessage_t *msg;
@@ -454,6 +454,49 @@ static int32_t rdevEthSwitchServerHandleUnRegisterEthertype(rdevEthSwitchServerI
     return ret;
 }
 
+static int32_t rdevEthSwitchServerHandleRegisterRemoteTimer(rdevEthSwitchServerInstanceState_t *inst,
+                                                            app_remote_device_channel_t *channel,
+                                                            uint32_t request_id,
+                                                            union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                            rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_register_remotetimer_response *resp;
+    struct rpmsg_kdrv_ethswitch_register_remotetimer_request *req = &reqMsg->register_remotetimer_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst, sizeof(*resp), request_id, &msg);
+    if (ret == 0)
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status = cb->register_remotetimer_handler(inst->inst_prm.host_id, inst->inst_prm.name, req->info.id, req->info.core_key, req->timer_id, req->hwPushNum);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleUnRegisterRemoteTimer(rdevEthSwitchServerInstanceState_t *inst,
+                                                              app_remote_device_channel_t *channel,
+                                                              uint32_t request_id,
+                                                              union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                              rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response *resp;
+    struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request *req = &reqMsg->unregister_remotetimer_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst, sizeof(*resp), request_id, &msg);
+    if (ret == 0)
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status = cb->unregister_remotetimer_handler(inst->inst_prm.host_id, inst->inst_prm.name, req->info.id, req->info.core_key, req->hwPushNum);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+
+    return ret;
+}
 
 static int32_t rdevEthSwitchServerHandleUnRegisterDefaultFlow(rdevEthSwitchServerInstanceState_t *inst,
                                                               app_remote_device_channel_t *channel,
@@ -789,6 +832,8 @@ rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER)] = &rdevEthSwitchServerHandleUnRegisterIPv4Mac,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE)] = &rdevEthSwitchServerHandleRegisterEthertype,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE)] = &rdevEthSwitchServerHandleUnRegisterEthertype,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER)] = &rdevEthSwitchServerHandleRegisterRemoteTimer,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER)] = &rdevEthSwitchServerHandleUnRegisterRemoteTimer,
 };
 
 static int32_t rdevEthSwitchServerRequest(uint32_t device_id,

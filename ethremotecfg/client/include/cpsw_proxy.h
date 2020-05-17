@@ -65,6 +65,7 @@
 
 #include <stdint.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
+#include <ethremotecfg/protocol/cpsw_remote_notify_service.h>
 #include <ti/drv/cpsw/cpsw.h>
 
 #ifdef __cplusplus
@@ -707,6 +708,67 @@ void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
                           uint32_t coreKey,
                           uint8_t *notifyInfo,
                           uint32_t notifyInfoLength);
+
+/*!
+ * \brief Register remote core's timer for synchronization
+ *
+ * Note: The API will send the RPC msg, block for response and if the response
+ * status is not success will abort execution.
+ * The API will be modified to return error status to allow the application to
+ * handle the error in next version.
+ *
+ * The timerId is used to indicate Ethfw about which timer's event is to be routed
+ * to CPTS hardware push via Timesync router(TSR).
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ * \param hCpsw     Unique opaque handle returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param coreKey   Unique core_key returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param timerId   Input Id number of timer in TSR
+ * \param hwPushNum Hardware push number of CPTS
+ */
+void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
+                                   Cpsw_Handle hCpsw,
+                                   uint32_t coreKey,
+                                   uint8_t timerId,
+                                   uint8_t hwPushNum);
+
+/*!
+ * \brief Unregister remote core's timer for synchronization
+ *
+ * Note: The API will send the RPC msg, block for response and if the response
+ * status is not success will abort execution.
+ * The API will be modified to return error status to allow the application to
+ * handle the error in next version.
+ *
+ * The timerId is used to indicate Ethfw to stop routing done
+ * via Timesync router(TSR).
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ * \param hCpsw     Unique opaque handle returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param coreKey   Unique core_key returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param hwPushNum Hardware push number of CPTS
+ */
+void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
+                                     Cpsw_Handle hCpsw,
+                                     uint32_t coreKey,
+                                     uint8_t hwPushNum);
+
+/*!
+ * \brief Register hardware push notification callback
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ * \param cbFxn     Callback function to be called when event occurs
+ *
+ * \return status   CPSW_SOK if registered callback successfully
+ *                  CPSW_EALREADY_OPEN if callback is already registered.
+
+ */
+int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
+                                         CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn);
 
 /* @} */
 

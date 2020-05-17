@@ -870,10 +870,10 @@ int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id,
 }
 
 int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
-                                        uint64_t id,
-                                        uint32_t core_key,
-                                        uint32_t flow_idx,
-                                        uint16_t ether_type)
+                                            uint64_t id,
+                                            uint32_t core_key,
+                                            uint32_t flow_idx,
+                                            uint16_t ether_type)
 {
     rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_register_ethertype_request *msg = &clientMsg.rdevEthSwitchMsg.register_ethertype_req;
@@ -902,10 +902,10 @@ int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
 }
 
 int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
-                                          uint64_t id,
-                                          uint32_t core_key,
-                                          uint32_t flow_idx,
-                                          uint16_t ether_type)
+                                              uint64_t id,
+                                              uint32_t core_key,
+                                              uint32_t flow_idx,
+                                              uint16_t ether_type)
 {
     rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_unregister_ethertype_request *msg = &clientMsg.rdevEthSwitchMsg.unregister_ethertype_req;
@@ -933,3 +933,64 @@ int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
     return ret;
 }
 
+int32_t rdevEthSwitchClient_registerremotetimer(uint32_t device_id,
+                                                uint64_t id,
+                                                uint32_t core_key,
+                                                uint8_t timerid,
+                                                uint8_t hwPushNum)
+{
+    rdevEthSwitchClientMessageList_t clientMsg;
+    struct rpmsg_kdrv_ethswitch_register_remotetimer_request *msg = &clientMsg.rdevEthSwitchMsg.register_remotetimer_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t register_remotetimer_response;
+
+    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    msg->timer_id = timerid;
+    msg->hwPushNum = hwPushNum;
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &register_remotetimer_response, sizeof(register_remotetimer_response), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(register_remotetimer_response.hdr) + sizeof(register_remotetimer_response.rdevEthSwitchMsg.register_remotetimer_res)));
+        if (register_remotetimer_response.rdevEthSwitchMsg.register_remotetimer_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+
+    return ret;
+}
+
+int32_t rdevEthSwitchClient_unregisterremotetimer(uint32_t device_id,
+                                                  uint64_t id,
+                                                  uint32_t core_key,
+                                                  uint8_t hwPushNum)
+{
+    rdevEthSwitchClientMessageList_t clientMsg;
+    struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request *msg = &clientMsg.rdevEthSwitchMsg.unregister_remotetimer_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t unregister_remotetimer_response;
+
+    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    msg->hwPushNum = hwPushNum;
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &unregister_remotetimer_response, sizeof(unregister_remotetimer_response), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(unregister_remotetimer_response.hdr) + sizeof(unregister_remotetimer_response.rdevEthSwitchMsg.unregister_remotetimer_res)));
+        if (unregister_remotetimer_response.rdevEthSwitchMsg.unregister_remotetimer_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+
+    return ret;
+}

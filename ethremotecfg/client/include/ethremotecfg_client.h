@@ -478,7 +478,6 @@ uint32_t rdevEthSwitchClient_printText(void *priv,
  * \param flow_idx  Flow Id to which the traffic with the given DST mac address will directed
  * \param ether_type Ethertype to be registered
  */
-
 int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
                                         uint64_t id,
                                         uint32_t core_key,
@@ -494,13 +493,39 @@ int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
  * \param flow_idx  Flow Id from to which the traffic with the given DST mac address will no longer be directed
  * \param ether_type Ethertype to be unregistered
  */
-
 int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
                                           uint64_t id,
                                           uint32_t core_key,
                                           uint32_t flow_idx,
                                           uint16_t ether_type);
 
+/*!
+ * \brief Register remote timer with CPTS using timerid
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param timerid   Timer Id used for configuring timesync router
+ * \param hwPushNum Hardware push number of CPTS
+ */
+int32_t rdevEthSwitchClient_registerremotetimer(uint32_t device_id,
+                                                uint64_t id,
+                                                uint32_t core_key,
+                                                uint8_t timerid,
+                                                uint8_t hwPushNum);
+
+/*!
+ * \brief Unregister remote timer from CPTS using timerid
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param hwPushNum Hardware push number of CPTS
+ */
+int32_t rdevEthSwitchClient_unregisterremotetimer(uint32_t device_id,
+                                                  uint64_t id,
+                                                  uint32_t core_key,
+                                                  uint8_t hwPushNum);
 /* @} */
 
 #endif
