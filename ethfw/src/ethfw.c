@@ -398,6 +398,10 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.autosarEthDriverRemoteCoreId = IPC_MCU2_1;
     cfg.autosarEthDeviceEndPointId = AUTOSAR_ETHDRIVER_DEVICE_ENDPT;
 
+    /* Enable server-to-client notify service */
+    cfg.notifyServiceCpswType = gEthFwObj.cpswType;
+    cfg.notifyServiceRemoteCoreId = IPC_MCU2_1;
+
     status = CpswProxyServer_init(&cfg);
     if (status != CPSW_SOK)
     {

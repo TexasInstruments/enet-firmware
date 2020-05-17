@@ -77,6 +77,7 @@
 #include <ti/osal/SemaphoreP.h>
 
 #include <ti/drv/ipc/ipc.h>
+#include <ti/csl/cslr_gtc.h>
 
 #include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <client-rtos/remote-device.h>
@@ -103,6 +104,8 @@
 
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL  (100)
 #define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
+#define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL   (30U)
+#define CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM      (2U)
 
 #define IPC_RPMESSAGE_OBJ_SIZE  (256)
 #define VQ_TIMEOUT              (100)
@@ -201,6 +204,16 @@ static HANDLE hNull = 0;
 static HANDLE hOob = 0;
 #endif
 
+typedef struct CpswRemoteApp_SyncTimerObj_s
+{
+    uint64_t currLocalTime;
+    uint64_t prevLocalTime;
+    uint64_t currCptsTime;
+    uint64_t prevCptsTime;
+    double rate;
+    double offset;
+} CpswRemoteApp_SyncTimerObj;
+
 typedef struct CpswRemoteApp_Obj_s
 {
     CpswProxy_Handle hCpswProxy;
@@ -213,6 +226,7 @@ typedef struct CpswRemoteApp_Obj_s
     bool useExtAttach;
     Cpsw_MacPort *macPorts;
     uint32_t numMacPorts;
+    CpswRemoteApp_SyncTimerObj syncTimerObj;
 } CpswRemoteApp_Obj;
 
 static Cpsw_MacPort gRemoteAppMacPorts[] =
@@ -236,6 +250,15 @@ CpswRemoteApp_Obj gRemoteAppObj =
 static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void);
 
 char *VerStr = "NIMU CPSW Example";
+
+static void CpswRemoteApp_initSyncTimer(void);
+
+static uint64_t CpswRemoteApp_getLocalTime(void);
+
+static uint64_t CpswRemoteApp_getSynchronizedTime(void);
+
+static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
+                                             uint64_t syncTime);
 
 // hack for release mode build fix TODO fix this
 void localAssert(bool cond)
@@ -291,6 +314,7 @@ void IpAddrHookFxn(uint32_t IPAddr,
                                gRemoteAppObj.ipv4Addr);
 
     System_printf("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
+    CpswRemoteApp_initSyncTimer();
 }
 
 void netOpenHook(void)
@@ -350,6 +374,123 @@ void appLogPrintf(const char *format, ...)
     va_start(args, format);
     System_vprintf(format, args);
     va_end(args);
+}
+
+static void CpswRemoteApp_initSyncTimer(void)
+{
+    int32_t status;
+
+    memset(&gRemoteAppObj.syncTimerObj, 0, sizeof(CpswRemoteApp_SyncTimerObj));
+
+    /* Make sure GTC is disabled before configuring timesync router*/
+    CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x0U);
+
+    /* Register callback */
+    status = CpswProxy_registerHwPushNotifyCb(gRemoteAppObj.hCpswProxy,
+                                              CpswRemoteApp_calcSyncTimeParams);
+    if (status == CPSW_EALREADY_OPEN)
+    {
+        System_printf("CpswProxy_registerHwPushNotifyCb(): Callback is registered already\n");
+    }
+
+    /* Configure GTC push event */
+    CSL_REG32_WR(CSL_GTC0_GTC_CFG0_BASE + CSL_GTC_CFG0_PUSHEVT,
+                 CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL);
+
+    /* Send request to Ethfw to configure TSR */
+    CpswProxy_registerRemoteTimer(gRemoteAppObj.hCpswProxy,
+                                  gRemoteAppObj.hCpsw,
+                                  gRemoteAppObj.coreKey,
+                                  CSLR_TIMESYNC_INTRTR0_IN_GTC0_GTC_PUSH_EVENT_0,
+                                  CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM);
+
+    /* Enable GTC */
+    CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
+}
+
+static uint64_t CpswRemoteApp_getLocalTime(void)
+{
+    uint32_t gtcTimeLo = 0U, gtcTimeHi = 0U;
+    uint64_t gtcTime = 0U;
+
+    gtcTimeLo = *(uint32_t *)(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_LO);
+    gtcTimeHi = *(uint32_t *)(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_HI);
+    gtcTime = (((uint64_t)(gtcTimeHi) << 32U) |
+                (uint64_t)(gtcTimeLo));
+
+    return gtcTime;
+}
+
+static uint64_t CpswRemoteApp_getSynchronizedTime(void)
+{
+    uint64_t gtcTime = 0U, synchronizedTime = 0U;
+    CpswRemoteApp_SyncTimerObj *hSyncTimerObj = (CpswRemoteApp_SyncTimerObj*)&gRemoteAppObj.syncTimerObj;
+
+    /* Get GTC time */
+    gtcTime = CpswRemoteApp_getLocalTime();
+
+    /* Compute synchronized time from GTC time */
+    synchronizedTime = (uint64_t)((hSyncTimerObj->rate * (double)gtcTime) + hSyncTimerObj->offset);
+
+    return synchronizedTime;
+}
+
+static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum, uint64_t syncTime)
+{
+    if (hwPushNum == CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM)
+    {
+        uint64_t gtcTime = 0U;
+        uint64_t synchronizedTime = 0U;
+        CpswRemoteApp_SyncTimerObj *hSyncTimerObj = (CpswRemoteApp_SyncTimerObj*)&gRemoteAppObj.syncTimerObj;
+        double temp1, temp2;
+
+        if(hSyncTimerObj->prevLocalTime == 0U)
+        {
+            /* Disable GTC */
+            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x0U);
+
+            /* Set GTC time */
+            gtcTime = 1U << CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL;
+            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_LO, gtcTime & 0xFFFFFFFF);
+            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_HI, gtcTime >> 32U);
+
+            /* Re-enable GTC */
+            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
+        }
+        else
+        {
+            /* Increment GTC time used for computation based on selected bit for event */
+            gtcTime = hSyncTimerObj->prevLocalTime + (1U << CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL);
+        }
+
+        if ((hSyncTimerObj->prevLocalTime != 0U) &&
+            (hSyncTimerObj->prevCptsTime != 0U))
+        {
+            /* Logic:
+             *  T1, T2 - Previous & Current CPTS time
+             *  t1, t2 - Previous & Current local GTC time
+             *  rate = (T2-T1) / (t2-t1)
+             *  offset = (t2T1 - t1T2) / (t2-t1)
+             *  temp1 = t2 * (T1 / (t2-t1))
+             *  temp2 = t1 * (T2 / (t2-t1))
+             *  offset = temp1 - temp2
+             */
+            temp1 = (double)gtcTime *
+                    ((double)hSyncTimerObj->prevCptsTime / (double)(gtcTime - hSyncTimerObj->prevLocalTime));
+            temp2 = (double)hSyncTimerObj->prevLocalTime *
+                    ((double)syncTime / (double)(gtcTime - hSyncTimerObj->prevLocalTime));
+
+            hSyncTimerObj->rate = (double)((double)(syncTime - hSyncTimerObj->prevCptsTime) /
+                                          (double)(gtcTime - hSyncTimerObj->prevLocalTime));
+            hSyncTimerObj->offset = temp1 - temp2;
+
+            synchronizedTime = CpswRemoteApp_getSynchronizedTime();
+            System_printf("Current Synchronized time in Epoch format: %lld\n",synchronizedTime);
+        }
+
+        hSyncTimerObj->prevLocalTime = gtcTime;
+        hSyncTimerObj->prevCptsTime = syncTime;
+    }
 }
 
 static void rpmsg_vdevMonitorFxn(UArg arg0,
@@ -914,4 +1055,3 @@ void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
     CpswProxy_detach(gRemoteAppObj.hCpswProxy, releaseInfo->hCpsw, releaseInfo->coreKey);
     CpswRemoteApp_deinitCpswDma(gRemoteAppObj.hDma);
 }
-
