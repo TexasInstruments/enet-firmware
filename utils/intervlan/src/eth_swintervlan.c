@@ -123,6 +123,9 @@
 #define APP_INTERVLAN_EGRESS_VLANID     (200)
 
 #define APP_INTERVLAN_IPV4_ETHERTYPE    (0x0800)
+
+#define AUTO_RECLAIM_TXCQ
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
@@ -600,38 +603,7 @@ static int32_t CpswApp_getRxTxHandle(void)
     CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
     CpswDma_UdmaRingPrms *pFqRingPrms;
 
-    /* Open the CPSW TX channel  */
-    CpswDma_initTxChParams(&cpswTxChCfg);
-    CpswAppUtils_setCommonTxChPrms(&cpswTxChCfg);
-
-    cpswTxChCfg.hUdmaDrv = gCpswInterVlanAppObj.hUdmaDrv;
-    cpswTxChCfg.numTxPkts = CPSW_FRWD_APP_NUM_PKTS + 32;
-    cpswTxChCfg.hCbArg = &gCpswInterVlanAppObj.hTxCh;
-    cpswTxChCfg.notifyCb = &CpswApp_txIsrFxn;
-    cpswTxChCfg.useProxy = true;
-    cpswTxChCfg.disableCacheOpsFlag = true;
-
-    CpswAppUtils_openTxCh(gCpswInterVlanAppObj.hCpsw,
-                          gCpswInterVlanAppObj.coreKey,
-                          gCpswInterVlanAppObj.coreId,
-                          &gCpswInterVlanAppObj.txChNum,
-                          &gCpswInterVlanAppObj.hTxCh,
-                          &cpswTxChCfg);
-
-    CpswAppUtils_assert(NULL != gCpswInterVlanAppObj.hTxCh);
-    status = CpswDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
-
-    if (status != CPSW_SOK)
-    {
-        CpswAppUtils_freeTxCh(gCpswInterVlanAppObj.hCpsw,
-                              gCpswInterVlanAppObj.coreKey,
-                              gCpswInterVlanAppObj.coreId,
-                              gCpswInterVlanAppObj.txChNum);
-        CpswAppUtils_assert(status != CPSW_SOK);
-    }
-
     /* Open the CPSW RX flow for Ingress */
-    if (status == CPSW_SOK)
     {
         CpswDma_initRxFlowParams(&cpswRxFlowCfg);
         CpswAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
@@ -645,8 +617,15 @@ static int32_t CpswApp_getRxTxHandle(void)
 
         /* Use ring monitor for the CQ ring of RX flow */
         pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
+#ifdef AUTO_RECLAIM_TXCQ
+        /* set ring mode to message as both TX channel (pushes to CQ) and RX flow
+         * (pops from FQ) uses this ring */
+        pFqRingPrms->mode = CSL_RINGACC_RING_MODE_MESSAGE;
+#endif
+
         pFqRingPrms->useRingMon = false;
         pFqRingPrms->ringMonCfg.mode = TISCI_MSG_VALUE_RM_MON_MODE_THRESHOLD;
+
         /* Ring mon low threshold */
 #if defined _DEBUG_
         /* In debug mode as CPU is processing lesser packets per event, keep threshold more */
@@ -674,15 +653,63 @@ static int32_t CpswApp_getRxTxHandle(void)
                                     gCpswInterVlanAppObj.coreKey,
                                     gCpswInterVlanAppObj.coreId,
                                     gCpswInterVlanAppObj.ingRxFlowIdx);
+            CpswAppUtils_assert(false);
 
-            CpswAppUtils_assert(NULL != gCpswInterVlanAppObj.hIngRxFlow);
         }
+    }
 
-        CpswAppUtils_assert(status == CPSW_SOK);
-        if (status == CPSW_SOK)
+    /* Open the CPSW TX channel  */
+    {
+        CpswDma_initTxChParams(&cpswTxChCfg);
+        CpswAppUtils_setCommonTxChPrms(&cpswTxChCfg);
+
+        cpswTxChCfg.hUdmaDrv = gCpswInterVlanAppObj.hUdmaDrv;
+        cpswTxChCfg.numTxPkts = CPSW_FRWD_APP_NUM_PKTS;
+        cpswTxChCfg.hCbArg = &gCpswInterVlanAppObj.hTxCh;
+        cpswTxChCfg.notifyCb = &CpswApp_txIsrFxn;
+        cpswTxChCfg.useProxy = true;
+        cpswTxChCfg.disableCacheOpsFlag = true;
+
+#ifdef AUTO_RECLAIM_TXCQ
+        cpswTxChCfg.autoReclaimPrms.enableFlag   = true;
+        cpswTxChCfg.autoReclaimPrms.hDmaDescPool = CpswDma_getRxFlowDescPoolHandle(gCpswInterVlanAppObj.hIngRxFlow);
+        cpswTxChCfg.autoReclaimPrms.hReclaimRing = CpswDma_getRxFlowFqHandle(gCpswInterVlanAppObj.hIngRxFlow);
+
+        /* Filter all protocol specific and extended info as we are using auto reclaim and this
+         * information might corrupt RX flow */
+        cpswTxChCfg.udmaTxChPrms.filterEinfo = TISCI_MSG_VALUE_RM_UDMAP_TX_CH_FILT_EINFO_DISABLED;
+        cpswTxChCfg.udmaTxChPrms.filterPsWords = TISCI_MSG_VALUE_RM_UDMAP_TX_CH_FILT_PSWORDS_ENABLED;
+        /* Notify callback should be NULL when auto recycle is enabled as the CQ event should be disabled */
+        cpswTxChCfg.notifyCb = NULL;
+#else
+        cpswTxChCfg.notifyCb = &CpswApp_txIsrFxn;
+#endif
+
+        CpswAppUtils_openTxCh(gCpswInterVlanAppObj.hCpsw,
+                              gCpswInterVlanAppObj.coreKey,
+                              gCpswInterVlanAppObj.coreId,
+                              &gCpswInterVlanAppObj.txChNum,
+                              &gCpswInterVlanAppObj.hTxCh,
+                              &cpswTxChCfg);
+        CpswAppUtils_assert(NULL != gCpswInterVlanAppObj.hTxCh);
+
+#ifndef AUTO_RECLAIM_TXCQ
+        status = CpswDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
+#endif
+
+        if (status != CPSW_SOK)
         {
-            CpswApp_initRxReadyPktQ();
+            CpswAppUtils_freeTxCh(gCpswInterVlanAppObj.hCpsw,
+                                  gCpswInterVlanAppObj.coreKey,
+                                  gCpswInterVlanAppObj.coreId,
+                                  gCpswInterVlanAppObj.txChNum);
+            CpswAppUtils_assert(false);
         }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        CpswApp_initRxReadyPktQ();
     }
 
     return status;
@@ -806,11 +833,13 @@ static void CpswApp_pktRxTx(void)
             CpswAppUtils_assert(CpswUtils_getQCount(&txSubmitQ) == 0);
         } /*end of else condition*/
 
+#ifndef AUTO_RECLAIM_TXCQ
         /* Reclaim Transmitted packets and add the reclaimed buffers to Rx FreeQ */
         status = CpswDma_retrieveTxDonePackets(gCpswInterVlanAppObj.hTxCh, &rxFreeQ);
         CpswAppUtils_submitRxPackets(gCpswInterVlanAppObj.hIngRxFlow,
                                      &rxFreeQ);
         CpswAppUtils_assert(CpswUtils_getQCount(&rxFreeQ) == 0);
+#endif
     }
     while (testDone != true);
 }
