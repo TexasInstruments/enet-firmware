@@ -430,6 +430,7 @@ typedef struct CpswProxy_rdevCmdMsg_s
 
 typedef struct CpswProxy_notifyServiceObj_s
 {
+    Task_Params notifyServiceTskPrm;
     Task_Handle hNotifyServiceTsk;
     RPMessage_Handle hNotifyServicRpMsgEp;
     uint32_t localEp;
@@ -443,6 +444,7 @@ typedef struct CpswProxy_Obj_s
     Mailbox_Handle   hResponseMbx;
     SemaphoreP_Handle hRdevStartSem;
     SemaphoreP_Handle hRdevCmdTskStartSem;
+    Task_Params      rdevCmdTaskParams;
     Task_Handle      hRdevCmdTsk;
     CpswProxy_notifyServiceObj notifyServiceObj;
 } CpswProxy_Obj;
@@ -958,30 +960,30 @@ static void CpswProxy_remoteDeviceInit(SemaphoreP_Handle rdevStartSem, const Cps
 
 static void  CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
 {
-    Task_Params taskParams;
     Error_Block eb;
 
     Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.priority = CPSWPROXY_RDEVCMD_TSK_PRI;
-    taskParams.arg0 = (UArg) hProxy;
-    taskParams.stackSize = CPSWPROXY_RDEVCMD_TSK_STACKSIZE;
-    hProxy->hRdevCmdTsk = Task_create(CpswProxy_rdevCmdTskFxn, &taskParams, &eb);
+    Task_Params_init(&hProxy->rdevCmdTaskParams);
+    hProxy->rdevCmdTaskParams.priority = CPSWPROXY_RDEVCMD_TSK_PRI;
+    hProxy->rdevCmdTaskParams.arg0 = (UArg) hProxy;
+    hProxy->rdevCmdTaskParams.stackSize = CPSWPROXY_RDEVCMD_TSK_STACKSIZE;
+    hProxy->hRdevCmdTsk = Task_create(CpswProxy_rdevCmdTskFxn, &hProxy->rdevCmdTaskParams, &eb);
     CpswProxy_assert((Error_check(&eb) == FALSE) && (hProxy->hRdevCmdTsk != NULL));
 }
 
 static void  CpswProxy_createNotifyServiceTask(CpswProxy_Handle hProxy)
 {
-    Task_Params taskParams;
+    Task_Params *pTaskParams;
     Error_Block eb;
 
     memset(&hProxy->notifyServiceObj, 0, sizeof(CpswProxy_notifyServiceObj));
     Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.priority = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
-    taskParams.arg0 = (UArg) hProxy;
-    taskParams.stackSize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
-    hProxy->notifyServiceObj.hNotifyServiceTsk = Task_create(CpswProxy_notifyServiceTskFxn, &taskParams, &eb);
+    pTaskParams = &hProxy->notifyServiceObj.notifyServiceTskPrm;
+    Task_Params_init(pTaskParams);
+    pTaskParams->priority = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
+    pTaskParams->arg0 = (UArg) hProxy;
+    pTaskParams->stackSize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
+    hProxy->notifyServiceObj.hNotifyServiceTsk = Task_create(CpswProxy_notifyServiceTskFxn, pTaskParams, &eb);
     CpswProxy_assert((Error_check(&eb) == FALSE) && (hProxy->notifyServiceObj.hNotifyServiceTsk != NULL));
 }
 
