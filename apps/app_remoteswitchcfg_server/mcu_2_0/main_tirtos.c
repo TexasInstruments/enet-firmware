@@ -120,6 +120,9 @@
 
 #define ARRAY_SIZE(x)                   (sizeof((x)) / sizeof(x[0U]))
 
+/* Define A72_QNX_OS if A72 is running Qnx. Qnx doesn't load resource table. */
+/* #define A72_QNX_OS */
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -362,7 +365,10 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     CpswAppUtils_print("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
 
     Ipc_init(NULL);
+
+#if !defined(A72_QNX_OS)
     Ipc_loadResourceTable(appGetIpcResourceTable());
+#endif
 
     /* Step 2: Initialize Virtio */
     vqParam.vqObjBaseAddr = (void *)&gEthAppSysVqBuf[0];
