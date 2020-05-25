@@ -534,7 +534,7 @@ typedef union rdevEthSwitchServerMessageList_u
     struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request unregister_remotetimer_req;
     /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER command. Sent from server to client */
     struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response unregister_remotetimer_res;
-} __packed rdevEthSwitchServerMessageList_t;
+} __attribute__((packed)) rdevEthSwitchServerMessageList_t;
 
 /**
  * \brief Set EThernet Switch Remote Server init parameters to default state

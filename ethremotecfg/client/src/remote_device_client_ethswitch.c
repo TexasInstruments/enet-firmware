@@ -63,20 +63,53 @@
 #include <stdint.h>
 #include <assert.h>
 
+#ifdef QNX_OS
+#include <stdlib.h>
+#include <assert.h>
+#include <sys/neutrino.h>
+#include <sys/netmgr.h>
+#include <sys/slogcodes.h>
+#else
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
 #include <xdc/runtime/Memory.h>
+#endif
 #include <ti/osal/osal.h>
 #include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <client-rtos/remote-device.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
 #include <ti/drv/cpsw/cpsw.h>
 
+#ifdef QNX_OS
+static void slog_printf(const char *pcString, ...);
+#define System_printf slog_printf
+
+static void slog_printf(const char *pcString, ...)
+{
+    char printBuffer[256];
+    va_list arguments;
+
+    if (256 < strlen(pcString))
+    {
+        assert(false);
+    }
+
+    /* Start the varargs processing */
+    va_start(arguments, pcString);
+    vsnprintf(printBuffer, sizeof(printBuffer), pcString, arguments);
+
+    slogf(_SLOGC_NETWORK, _SLOG_INFO, printBuffer);
+
+    /* End the varargs processing */
+    va_end(arguments);
+}
+#endif
+
 typedef struct rdevEthSwitchClientMessageList_s
 {
     struct rpmsg_kdrv_device_header hdr;
     rdevEthSwitchServerMessageList_t rdevEthSwitchMsg;
-} __packed rdevEthSwitchClientMessageList_t;
+} __attribute__((packed)) rdevEthSwitchClientMessageList_t;
 
 uint32_t rdevEthSwitchClient_printText(void *priv,
                                        void *data)
@@ -92,7 +125,11 @@ static int32_t rdevEthSwitchClientFreeMsg(void *priv,
                                           void *data,
                                           uint32_t len)
 {
+#ifdef QNX_OS
+    free(data);
+#else
     Memory_free(NULL, data, sizeof(rdevEthSwitchClientMessageList_t));
+#endif
     return 0;
 }
 
@@ -103,7 +140,11 @@ int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id,
                                        uint8_t *notify_info,
                                        uint32_t notify_info_len)
 {
+#ifdef QNX_OS
+    rdevEthSwitchClientMessageList_t *clientMsg = calloc(1, sizeof(rdevEthSwitchClientMessageList_t));
+#else
     rdevEthSwitchClientMessageList_t *clientMsg = Memory_calloc(NULL, sizeof(rdevEthSwitchClientMessageList_t), sizeof(uint64_t), NULL);
+#endif
     struct rpmsg_kdrv_ethswitch_c2s_notify *msg = &clientMsg->rdevEthSwitchMsg.c2s_notify;
     int32_t ret;
 

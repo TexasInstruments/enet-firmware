@@ -575,7 +575,7 @@ struct rpmsg_kdrv_ethswitch_message_header
 {
     /*! Message Type enum: rpmsg_kdrv_ethswitch_message_type */
     u8 message_type;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * Common structure used for all ethernet switch remote device command request msgs except attach
@@ -586,7 +586,7 @@ struct rpmsg_kdrv_ethswitch_common_request_info
     u64 id;
     /*! Core specific key returned by attach */
     u32 core_key;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * Common header used for all ethernet switch remote device command response msgs
@@ -595,7 +595,7 @@ struct rpmsg_kdrv_ethswitch_common_response_info
 {
     /*! Status of request. Refer Ethernet Switch Remote Device CMD response code */
     s32 status;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH cmd client request
@@ -606,7 +606,7 @@ struct rpmsg_kdrv_ethswitch_attach_request
     struct rpmsg_kdrv_ethswitch_message_header header;
     /*! CPSW TYPE enum: rpmsg_kdrv_ethswitch_cpsw_type  */
     u8 cpsw_type;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH cmd server response
@@ -629,7 +629,7 @@ struct rpmsg_kdrv_ethswitch_attach_response
     u32 tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
     /*! Feature bitmask based on defines RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx */
     u32 features;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT cmd client request
@@ -640,7 +640,7 @@ struct rpmsg_kdrv_ethswitch_attach_extended_request
     struct rpmsg_kdrv_ethswitch_message_header header;
     /*! CPSW TYPE  enum: rpmsg_kdrv_ethswitch_cpsw_type  */
     u8 cpsw_type;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT cmd server response
@@ -668,7 +668,7 @@ struct rpmsg_kdrv_ethswitch_attach_extended_response
     u32 tx_cpsw_psil_dst_id;
     /*! Mac address allocated */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Alloc request CMD params
@@ -686,7 +686,7 @@ struct rpmsg_kdrv_ethswitch_alloc_request
     struct rpmsg_kdrv_ethswitch_message_header header;
     /*! Alloc Request common info  */
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Alloc request CMD params
@@ -697,7 +697,7 @@ struct rpmsg_kdrv_ethswitch_alloc_rx_response
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Allocated flow's index */
     u32 alloc_flow_idx;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Alloc Tx channel CMD response msg
@@ -711,7 +711,7 @@ struct rpmsg_kdrv_ethswitch_alloc_tx_response
      * Tx UDMA channel
      */
     u32 tx_cpsw_psil_dst_id;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Alloc MAC CMD response msg
@@ -722,7 +722,7 @@ struct rpmsg_kdrv_ethswitch_alloc_mac_response
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Mac address allocated */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Rx Default flow CMD request params
@@ -735,7 +735,7 @@ struct rpmsg_kdrv_ethswitch_register_rx_default_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! Default flow will be associated with the given index */
     u32    default_flow_idx;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Rx Default flow CMD response params
@@ -744,7 +744,7 @@ struct rpmsg_kdrv_ethswitch_register_rx_default_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register MAC address CMD request params
@@ -759,7 +759,7 @@ struct rpmsg_kdrv_ethswitch_register_mac_request
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     /*! Flow's index associated with the mac address to be registered in ALE */
     u32 flow_idx;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register MAC address CMD response params
@@ -768,7 +768,7 @@ struct rpmsg_kdrv_ethswitch_register_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 
 /*!
@@ -784,7 +784,7 @@ struct rpmsg_kdrv_ethswitch_unregister_mac_request
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     /*! rx flow index from which the mac_address association will be removed  */
     u32 flow_idx;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief UnRegister MAC address CMD response params
@@ -793,7 +793,7 @@ struct rpmsg_kdrv_ethswitch_unregister_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Free MAC address CMD request params
@@ -806,7 +806,7 @@ struct rpmsg_kdrv_ethswitch_free_mac_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! Mac address to be freed */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Free MAC address CMD response params
@@ -815,7 +815,7 @@ struct rpmsg_kdrv_ethswitch_free_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Free Tx Channel CMD request params
@@ -828,7 +828,7 @@ struct rpmsg_kdrv_ethswitch_free_tx_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! Tx Channel CPSW PSIL Destination thread id to be freed */
     u32 tx_cpsw_psil_dst_id;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Free Tx Channel CMD response params
@@ -837,7 +837,7 @@ struct rpmsg_kdrv_ethswitch_free_tx_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Unregister Default Flow CMD request params
@@ -850,7 +850,7 @@ struct rpmsg_kdrv_ethswitch_unregister_rx_default_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! Default flow index to be unregistered */
     u32 default_flow_idx;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Unregister Default Flow CMD response params
@@ -859,7 +859,7 @@ struct rpmsg_kdrv_ethswitch_unregister_rx_default_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Free Rx  Flow CMD request params
@@ -872,7 +872,7 @@ struct rpmsg_kdrv_ethswitch_free_rx_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! Rx flow id to be freed */
     u32 alloc_flow_idx;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Free Rx  Flow CMD response params
@@ -881,7 +881,7 @@ struct rpmsg_kdrv_ethswitch_free_rx_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Detach CMD request params
@@ -892,7 +892,7 @@ struct rpmsg_kdrv_ethswitch_detach_request
     struct rpmsg_kdrv_ethswitch_message_header header;
     /*! Common info associated with all CMDs other than ATTACH */
     struct rpmsg_kdrv_ethswitch_common_request_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Detach CMD response params
@@ -901,7 +901,7 @@ struct rpmsg_kdrv_ethswitch_detach_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief IOCTL CMD request params
@@ -931,7 +931,7 @@ struct rpmsg_kdrv_ethswitch_ioctl_response
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! CPSW IOCTL CMD output arguments .Byte array is typecast to the outArgs structure associated with the IOCTL */
     u8     outargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN];
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Write  CMD request params
@@ -944,7 +944,7 @@ struct rpmsg_kdrv_ethswitch_regwr_request
     u32    regaddr;
     /*! Register Value to be written */
     u32    regval;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Write  CMD response params
@@ -955,7 +955,7 @@ struct rpmsg_kdrv_ethswitch_regwr_response
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Updated register value */
     u32 regval;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Read  CMD request params
@@ -966,7 +966,7 @@ struct rpmsg_kdrv_ethswitch_regrd_request
     struct rpmsg_kdrv_ethswitch_message_header header;
     /*! Register Address */
     u32    regaddr;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Read  CMD response params
@@ -977,7 +977,7 @@ struct rpmsg_kdrv_ethswitch_regrd_response
     struct rpmsg_kdrv_ethswitch_common_response_info info;
     /*! Register Read Value */
     u32    regval;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register IPv4:MAC Address mapping CMD request params
@@ -995,7 +995,7 @@ struct rpmsg_kdrv_ethswitch_ipv4_register_mac_request
     uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     /*! IPv4 address  */
     uint8_t ipv4_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register IPv6:MAC Address mapping CMD request params
@@ -1012,7 +1012,7 @@ struct rpmsg_kdrv_ethswitch_ipv6_register_mac_request
     uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
     /*! IPv6 address */
     uint8_t ipv6_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register IPv4:MAC Address mapping CMD response params
@@ -1021,7 +1021,7 @@ struct rpmsg_kdrv_ethswitch_ipv4_register_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register IPv6:MAC Address mapping CMD response params
@@ -1030,7 +1030,7 @@ struct rpmsg_kdrv_ethswitch_ipv6_register_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Unregister IPv4:MAC Address mapping CMD request params
@@ -1043,7 +1043,7 @@ struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! IPv4 address  */
     uint8_t ipv4_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Unregister IPv6:MAC Address mapping CMD request params
@@ -1056,7 +1056,7 @@ struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! IPv6 address */
     uint8_t ipv6_addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Unregister IPv4:MAC Address mapping CMD response params
@@ -1065,7 +1065,7 @@ struct rpmsg_kdrv_ethswitch_ipv4_unregister_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Unregister IPv6:MAC Address mapping CMD response params
@@ -1074,7 +1074,7 @@ struct rpmsg_kdrv_ethswitch_ipv6_unregister_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 
 /*!
@@ -1090,7 +1090,7 @@ struct rpmsg_kdrv_ethswitch_register_ethertype_request
     u16 ether_type;
     /*! Flow's index associated with the mac address to be registered in ALE */
     u32 flow_idx;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Ethertype CMD response params
@@ -1099,7 +1099,7 @@ struct rpmsg_kdrv_ethswitch_register_ethertype_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 
 /*!
@@ -1115,7 +1115,7 @@ struct rpmsg_kdrv_ethswitch_unregister_ethertype_request
     u16 ether_type;
     /*! rx flow index from which the mac_address association will be removed  */
     u32 flow_idx;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief UnRegister Ethertype CMD response params
@@ -1124,7 +1124,7 @@ struct rpmsg_kdrv_ethswitch_unregister_ethertype_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Remote timer CMD request params
@@ -1191,7 +1191,7 @@ struct rpmsg_kdrv_ethswitch_firmware_version_info
     char date[RPMSG_KDRV_TP_ETHSWITCH_DATELEN];
     /*! GIT commit SHA of the firmware: char string in the form fd52c34f */
     char commit_hash[RPMSG_KDRV_TP_ETHSWITCH_COMMITSHALEN];
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Ethernet Switch Remote Device Data
@@ -1212,7 +1212,7 @@ struct rpmsg_kdrv_ethswitch_device_data
     u32 uart_connected;
     /*! UART ID used by firmware for log prints */
     u32 uart_id;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Ethernet Switch Remote Device Ping Request
@@ -1228,7 +1228,7 @@ struct rpmsg_kdrv_ethswitch_ping_request
     struct rpmsg_kdrv_ethswitch_message_header header;
     /*! Ping data.Client populates this which serves copies in its reponse message */
     u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Ethernet Switch Remote Device Ping Response
@@ -1237,7 +1237,7 @@ struct rpmsg_kdrv_ethswitch_ping_response
 {
     /*! Ping data response */
     u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Ethernet Switch Remote Device Server to Client Notify
@@ -1256,7 +1256,7 @@ struct rpmsg_kdrv_ethswitch_s2c_notify
      * PHY link down and this API param is expected to change 
      */
     u8 data[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Ethernet Switch Remote Device Client to Server Notify
@@ -1278,7 +1278,7 @@ struct rpmsg_kdrv_ethswitch_c2s_notify
     u32 notify_info_len;
     /*! Notify Message data */
     u8 notify_info[RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN];
-} __packed;
+} __attribute__((packed));
 
 /* @} */
 
