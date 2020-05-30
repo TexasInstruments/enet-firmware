@@ -108,7 +108,7 @@
 /* Un comment the below macro to print the packet count on UART */
 // #define APP_PRINTPKTCNT
 
-#define CPSW_FRWD_APP_NUM_PKTS          (192U)
+#define CPSW_FRWD_APP_NUM_PKTS          (16U)
 /* Time in ms for which app pends waiting for completion semaphore to be
  * posted. This is time blocked waiting for new Rx packet arrival
  */
