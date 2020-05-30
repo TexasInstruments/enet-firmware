@@ -79,7 +79,7 @@ var index = 0;
 attrs.enable = true;
 attrs.bufferable = false;
 attrs.cacheable = false;
-attrs.shareable = false;
+attrs.shareable = true;
 attrs.noExecute = true;
 attrs.accPerm = 1;          /* RW at PL1 */
 attrs.tex = 0;
@@ -99,8 +99,8 @@ MPU.setRegionMeta(index++, 0x00000000, MPU.RegionSize_32K, attrs);
 
 /* make ATCM as cacheable */
 attrs.enable = true;
-attrs.bufferable = false;
-attrs.cacheable = false;
+attrs.bufferable = true;
+attrs.cacheable = true;
 attrs.shareable = false;
 attrs.noExecute = false;
 attrs.accPerm = 1;          /* RW at PL1 */
@@ -110,8 +110,8 @@ MPU.setRegionMeta(index++, 0x41000000, MPU.RegionSize_32K, attrs);
 
 /* make BTCM as cacheable */
 attrs.enable = true;
-attrs.bufferable = false;
-attrs.cacheable = false;
+attrs.bufferable = true;
+attrs.cacheable = true;
 attrs.shareable = false;
 attrs.noExecute = false;
 attrs.accPerm = 1;          /* RW at PL1 */
@@ -153,9 +153,9 @@ attrs.subregionDisableMask = 0;
 MPU.setRegionMeta(index++, 0x80000000, MPU.RegionSize_2G, attrs);
 
 /* make APP_LOG_MEM_ADDR, TIOVX_OBJ_DESC_MEM_ADDR, IPC_VRING_MEM_ADDR as non-cache */
-/* Note: the next 4 MPU regions start address (second argument of MPU.setRegionMeta) 
-   must cover the address range of APP_LOG_MEM, TIOVX_OBJ_DESC_MEM, IPC_VRING_MEM 
-   in system_memory_map.html and MUST be 16M aligned 
+/* Note: the next 4 MPU regions start address (second argument of MPU.setRegionMeta)
+   must cover the address range of APP_LOG_MEM, TIOVX_OBJ_DESC_MEM, IPC_VRING_MEM
+   in system_memory_map.html and MUST be 16M aligned
  */
 var non_cache_base_addr = 0xB8000000;
 var MB = 0x100000;
@@ -169,7 +169,7 @@ attrs.accPerm = 1;          /* RW at PL1 */
 attrs.tex = 1;
 attrs.subregionDisableMask = 0;
 MPU.setRegionMeta(index++, non_cache_base_addr + 0*16*MB, MPU.RegionSize_16M, attrs);
-MPU.setRegionMeta(index++, non_cache_base_addr + 1*16*MB, MPU.RegionSize_16M, attrs); 
+MPU.setRegionMeta(index++, non_cache_base_addr + 1*16*MB, MPU.RegionSize_16M, attrs);
 
 var non_cache_base_addr = 0xAA000000;
 var MB = 0x100000;
@@ -182,13 +182,13 @@ attrs.noExecute = true;
 attrs.accPerm = 1;          /* RW at PL1 */
 attrs.tex = 1;
 attrs.subregionDisableMask = 0;
-MPU.setRegionMeta(index++, non_cache_base_addr + 0*16*MB, MPU.RegionSize_16M, attrs); 
-MPU.setRegionMeta(index++, non_cache_base_addr + 1*16*MB, MPU.RegionSize_16M, attrs); 
+MPU.setRegionMeta(index++, non_cache_base_addr + 0*16*MB, MPU.RegionSize_16M, attrs);
+MPU.setRegionMeta(index++, non_cache_base_addr + 1*16*MB, MPU.RegionSize_16M, attrs);
 
 /* make DDR_MCU2_1_IPC_ADDR as non-cache */
-/* Note: the next MPU regions start address (second argument of MPU.setRegionMeta) 
-   must cover the address range of DDR_MCU2_1_IPC_ADDR 
-   in system_memory_map.html and MUST be 1M aligned 
+/* Note: the next MPU regions start address (second argument of MPU.setRegionMeta)
+   must cover the address range of DDR_MCU2_1_IPC_ADDR
+   in system_memory_map.html and MUST be 1M aligned
  */
 attrs.enable = true;
 attrs.bufferable = false;
@@ -201,9 +201,9 @@ attrs.subregionDisableMask = 0;
 MPU.setRegionMeta(index++, 0xA3000000, MPU.RegionSize_1M, attrs);
 
 /* make DDR_MCU2_0_IPC_ADDR as non-cache */
-/* Note: the next MPU regions start address (second argument of MPU.setRegionMeta) 
-   must cover the address range of DDR_MCU2_0_IPC_ADDR 
-   in system_memory_map.html and MUST be 1M aligned 
+/* Note: the next MPU regions start address (second argument of MPU.setRegionMeta)
+   must cover the address range of DDR_MCU2_0_IPC_ADDR
+   in system_memory_map.html and MUST be 1M aligned
  */
 attrs.enable = true;
 attrs.bufferable = false;

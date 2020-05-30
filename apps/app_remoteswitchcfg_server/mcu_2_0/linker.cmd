@@ -77,27 +77,31 @@ SECTIONS
     .cinit      : {} palign(8)      > DDR_MCU2_0
     .pinit      : {} palign(8)      > R5F_TCMB0
 
-    /* For NDK packet memory, we need to map this sections before .bss*/
-    /* For NDK packet memory, we need to map this sections before .bss*/
-    
-    .far:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .far:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .far:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    /* For NDK packet memory*/
+    .bss:CPSW_DMA_DESC_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:CPSW_DMA_PKT_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:CPSW_DMA_OBJ_MEM      (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+
     .bss:NDK_MMBUFFER  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .bss:NDK_PACKETMEM (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+
+    /* Used in Switch configuration tool */
+    .serialContext     (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
 
     .bss:app_log_mem        (NOLOAD) : {} > APP_LOG_MEM
     .bss:ipc_vring_mem      (NOLOAD) : {} > IPC_VRING_MEM
     .bss:ddr_shared_mem     (NOLOAD) : {} > DDR_MCU2_0
-    .bss        : {} align(4)       > DDR_MCU2_0
-    .far        : {} align(4)       > DDR_MCU2_0
-    .boardcfg_data        : {} palign(128)           > DDR_MCU2_0
-    .sysmem     : {}                > DDR_MCU2_0
-    .stack      : {} align(8)       > DDR_MCU2_0
-
-    /* USB or any other LLD buffer for benchmarking */
+    .text       : {} palign(8)   > DDR_MCU2_0
+    .cinit      : {} palign(8)   > DDR_MCU2_0
+    .bss        : {} align(8)    > DDR_MCU2_0
+    .far        : {} align(4)    > DDR_MCU2_0
+    .const      : {} palign(8)   > DDR_MCU2_0
+    .data       : {} palign(128) > DDR_MCU2_0
+    .sysmem     : {} align(8)    > DDR_MCU2_0
+    .stack      : {} align(4)    > DDR_MCU2_0
     .data_buffer: {} palign(128) > DDR_MCU2_0
-    
+
     .benchmark_buffer: {} palign(128) > DDR_MCU2_0
 
     ipc_data_buffer (NOINIT) : {} palign(128) > DDR_MCU2_0
