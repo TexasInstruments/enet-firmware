@@ -971,6 +971,9 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
   outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
   outArgs->isRingMonUsed = false;
   outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
+  /* Let NIMU use optimized processing where TX packets are relinquished in next
+   * TX submit call */
+  outArgs->disableTxEvent = true;
 
   gRemoteAppObj.hDma = CpswRemoteApp_initCpswDma(cpswType, outArgs->hUdmaDrv);
 

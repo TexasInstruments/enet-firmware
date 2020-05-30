@@ -144,6 +144,7 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     Cpsw_Type cpswType = CPSW_9G;
     uint32_t coreId = CpswAppSoc_getCoreId();
     bool useDefaultFlow = true;    /* NDK must handle the default flow */
+    bool useRingMon = true;
 
     /* Get MCM command interface */
     CpswMcm_getCmdIf(cpswType, &mcmCmdIf);
@@ -158,16 +159,16 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
 
     /* Open TX channel */
     CpswDma_initTxChParams(&cpswTxChCfg);
-    cpswTxChCfg.hUdmaDrv = handleInfo.hUdmaDrv;
-    cpswTxChCfg.numTxPkts = inArgs->txCfg.numPackets;
-    cpswTxChCfg.hCbArg = inArgs->txCfg.cbArg;
-    cpswTxChCfg.notifyCb = inArgs->txCfg.notifyCb;
-    cpswTxChCfg.useProxy = true;
+    cpswTxChCfg.hUdmaDrv            = handleInfo.hUdmaDrv;
+    cpswTxChCfg.numTxPkts           = inArgs->txCfg.numPackets;
+    cpswTxChCfg.hCbArg              = inArgs->txCfg.cbArg;
+    cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
+    cpswTxChCfg.useProxy            = true;
     cpswTxChCfg.disableCacheOpsFlag = false;
-    cpswTxChCfg.ringMemAllocFxn = &CpswAppMemUtils_allocRingMemFxn;
-    cpswTxChCfg.ringMemFreeFxn  = &CpswAppMemUtils_freeRingMemFxn;
-    cpswTxChCfg.dmaDescAllocFxn = &CpswAppMemUtils_allocDmaDescFxn;
-    cpswTxChCfg.dmaDescFreeFxn  = &CpswAppMemUtils_freeDmaDescFxn;
+    cpswTxChCfg.ringMemAllocFxn     = &CpswAppMemUtils_allocRingMemFxn;
+    cpswTxChCfg.ringMemFreeFxn      = &CpswAppMemUtils_freeRingMemFxn;
+    cpswTxChCfg.dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
+    cpswTxChCfg.dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
 
     CpswAppUtils_openTxCh(handleInfo.hCpsw,
                           attachInfo.coreKey,
@@ -178,22 +179,32 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
 
     /* Open RX Flow */
     CpswDma_initRxFlowParams(&cpswRxFlowCfg);
-    cpswRxFlowCfg.notifyCb = inArgs->rxCfg.notifyCb;
+    cpswRxFlowCfg.notifyCb  = inArgs->rxCfg.notifyCb;
     cpswRxFlowCfg.numRxPkts = inArgs->rxCfg.numPackets;
-    cpswRxFlowCfg.hUdmaDrv = handleInfo.hUdmaDrv;
-    cpswRxFlowCfg.hCbArg = inArgs->rxCfg.cbArg;
-    cpswRxFlowCfg.useProxy = true;
+    cpswRxFlowCfg.hUdmaDrv  = handleInfo.hUdmaDrv;
+    cpswRxFlowCfg.hCbArg    = inArgs->rxCfg.cbArg;
+    cpswRxFlowCfg.useProxy  = true;
 
     /* Use ring monitor for the CQ ring of RX flow */
-    pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
-    pFqRingPrms->useRingMon = false;
+    pFqRingPrms                  = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
+    pFqRingPrms->useRingMon      = useRingMon;
+    pFqRingPrms->ringMonCfg.mode = TISCI_MSG_VALUE_RM_MON_MODE_THRESHOLD;
+    /* Ring mon low threshold */
+#if defined _DEBUG_
+    /* In debug mode as CPU is processing lesser packets per event, keep threshold more */
+    pFqRingPrms->ringMonCfg.data0 = (inArgs->rxCfg.numPackets - 10U);
+#else
+    pFqRingPrms->ringMonCfg.data0 = (inArgs->rxCfg.numPackets - 20U);
+#endif
+    /* Ring mon high threshold - to get only low  threshold event, setting high threshold as more than ring depth*/
+    pFqRingPrms->ringMonCfg.data1 = inArgs->rxCfg.numPackets;
 
     cpswRxFlowCfg.disableCacheOpsFlag = false;
-    cpswRxFlowCfg.rxFlowMtu = 1536U;
-    cpswRxFlowCfg.ringMemAllocFxn = &CpswAppMemUtils_allocRingMemFxn;
-    cpswRxFlowCfg.ringMemFreeFxn  = &CpswAppMemUtils_freeRingMemFxn;
-    cpswRxFlowCfg.dmaDescAllocFxn = &CpswAppMemUtils_allocDmaDescFxn;
-    cpswRxFlowCfg.dmaDescFreeFxn  = &CpswAppMemUtils_freeDmaDescFxn;
+    cpswRxFlowCfg.rxFlowMtu           = 1536U;
+    cpswRxFlowCfg.ringMemAllocFxn     = &CpswAppMemUtils_allocRingMemFxn;
+    cpswRxFlowCfg.ringMemFreeFxn      = &CpswAppMemUtils_freeRingMemFxn;
+    cpswRxFlowCfg.dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
+    cpswRxFlowCfg.dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
 
     CpswAppUtils_openRxFlow(handleInfo.hCpsw,
                             attachInfo.coreKey,
@@ -208,13 +219,13 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     CpswAppUtils_print("Host MAC address: ");
     CpswAppUtils_printMacAddr(&outArgs->rxInfo.macAddr[0U]);
 
-    outArgs->coreId = coreId;
-    outArgs->coreKey = attachInfo.coreKey;
-    outArgs->hCpsw = handleInfo.hCpsw;
-    outArgs->hostPortRxMtu = attachInfo.rxMtu;
+    outArgs->coreId          = coreId;
+    outArgs->coreKey         = attachInfo.coreKey;
+    outArgs->hCpsw           = handleInfo.hCpsw;
+    outArgs->hostPortRxMtu   = attachInfo.rxMtu;
     CPSW_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
-    outArgs->hUdmaDrv = handleInfo.hUdmaDrv;
-    outArgs->printFxnCb = &CpswAppUtils_print;
+    outArgs->hUdmaDrv        = handleInfo.hUdmaDrv;
+    outArgs->printFxnCb      = &CpswAppUtils_print;
     outArgs->isPortLinkedFxn = &EthFwCallbacks_isPortLinked;
 
     /* TODO: NIMU's polling timer is getting corrupted at times of sudden burst of
@@ -223,8 +234,15 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
      * As a workaround setting isRingMonUsed to true (irrespective of ring monitor
      * is enabled or not) to ensure interrupts are used instead of polling.
      * Timer corruption needs to be root-caused and fixed. */
-    outArgs->isRingMonUsed = true;
+    outArgs->isRingMonUsed = useRingMon;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
+
+    /* Let NIMU use optimized processing where TX packets are relinquished in next
+     * TX submit call */
+    outArgs->disableTxEvent = true;
+    CpswAppUtils_print("Host MAC address: ");
+    CpswAppUtils_printMacAddr(&outArgs->rxInfo.macAddr[0U]);
+
 }
 
 void EthFwCallbacks_nimuCpswReleaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
