@@ -200,7 +200,7 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     pFqRingPrms->ringMonCfg.data1 = inArgs->rxCfg.numPackets;
 
     cpswRxFlowCfg.disableCacheOpsFlag = false;
-    cpswRxFlowCfg.rxFlowMtu           = 1536U;
+    cpswRxFlowCfg.rxFlowMtu           = attachInfo.rxMtu;
     cpswRxFlowCfg.ringMemAllocFxn     = &CpswAppMemUtils_allocRingMemFxn;
     cpswRxFlowCfg.ringMemFreeFxn      = &CpswAppMemUtils_freeRingMemFxn;
     cpswRxFlowCfg.dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;

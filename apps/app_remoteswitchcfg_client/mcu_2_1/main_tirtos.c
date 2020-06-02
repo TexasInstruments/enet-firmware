@@ -1029,7 +1029,7 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
                             gRemoteAppObj.macAddr,
                             &inArgs->rxCfg,
                             &outArgs->rxInfo,
-                            1536U);
+                            outArgs->hostPortRxMtu);
   gRemoteAppObj.coreKey = outArgs->coreKey;
   gRemoteAppObj.hCpsw = outArgs->hCpsw;
 }
