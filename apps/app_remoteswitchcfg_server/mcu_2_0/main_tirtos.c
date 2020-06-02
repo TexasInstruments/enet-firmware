@@ -321,7 +321,7 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1)
 
     /* Print EthFw banner */
     CpswAppUtils_print("=======================================================\n");
-    CpswAppUtils_print("           CPSW Ethernet Firmware Demo                 \n");
+    CpswAppUtils_print("            CPSW Ethernet Firmware                     \n");
     CpswAppUtils_print("=======================================================\n");
 
     /* Open UDMA driver */
