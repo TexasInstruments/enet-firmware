@@ -273,6 +273,10 @@ int main(void)
 
     gEthAppObj.coreId = CpswAppSoc_getCoreId();
 
+    /* Board related initialization */
+    CpswAppBoardUtils_initEthFw();
+    CpswAppUtils_enableClocks(gEthAppObj.cpswType);
+
     /* Create semaphore used to synchronize EthFw and NDK init.
      * EthFw opens the CPSW driver which is required by NDK during NIMU
      * initialization, hence EthFw init must complete first.
@@ -314,10 +318,6 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1)
 {
     Task_Params taskParams;
     int32_t status = ETHAPP_OK;
-
-    /* Board related initialization */
-    CpswAppBoardUtils_initEthFw();
-    CpswAppUtils_enableClocks(gEthAppObj.cpswType);
 
     /* Print EthFw banner */
     CpswAppUtils_print("=======================================================\n");
