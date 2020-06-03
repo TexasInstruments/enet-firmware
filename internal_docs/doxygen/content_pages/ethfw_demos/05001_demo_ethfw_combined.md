@@ -30,6 +30,8 @@ Below are top-level features demonstrated:
  - Hardware-based interVLAN routing
  - IP next header filtering
  - MAC address based rate limiting
+ - Time-synchronization using PTP
+ - Multi-core time-synchronization with RTOS client
 
 The Ethernet Firmware demo application is in charge of:
 
@@ -222,6 +224,61 @@ demo.
     Default Gateway                     | 192.168.1.1
     Subnet Mask                         | 255.255.255.0
 
+### PTP stack {#demo_ethfw_ptp_stack}
+
+> **Note:** PTP stack is required only on **PC 2**.
+
+PTP stack is required to run master clock and synchronize with the slave
+running on EVM.
+
+-# Check for hardware timestamping support,
+
+ * In Ubuntu PC terminal, enter the command as follows:,
+              
+       ~]# ethtool -T eth3
+       Time stamping parameters for eth3:
+       Capabilities:
+              hardware-transmit     (SOF_TIMESTAMPING_TX_HARDWARE)
+              software-transmit     (SOF_TIMESTAMPING_TX_SOFTWARE)
+              hardware-receive      (SOF_TIMESTAMPING_RX_HARDWARE)
+              software-receive      (SOF_TIMESTAMPING_RX_SOFTWARE)
+              software-system-clock (SOF_TIMESTAMPING_SOFTWARE)
+              hardware-raw-clock    (SOF_TIMESTAMPING_RAW_HARDWARE)
+       PTP Hardware Clock: 0
+       Hardware Transmit Timestamp Modes:
+              off                   (HWTSTAMP_TX_OFF)
+              on                    (HWTSTAMP_TX_ON)
+       Hardware Receive Filter Modes:
+              none                  (HWTSTAMP_FILTER_NONE)
+              all                   (HWTSTAMP_FILTER_ALL)
+where eth3 is the interface you want to check.
+
+ * For software time stamping support, the parameters list should include:
+
+       SOF_TIMESTAMPING_SOFTWARE 
+
+       SOF_TIMESTAMPING_TX_SOFTWARE 
+
+       SOF_TIMESTAMPING_RX_SOFTWARE 
+
+ * For hardware time stamping support, the parameters list should include:
+
+       SOF_TIMESTAMPING_RAW_HARDWARE 
+
+       SOF_TIMESTAMPING_TX_HARDWARE 
+
+       SOF_TIMESTAMPING_RX_HARDWARE 
+
+-# Install PTP stack in the Ubuntu PC as follows:
+
+       sudo apt install linuxptp
+
+-# Start PTP master: 
+
+       sudo ptp4l -P -2 -S -i eth3 -m -q -p -l 7 /dev/ptp0 
+
+Replace -S with -H if your NIC supports hardware timestamping.
+
 [Back To Top](@ref demo_ethfw_combined_top)
 
 
@@ -351,6 +408,8 @@ UART2 serial terminal.
 
 
 ## HTTP Server {#ethfw_http_client_page}
+
+> **Note:** HTTP server support is removed from NDK_3_75_01_01, so currently HTTP server is not supported in ETHFW. From 7.1 release, NS tools will be used to enable HTTP server.
 
 A HTTP server is also part of the demo application running in the Main R5F
 core 0. The following is a snapshot of the webpage loaded when client accesses
@@ -646,15 +705,10 @@ Below is a sample log from the execution of this demo application.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Enabling clocks for CPSW_9G!
 =======================================================
-           CPSW Ethernet Firmware Demo
+            CPSW Ethernet Firmware                     
 =======================================================
-ETHFW Version: 0. 1. 1
-ETHFW Build Date (YYYY/MMM/DD):2020/Feb/ 6
-ETHFW Commit SHA:ETHFW PermissionFlag:0x1ffffff, UART Connected:true,UART Id:2IPC_echo_test (core : mcu2_0) .....
 CPSW_9G Test on MAIN NAVSS
-Remote demo device (core : mcu2_0) .....
 CpswPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
-Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:1
 CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
 CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
 CpswPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
@@ -662,49 +716,56 @@ PHY 0 is alive
 PHY 3 is alive
 PHY 12 is alive
 PHY 15 is alive
-PHY 16 is alive
-PHY 17 is alive
-PHY 18 is alive
-PHY 19 is alive
 PHY 23 is alive
-Host MAC address: Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:5000d,InArgsLen:0, OutArgsLen:4
+
+ETHFW Version   : 0.01.01
+ETHFW Build Date: Jun  3, 2020
+ETHFW Build Time: 17:05:18
+ETHFW Commit SHA: 269c245e
+
+Host MAC address: IPC_echo_test (core : mcu2_0) .....
 70:ff:76:1d:92:c2
+Remote demo device (core : mcu2_0) .....
+Host MAC address: Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:1
+70:ff:76:1d:92:c2
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:5000d,InArgsLen:0, OutArgsLen:4 
 [NIMU_NDK] CPSW has been started successfully
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:20000,InArgsLen:24, OutArgsLen:4
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:178, FlowIdxOffset:6
-Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:10, Policer Entry:0Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1
-Cpsw_handleLinkUp: port 3: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:20000,InArgsLen:24, OutArgsLen:4 
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:178, FlowIdxOffset:6
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:11, Policer Entry:0Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
 Cpsw_handleLinkUp: port 2: Link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: port 3: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.10.21
 
-CPSW NIMU application, IP address I/F 1: 192.168.1.150
+CPSW NIMU application, IP address I/F 1: 192.168.10.19
 
+
+================LLI Table entries=========== 
+
+Number of Static ARP Entries: 1 
 Rx Flow for Software Inter-VLAN Routing is up
-Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2cef4f4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.1.151
 
-================LLI Table entries===========
-
-Number of Static ARP Entries: 1
-
-SNo.      IP Address         MAC Address
-------    -------------      ---------------
-1         192.168.1.151      70:FF:76:1D:92:C3
+SNo.      IP Address         MAC Address  
+------    -------------      --------------- 
+1         192.168.10.21      70:FF:76:1D:92:C3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -716,11 +777,13 @@ Remote Device Framework Endpoint locate failed. Retrying !!!
 Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
 Registered a device name = mcu_2_1_ethswitch-device-0, id = 0, type = 3
 ETHFW Version: 0. 1. 1
-ETHFW Build Date (YYYY/MMM/DD):2020/Feb/ 6
-ETHFW Commit SHA:0@-?
-ETHFW PermissionFlag:0x1ffffff, UART Connected:true,UART Id:2Function:CpswProxy_cmdHandler,Handle:@a2cef4f4,CoreKey:38acb976, RxMtu:1518, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
+ETHFW Build Date (YYYY/MMM/DD):2020/Jun/ 3
+ETHFW Commit SHA:269c245e
+ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:2Function:CpswProxy_cmdHandler,Handle:@a2cfbbf8,CoreKey:38acb976, RxMtu:1518, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
 [NIMU_NDK] Registration of the CPSW Successful
-CPSW NIMU application, IP address I/F 1: 192.168.1.151
+CPSW NIMU application, IP address I/F 1: 192.168.10.21
+
+Current Synchronized time in Epoch format: ld
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -736,3 +799,4 @@ Revision | Date          | Author                 | Description
 0.2      | 12 Jun 2019   | Prasad J               | Updates for EVM demo (.85 release)
 0.3      | 17 Jul 2019   | Misael Lopez           | Updates for v.0.09.00
 0.4      | 14 Oct 2019   | Santhana Bharathi N    | Updates for v.1.00.00
+0.5      | 03 Jun 2020   | Santhana Bharathi N    | Updates for v.7.00.00 (Updated logs and added instructions for TimeSync)
