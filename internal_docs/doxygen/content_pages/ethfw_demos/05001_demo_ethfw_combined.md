@@ -494,7 +494,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# After getting the IP address printed on the console, launch the GUI tool:
 
-       cd <SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient
+       cd <SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient
        sudo python3 switchconfig_client.py
 
     You should be able to see a window opening up as shown below.
@@ -525,7 +525,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# To enable software-based interVLAN routing, click on the **Open** button
    and select the `sw_intervlan_routing_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
    * **Note:** The list of allowed commands and the configurations are present in
      the `schemas.py` file in the `cpsw_configclient/inc` directory.
@@ -582,7 +582,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# To enable hardware-based interVLAN routing, click on the **Open** button and
    select the `hw_intervlan_routing_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
 
 -# Press **Send Config** button to send the configuration to the switch.
@@ -645,7 +645,7 @@ of other protocols in the VLAN network.
 
 -# To add the above mentioned VLAN entry, click on the **Open** button and
    select the `ip_nxt_hdr_whitelisting_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
 
 -# Press **Send Config** button to send the configuration to the switch.
@@ -678,7 +678,7 @@ of other protocols in the VLAN network.
 
 -# To enable rate limiting, click on the **Open** button and select the
    `rate_limiting_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
    directory.
 
 -# Press **Send Config** button to send the configuration to the switch.
