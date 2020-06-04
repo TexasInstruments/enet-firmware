@@ -194,47 +194,42 @@ to install and setup the dependencies.
 <td align="center"><b>Fixed in Release</b></td>
 </tr>
 <tr>
-<td align="center"> ADASVISION-3291 </td>
-<td align="center"> EthFw should not use board_init for PLL/Clock initialization </td>
-<td align="center"> PDK CPSW </td>
-<td align="center"> J721E </td>
-<td align="center"> 01.00.00.00 </td>
-<td align="center"> 06.02.00.04 </td>
-</tr>
-<td align="center"> ADASVISION-3293 </td>
-<td align="center"> EthFw should configure only required pinmux </td>
-<td align="center"> PDK CPSW </td>
-<td align="center"> J721E </td>
-<td align="center"> 01.00.00.00 </td>
-<td align="center"> 06.02.00.04 </td>
-</tr>
-<td align="center"> ADASVISION-3294 </td>
-<td align="center"> Switch config tool hangs when CPU load is 100% </td>
+<tr>
+<td align="center"> ADASVISION-3866 </td>
+<td align="left"> [EthFw] ARP requests are not serviced for the remote clients </td>
 <td align="center"> EthFw </td>
 <td align="center"> J721E </td>
-<td align="center"> 00.09.00.00 </td>
 <td align="center"> 06.02.00.04 </td>
+<td align="center"> 07.00.00.06 </td>
 </tr>
 </tr>
-<td align="center"> ADASVISION-3785 </td>
-<td align="center"> [cpsw] Incorrect memcpy for macport list in mcm & CPSW examples </td>
-<td align="center"> PDK CPSW, EthFw </td>
-<td align="center"> J721E </td>
-<td align="center"> 01.00.00.00 </td>
-<td align="center"> 06.02.00.04 </td>
-</tr>
-</tr>
-<td align="center"> ADASVISION-3786 </td>
-<td align="center"> [EthFw] EthFw server app needs all enabled ports for getting an IP address </td>
+<td align="center"> ETHFW-1499 </td>
+<td align="left"> EthFw breaks c7x IPC example in Linux </td>
 <td align="center"> EthFw </td>
 <td align="center"> J721E </td>
-<td align="center"> 01.00.00.00 </td>
 <td align="center"> 06.02.00.04 </td>
+<td align="center"> 07.00.00.06 </td>
+</tr>
+</tr>
+<td align="center"> ETHFW-1559 </td>
+<td align="left"> EthFw: send/recv NDK tests hang after few mins </td>
+<td align="center"> EthFw </td>
+<td align="center"> J721E </td>
+<td align="center"> 06.02.00.04 </td>
+<td align="center"> 07.00.00.06 </td>
+</tr>
+</tr>
+<td align="center"> ETHFW-1581 </td>
+<td align="left"> cpsw: apputils: j721e: QUAD_ENET board's MAC address not populating address pool </td>
+<td align="center"> EthFw </td>
+<td align="center"> J721E </td>
+<td align="center"> 06.02.00.04 </td>
+<td align="center"> 07.00.00.06 </td>
 </tr>
 </table>
 
 <p>
-</p><h2><a class="anchor" name="Known_Issues"></a>Known Issues</h2>
+</p><h2><a class="anchor" name="Known_Issues"></a>Known Issues and Limitations</h2>
 <table frame="box" rules="all" cellspacing="0" width="100%" border="1" cellpadding="3">
 <tr bgcolor="lightgrey">
 <td align="center"> <b>Issue ID</b> </td>
@@ -245,19 +240,34 @@ to install and setup the dependencies.
 <td align="center"><b> Workaround in this release</b></td>
 </tr>
 <tr>
-<td align="center"> ADASVISION-3866 </td>
-<td align="center"> [EthFw] ARP requests are not serviced for the remote clients </td>
+<td align="center"> ETHFW-607 </td>
+<td align="left"> EthFw - QSGMII daughter board not supported with Linux </td>
 <td align="center"> EthFw </td>
 <td align="center"> 06.02.00.04 </td>
 <td align="center"> J721E </td>
-<td align="center"> None. </td>
+<td align="left"> QSGMII daugther board is not supported in Linux due to SERDES sharing not enabled. In order to use QSGMII ports, SERDES usage from Linux has to be disabled. Contact TI representative for detailed instructions to enable QSGMII ports. </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-1565 </td>
+<td align="left"> [ethfw] - LLIAddStaticEntryWithFlags fails when EthFw core doesn't acquire IP before remote clients </td>
+<td align="center"> EthFw </td>
+<td align="center"> 06.02.00.04 </td>
+<td align="center"> J721E </td>
+<td align="left"> Ethernet Firmware server must acquire IP before any remote client. </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-1580 </td>
+<td align="left"> [EthFw] EthFw server app + Linux - I2C access failure </td>
+<td align="center"> EthFw </td>
+<td align="center"> 07.00.00.06 </td>
+<td align="center"> J721E </td>
+<td align="left"> EthFw will use fixed MAC addresses in Linux builds to avoid I2C access altogether which could cause conflicts with u-boot. For RTOS build, MAC addresses will still be read from EEPROM as such I2C contention isn't an problem. </td>
 </tr>
 </table>
 
 <p>
-</p><h2><a class="anchor" name="Dependencies"></a>Dependencies (<b>NOT</b> included in EthFw)</h2>
-EthFw is an add-on package and depends on components of SDK, please refer user guide <a href="docs/user_guide/index.html" target="_blank">[HTML]</a> for details.
-
+</p><h2><a class="anchor" name="Dependencies"></a>Dependencies</h2>
+All Ethernet Firmware dependencies are also part of the SDK, please refer user guide <a href="docs/user_guide/index.html" target="_blank">[HTML]</a> for details.
 
 </p><p>
 </p>
