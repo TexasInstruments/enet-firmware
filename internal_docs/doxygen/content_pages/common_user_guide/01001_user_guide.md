@@ -186,17 +186,7 @@ section.
 # Installation Steps {#ethfw_instal_steps}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-EthFw software is an add-on package, and it's provided as an archive file (tarball).
-
-* Untar the package tarball into SDK base folder, the expected directory structure
-  is as show below ([J721E](@ref ethfw_post_install_j721e)).
-
-      tar -zxvf ethfw_xx_yy_zz_bb.tgz
-
-* In case EthFw was installed in a different directory, one could move the complete
-  directory as shown:
-
-      mv ethfw_xx_yy_zz_bb ~/ti/.
+Ethernet Firmware and its dependencies are part of the SDK, separate installation is not required.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -204,7 +194,7 @@ EthFw software is an add-on package, and it's provided as an archive file (tarba
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Directory Structure {#ethfw_dir}
 
-Post installation of EthFw, the following directory would be created. Please
+Post installation of SDK, the following directory would be created. Please
 note that this is an indicative snap-shot, modules could be added/modified.
 
 The top-level EthFw makefile as well as the auxiliary makefiles for build flags
