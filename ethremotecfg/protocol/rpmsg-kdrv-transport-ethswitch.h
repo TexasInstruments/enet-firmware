@@ -920,7 +920,7 @@ struct rpmsg_kdrv_ethswitch_ioctl_request
     u8     inargs[RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN];
     /*! CPSW IOCTL CMD output arguments length */
     u32    outargs_len;
-}  __packed;
+}  __attribute__((packed));
 
 /*!
  * \brief IOCTL CMD response params
@@ -1139,7 +1139,7 @@ struct rpmsg_kdrv_ethswitch_register_remotetimer_request
     u8 timer_id;
     /*! CPTS hardware push number to be used for timesync router configuration */
     u8 hwPushNum;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Register Remote timer CMD response params
@@ -1148,7 +1148,7 @@ struct rpmsg_kdrv_ethswitch_register_remotetimer_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+}  __attribute__((packed));
 
 /*!
  * \brief UnRegister Remote timer CMD request params
@@ -1161,7 +1161,7 @@ struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! CPTS hardware push number used for timesync router configuration */
     u8 hwPushNum;
-} __packed;
+} __attribute__((packed));
 
 /*!
  * \brief UnRegister Remote timer CMD response params
@@ -1170,7 +1170,7 @@ struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
-}  __packed;
+} __attribute__((packed));
 
 /*!
  * \brief Firmware version info returned by remote device attach to the ethernet switch device

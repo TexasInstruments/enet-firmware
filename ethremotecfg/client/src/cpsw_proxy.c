@@ -974,7 +974,7 @@ static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
                                   CPSW_REMOTE_NOTIFY_SERVICE,
                                   &remoteProcId,
                                   &remoteEndPt,
-                                  BIOS_WAIT_FOREVER);
+                                  IPC_RPMESSAGE_TIMEOUT_FOREVER);
     if(ret != 0)
     {
         System_printf("Remote Notify service locate failed\n");
@@ -1072,7 +1072,7 @@ static void  CpswProxy_createNotifyServiceTask(CpswProxy_Handle hProxy)
     TaskP_Params_init(pTaskParams);
     pTaskParams->priority = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
     pTaskParams->arg0 = (UArg) hProxy;
-    pTaskParams->stackSize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
+    pTaskParams->stacksize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
     hProxy->notifyServiceObj.hNotifyServiceTsk = TaskP_create(CpswProxy_notifyServiceTskFxn, pTaskParams);
     CpswProxy_assert(hProxy->notifyServiceObj.hNotifyServiceTsk != NULL);
 #else
