@@ -306,6 +306,16 @@ int main(void)
     return(0);
 }
 
+void appLogPrintf(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    System_vprintf(format, args);
+    CpswAppUtils_print(format, args);
+    va_end(args);
+}
+
 static void EthApp_waitForDebugger(void)
 {
     /* Set ccsHaltFlag to 1 for halting core for CCS connection */

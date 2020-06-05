@@ -455,17 +455,6 @@ void EthFw_getVersion(EthFw_Handle hEthFw,
     *version = gEthFwObj.version;
 }
 
-void appLogPrintf(const char *format,
-                  ...)
-{
-    va_list args;
-
-    va_start(args, format);
-    System_vprintf(format, args);
-    CpswAppUtils_print(format, args);
-    va_end(args);
-}
-
 static int32_t EthFw_initMcm(void)
 {
     CpswMcm_InitConfig cpswMcmCfg;
