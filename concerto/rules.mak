@@ -89,7 +89,7 @@ TESTABLE_MODULES :=
 
 # Define a macro to make the output target path
 MAKE_OUT = $(1)/$(BUILD_OUTPUT)/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
-TARGET_LIB_OUT = $(1)/out/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
+TARGET_LIB_OUT = $(1)/lib/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
 
 # Define a macro to remove a combo from the combos list if it matches a value
 FILTER_COMBO = $(foreach combo,$(TARGET_COMBOS),$(if $(filter $(1),$(subst :, ,$(combo))),$(combo)))
@@ -120,7 +120,12 @@ depend::
 
 all: release
 
+# This rule copies the libs to the lib folder when 'make all' is called
 release: build
+	$(foreach joined,$(JOINED_OUTS),$(call RELEASE_OUT,$(call LOCAL_TARGET_OUT, $(joined)), $(call LOCAL_TARGET_LIB_OUT, $(joined)) ))
+
+# This rule copies the libs to the lib folder when explicitly called
+cp_to_lib:
 	$(foreach joined,$(JOINED_OUTS),$(call RELEASE_OUT,$(call LOCAL_TARGET_OUT, $(joined)), $(call LOCAL_TARGET_LIB_OUT, $(joined)) ))
 
 build:: dir depend
