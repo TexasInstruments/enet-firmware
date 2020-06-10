@@ -104,6 +104,11 @@
 #include <ti/transport/timeSync/v2/include/timeSync.h>
 #include <ti/transport/timeSync/v2/protocol/ptp/include/timeSync_ptp.h>
 
+/* EthFw utils header files */
+#include <utils/remote_service/include/app_remote_service.h>
+#include <utils/perf_stats/include/app_perf_stats.h>
+#include <utils/ethfw_stats/include/app_ethfw_stats_sysbios.h>
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -165,6 +170,8 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1);
 static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1);
 
 static int32_t EthApp_initEthFw(void);
+
+static int32_t EthApp_initRemoteServices(void);
 
 static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig);
 
@@ -433,10 +440,20 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
         }
     }
 
+    /* Late announcement of server's endpoint to MPU */
+    if (status == IPC_SOK)
+    {
+        status = EthFw_lateAnnounce(gEthAppObj.hEthFw, IPC_MPU1_0);
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("EthApp_initIpcTask: late announcement failed: %d\n", status);
+        }
+    }
+
     /* Init EthFw services: task/CPU statistics and Ethernet statistics */
     if (status == IPC_SOK)
     {
-        status = EthFw_initRemoteServices(gEthAppObj.hEthFw);
+        status = EthApp_initRemoteServices();
         if (status != CPSW_SOK)
         {
             CpswAppUtils_print("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
@@ -486,6 +503,57 @@ static int32_t EthApp_initEthFw(void)
 
     /* Post semaphore so that NDK/NIMU can continue with their initialization */
     Semaphore_post(gEthAppObj.hInitSem);
+
+    return status;
+}
+
+static int32_t EthApp_initRemoteServices(void)
+{
+    int32_t status;
+    app_remote_service_init_prms_t remoteServicePrms;
+
+    appRemoteServiceInitSetDefault(&remoteServicePrms);
+    status = appRemoteServiceInit(&remoteServicePrms);
+    if (status != CPSW_SOK)
+    {
+        CpswAppUtils_print("Remote service init failed: %d !!!\n", status);
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appPerfStatsInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Perf stats init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appPerfStatsRemoteServiceInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Perf stats remote service init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appEthfwStatsInit(gEthAppObj.cpswType);
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Ethfw stats init failed: %d !!!\n", status);
+        }
+    }
+
+    if (status == CPSW_SOK)
+    {
+        status = appEthfwStatsRemoteServiceInit();
+        if (status != CPSW_SOK)
+        {
+            CpswAppUtils_print("Ethfw stats remote service init failed: %d !!!\n", status);
+        }
+    }
 
     return status;
 }

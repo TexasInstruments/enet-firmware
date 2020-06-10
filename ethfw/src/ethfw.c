@@ -421,27 +421,19 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     return status;
 }
 
-int32_t EthFw_initRemoteServices(EthFw_Handle hEthFw)
+int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
+                           uint32_t procId)
 {
     int32_t status;
 
     CpswAppUtils_assert(hEthFw != NULL);
 
-    /* Late announcement of server's endpoint to MPU */
-    status = appRemoteDeviceLateAnnounce(IPC_MPU1_0);
+    /* Late announcement of server's endpoint to remote processor */
+    status = appRemoteDeviceLateAnnounce(procId);
     if (status != IPC_SOK)
     {
-        CpswAppUtils_print("EthFw_initRemoteConfig: device late announcement failed: %d\n", status);
-    }
-
-    /* Register the services after remote core is ready */
-    if (status == IPC_SOK)
-    {
-        status = EthFw_initPerfRemoteService();
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print("EthFw_initRemoteConfig: failed to init perf remote service: %d\n", status);
-        }
+        CpswAppUtils_print("EthFw_lateAnnounce: late announcement to proc %u failed: %d\n",
+                           procId, status);
     }
 
     return status;

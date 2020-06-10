@@ -268,18 +268,22 @@ void EthFw_deinit(EthFw_Handle hEthFw);
 int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw);
 
 /*!
- * \brief Initialize remote services
+ * \brief Late announce to remote processor
  *
- * Initializes the firmware's remote services, namely OS statistics (CPU and
- * task load) and CPSW network statistics. This services require previous
- * initialization of the MPU1_0 core, typically running Linux or QNX.
+ * Perform a late announce operation to remote processor.  The processor is
+ * identified by the IPC driver's core id definition.
+ *
+ * This function is typically used to late attach to MPU1_0 core running Linux
+ * after Ethernet Firmware had been loaded by u-boot.
  *
  * \param hEthFw      EthFw handle
+ * \param procId      IPC processor id, refer to IPC driver definitions.
  *
  * \retval CPSW_SOK if remote services initialization was successful
- * \retval Negative error code if initialization failed
+ * \retval Negative error code if announcement failed
  */
-int32_t EthFw_initRemoteServices(EthFw_Handle hEthFw);
+int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
+                           uint32_t procId);
 
 /*!
  * \brief Get EthFw version
