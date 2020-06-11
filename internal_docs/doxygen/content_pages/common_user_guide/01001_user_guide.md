@@ -296,15 +296,6 @@ shown below:
 On successful compilation, the output folder would be created at
 `<ethfw_xx.yy.xx.bb>/out`.
 
-**Note:** If building the Ethernet Firmware for integration in Linux, please
-uncomment below in CPSW LLD's makefile located at
-`<PDK_PATH>/packages/ti/drv/cpsw/cpsw_component.mk`:
-
-    #CPSW_CFLAGS += -DSDK_6_2_CORE_SDK_IMAGE
-
-This change is required to avoid board-level settings conflicts with Linux
-bootloader.
-
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -386,11 +377,7 @@ Delete the complete `ethfw_xx_yy_zz_bb` folder.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Known issues {#ethfw_known_issues}
 
-JIRA ID       | Issue Summary | Workaround
---------------|---------------|------------
-PROC_BRDS-658 | MAC PORT 0 packet drop seen of Rx/TX - Packet drop is seen on MAC PORT0 (RGMII1) on 1Gbps mode on GESI board of J721E EVM alpha version. This port is labeled as PRG1_RGMII1_B in the GESI board connections figure in @ref ethfw_depend_evm_gesi_j721e section.<br>This issue is not applicable to J721E EVM beta version | Reduce MAC port 0 speed to 100Mbps in J721E EVM alpha version
-PROC_BRDS-671 | External 50MHz RMII clock from PHY is not connected by default to SoC's RMII_REF_CLOCK pin in GESI boards of J721E EVM alpha version<br>This issue is not applicable to J721E EVM beta version | To get RMII_50MHZ_CLK, resistor R225 needs to be populated. Move R226 to R225 on GESI board to get this clock |
-PROC_BRDS-659 | QSGMII expansion board is causing instabilities in the MDIO bus in J721E EVM alpha version. After a few mins, MDIO register access fail.<br>This issue is not applicable to J721E EVM beta version | Disable QSGMII PHY on J721E EVM alpha version |
+Please refer to the Ethernet Firmware Release Notes.
 
 [Back To Top](@ref ethfw_known_issues)
 
