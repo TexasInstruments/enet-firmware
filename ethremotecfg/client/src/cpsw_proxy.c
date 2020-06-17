@@ -1292,7 +1292,7 @@ static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
 
 static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Cpsw_Type cpswType)
 {
-    enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
+    enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAX;
 
     switch (cpswType)
     {
@@ -1302,6 +1302,11 @@ static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Cpsw_Type c
 
         case CPSW_9G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G;
+            break;
+
+        default:
+            /* Invalid Cpsw_Type value */
+            CpswProxy_assert(FALSE);
             break;
     }
 
