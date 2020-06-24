@@ -184,8 +184,6 @@ static void EthFw_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
 
 static int32_t EthFw_setAleBcastEntry(void);
 
-static int32_t EthFw_initPerfRemoteService(void);
-
 static void EthFw_getMcmCmdIfCb(Cpsw_Type cpswType,
                                 CpswMcm_CmdIf **pMcmCmdIfHandle);
 
@@ -561,57 +559,6 @@ static int32_t EthFw_setAleBcastEntry(void)
     if (status != CPSW_SOK)
     {
         CpswAppUtils_print("EthFw_setAleBcastEntry() ADD_MULTICAST ioctl failed: %d\n", status);
-    }
-
-    return status;
-}
-
-static int32_t EthFw_initPerfRemoteService(void)
-{
-    int32_t status;
-    app_remote_service_init_prms_t remoteServicePrms;
-
-    appRemoteServiceInitSetDefault(&remoteServicePrms);
-    status = appRemoteServiceInit(&remoteServicePrms);
-    if (status != CPSW_SOK)
-    {
-        CpswAppUtils_print("Remote service init failed: %d !!!\n", status);
-    }
-
-    if (status == CPSW_SOK)
-    {
-        status = appPerfStatsInit();
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print("Perf stats init failed: %d !!!\n", status);
-        }
-    }
-
-    if (status == CPSW_SOK)
-    {
-        status = appPerfStatsRemoteServiceInit();
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print("Perf stats remote service init failed: %d !!!\n", status);
-        }
-    }
-
-    if (status == CPSW_SOK)
-    {
-        status = appEthfwStatsInit(gEthFwObj.cpswType);
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print("Ethfw stats init failed: %d !!!\n", status);
-        }
-    }
-
-    if (status == CPSW_SOK)
-    {
-        status = appEthfwStatsRemoteServiceInit();
-        if (status != CPSW_SOK)
-        {
-            CpswAppUtils_print("Ethfw stats remote service init failed: %d !!!\n", status);
-        }
     }
 
     return status;
