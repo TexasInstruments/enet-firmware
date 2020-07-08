@@ -162,7 +162,7 @@ Install Python3, PyQt, pip3 and other dependencies:
 Refer to the Wireshark installation instructions on Ubuntu in this
 [website](https://linuxhint.com/install_wireshark_ubuntu/).
 
-### iperf
+### iperf {#demo_ethfw_combined_prereq_iperf}
 
 > **Note:** iperf network performance measurement tool is required on either
 > **PC 1** or **PC 2**.
@@ -171,7 +171,7 @@ Install iperf in the selected Ubuntu PC(s):
 
     sudo apt-get install iperf
 
-### bmon
+### bmon {#demo_ethfw_combined_prereq_bmon}
 
 > **Note:** bmon is required only on **PC 2**.
 
@@ -181,6 +181,14 @@ monitor the traffic received on **PC 2** during the interVLAN tests.
 Install bmon in the Ubuntu PC as follows:
 
     sudo apt-get install bmon
+
+After installing bmon, enable promiscuous mode on the network interface using,
+
+    sudo ifconfig eth0 promisc
+
+This is required to capture VLAN tagged packets in the PC. Since fixed VLAN tags,
+IP & MAC addresses are used in the demo, PC's network interface will drop
+these packets as they are not addressed to it. To avoid this, promiscuous mode should be enabled on the network interface.
 
 ### DHCP Server {#demo_ethfw_dhcp_server}
 
