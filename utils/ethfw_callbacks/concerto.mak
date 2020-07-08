@@ -3,7 +3,7 @@ include $(PRELUDE)
 TARGET      := ethfw_callbacks
 TARGETTYPE  := library
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 AM65XX))
 
 CSOURCES := src/ethfw_callbacks_ndk.c
 CSOURCES += src/ethfw_callbacks_nimu.c

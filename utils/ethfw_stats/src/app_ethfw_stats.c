@@ -162,7 +162,7 @@ static void appEthfw_calculateBw(CpswStats_PortStats currPortStats,
         rxOctetsDiff = cpsw2gCurrPortStats->rxOctets - cpsw2gPrevPortStats->rxOctets;
         rxFramesDiff = cpsw2gCurrPortStats->rxGoodFrames - cpsw2gPrevPortStats->rxGoodFrames;
     }
-    if  (obj->cpswType == CPSW_9G)
+    if  ((obj->cpswType == CPSW_9G)||(obj->cpswType == CPSW_5G))
     {
         CpswStats_HostPort_9g *cpsw9gCurrPortStats = (CpswStats_HostPort_9g *)&currPortStats;
         CpswStats_HostPort_9g *cpsw9gPrevPortStats = (CpswStats_HostPort_9g *)&prevPortStats;

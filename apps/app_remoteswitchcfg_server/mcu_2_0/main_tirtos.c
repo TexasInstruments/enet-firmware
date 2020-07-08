@@ -193,7 +193,11 @@ static void EthApp_startHwInterVlan(char *recvBuff,
 
 static EthAppObj gEthAppObj =
 {
+#if defined(SOC_J721E)
     .cpswType = CPSW_9G,
+#elif defined(SOC_J7200)
+    .cpswType = CPSW_5G,
+#endif
     .hEthFw = NULL,
     .hUdmaDrv = NULL,
 };
@@ -238,6 +242,28 @@ static EthFw_Port gEthAppPorts[] =
     },
 #endif
 #endif
+#if defined(SOC_J7200)
+    /* On J7200 to use all 4 ports simultaneously, we use below configuration
+       RGMII Ports - 1. QSGMII ports - 0,2,3 */
+    {
+        .portNum    = CPSW_MAC_PORT_1, /* RGMII */
+        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+    },
+#if defined(ENABLE_QSGMII_PORTS) //kept it disabled for 6.2
+    {
+        .portNum    = CPSW_MAC_PORT_0, /* QSGMII main */
+        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+    },
+    {
+        .portNum    = CPSW_MAC_PORT_2, /* QSGMII sub */
+        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+    },
+    {
+        .portNum    = CPSW_MAC_PORT_3, /* QSGMII sub */
+        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+    },
+#endif
+#endif
 };
 
 static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
@@ -253,17 +279,17 @@ static uint8_t gEthAppCntrlBuf[RPMSG_DATA_SIZE] __attribute__ ((section("ipc_dat
 static uint8_t gEthAppVringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
 static uint32_t gEthAppRemoteProc[] =
+#if defined(SOC_J721E)
 {
-    IPC_MPU1_0,
-    IPC_MCU1_0,
-    IPC_MCU1_1,
-    IPC_MCU2_1,
-    IPC_MCU3_0,
-    IPC_MCU3_1,
-    IPC_C66X_1,
-    IPC_C66X_2,
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2,
     IPC_C7X_1
 };
+#elif defined(SOC_J7200)
+{
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
+};
+#endif
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -562,8 +588,13 @@ static int32_t EthApp_initRemoteServices(void)
 
 static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
 {
+#if defined(SOC_J721E)
     ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
     ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
+#elif defined(SOC_J7200)
+    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J7200;
+    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_5G;
+#endif
     ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
     ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
     ptpConfig->portMask            |= CPSW_SET_BIT(2U);

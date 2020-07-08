@@ -1,4 +1,4 @@
-ifneq (,$(filter $(TARGET_PLATFORM),J721E AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 AM65XX))
 ifeq ($(TARGET_OS),SYSBIOS)
 
 include $(PRELUDE)

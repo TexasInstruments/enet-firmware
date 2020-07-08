@@ -160,9 +160,17 @@ static uint8_t g_vringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:i
 
 static uint32_t selfProcId = IPC_MCU2_1;
 static uint32_t gRemoteProc[] =
+#if defined(SOC_J721E)
 {
-    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0, IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2, IPC_C7X_1
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2,
+    IPC_C7X_1
 };
+#elif defined(SOC_J7200)
+{
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+};
+#endif
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 
 #define ENABLE_NDKSERVERS
@@ -306,7 +314,7 @@ void IpAddrHookFxn(uint32_t IPAddr,
              gRemoteAppObj.ipv4Addr[3]);
 
     localAssert((gRemoteAppObj.hCpswProxy != NULL) && (gRemoteAppObj.hCpsw != NULL));
-    
+
     CpswProxy_registerIPV4Addr(gRemoteAppObj.hCpswProxy,
                                gRemoteAppObj.hCpsw,
                                gRemoteAppObj.coreKey,
@@ -931,10 +939,10 @@ static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void)
   proxyConfig.deviceDataNotifyCb = &printDevInfo;
   proxyConfig.masterCoreId = IPC_MCU2_0;
   proxyConfig.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
-  
+
   hProxy = CpswProxy_init(&proxyConfig);
   localAssert(hProxy != NULL);
-  
+
   return hProxy;
 }
 
@@ -946,7 +954,11 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
   uint32_t coreId = CpswAppSoc_getCoreId();
   CpswOsal_Prms osalPrms;
   CpswUtils_Prms utilsPrms;
+#if defined(SOC_J721E)
   Cpsw_Type cpswType = CPSW_9G;
+#elif defined(SOC_J7200)
+  Cpsw_Type cpswType = CPSW_5G;
+#endif
   uint32_t txPSILId;
   uint32_t rxStartFlowId;
   uint32_t rxFlowIdOffset;

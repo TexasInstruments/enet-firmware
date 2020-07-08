@@ -9,7 +9,7 @@ endif
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 TARGET_BOARD_FOLDER := $(call lowercase,${$(TARGET_PLATFORM)_BOARD})
 CPU_ID_FOLDER       := $(strip $(if $(filter $(call lowercase,${CPU_ID}),mpu1),mpu1_0,$(call lowercase,${CPU_ID})))
-ifeq ($(TARGET_PLATFORM),J721E)
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200))
 REMOTE_DEVICE_SOC_FOLDER := J7
 else
 REMOTE_DEVICE_SOC_FOLDER := 
@@ -36,14 +36,28 @@ ifeq ($(TARGET_PLATFORM),J721E)
         XDC_PLATFORM = ti.platforms.cortexA:J7ES
         endif
     endif
-else
-    ifeq ($(TARGET_PLATFORM),AM65XX)
-        ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
-        XDC_PLATFORM = ti.platforms.cortexR:AM65X
+endif
+
+ifeq ($(TARGET_PLATFORM),J7200)
+    ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
+        ifneq (,$(filter ${CPU_ID},mcu_1_0 mcu_1_1))
+            XDC_PLATFORM = ti.platforms.cortexR:J7200_MCU
         else
-            ifeq (${TARGET_CPU},A53)
-            XDC_PLATFORM = ti.platforms.cortexA:AM65X
-            endif
+            XDC_PLATFORM = ti.platforms.cortexR:J7200_MAIN
+        endif
+    else
+        ifeq (${TARGET_CPU},A72)
+        XDC_PLATFORM = ti.platforms.cortexA:J7200
+        endif
+    endif
+endif
+
+ifeq ($(TARGET_PLATFORM),AM65XX)
+    ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
+    XDC_PLATFORM = ti.platforms.cortexR:AM65X
+    else
+        ifeq (${TARGET_CPU},A53)
+        XDC_PLATFORM = ti.platforms.cortexA:AM65X
         endif
     endif
 endif

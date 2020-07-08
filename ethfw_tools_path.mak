@@ -30,6 +30,7 @@ endif
 CCS_PATH ?= D:/ccs_v8_3/ccsv8
 TIARMCGT_ROOT_AM65XX ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
 TIARMCGT_ROOT_J721E ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
+TIARMCGT_ROOT_J7200 ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
 ifneq (,$(filter $(HOST_OS),Windows_NT CYGWIN))
 GCC_SYSBIOS_ARM_ROOT ?= $(PSDK_PATH)/gcc-linaro-9.2-2019.12-mingw-w64-i686_aarch64-elf
 else
@@ -38,6 +39,7 @@ endif
 
 BIOS_PATH_AM65XX ?= $(PSDK_PATH)/bios_6_82_01_19
 BIOS_PATH_J721E ?= $(PSDK_PATH)/bios_6_82_01_19
+BIOS_PATH_J7200 ?= $(PSDK_PATH)/bios_6_82_01_19
 XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_3_61_00_16_core
 NDK_PATH ?= $(PSDK_PATH)/ndk_3_76_00_05
 NS_PATH  ?= $(PSDK_PATH)/ns_2_76_00_03

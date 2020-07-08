@@ -14,7 +14,7 @@ DIRECTORIES += ethfw
 
 TARGET_COMBOS :=
 
-SOC_LIST := J721E AM65XX
+SOC_LIST := J721E J7200 AM65XX
 OS_LIST  := SYSBIOS LINUX
 ISA_LIST := R5F R5Ft A72 A53 C66 C71
 PROFILE_LIST := debug release
@@ -65,6 +65,10 @@ ifeq ($(BUILD_TARGET_MODE),yes)
 
   ifeq (,$(filter $(BUILD_SOC_LIST),J721E))
     SOC_LIST := $(filter-out J721E,$(SOC_LIST))
+  endif
+
+  ifeq (,$(filter $(BUILD_SOC_LIST),J7200))
+    SOC_LIST := $(filter-out J7200,$(SOC_LIST))
   endif
 
   ifeq (,$(filter $(BUILD_SOC_LIST),AM65XX))

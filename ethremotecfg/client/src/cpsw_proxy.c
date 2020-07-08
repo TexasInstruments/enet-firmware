@@ -1300,6 +1300,10 @@ static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Cpsw_Type c
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G;
             break;
 
+        case CPSW_5G:
+            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_5G;
+            break;
+
         case CPSW_9G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G;
             break;

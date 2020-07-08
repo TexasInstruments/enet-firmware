@@ -141,7 +141,11 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     CpswDma_OpenTxChPrms cpswTxChCfg;
     CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
     CpswDma_UdmaRingPrms *pFqRingPrms;
+#if defined(SOC_J721E)
     Cpsw_Type cpswType = CPSW_9G;
+#elif defined(SOC_J7200)
+    Cpsw_Type cpswType = CPSW_5G;
+#endif
     uint32_t coreId = CpswAppSoc_getCoreId();
     bool useDefaultFlow = true;    /* NDK must handle the default flow */
     bool useRingMon = true;
@@ -250,7 +254,11 @@ void EthFwCallbacks_nimuCpswReleaseHandle(NimuCpswAppIf_ReleaseHandleInfo *relea
     CpswMcm_CmdIf mcmCmdIf;
     CpswDma_PktInfoQ fqPktInfoQ;
     CpswDma_PktInfoQ cqPktInfoQ;
+#if defined(SOC_J721E)
     Cpsw_Type cpswType = CPSW_9G;
+#elif defined(SOC_J7200)
+    Cpsw_Type cpswType = CPSW_5G;
+#endif
     bool useDefaultFlow = true;    /* NDK must handle the default flow */
 
     /* Get MCM command interface */

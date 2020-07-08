@@ -3,7 +3,7 @@ include $(PRELUDE)
 TARGET      := app_utils_console_io
 TARGETTYPE  := library
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 AM65XX))
 ifeq ($(TARGET_OS),SYSBIOS)
 
 CSOURCES    := src/app_log_writer.c src/app_log_sysbios.c src/app_log_reader.c src/app_cli_sysbios.c

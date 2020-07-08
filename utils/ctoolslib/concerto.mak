@@ -1,5 +1,5 @@
 BUILD_CCS_PROJECT := $(and $(wildcard ${CCS_PATH}/.),TRUE)
-ifneq (,$(filter $(TARGET_PLATFORM),J721E AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 AM65XX))
 ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
 ifeq ($(TARGET_OS),SYSBIOS)
 
@@ -15,7 +15,7 @@ ifeq ($(TARGET_PLATFORM),AM65XX)
     $(_MODULE)_CCS_PJT_NAME := CPT2Lib_AM654x_R5 
     $(_MODULE)_CCS_PJT_NAME += TIETBLib_AM654x_R5
 else 
-    ifeq ($(TARGET_PLATFORM),J721E)
+    ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200))
         $(_MODULE)_CCS_PJT_PATH := ${CTOOLSLIB_PATH}/CPT2Lib/projects/J7ES-R5
         $(_MODULE)_CCS_PJT_PATH += ${CTOOLSLIB_PATH}/ETBLib/project/J7ES-R5
         $(_MODULE)_CCS_PJT_NAME := CPT2Lib_J7ES_R5 
@@ -38,7 +38,7 @@ ifeq ($(TARGET_BUILD),debug)
         STATIC_LIBS := cpt2lib_d.am654x_r5_elf
         STATIC_LIBS += tietb_d.am654x_r5_elf
     else 
-        ifeq ($(TARGET_PLATFORM),J721E)
+        ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200))
             STATIC_LIBS := cpt2lib_d.j7es_r5_elf
             STATIC_LIBS += tietb_d.j7es_r5_elf
         endif

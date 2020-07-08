@@ -1,4 +1,4 @@
-ifneq (,$(filter $(TARGET_PLATFORM),J721E AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 AM65XX))
 ifeq ($(TARGET_OS),SYSBIOS)
 #App Profile lib supported only for R5F due to use of PMU counters
 ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))

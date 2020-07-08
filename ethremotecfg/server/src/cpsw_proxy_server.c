@@ -151,7 +151,7 @@ typedef struct CpswProxyServer_EthDriverObj_s
     Task_Handle                  hAutosarEthTsk;
     RPMessage_Handle             hAutosarEthRpMsgEp;
     uint32_t                     dstProc;
-    uint32_t                     localEp; 
+    uint32_t                     localEp;
     uint32_t                     remoteEp;
 } CpswProxyServer_EthDriverObj;
 
@@ -182,7 +182,7 @@ typedef struct CpswProxyServer_Obj_s
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
-static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hProxyServer, 
+static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hProxyServer,
                                                       CpswProxyServer_Config_t * cfg);
 static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1);
 
@@ -298,9 +298,14 @@ static  int32_t CpswProxy_mapRdev2CpswType(enum rpmsg_kdrv_ethswitch_cpsw_type  
             *pCpswType = CPSW_2G;
             break;
 
+        case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_5G:
+            *pCpswType = CPSW_5G;
+            break;
+
         case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G:
             *pCpswType = CPSW_9G;
             break;
+
         default:
             retVal     = CPSW_EFAIL;
             break;
@@ -352,7 +357,7 @@ static  int32_t CpswProxy_mapEthRpcClientNotify2RdevClientNotifyType(Eth_RpcClie
 
 static CpswProxyServer_Obj * CpswProxyServer_getHandle(void)
 {
-    static CpswProxyServer_Obj gProxyServerObj = 
+    static CpswProxyServer_Obj gProxyServerObj =
     {
         .handleTbl = {.numEntries = 0},
         .initEthfwDeviceDataCb = NULL,
@@ -432,7 +437,7 @@ static int32_t CpswProxyServer_attachHandlerCb(uint32_t host_id,
     {
         CpswAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
         CpswAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
-    
+
         CpswMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
         CpswMcm_coreAttach(hMcmCmdIf, host_id, &attachInfo);
 
@@ -859,6 +864,7 @@ static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
                 break;
             }
 
+            case CPSW_5G:
             case CPSW_9G:
             {
                 CpswStats_HostPort_9g *st;
@@ -901,6 +907,7 @@ static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
                         break;
                     }
 
+                    case CPSW_5G:
                     case CPSW_9G:
                     {
                         CpswStats_MacPort_9g *st;
@@ -1311,7 +1318,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
     CpswProxyServer_Obj *hProxyServer;
 #define STRINGIFY(x) # x
 #define XSTRINGIFY(x) STRINGIFY(x)
-    char *notify_type_str[] = {XSTRINGIFY(RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS), 
+    char *notify_type_str[] = {XSTRINGIFY(RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS),
                                XSTRINGIFY(RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM)};
 
     CpswAppUtils_assert(notifyid < CPSW_UTILS_ARRAYSIZE(notify_type_str));
@@ -1346,7 +1353,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
         case RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM:
         {
             CpswProxyServer_validateHandle(hCpsw);
-        
+
             if (hProxyServer->notifyCb != NULL)
             {
                 hProxyServer->notifyCb(host_id, hCpsw, cpswType, core_key, notifyid, notify_info, notify_info_len);
@@ -1606,7 +1613,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     remote_dev_init_prm.wait_sem = hProxyServer->rdevStartSem;
 
     status = appRemoteDeviceInit(&remote_dev_init_prm);
-    
+
     CpswAppUtils_assert(status == 0);
 
     rdevEthSwitchServerInitPrmSetDefault(&remote_ethswitch_init_prm);
@@ -1626,7 +1633,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     }
     status = rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
     CpswAppUtils_assert(status == 0);
-    
+
     status = CpswProxyServer_initAutosarEthDeviceEp(hProxyServer, cfg);
     CpswAppUtils_assert(status == 0);
 
@@ -1821,7 +1828,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
     /* Wait for Remote EP to active */
     if (IPC_SOK != RPMessage_getRemoteEndPt(hProxyServer->ethDrvObj.dstProc,
                                             ETH_RPC_REMOTE_SERVICE,
-                                            &remoteProcId, 
+                                            &remoteProcId,
                                             &remoteEndPt,
                                             BIOS_WAIT_FOREVER))
     {
@@ -1835,27 +1842,27 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
 
         CpswAppUtils_assert(hProxyServer->initEthfwDeviceDataCb != NULL);
         hProxyServer->initEthfwDeviceDataCb(remoteProcId, &eth_dev_data);
-        
+
         CpswProxyServer_initDeviceData(&eth_dev_data, &deviceData);
 
         /* Send the EthFw Device Data to AUTOSAR EthDriver on location of
          * end point
          */
         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                remoteProcId, 
+                                remoteProcId,
                                 remoteEndPt,
                                 hProxyServer->ethDrvObj.localEp,
-                                (Ptr)&deviceData, 
+                                (Ptr)&deviceData,
                                 sizeof(deviceData));
         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
         while (!exitTask)
         {
-            rtnVal = RPMessage_recv(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp, 
+            rtnVal = RPMessage_recv(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
                                     (Ptr)msgBuffer,
-                                    &len, 
+                                    &len,
                                     &remoteEp,
-                                    &remoteProc, 
+                                    &remoteProc,
                                     IPC_RPMESSAGE_TIMEOUT_FOREVER);
             if (IPC_SOK == rtnVal)
             {
@@ -1915,10 +1922,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         attachRes.header.messageId = ETH_RPC_CMD_TYPE_ATTACH_EXT_RES;
                         attachRes.header.messageLen = sizeof(attachRes);
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &attachRes, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &attachRes,
                                                 sizeof(attachRes));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
                         break;
@@ -1947,10 +1954,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         detachRes.header.messageId = ETH_RPC_CMD_TYPE_DETACH_RES;
                         detachRes.header.messageLen = sizeof(detachRes);
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &detachRes, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &detachRes,
                                                 sizeof(detachRes));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -1984,10 +1991,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         registerDefaultRes.header.messageLen = sizeof(registerDefaultRes);
 
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &registerDefaultRes, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &registerDefaultRes,
                                                 sizeof(registerDefaultRes));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -2021,10 +2028,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         registerMacRes.header.messageLen = sizeof(registerMacRes);
 
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &registerMacRes, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &registerMacRes,
                                                 sizeof(registerMacRes));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -2058,10 +2065,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         unregisterMacRes.header.messageLen = sizeof(unregisterMacRes);
 
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &unregisterMacRes, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &unregisterMacRes,
                                                 sizeof(unregisterMacRes));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -2094,10 +2101,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         unregisterDefaultRes.header.messageLen = sizeof(unregisterDefaultRes);
 
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &unregisterDefaultRes, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &unregisterDefaultRes,
                                                 sizeof(unregisterDefaultRes));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -2130,7 +2137,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                             ioctlRes.info.status =  ETH_RPC_CMDSTATUS_EFAIL;
                         }
 
-                        /* Set IOCTL cmd and outArgs len in response so that 
+                        /* Set IOCTL cmd and outArgs len in response so that
                          * it can be processed on client side without keeping
                          * track of IOCTL response belongs to which IOCTL request
                          */
@@ -2140,10 +2147,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         ioctlRes.header.messageLen = sizeof(ioctlRes);
 
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &ioctlRes, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &ioctlRes,
                                                 sizeof(ioctlRes));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -2177,10 +2184,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         registerIpv4Res.header.messageLen = sizeof(registerIpv4Res);
 
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &registerIpv4Res, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &registerIpv4Res,
                                                 sizeof(registerIpv4Res));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -2213,10 +2220,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         unregisterIpv4Res.header.messageLen = sizeof(unregisterIpv4Res);
 
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &unregisterIpv4Res, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &unregisterIpv4Res,
                                                 sizeof(unregisterIpv4Res));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
@@ -2253,10 +2260,10 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         s2cNotify.header.messageId = ETH_RPC_CMD_TYPE_S2C_NOTIFY;
                         s2cNotify.header.messageLen = sizeof(s2cNotify);
                         rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
-                                                remoteProcId, 
+                                                remoteProcId,
                                                 remoteEndPt,
-                                                hProxyServer->ethDrvObj.localEp, 
-                                                &s2cNotify, 
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &s2cNotify,
                                                 sizeof(s2cNotify));
                         CpswAppUtils_assert(IPC_SOK == rtnVal);
 
