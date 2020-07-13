@@ -18,6 +18,7 @@ endif
 DEFS+=CPU_$(CPU_ID)
 
 XDC_INCLUDE_PACKAGES_PATH    += $(NDK_PATH)/packages
+XDC_INCLUDE_PACKAGES_PATH    += $(NS_PATH)/source
 #Include posix header file from sysbios package for TI compilers
 ifneq (,$(filter $(HOST_COMPILER),TIARMCGT CGT6X CGT7X TMS470 ARP32CGT))
 XDC_INCLUDE_PACKAGES_PATH    += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages/ti/posix/ccs
@@ -72,6 +73,8 @@ IDIRS       += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
 IDIRS       += $(PDK_PATH)/packages
 IDIRS       += $(REMOTE_DEVICE_PATH)
 IDIRS       += $(ETHFW_PATH)
+IDIRS       += $(NS_PATH)/source
+IDIRS       += $(NS_PATH)/source/ti/net/bsd
 
 LDIRS += $(PDK_PATH)/packages/ti/osal/lib/tirtos/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/csl/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
@@ -88,6 +91,8 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/ipc/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDE
 LDIRS += $(REMOTE_DEVICE_PATH)/out/${REMOTE_DEVICE_SOC_FOLDER}/${REMOTE_DEVICE_TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(NS_PATH)/source/ti/net/lib/ccs/r5f/
+LDIRS += $(NS_PATH)/source/ti/net/http/lib/ccs/r5f/
 
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_utils_console_io
@@ -115,7 +120,9 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
      ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += pm_lib.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += ti.timesync.hal.ae$(TARGET_CPU_SUFFIX)
-     ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.ae$(TARGET_CPU_SUFFIX)     
+     ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += slnetsock_$(TARGET_BUILD).a    
+     ADDITIONAL_STATIC_LIBS += httpserver_$(TARGET_BUILD).a      
 else
     CORTEX_A_LIB_SUFFIX := $(if $(filter $(TARGET_BUILD),debug),g,)
     ifneq (,$(filter ${TARGET_CPU},A72 A53))

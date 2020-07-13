@@ -109,6 +109,15 @@
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_sysbios.h>
 
+/* NS headers */
+#include <ti/ndk/slnetif/slnetifndk.h>
+#include <ti/net/slnet.h>
+#include <ti/net/slnetif.h>
+#include <ti/net/slnetutils.h>
+
+/* HTTP webpage server header files */
+#include "webdata/webpage.h"
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -645,6 +654,37 @@ void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
     EthFwCallbacks_nimuCpswReleaseHandle(releaseInfo);
 }
 
+/* This generated function must be called after the network stack(s) are
+ * initialized.
+ */
+int32_t ti_net_SlNet_initConfig()
+{
+    int32_t status;
+
+    status = SlNetIf_init(0);
+
+    if (status == CPSW_SOK)
+    {
+        status = SlNetSock_init(0);
+    }
+
+    if (status == CPSW_SOK)
+    {
+        SlNetUtil_init(0);
+    }
+
+    /* add CONFIG_SLNET_0 interface */
+    if (status == CPSW_SOK)
+    {
+        status = SlNetIf_add(SLNETIF_ID_2,
+                             "eth0",
+                             (const SlNetIf_Config_t *)&SlNetIfConfigNDK,
+                             5);
+    }
+
+    return status;
+}
+
 /* NDK hooks */
 
 void EthApp_ipAddrHookFxn(uint32_t IPAddr,
@@ -662,7 +702,15 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     ipAddrHex = ntohl(IPAddr);
     memcpy(&gEthAppObj.hostIpAddr[0U],
            (uint8_t *)&ipAddrHex,
-           CPSW_ALE_IPV4ADDR_NUM_OCTETS);
+       CPSW_ALE_IPV4ADDR_NUM_OCTETS);
+
+    /* initialize SlNet interface(s) */
+    status = ti_net_SlNet_initConfig();
+    if (status < CPSW_SOK)
+    {
+        CpswAppUtils_print("Failed to initialize SlNet interface(s) - status (%d)\n",
+                           status);
+    }
 
     /* Initialize and enable PTP stack */
     TimeSyncPtp_setDefaultPtpConfig(&ptpConfig);
@@ -684,6 +732,8 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     /* Start the software-based interVLAN routing */
     EthSwInterVlan_setupRouting(gEthAppObj.cpswType,
                                 ETH_SWINTERVLAN_TASK_PRI);
+
+    AddWebFiles();
 }
 
 /* Functions called from Config server library based on selection from GUI */

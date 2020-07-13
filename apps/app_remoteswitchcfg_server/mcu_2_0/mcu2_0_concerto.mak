@@ -7,6 +7,7 @@ TARGET      := app_remoteswitchcfg_server
 TARGETTYPE  := exe 
 
 CSOURCES    := main_tirtos.c
+CSOURCES    += $(foreach cfile,$(call all-c-files-in,$($(_MODULE)_SDIR)/webdata),webdata/$(cfile))
 ASSEMBLY    := utilsCopyVecs2ATmc.asm
 
 XDC_BLD_FILE = $($(_MODULE)_SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
