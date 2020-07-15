@@ -239,8 +239,12 @@ typedef struct CpswRemoteApp_Obj_s
 
 static Cpsw_MacPort gRemoteAppMacPorts[] =
 {
+#if defined (SOC_J721E)
     CPSW_MAC_PORT_2,
     CPSW_MAC_PORT_3,
+#elif defined (SOC_J7200)
+    CPSW_MAC_PORT_1,
+#endif
 };
 
 CpswRemoteApp_Obj gRemoteAppObj =

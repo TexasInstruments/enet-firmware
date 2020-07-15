@@ -213,13 +213,13 @@ static EthAppObj gEthAppObj =
 
 static EthFw_Port gEthAppPorts[] =
 {
+#if defined(SOC_J721E)
+    /* On J721E EVM to use all 8 ports simultaneously, we use below configuration
+       RGMII Ports - 1,3,4,8. QSGMII ports - 2,5,6,7 */
     {
         .portNum    = CPSW_MAC_PORT_0,
         .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U },
     },
-#if defined(SOC_J721E)
-    /* On J721E EVM to use all 8 ports simultaneously, we use below configuration
-       RGMII Ports - 1,3,4,8. QSGMII ports - 2,5,6,7 */
     {
         .portNum    = CPSW_MAC_PORT_2, /* RGMII */
         .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
@@ -606,7 +606,11 @@ static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
 #endif
     ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
     ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
+#if defined(SOC_J721E)
     ptpConfig->portMask            |= CPSW_SET_BIT(2U);
+#elif defined(SOC_J7200)
+    ptpConfig->portMask            |= CPSW_SET_BIT(1U);
+#endif
 
     memcpy(&ptpConfig->ifMacID[0U],
            &gEthAppObj.hostMacAddr[0U],
