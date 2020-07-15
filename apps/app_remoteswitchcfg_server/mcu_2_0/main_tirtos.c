@@ -253,14 +253,13 @@ static EthFw_Port gEthAppPorts[] =
 #endif
 #if defined(SOC_J7200)
     /* On J7200 to use all 4 ports simultaneously, we use below configuration
-       RGMII Ports - 1. QSGMII ports - 0,2,3 */
-    {
-        .portNum    = CPSW_MAC_PORT_1, /* RGMII */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-#if defined(ENABLE_QSGMII_PORTS) //kept it disabled for 6.2
+     * QSGMII ports - 0, 1, 2, 3 */
     {
         .portNum    = CPSW_MAC_PORT_0, /* QSGMII main */
+        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+    },
+    {
+        .portNum    = CPSW_MAC_PORT_1, /* QSGMII sub */
         .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
@@ -271,7 +270,6 @@ static EthFw_Port gEthAppPorts[] =
         .portNum    = CPSW_MAC_PORT_3, /* QSGMII sub */
         .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
-#endif
 #endif
 };
 
@@ -597,6 +595,8 @@ static int32_t EthApp_initRemoteServices(void)
 
 static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
 {
+    Cpsw_MacPort portNum;
+
 #if defined(SOC_J721E)
     ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
     ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
@@ -607,10 +607,12 @@ static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
     ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
     ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
 #if defined(SOC_J721E)
-    ptpConfig->portMask            |= CPSW_SET_BIT(2U);
+    portNum = CPSW_MAC_PORT_2;
 #elif defined(SOC_J7200)
-    ptpConfig->portMask            |= CPSW_SET_BIT(1U);
+    portNum = CPSW_MAC_PORT_0;
 #endif
+
+    ptpConfig->portMask |= CPSW_SET_BIT(CPSW_NORMALIZE_MACPORT(portNum));
 
     memcpy(&ptpConfig->ifMacID[0U],
            &gEthAppObj.hostMacAddr[0U],

@@ -243,7 +243,7 @@ static Cpsw_MacPort gRemoteAppMacPorts[] =
     CPSW_MAC_PORT_2,
     CPSW_MAC_PORT_3,
 #elif defined (SOC_J7200)
-    CPSW_MAC_PORT_1,
+    CPSW_MAC_PORT_0,
 #endif
 };
 
