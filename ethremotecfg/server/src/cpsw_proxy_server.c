@@ -323,6 +323,10 @@ static  int32_t CpswProxy_mapEthRpc2RdevCpswType(Eth_RpcCpswType ethRpcCpswType,
             *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G;
             break;
 
+        case ETH_RPC_CPSWTYPE_5G:
+            *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_5G;
+            break;
+
         case ETH_RPC_CPSWTYPE_9G:
             *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G;
             break;

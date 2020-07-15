@@ -118,8 +118,10 @@ typedef enum
     ETH_RPC_CPSWTYPE_2G                           = 0x00,
     /*! Etheret Remote Device CPSW Type : CPSW9G (9 port switch) */
     ETH_RPC_CPSWTYPE_9G                           = 0x01,
+    /*! Etheret Remote Device CPSW Type : CPSW5G (5 port switch) */
+    ETH_RPC_CPSWTYPE_5G                           = 0x02,
     /*! Max Etheret Remote Device CPSW Type. For internal use */
-    ETH_RPC_CPSWTYPE_LAST                          = (ETH_RPC_CPSWTYPE_9G)
+    ETH_RPC_CPSWTYPE_LAST                         = (ETH_RPC_CPSWTYPE_5G)
 } Eth_RpcCpswType;
 
 #define ETH_RPC_CPSWTYPE_COUNT                    (ETH_RPC_CPSWTYPE_LAST + 1)
