@@ -252,6 +252,7 @@ static EthFw_Port gEthAppPorts[] =
 #endif
 #endif
 #if defined(SOC_J7200)
+#if defined(ENABLE_QSGMII_PORTS)
     /* On J7200 to use all 4 ports simultaneously, we use below configuration
      * QSGMII ports - 0, 1, 2, 3 */
     {
@@ -270,6 +271,14 @@ static EthFw_Port gEthAppPorts[] =
         .portNum    = CPSW_MAC_PORT_3, /* QSGMII sub */
         .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
+#else
+    /* Alternatively, a single RGMII port configuration via GESI board is
+     * also available */
+    {
+        .portNum    = CPSW_MAC_PORT_1, /* RGMII */
+        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+    },
+#endif
 #endif
 };
 
@@ -609,7 +618,11 @@ static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
 #if defined(SOC_J721E)
     portNum = CPSW_MAC_PORT_2;
 #elif defined(SOC_J7200)
+#if defined(ENABLE_QSGMII_PORTS)
     portNum = CPSW_MAC_PORT_0;
+#else
+    portNum = CPSW_MAC_PORT_1;
+#endif
 #endif
 
     ptpConfig->portMask |= CPSW_SET_BIT(CPSW_NORMALIZE_MACPORT(portNum));
