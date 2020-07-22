@@ -45,16 +45,16 @@ PDK_CORE_LIST_ALL+=c7x
 endif
 
 pdk_build:
-	make -C $(PDK_PATH)/packages/ti/build BOARD=${PDK_BUILD_BOARD} custom_target BUILD_PROFILE_LIST_ALL="$(sort ${PDK_BUILD_PROFILE_LIST_ALL})" CORE_LIST_ALL="$(sort ${PDK_CORE_LIST_ALL})" BUILD_TARGET_LIST_ALL="$(sort ${PDK_BUILD_TARGET_LIST_ALL})" -s $(MAKE_EXTRA_OPTIONS) PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH);
-	
+	make -C $(PDK_PATH)/packages/ti/build BOARD=${PDK_BOARD} custom_target BUILD_PROFILE_LIST_ALL="$(sort ${PDK_BUILD_PROFILE_LIST_ALL})" CORE_LIST_ALL="$(sort ${PDK_CORE_LIST_ALL})" BUILD_TARGET_LIST_ALL="$(sort ${PDK_BUILD_TARGET_LIST_ALL})" -s $(MAKE_EXTRA_OPTIONS) PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH);
+
 pdk:
 	$(foreach soc, $(sort ${SOC_LIST}),\
-	make pdk_build PDK_BUILD_TARGET_LIST_ALL="pdk_libs" \
+	make pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs"; \
 	)
 
 pdk_clean:
 	$(foreach soc, $(sort ${SOC_LIST}),\
-	make pdk_build PDK_BUILD_TARGET_LIST_ALL="pdk_libs_clean" \
+	make pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs_clean"; \
 	)
 
 .SILENT:pdk_custom_libs pdk_custom_libs_clean

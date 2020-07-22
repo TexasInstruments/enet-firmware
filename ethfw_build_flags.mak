@@ -21,14 +21,11 @@ BUILD_CPU_C7x_1?=no
 BUILD_CPU_MCU1_1?=no
 BUILD_CPU_MCU2_1?=yes
 BUILD_CPU_MCU3_1?=no
-BUILD_SOC_LIST ?= J721E
+BUILD_SOC_LIST ?= J721E J7200
 
 # R5F Thumb mode
 # Temporarily disabled until PDK and EthFw move to NDK/NS versions that support Thumb mode
 BUILD_R5F_THUMB?=no
-
-# PDK build board
-PDK_BUILD_BOARD ?= j721e_evm
 
 # Build TI-RTOS only binaries
 BUILD_APP_TIRTOS?=yes
