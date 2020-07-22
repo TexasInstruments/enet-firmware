@@ -30,6 +30,10 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
 
+ifeq ($(TARGET_PLATFORM),J7200)
+    DEFS += ENABLE_QSGMII_PORTS
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 endif

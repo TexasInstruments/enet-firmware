@@ -26,6 +26,11 @@ endif
 STATIC_LIBS += lib_remote_device_client
 STATIC_LIBS += lib_remoteswitchcfg_client
 
+# TODO: Client app should be agnostic of port specifics
+ifeq ($(TARGET_PLATFORM),J7200)
+    DEFS += ENABLE_QSGMII_PORTS
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 
