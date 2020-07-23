@@ -10,12 +10,16 @@ CSOURCES    := main_tirtos.c
 CSOURCES    += $(foreach cfile,$(call all-c-files-in,$($(_MODULE)_SDIR)/webdata),webdata/$(cfile))
 ASSEMBLY    := utilsCopyVecs2ATmc.asm
 
+SOC_DIR     := $(call lowercase,$(TARGET_PLATFORM))
+
 XDC_BLD_FILE = $($(_MODULE)_SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
 XDC_CFG_FILE = $($(_MODULE)_SDIR)/mcu2_0.cfg
-XDC_INCLUDE_PACKAGES_PATH    = $($(_MODULE)_SDIR)/../../bios_cfg/
+XDC_INCLUDE_PACKAGES_PATH  = $($(_MODULE)_SDIR)/../../bios_cfg/
+XDC_INCLUDE_PACKAGES_PATH += $($(_MODULE)_SDIR)/../../bios_cfg/$(SOC_DIR)/
 XDC_IDIRS     = $(subst $(SPACE),;,${XDC_INCLUDE_PACKAGES_PATH})
 
-LINKER_CMD_FILES =  $($(_MODULE)_SDIR)/linker_mem_map.cmd
+LINKER_SOC_DIR = $(call lowercase,$(TARGET_PLATFORM))
+LINKER_CMD_FILES = $($(_MODULE)_SDIR)/$(LINKER_SOC_DIR)/linker_mem_map.cmd
 LINKER_CMD_FILES +=  $($(_MODULE)_SDIR)/linker.cmd
 
 ifeq ($(TARGET_CPU),R5F)
