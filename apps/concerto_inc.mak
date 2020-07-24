@@ -109,7 +109,7 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
      ADDITIONAL_STATIC_LIBS += nimucpsw.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += cpswsoc.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += cpsw_cfgserver.ae$(TARGET_CPU_SUFFIX)
-     ADDITIONAL_STATIC_LIBS += cpsw_apputils.ae$(TARGET_CPU_SUFFIX)
+     ADDITIONAL_STATIC_LIBS += $(CPSW_APPUTILS_LIB).ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += cpsw.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += udma.ae$(TARGET_CPU_SUFFIX)
      ADDITIONAL_STATIC_LIBS += ipc.ae$(TARGET_CPU_SUFFIX)
@@ -129,7 +129,7 @@ else
     ADDITIONAL_STATIC_LIBS += ti.board.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += nimucpsw.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += cpsw_cfgserver.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += cpsw_apputils.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += $(CPSW_APPUTILS_LIB).a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += cpsw.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += udma.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ipc.ae$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
@@ -156,7 +156,7 @@ PDK_LIB_RULES += cpsw
 PDK_LIB_RULES += cpswsoc
 PDK_LIB_RULES += nimucpsw
 PDK_LIB_RULES += cpsw_cfgserver
-PDK_LIB_RULES += cpsw_apputils
+PDK_LIB_RULES += $(CPSW_APPUTILS_LIB)
 PDK_LIB_RULES += uart
 PDK_LIB_RULES += board
 PDK_LIB_RULES += ipc
