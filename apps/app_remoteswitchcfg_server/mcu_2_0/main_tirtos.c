@@ -272,8 +272,8 @@ static EthFw_Port gEthAppPorts[] =
         .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
 #else
-    /* Alternatively, a single RGMII port configuration via GESI board is
-     * also available */
+    /* For internal testing only - Alternatively, a single RGMII port
+     * configuration via GESI board is also available */
     {
         .portNum    = CPSW_MAC_PORT_1, /* RGMII */
         .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
