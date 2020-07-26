@@ -241,6 +241,7 @@ void EthFw_initConfigParams(Cpsw_Type cpswType,
     hostPortCfg->padShortPacket = true;
     hostPortCfg->passCrcErrors = true;
     hostPortCfg->enableCsumOffload = true;
+    hostPortCfg->rxMtu = 1522U;
 
     /* ALE configuration */
     aleCfg->modeFlags = CPSW_ALE_CONFIG_MASK_ALE_MODULE_ENABLE |
