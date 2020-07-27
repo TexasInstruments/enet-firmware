@@ -232,6 +232,8 @@ demo.
     Default Gateway                     | 192.168.1.1
     Subnet Mask                         | 255.255.255.0
 
+> **Note:** Make sure that all IPs assigned manually are in the same subnet as the Ethernet Firmware.
+
 ### PTP stack {#demo_ethfw_ptp_stack}
 
 > **Note:** PTP stack is required only on **PC 2**.
