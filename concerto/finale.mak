@@ -221,6 +221,7 @@ endif
 $($(_MODULE)_BIN): $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS) $($(_MODULE)_SHARED_LIBS) $($(_MODULE)_DEPS) xdc_configuro_$(_MODULE)
 	$(PRINT) Linking $$@
 	-$(Q)$(call $(_MODULE)_LINK_EXE) $(LOGGING) > /dev/null
+	-$(Q)$(call $(_MODULE)_STRIP_EXE) $(LOGGING) > /dev/null
 endef
 
 $(eval $(call $(_MODULE)_BUILD_EXE))
