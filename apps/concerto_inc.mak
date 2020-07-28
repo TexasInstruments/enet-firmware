@@ -160,3 +160,5 @@ PDK_LIB_RULES += $(CPSW_APPUTILS_LIB)
 PDK_LIB_RULES += uart
 PDK_LIB_RULES += board
 PDK_LIB_RULES += ipc
+PDK_LIB_RULES += timeSync_hal
+PDK_LIB_RULES += timeSync_ptp
