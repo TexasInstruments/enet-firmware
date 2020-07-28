@@ -65,6 +65,7 @@
 #include <ti/osal/SemaphoreP.h>
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/remote_service/src/app_remote_service_priv.h>
+#include <utils/console_io/include/app_log.h>
 
 /* #define APP_REMOTE_SERVICE_DEBUG */
 
@@ -138,7 +139,7 @@ static int32_t appRemoteServiceRunHandler(char *service_name, uint32_t cmd, void
     SemaphoreP_post(obj->rx_lock);
     if(!is_found)
     {
-        CpswAppUtils_print("REMOTE_SERVICE: ERROR: Unable to find handler for service [%s]\n", service_name);
+        appLogPrintf("REMOTE_SERVICE: ERROR: Unable to find handler for service [%s]\n", service_name);
     }
     return status;
 }
@@ -172,12 +173,12 @@ static void appRemoteServiceRxTaskMain(void *arg0, void *arg1)
             header = (app_service_msg_header_t *)&obj->rpmsg_rx_msg_buf[0];
 
             #ifdef APP_REMOTE_SERVICE_DEBUG
-            CpswAppUtils_print("REMOTE_SERVICE: RX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... !!!\n",
-                Ipc_mpGetName(src_cpu_id),
-                reply_endpt,
-                Ipc_mpGetSelfName(),
-                obj->prm.rpmsg_rx_endpt,
-                header->cmd, header->prm_size);
+            appLogPrintf("REMOTE_SERVICE: RX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... !!!\n",
+                         Ipc_mpGetName(src_cpu_id),
+                         reply_endpt,
+                         Ipc_mpGetSelfName(),
+                         obj->prm.rpmsg_rx_endpt,
+                         header->cmd, header->prm_size);
             #endif
 
             header->status = appRemoteServiceRunHandler(
@@ -203,22 +204,22 @@ static void appRemoteServiceRxTaskMain(void *arg0, void *arg1)
                         );
                 if(status!=0)
                 {
-                    CpswAppUtils_print("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... Failed !!!\n",
-                        Ipc_mpGetSelfName(),
-                        obj->prm.rpmsg_rx_endpt,
-                        Ipc_mpGetName(src_cpu_id),
-                        reply_endpt,
-                        header->cmd, header->prm_size);
+                    appLogPrintf("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... Failed !!!\n",
+                                 Ipc_mpGetSelfName(),
+                                 obj->prm.rpmsg_rx_endpt,
+                                 Ipc_mpGetName(src_cpu_id),
+                                 reply_endpt,
+                                 header->cmd, header->prm_size);
                 }
                 else
                 {
                     #ifdef APP_REMOTE_SERVICE_DEBUG
-                    CpswAppUtils_print("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... !!!\n",
-                        Ipc_mpGetSelfName(),
-                        obj->prm.rpmsg_rx_endpt,
-                        Ipc_mpGetName(src_cpu_id),
-                        reply_endpt,
-                        header->cmd, header->prm_size);
+                    appLogPrintf("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... !!!\n",
+                                 Ipc_mpGetSelfName(),
+                                 obj->prm.rpmsg_rx_endpt,
+                                 Ipc_mpGetName(src_cpu_id),
+                                 reply_endpt,
+                                 header->cmd, header->prm_size);
                     #endif
                 }
             }
@@ -233,8 +234,8 @@ int32_t appRemoteServiceRun(uint32_t dst_app_cpu_id, char *service_name, uint32_
 
     if(prm_size > APP_REMOTE_SERVICE_PRM_SIZE_MAX)
     {
-        CpswAppUtils_print("REMOTE_SERVICE: ERROR: Parameter size of %d bytes exceeds message buffer size of %ld bytes\n",
-                prm_size, APP_REMOTE_SERVICE_PRM_SIZE_MAX);
+        appLogPrintf("REMOTE_SERVICE: ERROR: Parameter size of %d bytes exceeds message buffer size of %ld bytes\n",
+                     prm_size, APP_REMOTE_SERVICE_PRM_SIZE_MAX);
         status = -1;
     }
 
@@ -275,12 +276,12 @@ int32_t appRemoteServiceRun(uint32_t dst_app_cpu_id, char *service_name, uint32_
             tx_payload_size = prm_size + sizeof(app_service_msg_header_t);
 
             #ifdef APP_REMOTE_SERVICE_DEBUG
-            CpswAppUtils_print("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ...\n",
-                Ipc_mpGetSelfName(),
-                obj->rpmsg_tx_endpt,
-                Ipc_mpGetName(dst_ipc_cpu_id),
-                obj->prm.rpmsg_rx_endpt,
-                cmd, prm_size);
+            appLogPrintf("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ...\n",
+                         Ipc_mpGetSelfName(),
+                         obj->rpmsg_tx_endpt,
+                         Ipc_mpGetName(dst_ipc_cpu_id),
+                         obj->prm.rpmsg_rx_endpt,
+                         cmd, prm_size);
             #endif
             /* send to destination */
             status = RPMessage_send(
@@ -293,12 +294,12 @@ int32_t appRemoteServiceRun(uint32_t dst_app_cpu_id, char *service_name, uint32_
                         );
             if(status!=0)
             {
-                CpswAppUtils_print("REMOTE_SERVICE: TX: FAILED: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes\n",
-                    Ipc_mpGetSelfName(),
-                    obj->rpmsg_tx_endpt,
-                    Ipc_mpGetName(dst_ipc_cpu_id),
-                    obj->prm.rpmsg_rx_endpt,
-                    cmd, prm_size);
+                appLogPrintf("REMOTE_SERVICE: TX: FAILED: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes\n",
+                             Ipc_mpGetSelfName(),
+                             obj->rpmsg_tx_endpt,
+                             Ipc_mpGetName(dst_ipc_cpu_id),
+                             obj->prm.rpmsg_rx_endpt,
+                             cmd, prm_size);
             }
             if(status==0)
             {
@@ -329,22 +330,22 @@ int32_t appRemoteServiceRun(uint32_t dst_app_cpu_id, char *service_name, uint32_
                         }
 
                         #ifdef APP_REMOTE_SERVICE_DEBUG
-                        CpswAppUtils_print("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... Done !!!\n",
-                            Ipc_mpGetSelfName(),
-                            obj->rpmsg_tx_endpt,
-                            Ipc_mpGetName(dst_ipc_cpu_id),
-                            obj->prm.rpmsg_rx_endpt,
-                            cmd, prm_size);
+                        appLogPrintf("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... Done !!!\n",
+                                     Ipc_mpGetSelfName(),
+                                     obj->rpmsg_tx_endpt,
+                                     Ipc_mpGetName(dst_ipc_cpu_id),
+                                     obj->prm.rpmsg_rx_endpt,
+                                     cmd, prm_size);
                         #endif
                     }
                     else
                     {
-                        CpswAppUtils_print("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... Failed !!!\n",
-                            Ipc_mpGetSelfName(),
-                            obj->rpmsg_tx_endpt,
-                            Ipc_mpGetName(dst_ipc_cpu_id),
-                            obj->prm.rpmsg_rx_endpt,
-                            cmd, prm_size);
+                        appLogPrintf("REMOTE_SERVICE: TX: %s (port %d) -> %s (port %d) cmd = 0x%08x, prm_size = %d bytes ... Failed !!!\n",
+                                     Ipc_mpGetSelfName(),
+                                     obj->rpmsg_tx_endpt,
+                                     Ipc_mpGetName(dst_ipc_cpu_id),
+                                     obj->prm.rpmsg_rx_endpt,
+                                     cmd, prm_size);
                     }
                 }
             }
@@ -378,7 +379,7 @@ static int32_t appRemoteServiceCreateRpmsgRxTask(app_remote_service_obj_t *obj)
                             &task_prms);
     if(obj->task_handle==NULL)
     {
-        CpswAppUtils_print("REMOTE_SERVICE: ERROR: Unable to create RX task \n");
+        appLogPrintf("REMOTE_SERVICE: ERROR: Unable to create RX task \n");
         status = -1;
     }
     else
@@ -420,7 +421,7 @@ int32_t appRemoteServiceInit(app_remote_service_init_prms_t *prm)
     SemaphoreP_Params semParams;
     uint32_t i;
 
-    CpswAppUtils_print("REMOTE_SERVICE: Init ... !!!\n");
+    appLogPrintf("REMOTE_SERVICE: Init ... !!!\n");
 
     obj->prm = *prm;
     obj->rpmsg_tx_handle = NULL;
@@ -443,7 +444,7 @@ int32_t appRemoteServiceInit(app_remote_service_init_prms_t *prm)
     obj->tx_lock = SemaphoreP_create(1U, &semParams);
     if(obj->tx_lock==NULL)
     {
-        CpswAppUtils_print("REMOTE_SERVICE: Unable to create tx semaphore\n");
+        appLogPrintf("REMOTE_SERVICE: Unable to create tx semaphore\n");
         status = -1;
     }
     if(status==0)
@@ -453,7 +454,7 @@ int32_t appRemoteServiceInit(app_remote_service_init_prms_t *prm)
         obj->rx_lock = SemaphoreP_create(1U, &semParams);
         if(obj->rx_lock==NULL)
         {
-            CpswAppUtils_print("REMOTE_SERVICE: Unable to create rx semaphore\n");
+            appLogPrintf("REMOTE_SERVICE: Unable to create rx semaphore\n");
             status = -1;
         }
     }
@@ -473,7 +474,7 @@ int32_t appRemoteServiceInit(app_remote_service_init_prms_t *prm)
 
         if(obj->rpmsg_tx_handle==NULL)
         {
-            CpswAppUtils_print("REMOTE_SERVICE: ERROR: Unable to create rpmessage tx handle !!!\n");
+            appLogPrintf("REMOTE_SERVICE: ERROR: Unable to create rpmessage tx handle !!!\n");
             status = -1;
         }
     }
@@ -494,7 +495,7 @@ int32_t appRemoteServiceInit(app_remote_service_init_prms_t *prm)
 
         if(obj->rpmsg_rx_handle==NULL)
         {
-            CpswAppUtils_print("REMOTE_SERVICE: ERROR: Unable to create rpmessage rx handle !!!\n");
+            appLogPrintf("REMOTE_SERVICE: ERROR: Unable to create rpmessage rx handle !!!\n");
             status = -1;
         }
 
@@ -502,7 +503,7 @@ int32_t appRemoteServiceInit(app_remote_service_init_prms_t *prm)
         status = RPMessage_announce(RPMESSAGE_ALL, prm->rpmsg_rx_endpt, "rpmsg_chrdev");
         if(status != 0)
         {
-            CpswAppUtils_print("REMOTE_SERVICE: RPMessage_announce() for rpmsg-proto failed\n");
+            appLogPrintf("REMOTE_SERVICE: RPMessage_announce() for rpmsg-proto failed\n");
             status = -1;
         }
     }
@@ -511,10 +512,10 @@ int32_t appRemoteServiceInit(app_remote_service_init_prms_t *prm)
         status = appRemoteServiceCreateRpmsgRxTask(obj);
         if(status!=0)
         {
-            CpswAppUtils_print("REMOTE_SERVICE: ERROR: appRemoteServiceCreateRpmsgRxTask failed !!!\n");
+            appLogPrintf("REMOTE_SERVICE: ERROR: appRemoteServiceCreateRpmsgRxTask failed !!!\n");
         }
     }
-    CpswAppUtils_print("REMOTE_SERVICE: Init ... Done !!!\n");
+    appLogPrintf("REMOTE_SERVICE: Init ... Done !!!\n");
 
     return status;
 }
@@ -538,7 +539,7 @@ int32_t appRemoteServiceRegister(char *service_name, app_remote_service_handler_
     }
     if(status!=0)
     {
-        CpswAppUtils_print("REMOTE_SERVICE: ERROR: Unable to register handler for service [%s]\n", service_name);
+        appLogPrintf("REMOTE_SERVICE: ERROR: Unable to register handler for service [%s]\n", service_name);
     }
 
     return status;
@@ -562,7 +563,7 @@ int32_t appRemoteServiceUnRegister(char *service_name)
     }
     if(status!=0)
     {
-        CpswAppUtils_print("REMOTE_SERVICE: ERROR: Unable to unregister handler for service [%s]\n", service_name);
+        appLogPrintf("REMOTE_SERVICE: ERROR: Unable to unregister handler for service [%s]\n", service_name);
     }
 
     return status;
@@ -573,7 +574,7 @@ int32_t appRemoteServiceDeInit()
     int32_t status = 0;
     app_remote_service_obj_t *obj = &g_app_remote_service_obj;
 
-    CpswAppUtils_print("REMOTE_SERVICE: Deinit ... !!!\n");
+    appLogPrintf("REMOTE_SERVICE: Deinit ... !!!\n");
 
     appRemoteServiceDeleteRpmsgRxTask(obj);
 
@@ -590,7 +591,7 @@ int32_t appRemoteServiceDeInit()
     SemaphoreP_delete(obj->tx_lock);
     SemaphoreP_delete(obj->rx_lock);
 
-    CpswAppUtils_print("REMOTE_SERVICE: Deinit ... Done !!!\n");
+    appLogPrintf("REMOTE_SERVICE: Deinit ... Done !!!\n");
 
     return status;
 }

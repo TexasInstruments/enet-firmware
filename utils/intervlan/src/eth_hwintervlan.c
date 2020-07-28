@@ -97,6 +97,7 @@
 #include <ti/board/board.h>
 
 #include <utils/intervlan/include/eth_hwintervlan.h>
+#include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -289,9 +290,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Cpsw_Handle hCpsw,
                         &prms);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n",
-                           __func__, status);
+        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n", __func__, status);
     }
 
     if (status == CPSW_SOK)
@@ -315,9 +314,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Cpsw_Handle hCpsw,
         status = Cpsw_ioctl(hCpsw, CpswAppSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "%s() failed ADD_VLAN ioctl failed: %d\n",
-                               __func__, status);
+            appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
         }
     }
 
@@ -342,9 +339,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Cpsw_Handle hCpsw,
         status = Cpsw_ioctl(hCpsw, CpswAppSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "%s() failed ADD_VLAN ioctl failed: %d\n",
-                               __func__, status);
+            appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
         }
     }
 
@@ -417,9 +412,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
                             &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "CpswAppInterVlan_setInterVlanUniEgress() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n",
-                               status);
+            appLogPrintf("%s() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n", __func__, status);
         }
     }
 
@@ -461,9 +454,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
 
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "CpswAppInterVlan_setInterVlanUniEgress() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n",
-                               status);
+            appLogPrintf("%s() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n", __func__, status);
         }
     }
 
@@ -540,9 +531,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
                             &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "CpswAppInterVlan_setInterVlanUniEgress() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n",
-                               status);
+            appLogPrintf("%s() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n", __func__, status);
         }
     }
 
@@ -612,9 +601,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Cpsw_Handle hCpsw,
                             &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "CpswAppInterVlan_setInterVlanUniEgress() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n",
-                               status);
+            appLogPrintf("%s() failed CPSW_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n", __func__, status);
         }
     }
 

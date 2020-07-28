@@ -65,6 +65,7 @@
 
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_sysbios.h>
+#include <utils/console_io/include/app_log.h>
 
 #define APP_ETHFW_STATS_POLL_PERIOD_MS           (500U)
 
@@ -200,7 +201,7 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
         status = Cpsw_ioctl(obj->hCpsw, obj->coreId, CPSW_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("ETHFW STATS: Error in collecting host port statistics: %d\n", status);
+            appLogPrintf("ETHFW STATS: Error in collecting host port statistics: %d\n", status);
         }
         else
         {
@@ -225,7 +226,7 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
                 status = Cpsw_ioctl(obj->hCpsw, obj->coreId, CPSW_STATS_IOCTL_GET_MACPORT_STATS, &prms);
                 if (status != CPSW_SOK)
                 {
-                    CpswAppUtils_print("ETHFW STATS: Error in collecting host port statistics: %d\n", status);
+                    appLogPrintf("ETHFW STATS: Error in collecting host port statistics: %d\n", status);
                 }
                 else
                 {
@@ -276,7 +277,7 @@ int32_t appEthfwStatsInit(Cpsw_Type cpswType)
     obj->clockSem = SemaphoreP_create(1U, &semParams);
     if(obj->clockSem==NULL)
     {
-        CpswAppUtils_print("ETHFW STATS: Unable to create clock semaphore\n");
+        appLogPrintf("ETHFW STATS: Unable to create clock semaphore\n");
         status = CPSW_EFAIL;
     }
 
@@ -294,7 +295,7 @@ int32_t appEthfwStatsInit(Cpsw_Type cpswType)
                                                         &params);
         if (NULL == obj->hStatsCollectorTask)
         {
-            CpswAppUtils_print("ETHFW STATS: Unable to create Stats collector task\n");
+            appLogPrintf("ETHFW STATS: Unable to create Stats collector task\n");
             status = CPSW_EFAIL;
         }
     }
@@ -304,7 +305,7 @@ int32_t appEthfwStatsInit(Cpsw_Type cpswType)
         status = appEthfw_createClock(obj);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("ETHFW STATS: Unable to create clock\n");
+            appLogPrintf("ETHFW STATS: Unable to create clock\n");
         }
     }
 
@@ -344,19 +345,14 @@ int32_t appEthFwStatsHandler(char *service_name, uint32_t cmd, void *prm, uint32
             else
             {
                 status = -1;
-                CpswAppUtils_print("ETHFW STATS: ERROR: Invalid parameter size (cmd = %08x, prm_size = %d B, expected prm_size = %d B\n",
-                                   cmd,
-                                   prm_size,
-                                   sizeof(app_ethfw_port_bandwidth_t)
-                                   );
+                appLogPrintf("ETHFW STATS: ERROR: Invalid parameter size (cmd = %08x, prm_size = %d B, expected prm_size = %d B\n",
+                             cmd, prm_size, sizeof(app_ethfw_port_bandwidth_t));
             }
             break;
         default:
             status = -1;
-            CpswAppUtils_print("ETHFW STATS: ERROR: Invalid command (cmd = %08x, prm_size = %d B\n",
-                               cmd,
-                               prm_size
-                               );
+            appLogPrintf("ETHFW STATS: ERROR: Invalid command (cmd = %08x, prm_size = %d B\n",
+                         cmd, prm_size);
             break;
     }
 
@@ -370,7 +366,7 @@ int32_t appEthfwStatsRemoteServiceInit(void)
     status = appRemoteServiceRegister(APP_ETHFW_STATS_SERVICE_NAME, appEthFwStatsHandler);
     if(status!=0)
     {
-        CpswAppUtils_print("ETHFW STATS: ERROR: Unable to register service \n");
+        appLogPrintf("ETHFW STATS: ERROR: Unable to register service \n");
     }
     return status;
 }
@@ -412,6 +408,6 @@ void appEthfwStatsDeInit(void)
     obj->ethfwStatsUpdateEnable = false;
     obj->ethfwStatsShutdown = true;
 
-    CpswAppUtils_print("ETHFW STATS: Deinit ... Done !!!\n");
+    appLogPrintf("ETHFW STATS: Deinit ... Done !!!\n");
 }
 

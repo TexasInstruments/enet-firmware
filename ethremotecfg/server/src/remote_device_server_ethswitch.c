@@ -73,6 +73,7 @@
 #include <server-rtos/include/app_remote_device.h>
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
 #include <ti/drv/cpsw/cpsw.h>
+#include <utils/console_io/include/app_log.h>
 
 #define ETHREMOTECFG_SERVER_MAX_MESSAGES         (32)
 #define ETHREMOTECFG_SERVER_MAX_PACKET_SIZE      (512)

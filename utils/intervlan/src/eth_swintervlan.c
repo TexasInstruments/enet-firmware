@@ -101,6 +101,7 @@
 #include <ti/sysbios/hal/Cache.h>
 
 #include <utils/intervlan/include/eth_swintervlan.h>
+#include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -222,13 +223,13 @@ static Void CpswApp_InterVlanRouting(UArg a0,
 
     if (gCpswInterVlanAppObj.hCpsw == NULL)
     {
-        CpswAppUtils_print("Failed to open CPSW\n");
+        appLogPrintf("Failed to open CPSW\n");
         CpswAppUtils_assert(gCpswInterVlanAppObj.hCpsw == NULL);
     }
 
     if (gCpswInterVlanAppObj.hUdmaDrv == NULL)
     {
-        CpswAppUtils_print("Failed to Get UDMA Handle\n");
+        appLogPrintf("Failed to Get UDMA Handle\n");
         CpswAppUtils_assert(gCpswInterVlanAppObj.hUdmaDrv == NULL);
     }
 
@@ -238,7 +239,7 @@ static Void CpswApp_InterVlanRouting(UArg a0,
     gCpswInterVlanAppObj.completionSem = Semaphore_create(0, &semParams, NULL);
 
     status = CpswApp_getRxTxHandle();
-    CpswAppUtils_print("Rx Flow for Software Inter-VLAN Routing is up\n");
+    appLogPrintf("Rx Flow for Software Inter-VLAN Routing is up\n");
 
     if (status == CPSW_SOK)
     {
@@ -389,9 +390,7 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
                         &prms);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n",
-                           __func__, status);
+        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n", __func__, status);
     }
 
     memcpy(&setUcastInArgs.addr.addr[0U], &pInterVlanCfg->srcMacAddr[0U],
@@ -413,9 +412,7 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
 
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n",
-                           __func__, status);
+        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n", __func__, status);
     }
 
     memcpy(&setUcastInArgs.addr.addr[0U], &pInterVlanCfg->dstMacAddr[0U],
@@ -437,9 +434,7 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
 
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n",
-                           __func__, status);
+        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n", __func__, status);
     }
 
     if (status == CPSW_SOK)
@@ -467,9 +462,7 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
                             &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "%s() failed ADD_VLAN ioctl failed: %d\n",
-                               __func__, status);
+            appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
         }
     }
 
@@ -497,9 +490,7 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
                             &prms);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "%s() failed ADD_VLAN ioctl failed: %d\n",
-                               __func__, status);
+            appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
         }
     }
 
@@ -582,8 +573,7 @@ int32_t EthSwInterVlan_addClassifierEntries(CpswCfgServer_InterVlanConfig *pInte
 
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print(
-                               "CpswApp_addSwIVlanClasifierEntries() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
+            appLogPrintf("%s() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", __func__, status);
         }
     }
 
@@ -779,7 +769,7 @@ static void CpswApp_pktRxTx(void)
                 if ((iterationCount & 0x7FF) == 0)
                 {
 #ifdef APP_PRINTPKTCNT
-                    CpswAppUtils_print("# pkts=%d\n", gCpswInterVlanAppObj.num_pkts);
+                    appLogPrintf("# pkts=%d\n", gCpswInterVlanAppObj.num_pkts);
 #endif
                 }
             }
@@ -861,8 +851,7 @@ static uint32_t CpswApp_receivePkts(void)
     }
     else
     {
-        CpswAppUtils_print("receivePkts() failed to retrieve pkts: %d\n",
-                           status);
+        appLogPrintf("%s() failed to retrieve pkts: %d\n", __func__, status);
     }
 
     return rxReadyCnt;

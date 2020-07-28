@@ -361,7 +361,7 @@ void appLogPrintf(const char *format, ...)
 
     va_start(args, format);
     System_vprintf(format, args);
-    CpswAppUtils_print(format, args);
+    CpswAppUtils_vprint(format, args);
     va_end(args);
 }
 
@@ -379,15 +379,15 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1)
     int32_t status = ETHAPP_OK;
 
     /* Print EthFw banner */
-    CpswAppUtils_print("=======================================================\n");
-    CpswAppUtils_print("            CPSW Ethernet Firmware                     \n");
-    CpswAppUtils_print("=======================================================\n");
+    appLogPrintf("=======================================================\n");
+    appLogPrintf("            CPSW Ethernet Firmware                     \n");
+    appLogPrintf("=======================================================\n");
 
     /* Open UDMA driver */
     gEthAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(gEthAppObj.cpswType, NULL);
     if (gEthAppObj.hUdmaDrv == NULL)
     {
-        CpswAppUtils_print("ETHFW: failed to open UDMA driver\n");
+        appLogPrintf("ETHFW: failed to open UDMA driver\n");
         status = ETHAPP_ERROR;
     }
 
@@ -421,7 +421,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     /* Step 1: Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gEthAppRemoteProc[0]);
 
-    CpswAppUtils_print("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
+    appLogPrintf("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
 
     Ipc_init(NULL);
 
@@ -450,7 +450,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     status = EthFw_initRemoteConfig(gEthAppObj.hEthFw);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print("EthApp_initIpcTask: failed to init EthFw remote config: %d\n", status);
+        appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote config: %d\n", status);
     }
 
     /* Wait for Linux VDev ready... */
@@ -468,7 +468,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
         status = Ipc_lateVirtioCreate(IPC_MPU1_0);
         if (status != IPC_SOK)
         {
-            CpswAppUtils_print("EthApp_initIpcTask: Ipc_lateVirtioCreate failed: %d\n", status);
+            appLogPrintf("EthApp_initIpcTask: Ipc_lateVirtioCreate failed: %d\n", status);
         }
     }
 
@@ -478,7 +478,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
         status = RPMessage_lateInit(IPC_MPU1_0);
         if (status != IPC_SOK)
         {
-            CpswAppUtils_print("EthApp_initIpcTask: RPMessage_lateInit failed: %d\n", status);
+            appLogPrintf("EthApp_initIpcTask: RPMessage_lateInit failed: %d\n", status);
         }
     }
 
@@ -488,7 +488,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
         status = EthFw_lateAnnounce(gEthAppObj.hEthFw, IPC_MPU1_0);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("EthApp_initIpcTask: late announcement failed: %d\n", status);
+            appLogPrintf("EthApp_initIpcTask: late announcement failed: %d\n", status);
         }
     }
 
@@ -498,7 +498,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
         status = EthApp_initRemoteServices();
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
+            appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
         }
     }
 }
@@ -529,7 +529,7 @@ static int32_t EthApp_initEthFw(void)
     gEthAppObj.hEthFw = EthFw_init(gEthAppObj.cpswType, &ethFwCfg);
     if (gEthAppObj.hEthFw == NULL)
     {
-        CpswAppUtils_print("ETHFW: failed to initialize the firmware\n");
+        appLogPrintf("ETHFW: failed to initialize the firmware\n");
         status = ETHAPP_ERROR;
     }
 
@@ -537,10 +537,10 @@ static int32_t EthApp_initEthFw(void)
     if (status == ETHAPP_OK)
     {
         EthFw_getVersion(gEthAppObj.hEthFw, &ver);
-        CpswAppUtils_print("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
-        CpswAppUtils_print("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
-        CpswAppUtils_print("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);
-        CpswAppUtils_print("ETHFW Commit SHA: %s\n\n", ver.commitHash);
+        appLogPrintf("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
+        appLogPrintf("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
+        appLogPrintf("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);
+        appLogPrintf("ETHFW Commit SHA: %s\n\n", ver.commitHash);
     }
 
     /* Post semaphore so that NDK/NIMU can continue with their initialization */
@@ -558,7 +558,7 @@ static int32_t EthApp_initRemoteServices(void)
     status = appRemoteServiceInit(&remoteServicePrms);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print("Remote service init failed: %d !!!\n", status);
+        appLogPrintf("Remote service init failed: %d !!!\n", status);
     }
 
     if (status == CPSW_SOK)
@@ -566,7 +566,7 @@ static int32_t EthApp_initRemoteServices(void)
         status = appPerfStatsInit();
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("Perf stats init failed: %d !!!\n", status);
+            appLogPrintf("Perf stats init failed: %d !!!\n", status);
         }
     }
 
@@ -575,7 +575,7 @@ static int32_t EthApp_initRemoteServices(void)
         status = appPerfStatsRemoteServiceInit();
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("Perf stats remote service init failed: %d !!!\n", status);
+            appLogPrintf("Perf stats remote service init failed: %d !!!\n", status);
         }
     }
 
@@ -584,7 +584,7 @@ static int32_t EthApp_initRemoteServices(void)
         status = appEthfwStatsInit(gEthAppObj.cpswType);
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("Ethfw stats init failed: %d !!!\n", status);
+            appLogPrintf("Ethfw stats init failed: %d !!!\n", status);
         }
     }
 
@@ -593,7 +593,7 @@ static int32_t EthApp_initRemoteServices(void)
         status = appEthfwStatsRemoteServiceInit();
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("Ethfw stats remote service init failed: %d !!!\n", status);
+            appLogPrintf("Ethfw stats remote service init failed: %d !!!\n", status);
         }
     }
 
@@ -727,8 +727,7 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     status = ti_net_SlNet_initConfig();
     if (status < CPSW_SOK)
     {
-        CpswAppUtils_print("Failed to initialize SlNet interface(s) - status (%d)\n",
-                           status);
+        appLogPrintf("Failed to initialize SlNet interface(s) - status (%d)\n", status);
     }
 
     /* Initialize and enable PTP stack */

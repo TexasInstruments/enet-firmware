@@ -81,6 +81,7 @@
 #include <ti/ndk/inc/tools/console.h>
 
 #include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
+#include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -190,7 +191,7 @@ void EthFwCallbacks_ipAddrHookFxn(uint32_t IPAddr,
              (uint8_t)(ipAddrHex >> 8) & 0xFF,
              (uint8_t)ipAddrHex & 0xFF);
 
-    CpswAppUtils_print("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
+    appLogPrintf("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
 }
 
 void EthFwCallbacks_serviceReportHook(uint32_t Item,
@@ -203,7 +204,7 @@ void EthFwCallbacks_serviceReportHook(uint32_t Item,
 
     if ((Item == CFGITEM_SERVICE_DHCPCLIENT) && ((Report & 0xFF) == POLLOUT))
     {
-        CpswAppUtils_print("DHCP client timed out. Retrying..... \n");
+        appLogPrintf("DHCP client timed out. Retrying..... \n");
 
         /* By default, DHCP client service timeouts after three minutes and the
          * service gets terminated. So we have to restart DHCP client service after

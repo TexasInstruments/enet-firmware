@@ -106,6 +106,7 @@
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_sysbios.h>
+#include <utils/console_io/include/app_log.h>
 
 /* EthFw remote configuration header files */
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
@@ -346,7 +347,7 @@ EthFw_Handle EthFw_init(Cpsw_Type cpswType,
     status = EthFw_initMcm();
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print("ETHFW: failed to init CPSW MCM: %d\n", status);
+        appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
     }
     CpswAppUtils_assert(status == CPSW_SOK);
 
@@ -404,7 +405,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     status = CpswProxyServer_init(&cfg);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print("EthFw_initRemoteConfig() failed to init CPSW Proxy: %d\n", status);
+        appLogPrintf("EthFw_initRemoteConfig() failed to init CPSW Proxy: %d\n", status);
     }
 
     /* Start Proxy Server */
@@ -413,7 +414,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         status = CpswProxyServer_start();
         if (status != CPSW_SOK)
         {
-            CpswAppUtils_print("EthFw_initRemoteConfig() failed to start CPSW Proxy: %d\n", status);
+            appLogPrintf("EthFw_initRemoteConfig() failed to start CPSW Proxy: %d\n", status);
         }
     }
 
@@ -431,8 +432,7 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
     status = appRemoteDeviceLateAnnounce(procId);
     if (status != IPC_SOK)
     {
-        CpswAppUtils_print("EthFw_lateAnnounce: late announcement to proc %u failed: %d\n",
-                           procId, status);
+        appLogPrintf("EthFw_lateAnnounce: late announcement to proc %u failed: %d\n", procId, status);
     }
 
     return status;
@@ -459,6 +459,8 @@ static int32_t EthFw_initMcm(void)
     cpswMcmCfg.setPortLinkCfg = EthFw_initLinkArgs;
     cpswMcmCfg.numMacPorts = gEthFwObj.numPorts;
     cpswMcmCfg.periodicTaskPeriod = CPSW_PHY_FSM_TICK_PERIOD_MS;
+    cpswMcmCfg.printFxn = appLogPrintf;
+    cpswMcmCfg.traceFxn = appLogPrintf;
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
@@ -559,7 +561,7 @@ static int32_t EthFw_setAleBcastEntry(void)
                         &prms);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print("EthFw_setAleBcastEntry() ADD_MULTICAST ioctl failed: %d\n", status);
+        appLogPrintf("EthFw_setAleBcastEntry() ADD_MULTICAST ioctl failed: %d\n", status);
     }
 
     return status;
@@ -618,20 +620,18 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
     CpswAppUtils_assert(notifyid == RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM);
     CpswAppUtils_assert(notify_info_len == sizeof(appProfileAvgLoadInfo));
 
-    CpswAppUtils_print("\n***********************************\n");
-    CpswAppUtils_print(" CPU Load         : %d\n", info->cpuLoad);
-    CpswAppUtils_print(" Packet count     : %d\n", info->packetCount);
-    CpswAppUtils_print(" ISR              : %d\n", info->isr);
-    CpswAppUtils_print(" SWI              : %d\n", info->swi);
-    CpswAppUtils_print(" Total task count : %d\n", info->totalTaskCount);
-    CpswAppUtils_print(" Active task count: %d\n", info->activeTaskCount);
+    appLogPrintf("\n***********************************\n");
+    appLogPrintf(" CPU Load         : %d\n", info->cpuLoad);
+    appLogPrintf(" Packet count     : %d\n", info->packetCount);
+    appLogPrintf(" ISR              : %d\n", info->isr);
+    appLogPrintf(" SWI              : %d\n", info->swi);
+    appLogPrintf(" Total task count : %d\n", info->totalTaskCount);
+    appLogPrintf(" Active task count: %d\n", info->activeTaskCount);
 
     for (i = 0U; i < info->activeTaskCount; i++)
     {
-        CpswAppUtils_print(" Task: %s: %d %%\n",
-                           info->tskLoad[i].tskName,
-                           info->tskLoad[i].load);
+        appLogPrintf(" Task: %s: %d %%\n", info->tskLoad[i].tskName, info->tskLoad[i].load);
     }
 
-    CpswAppUtils_print("***********************************\n");
+    appLogPrintf("***********************************\n");
 }

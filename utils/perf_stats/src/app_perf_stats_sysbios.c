@@ -70,6 +70,7 @@
 
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/perf_stats/src/app_perf_stats_priv.h>
+#include <utils/console_io/include/app_log.h>
 
 typedef struct {
 
@@ -193,11 +194,8 @@ int32_t appPerfStatsHandler(char *service_name, uint32_t cmd, void *prm, uint32_
             else
             {
                 status = -1;
-                CpswAppUtils_print("PERF STATS: ERROR: Invalid parameter size (cmd = %08x, prm_size = %d B, expected prm_size = %d B\n",
-                    cmd,
-                    prm_size,
-                    sizeof(app_perf_stats_cpu_load_t)
-                    );
+                appLogPrintf("PERF STATS: ERROR: Invalid parameter size (cmd = %08x, prm_size = %d B, expected prm_size = %d B\n",
+                             cmd, prm_size, sizeof(app_perf_stats_cpu_load_t));
             }
             break;
         case APP_PERF_STATS_CMD_GET_CPU_TASK_STATS:
@@ -210,19 +208,13 @@ int32_t appPerfStatsHandler(char *service_name, uint32_t cmd, void *prm, uint32_
             else
             {
                 status = -1;
-                CpswAppUtils_print("PERF STATS: ERROR: Invalid parameter size (cmd = %08x, prm_size = %d B, expected prm_size = %d B\n",
-                    cmd,
-                    prm_size,
-                    sizeof(app_perf_stats_task_stats_t)
-                    );
+                appLogPrintf("PERF STATS: ERROR: Invalid parameter size (cmd = %08x, prm_size = %d B, expected prm_size = %d B\n",
+                             cmd, prm_size, sizeof(app_perf_stats_task_stats_t));
             }
             break;
         default:
             status = -1;
-            CpswAppUtils_print("PERF STATS: ERROR: Invalid command (cmd = %08x, prm_size = %d B\n",
-                cmd,
-                prm_size
-                );
+            appLogPrintf("PERF STATS: ERROR: Invalid command (cmd = %08x, prm_size = %d B\n", cmd, prm_size);
             break;
     }
 
@@ -242,7 +234,7 @@ int32_t appPerfStatsInit()
     obj->lock = SemaphoreP_create(1U, &semParams);
     if(obj->lock==NULL)
     {
-        CpswAppUtils_print("PERF STATS: Unable to create lock semaphore\n");
+        appLogPrintf("PERF STATS: Unable to create lock semaphore\n");
         status = -1;
     }
 
@@ -263,7 +255,7 @@ int32_t appPerfStatsRemoteServiceInit()
     status = appRemoteServiceRegister(APP_PERF_STATS_SERVICE_NAME, appPerfStatsHandler);
     if(status!=0)
     {
-        CpswAppUtils_print("PERF STATS: ERROR: Unable to register service \n");
+        appLogPrintf("PERF STATS: ERROR: Unable to register service \n");
     }
     return status;
 }

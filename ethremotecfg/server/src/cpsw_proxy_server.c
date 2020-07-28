@@ -103,6 +103,9 @@
 #include <ethremotecfg/protocol/Eth_Rpc.h>
 #include <ethremotecfg/protocol/cpsw_remote_notify_service.h>
 
+/* EthFw utils header files */
+#include <utils/console_io/include/app_log.h>
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -423,7 +426,7 @@ static int32_t CpswProxyServer_attachHandlerCb(uint32_t host_id,
     status = CpswProxy_mapRdev2CpswType(rdevCpswType, &cpswType);
     if (CPSW_SOK == status)
     {
-        CpswAppUtils_print("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, cpswType);
+        appLogPrintf("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, cpswType);
 
         hProxyServer = CpswProxyServer_getHandle();
         CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
@@ -499,7 +502,7 @@ static int32_t CpswProxyServer_allocTxHandlerCb(uint32_t host_id,
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
     CpswProxyServer_validateHandle(hCpsw);
 
     status = CpswAppUtils_allocTxCh(hCpsw,
@@ -538,7 +541,7 @@ static int32_t CpswProxyServer_allocRxHandlerCb(uint32_t host_id,
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
     CpswProxyServer_validateHandle(hCpsw);
 
     status = CpswAppUtils_allocRxFlow(hCpsw, core_key, host_id, &start_flow_idx, &flow_idx_offset);
@@ -565,7 +568,7 @@ static int32_t CpswProxyServer_allocMacHandlerCb(uint32_t host_id,
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
     CpswProxyServer_validateHandle(hCpsw);
 
     status = CpswAppUtils_allocMac(hCpsw, core_key, host_id, mac_address);
@@ -593,26 +596,24 @@ static int32_t CpswProxyServer_registerMacHandlerCb(uint32_t host_id,
 
     CpswProxyServer_validateHandle(hCpsw);
     CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
-                       __func__,
-                       host_id,
-                       hCpsw,
-                       core_key,
-                       mac_address[0],
-                       mac_address[1],
-                       mac_address[2],
-                       mac_address[3],
-                       mac_address[4],
-                       mac_address[5],
-                       flow_idx,
-                       flow_idx_offset);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
+                 __func__,
+                 host_id,
+                 hCpsw,
+                 core_key,
+                 mac_address[0],
+                 mac_address[1],
+                 mac_address[2],
+                 mac_address[3],
+                 mac_address[4],
+                 mac_address[5],
+                 flow_idx,
+                 flow_idx_offset);
 
     status = CpswAppUtils_registerDstMacRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "CpswAppUtils_registerDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n",
-                           status);
+        appLogPrintf("CpswAppUtils_registerDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -635,26 +636,24 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(uint32_t host_id,
 
     CpswProxyServer_validateHandle(hCpsw);
     CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdOffset:%u\n",
-                       __func__,
-                       host_id,
-                       hCpsw,
-                       core_key,
-                       mac_address[0],
-                       mac_address[1],
-                       mac_address[2],
-                       mac_address[3],
-                       mac_address[4],
-                       mac_address[5],
-                       flow_idx,
-                       flow_idx_offset);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdOffset:%u\n",
+                 __func__,
+                 host_id,
+                 hCpsw,
+                 core_key,
+                 mac_address[0],
+                 mac_address[1],
+                 mac_address[2],
+                 mac_address[3],
+                 mac_address[4],
+                 mac_address[5],
+                 flow_idx,
+                 flow_idx_offset);
 
     status = CpswAppUtils_unregisterDstMacRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "Failed CpswAppUtils_unregisterDstMacRxFlow: %d\n",
-                           status);
+        appLogPrintf("Failed CpswAppUtils_unregisterDstMacRxFlow: %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -677,7 +676,8 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(uint32_t host_id,
     CpswProxyServer_validateHandle(hCpsw);
     CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x, FlowIdOffset:%x\n", __func__, host_id, hCpsw, core_key, flow_idx, flow_idx_offset);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x, FlowIdOffset:%x\n",
+                 __func__, host_id, hCpsw, core_key, flow_idx, flow_idx_offset);
 
     status = CpswAppUtils_registerDefaultRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset);
     if (status != CPSW_SOK)
@@ -704,7 +704,8 @@ static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(uint32_t host_id,
     CpswProxyServer_validateHandle(hCpsw);
     CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x\n", __func__, host_id, hCpsw, core_key, flow_idx);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x\n",
+                 __func__, host_id, hCpsw, core_key, flow_idx);
 
     status = CpswAppUtils_unregisterDefaultRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset);
     if (status != CPSW_SOK)
@@ -727,7 +728,9 @@ static int32_t CpswProxyServer_freeTxHandlerCb(uint32_t host_id,
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, TxId:%x\n", __func__, host_id, hCpsw, core_key, tx_cpsw_psil_dst_id);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, TxId:%x\n",
+                 __func__, host_id, hCpsw, core_key, tx_cpsw_psil_dst_id);
+
     CpswProxyServer_validateHandle(hCpsw);
 
     status = CpswAppUtils_freeTxCh(hCpsw, core_key, host_id, tx_cpsw_psil_dst_id);
@@ -755,7 +758,9 @@ static int32_t CpswProxyServer_freeRxHandlerCb(uint32_t host_id,
 
     CpswProxyServer_validateHandle(hCpsw);
     CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, alloc_flow_idx, &start_flow_idx, &flow_idx_offset);
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, RxId:%x RxOffset:%x\n", __func__, host_id, hCpsw, core_key, alloc_flow_idx, flow_idx_offset);
+
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, RxId:%x RxOffset:%x\n",
+                 __func__, host_id, hCpsw, core_key, alloc_flow_idx, flow_idx_offset);
 
     CpswProxyServer_validateStartIdx(hCpsw, host_id, start_flow_idx);
     status = CpswAppUtils_freeRxFlow(hCpsw,
@@ -783,17 +788,18 @@ static int32_t CpswProxyServer_freeMacHandlerCb(uint32_t host_id,
     int32_t status;
     Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x\n",
-                       __func__,
-                       host_id,
-                       hCpsw,
-                       core_key,
-                       mac_address[0],
-                       mac_address[1],
-                       mac_address[2],
-                       mac_address[3],
-                       mac_address[4],
-                       mac_address[5]);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x\n",
+                 __func__,
+                 host_id,
+                 hCpsw,
+                 core_key,
+                 mac_address[0],
+                 mac_address[1],
+                 mac_address[2],
+                 mac_address[3],
+                 mac_address[4],
+                 mac_address[5]);
+
     CpswProxyServer_validateHandle(hCpsw);
 
     status = CpswAppUtils_freeMac(hCpsw, core_key, host_id, mac_address);
@@ -820,9 +826,8 @@ static int32_t CpswProxyServer_detachHandlerCb(uint32_t host_id,
     int32_t status;
     Cpsw_Type cpswType;
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
     CpswProxyServer_validateHandle(hCpsw);
-
 
     hProxyServer = CpswProxyServer_getHandle();
     CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
@@ -855,8 +860,8 @@ static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
                    &prms);
     if (status == CPSW_SOK)
     {
-        CpswAppUtils_print("\n Port 0 Statistics\n");
-        CpswAppUtils_print("-----------------------------------------\n");
+        appLogPrintf("\n Port 0 Statistics\n");
+        appLogPrintf("-----------------------------------------\n");
         switch (cpswType)
         {
             case CPSW_2G:
@@ -879,13 +884,11 @@ static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
             }
         }
 
-        CpswAppUtils_print("\n");
+        appLogPrintf("\n");
     }
     else
     {
-        CpswAppUtils_print(
-                           "CpswProxyServer_printStats() failed to get host stats: %d\n",
-                           status);
+        appLogPrintf("CpswProxyServer_printStats() failed to get host stats: %d\n", status);
     }
 
     if (status == CPSW_SOK)
@@ -898,8 +901,8 @@ static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
                            &prms);
             if (status == CPSW_SOK)
             {
-                CpswAppUtils_print("\n External Port %d Statistics\n", CPSW_NORMALIZE_MACPORT(inArgs.portNum));
-                CpswAppUtils_print("-----------------------------------------\n");
+                appLogPrintf("\n External Port %d Statistics\n", CPSW_NORMALIZE_MACPORT(inArgs.portNum));
+                appLogPrintf("-----------------------------------------\n");
                 switch (cpswType)
                 {
                     case CPSW_2G:
@@ -922,13 +925,11 @@ static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
                     }
                 }
 
-                CpswAppUtils_print("\n");
+                appLogPrintf("\n");
             }
             else
             {
-                CpswAppUtils_print(
-                                   "CpswProxyServer_printStats() failed to get MAC stats: %d\n",
-                                   status);
+                appLogPrintf("CpswProxyServer_printStats() failed to get MAC stats: %d\n", status);
             }
         }
     }
@@ -949,7 +950,9 @@ static int32_t CpswProxyServer_ioctlHandlerCb(uint32_t host_id,
     uint64_t inArgsBuf[(RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
     uint64_t outArgsBuf[(RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
 
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Cmd:%x,InArgsLen:%u, OutArgsLen:%u \n", __func__, host_id, hCpsw, core_key, cmd, inargs_len, outargs_len);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Cmd:%x,InArgsLen:%u, OutArgsLen:%u\n",
+                 __func__, host_id, hCpsw, core_key, cmd, inargs_len, outargs_len);
+
     CpswProxyServer_validateHandle(hCpsw);
 
     prms.inArgsSize = inargs_len;
@@ -992,7 +995,7 @@ static int32_t CpswProxyServer_regwrHandlerCb(uint32_t host_id,
                                               uint32_t regval,
                                               uint32_t *pRegval)
 {
-    CpswAppUtils_print("Function:%s,HostId:%u, RegAddr:%p, RegVal:%x \n", __func__, host_id, regaddr, regval);
+    appLogPrintf("Function:%s,HostId:%u, RegAddr:%p, RegVal:%x \n", __func__, host_id, regaddr, regval);
 
     CSL_REG32_WR(regaddr, regval);
 
@@ -1005,7 +1008,7 @@ static int32_t CpswProxyServer_regrdHandlerCb(uint32_t host_id,
                                               uint32_t regaddr,
                                               uint32_t *pRegval)
 {
-    CpswAppUtils_print("Function:%s,HostId:%u, RegAddr:%p \n", __func__, host_id, regaddr);
+    appLogPrintf("Function:%s,HostId:%u, RegAddr:%p \n", __func__, host_id, regaddr);
 
     *pRegval = CSL_REG32_RD(regaddr);
 
@@ -1018,12 +1021,12 @@ static void CpswProxyServer_printLliEntry(uint32_t entryIdx,
     char str[40];
 
     NtIPN2Str(entry->IPAddr, str);
-    CpswAppUtils_print("%d ", entryIdx);
-    CpswAppUtils_print("        %-15s  ", str);
-    CpswAppUtils_print("  %02X:%02X:%02X:%02X:%02X:%02X",
-                       entry->MacAddr[0], entry->MacAddr[1], entry->MacAddr[2],
-                       entry->MacAddr[3], entry->MacAddr[4], entry->MacAddr[5]);
-    CpswAppUtils_print("\n");
+    appLogPrintf("%d ", entryIdx);
+    appLogPrintf("        %-15s  ", str);
+    appLogPrintf("  %02X:%02X:%02X:%02X:%02X:%02X",
+                 entry->MacAddr[0], entry->MacAddr[1], entry->MacAddr[2],
+                 entry->MacAddr[3], entry->MacAddr[4], entry->MacAddr[5]);
+    appLogPrintf("\n");
 }
 
 static void CpswProxyServer_dumpLliTable(LLI_INFO *llitable,
@@ -1032,10 +1035,10 @@ static void CpswProxyServer_dumpLliTable(LLI_INFO *llitable,
     LLI_INFO *entry;
     uint32_t entryIdx;
 
-    CpswAppUtils_print("\n================LLI Table entries=========== \n");
-    CpswAppUtils_print("\nNumber of Static ARP Entries: %d \n", numEntries);
-    CpswAppUtils_print("\nSNo.      IP Address         MAC Address  \n");
-    CpswAppUtils_print("------    -------------      --------------- \n");
+    appLogPrintf("\n================LLI Table entries=========== \n");
+    appLogPrintf("\nNumber of Static ARP Entries: %d \n", numEntries);
+    appLogPrintf("\nSNo.      IP Address         MAC Address  \n");
+    appLogPrintf("------    -------------      --------------- \n");
 
     entry = (LLI_INFO *)list_get_head((NDK_LIST_NODE **)&llitable);
     /* start with 1 as when table is printed via telnet it is indexed with 1 */
@@ -1062,21 +1065,22 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     LLI_INFO *llitable = NULL;
 
     ipaddr = htonl(ipaddr);
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%d.%d.%d.%d\n",
-                       __func__,
-                       host_id,
-                       hCpsw,
-                       core_key,
-                       mac_address[0],
-                       mac_address[1],
-                       mac_address[2],
-                       mac_address[3],
-                       mac_address[4],
-                       mac_address[5],
-                       ipv4_addr[0],
-                       ipv4_addr[1],
-                       ipv4_addr[2],
-                       ipv4_addr[3]);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%d.%d.%d.%d\n",
+                 __func__,
+                 host_id,
+                 hCpsw,
+                 core_key,
+                 mac_address[0],
+                 mac_address[1],
+                 mac_address[2],
+                 mac_address[3],
+                 mac_address[4],
+                 mac_address[5],
+                 ipv4_addr[0],
+                 ipv4_addr[1],
+                 ipv4_addr[2],
+                 ipv4_addr[3]);
+
     CpswProxyServer_validateHandle(hCpsw);
 
     ConCmdRoute(1, "print", NULL, NULL, NULL);
@@ -1093,7 +1097,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
 
     if (status != 0)
     {
-        CpswAppUtils_print("Failed to add Static ARP Entry \n");
+        appLogPrintf("Failed to add Static ARP Entry \n");
     }
 
     LLIGetStaticARPTable(&numEntries,
@@ -1125,21 +1129,22 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
     LLI_INFO *llitable = NULL;
 
     ipaddr = htonl(ipaddr);
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,IPv4Addr:%x:%x:%x:%x\n",
-                       __func__,
-                       host_id,
-                       hCpsw,
-                       core_key,
-                       ipv4_addr[0],
-                       ipv4_addr[1],
-                       ipv4_addr[2],
-                       ipv4_addr[3]);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,IPv4Addr:%x:%x:%x:%x\n",
+                 __func__,
+                 host_id,
+                 hCpsw,
+                 core_key,
+                 ipv4_addr[0],
+                 ipv4_addr[1],
+                 ipv4_addr[2],
+                 ipv4_addr[3]);
+
     CpswProxyServer_validateHandle(hCpsw);
 
     status = LLIRemoveStaticEntry(ipaddr);
     if (status != 0)
     {
-        CpswAppUtils_print("Failed to add Static ARP Entry \n");
+        appLogPrintf("Failed to add Static ARP Entry \n");
     }
 
     LLIGetStaticARPTable(&numEntries,
@@ -1165,33 +1170,33 @@ static int32_t CpswProxyServer_registerIpv6MacHandlerCb(uint32_t host_id,
                                                         uint8_t *mac_address,
                                                         uint8_t *ipv6_addr)
 {
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv6Addr:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x\n",
-                       __func__,
-                       host_id,
-                       handle,
-                       core_key,
-                       mac_address[0],
-                       mac_address[1],
-                       mac_address[2],
-                       mac_address[3],
-                       mac_address[4],
-                       mac_address[5],
-                       ipv6_addr[0],
-                       ipv6_addr[1],
-                       ipv6_addr[2],
-                       ipv6_addr[3],
-                       ipv6_addr[4],
-                       ipv6_addr[5],
-                       ipv6_addr[6],
-                       ipv6_addr[7],
-                       ipv6_addr[8],
-                       ipv6_addr[9],
-                       ipv6_addr[10],
-                       ipv6_addr[11],
-                       ipv6_addr[12],
-                       ipv6_addr[13],
-                       ipv6_addr[14],
-                       ipv6_addr[15]);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv6Addr:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x:%x\n",
+                 __func__,
+                 host_id,
+                 handle,
+                 core_key,
+                 mac_address[0],
+                 mac_address[1],
+                 mac_address[2],
+                 mac_address[3],
+                 mac_address[4],
+                 mac_address[5],
+                 ipv6_addr[0],
+                 ipv6_addr[1],
+                 ipv6_addr[2],
+                 ipv6_addr[3],
+                 ipv6_addr[4],
+                 ipv6_addr[5],
+                 ipv6_addr[6],
+                 ipv6_addr[7],
+                 ipv6_addr[8],
+                 ipv6_addr[9],
+                 ipv6_addr[10],
+                 ipv6_addr[11],
+                 ipv6_addr[12],
+                 ipv6_addr[13],
+                 ipv6_addr[14],
+                 ipv6_addr[15]);
 
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
@@ -1222,7 +1227,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(uint32_t host_id,
     status = CpswProxy_mapRdev2CpswType(rdevCpswType, &cpswType);
     if (CPSW_SOK == status)
     {
-        CpswAppUtils_print("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, cpswType);
+        appLogPrintf("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, cpswType);
 
         hProxyServer = CpswProxyServer_getHandle();
         CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
@@ -1326,7 +1331,8 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
                                XSTRINGIFY(RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM)};
 
     CpswAppUtils_assert(notifyid < CPSW_UTILS_ARRAYSIZE(notify_type_str));
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,NotifyId:%s,NotifyLen\n", __func__, host_id, core_key, hCpsw, notify_type_str[notifyid], notify_info_len);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,NotifyId:%s,NotifyLen\n",
+                 __func__, host_id, core_key, hCpsw, notify_type_str[notifyid], notify_info_len);
     hProxyServer = CpswProxyServer_getHandle();
     CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
     status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hCpsw, &cpswType);
@@ -1396,14 +1402,14 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(uint32_t host_id,
 
     CpswProxyServer_validateHandle(hCpsw);
     CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
-                       __func__,
-                       host_id,
-                       hCpsw,
-                       core_key,
-                       ether_type,
-                       flow_idx,
-                       flow_idx_offset);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
+                 __func__,
+                 host_id,
+                 hCpsw,
+                 core_key,
+                 ether_type,
+                 flow_idx,
+                 flow_idx_offset);
 
     memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
     setPolicerInArgs.policerMatch.policerMatchEnableMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
@@ -1418,9 +1424,7 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(uint32_t host_id,
     status = Cpsw_ioctl(hCpsw,host_id, CPSW_ALE_IOCTL_SET_POLICER, &prms);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "Cpsw_ioctl() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n",
-                           status);
+        appLogPrintf("Cpsw_ioctl() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -1445,14 +1449,14 @@ static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(uint32_t host_id,
 
     CpswProxyServer_validateHandle(hCpsw);
     CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
-    CpswAppUtils_print("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdOffset:%u\n",
-                       __func__,
-                       host_id,
-                       hCpsw,
-                       core_key,
-                       ether_type,
-                       flow_idx,
-                       flow_idx_offset);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdOffset:%u\n",
+                 __func__,
+                 host_id,
+                 hCpsw,
+                 core_key,
+                 ether_type,
+                 flow_idx,
+                 flow_idx_offset);
 
     memset(&delPolicerInArgs, 0, sizeof(delPolicerInArgs));
     delPolicerInArgs.policerMatch.policerMatchEnableMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
@@ -1464,9 +1468,7 @@ static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(uint32_t host_id,
     status = Cpsw_ioctl(hCpsw,host_id, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print(
-                           "Failed Cpsw_ioctl CPSW_ALE_IOCTL_DEL_POLICER : %d\n",
-                           status);
+        appLogPrintf("Failed Cpsw_ioctl CPSW_ALE_IOCTL_DEL_POLICER : %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -1506,8 +1508,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(uint32_t host_id,
                         &prms);
     if (status != CPSW_SOK)
     {
-        CpswAppUtils_print("Failed Cpsw_ioctl CPSW_CPTS_IOCTL_REGISTER_HW_PUSH_CALLBACK : %d\n",
-                           status);
+        appLogPrintf("Failed Cpsw_ioctl CPSW_CPTS_IOCTL_REGISTER_HW_PUSH_CALLBACK : %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -1645,7 +1646,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     CpswAppUtils_assert(status == 0);
 
     hProxyServer->initDone = true;
-    CpswAppUtils_print("Remote demo device (core : mcu2_0) .....\r\n");
+    appLogPrintf("Remote demo device (core : mcu2_0) .....\r\n");
     return CPSW_SOK;
 }
 
@@ -1678,7 +1679,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
 
     if (NULL == hProxyServer->ethDrvObj.hAutosarEthRpMsgEp)
     {
-        CpswAppUtils_print("Could not create communication channel \n");
+        appLogPrintf("Could not create communication channel \n");
         retVal = CPSW_EFAIL;
     }
 
@@ -1686,7 +1687,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
     {
         if (localEp != cfg->autosarEthDeviceEndPointId)
         {
-            CpswAppUtils_print("Could not create required End Point");
+            appLogPrintf("Could not create required End Point");
         }
         else
         {
@@ -1708,7 +1709,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
         if(Error_check(&eb))
         {
             retVal = CPSW_EFAIL;
-            CpswAppUtils_print("Could not create a Task \n");
+            appLogPrintf("Could not create a Task \n");
         }
     }
 
@@ -1736,7 +1737,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
 
     if (NULL == hProxyServer->notifyServiceObj.hNotifyServicRpMsgEp)
     {
-        CpswAppUtils_print("Could not create communication channel\n");
+        appLogPrintf("Could not create communication channel\n");
         retVal = CPSW_EFAIL;
     }
 
@@ -1744,7 +1745,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
     {
         if (localEp != CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID)
         {
-            CpswAppUtils_print("Could not create required End Point");
+            appLogPrintf("Could not create required End Point");
         }
         else
         {
@@ -1775,7 +1776,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
         if (hProxyServer->notifyServiceObj.hHwPushNotifyServiceEvent == NULL)
         {
             retVal = CPSW_EFAIL;
-            CpswAppUtils_print("Could not create an Event \n");
+            appLogPrintf("Could not create an Event \n");
         }
     }
 
@@ -1793,7 +1794,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
         if(Error_check(&eb))
         {
             retVal = CPSW_EFAIL;
-            CpswAppUtils_print("Could not create a Task \n");
+            appLogPrintf("Could not create a Task \n");
         }
     }
 
@@ -1836,7 +1837,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                             &remoteEndPt,
                                             BIOS_WAIT_FOREVER))
     {
-        CpswAppUtils_print("CpswProxyServer: Remote AUTOSAR Ethernet Device locate failed");
+        appLogPrintf("CpswProxyServer: Remote AUTOSAR Ethernet Device locate failed");
     }
     else
     {

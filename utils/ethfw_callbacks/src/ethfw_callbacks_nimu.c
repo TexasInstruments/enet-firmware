@@ -146,6 +146,7 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
 #elif defined(SOC_J7200)
     Cpsw_Type cpswType = CPSW_5G;
 #endif
+    uint8_t *macAddr;
     uint32_t coreId = CpswAppSoc_getCoreId();
     bool useDefaultFlow = true;    /* NDK must handle the default flow */
     bool useRingMon = true;
@@ -220,9 +221,6 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
                             &outArgs->rxInfo.hRxFlow,
                             &cpswRxFlowCfg);
 
-    CpswAppUtils_print("Host MAC address: ");
-    CpswAppUtils_printMacAddr(&outArgs->rxInfo.macAddr[0U]);
-
     outArgs->coreId          = coreId;
     outArgs->coreKey         = attachInfo.coreKey;
     outArgs->hCpsw           = handleInfo.hCpsw;
@@ -244,9 +242,11 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     /* Let NIMU use optimized processing where TX packets are relinquished in next
      * TX submit call */
     outArgs->disableTxEvent = true;
-    CpswAppUtils_print("Host MAC address: ");
-    CpswAppUtils_printMacAddr(&outArgs->rxInfo.macAddr[0U]);
 
+    macAddr = &outArgs->rxInfo.macAddr[0U];
+    appLogPrintf("Host MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                 macAddr[0] & 0xFF, macAddr[1] & 0xFF, macAddr[2] & 0xFF,
+                 macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
 }
 
 void EthFwCallbacks_nimuCpswReleaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
