@@ -94,6 +94,8 @@ include makerules/makefile_ndk.mak
 #DIsabling NDK build for now
 #Add ndk and ndk_clean dependent rules for ethfw_all/ethfw_all_clean once NDK bug is fixed
 .NOTPARALLEL:
+ethfw_server: pdk_custom_libs remotedevicefw app_remoteswitchcfg_server
+
 ethfw_all: pdk remotedevicefw all
 remoteswitchcfg_all: | pdk_custom_libs remotedevicefw ndk app_remoteswitchcfg_client app_remoteswitchcfg_server
 
