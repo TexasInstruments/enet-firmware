@@ -23,10 +23,6 @@ BUILD_CPU_MCU2_1?=yes
 BUILD_CPU_MCU3_1?=no
 BUILD_SOC_LIST ?= J721E J7200
 
-# R5F Thumb mode
-# Temporarily disabled until PDK and EthFw move to NDK/NS versions that support Thumb mode
-BUILD_R5F_THUMB?=no
-
 # Build TI-RTOS only binaries
 BUILD_APP_TIRTOS?=yes
 # Build TI-RTOS + Linux binaries
@@ -37,6 +33,9 @@ PROFILE?=release
 # Treat compiler warning as error
 # Supported Values: yes | no
 TREAT_WARNINGS_AS_ERROR ?= true
+
+# R5F Thumb mode
+-BUILD_R5F_THUMB?=yes
 
 # Build a specific CPU type's based on CPU flags status defined above
 ifneq (,$(filter yes,$(BUILD_CPU_MCU1_0) $(BUILD_CPU_MCU1_1) $(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0) $(BUILD_CPU_MCU3_1)))
