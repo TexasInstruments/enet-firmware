@@ -16,6 +16,7 @@ ifeq ($(HOST_OS),Windows_NT) # SHELL is cmd.exe
 CLEAN    := del /Q
 CLEANDIR := rmdir /Q /S
 COPY     := copy /Y /Z /V
+COPYDIR  := copy /H/E/Q/Y/I
 PRINT    := @echo
 SET_RW   := attrib -R
 SET_EXEC := echo
@@ -29,6 +30,7 @@ else # Bash variants
 CLEAN    := rm -f
 CLEANDIR := rm -rf
 COPY     := cp -f
+COPYDIR  := cp -Rf
 PRINT    := @echo
 SET_RW   := chmod a+rw
 SET_EXEC := chmod a+x

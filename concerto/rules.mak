@@ -39,6 +39,8 @@ endif
 BUILD_FOLDER ?= concerto
 CONCERTO_ROOT ?= $(HOST_ROOT)/$(BUILD_FOLDER)
 BUILD_OUTPUT ?= out
+BUILD_LIBS ?= lib
+PREBUILT_LIBS ?= prebuilt_libs
 BUILD_PROJECT ?= $(CONCERTO_ROOT)/project.mak
 DIRECTORIES ?= source
 BUILD_DEFS ?=
@@ -89,7 +91,7 @@ TESTABLE_MODULES :=
 
 # Define a macro to make the output target path
 MAKE_OUT = $(1)/$(BUILD_OUTPUT)/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
-TARGET_LIB_OUT = $(1)/lib/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
+TARGET_LIB_OUT = $(1)/$(BUILD_LIBS)/$(TARGET_PLATFORM)/$(TARGET_CPU)/$(TARGET_OS)/$(TARGET_BUILD)
 
 # Define a macro to remove a combo from the combos list if it matches a value
 FILTER_COMBO = $(foreach combo,$(TARGET_COMBOS),$(if $(filter $(1),$(subst :, ,$(combo))),$(combo)))
@@ -114,11 +116,11 @@ LOCAL_TARGET_LIB_OUT = $(word 2,$(subst ^, ,$(1)))
 
 
 ifndef NO_TARGETS
-.PHONY: all dir depend build install uninstall clean clean_target outputs modules targets scrub vars test docs clean_docs pdf release
+.PHONY: all dir depend build install uninstall clean clean_target outputs modules targets scrub vars test docs clean_docs pdf release prebuilt_libs
 
 depend::
 
-all: release
+all: release prebuilt_libs
 
 # This rule copies the libs to the lib folder when 'make all' is called
 release: build
@@ -134,6 +136,10 @@ install:: build
 
 uninstall::
 
+prebuilt_libs:
+	$(if $(wildcard $(PREBUILT_LIBS)),$(info Copying Prebuilt libs from $(PREBUILT_LIBS) to $(BUILD_LIBS)))
+	$(if $(wildcard $(PREBUILT_LIBS)),-$(Q)$(COPYDIR) $(PREBUILT_LIBS) $(BUILD_LIBS))
+
 outputs:: $(foreach mod,$(MODULES),$(mod)_output)
 
 modules::
@@ -146,6 +152,8 @@ targets::
 	$(foreach target,$(CONCERTO_TARGETS),$(info CONCERTO_TARGETS+=$(target)))
 
 scrub::
+	$(if $(wildcard $(BUILD_LIBS)),$(info Deleting $(BUILD_LIBS)),$(info BUILD_LIBS does not exist!))
+	$(if $(wildcard $(BUILD_LIBS)),-$(Q)$(CLEANDIR) $(call PATH_CONV,$(BUILD_LIBS)) $(QUIET))
 	$(if $(wildcard $(BUILD_OUTPUT)),$(info Deleting $(BUILD_OUTPUT)),$(info BUILD_OUTPUT does not exist!))
 	$(if $(wildcard $(BUILD_OUTPUT)),-$(Q)$(CLEANDIR) $(call PATH_CONV,$(BUILD_OUTPUT)) $(QUIET))
 
@@ -164,6 +172,8 @@ todo:
 									 --exclude-dir=.svn \
 									 --exclude-dir=docs \
 									 --exclude-dir=$(BUILD_FOLDER) \
+									 --exclude-dir=$(BUILD_LIBS) \
+									 --exclude-dir=$(PREBUILT_LIBS) \
 									 --exclude-dir=$(BUILD_OUTPUT)
 
 bugs:
@@ -171,6 +181,8 @@ bugs:
 									 --exclude-dir=.svn \
 									 --exclude-dir=docs \
 									 --exclude-dir=$(BUILD_FOLDER) \
+									 --exclude-dir=$(BUILD_LIBS) \
+									 --exclude-dir=$(PREBUILT_LIBS) \
 									 --exclude-dir=$(BUILD_OUTPUT)
 
 help:
@@ -186,7 +198,7 @@ help:
 	$(PRINT) " $$ $(MAKE) install"
 	$(PRINT) " # Removes build outputs only"
 	$(PRINT) " $$ $(MAKE) clean"
-	$(PRINT) " # Removes $(BUILD_OUTPUT)/ folder completely."
+	$(PRINT) " # Removes $(BUILD_OUTPUT)/ and $(BUILD_LIBS)/ folders completely."
 	$(PRINT) " $$ $(MAKE) scrub"
 	$(PRINT) " # Builds all Doxygen Documentation targets"
 	$(PRINT) " $$ $(MAKE) docs"
@@ -221,6 +233,8 @@ help:
 	$(PRINT) "CONCERTO_ROOT - the path to the root of the concerto enabled build system. Default is 'HOST_ROOT'/'BUILD_FOLDER'"
 	$(PRINT) "BUILD_TARGET - the location and name of the target specializing makefile. Defaults to 'CONCERTO_ROOT'/target.mak"
 	$(PRINT) "BUILD_OUTPUT - the location to place the outputs of the build system. Defaults to 'out'"
+	$(PRINT) "BUILD_LIBS - the location to place the libraries of the build system. Defaults to 'lib'"
+	$(PRINT) "PREBUILT_LIBS - the location where prebuilt libraries are located. Defaults to 'prebuilt_libs'"
 	$(PRINT) "BUILD_PLATFORM - the location and name of the platform specializing makefile. Defaults to 'CONCERTO_ROOT'/platform.mak"
 	$(PRINT) "TARGET_BUILD - Either 'release' (default) or 'debug'."
 	$(PRINT)
