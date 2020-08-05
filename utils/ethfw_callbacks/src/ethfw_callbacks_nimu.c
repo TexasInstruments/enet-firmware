@@ -86,6 +86,7 @@
 #include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_nimu.h>
+#include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
