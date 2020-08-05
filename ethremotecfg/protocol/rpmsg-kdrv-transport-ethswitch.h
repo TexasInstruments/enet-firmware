@@ -456,11 +456,9 @@ enum rpmsg_kdrv_ethswitch_message_type
 enum rpmsg_kdrv_ethswitch_cpsw_type
 {
     /*! Etheret Remote Device CPSW Type : CPSW2G (2 port switch) */
-    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G,
-    /*! Etheret Remote Device CPSW Type : CPSW9G (9 port switch) */
-    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G,
-    /*! Etheret Remote Device CPSW Type : CPSW5G (5 port switch) */
-    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_5G,
+    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MCU,
+    /*! Etheret Remote Device CPSW Type : CPSW5G or 9G (5 or 9 port switch) */
+    RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN,
     /*! Max Etheret Remote Device CPSW Type. For internal use */
     RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAX,
 };

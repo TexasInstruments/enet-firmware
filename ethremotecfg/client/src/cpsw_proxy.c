@@ -1297,16 +1297,20 @@ static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Cpsw_Type c
     switch (cpswType)
     {
         case CPSW_2G:
-            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G;
+            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MCU;
             break;
 
+#if defined(SOC_J7200)
         case CPSW_5G:
-            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_5G;
+            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
             break;
+#endif
 
+#if defined(SOC_J721E)
         case CPSW_9G:
-            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G;
+            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
             break;
+#endif
 
         default:
             /* Invalid Cpsw_Type value */

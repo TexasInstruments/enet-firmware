@@ -297,20 +297,22 @@ static  int32_t CpswProxy_mapRdev2CpswType(enum rpmsg_kdrv_ethswitch_cpsw_type  
 
     switch (rdevCpswType)
     {
-        case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G:
+        case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MCU:
             *pCpswType = CPSW_2G;
             break;
 
-        case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_5G:
+        case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN:
+#if defined(SOC_J7200)
             *pCpswType = CPSW_5G;
-            break;
-
-        case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G:
+#elif defined(SOC_J721E)
             *pCpswType = CPSW_9G;
+#else
+            retVal = CPSW_EFAIL;
+#endif
             break;
 
         default:
-            retVal     = CPSW_EFAIL;
+            retVal = CPSW_EFAIL;
             break;
     }
     return retVal;
@@ -322,20 +324,16 @@ static  int32_t CpswProxy_mapEthRpc2RdevCpswType(Eth_RpcCpswType ethRpcCpswType,
 
     switch (ethRpcCpswType)
     {
-        case ETH_RPC_CPSWTYPE_2G:
-            *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_2G;
+        case ETH_RPC_CPSWTYPE_MCU:
+            *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MCU;
             break;
 
-        case ETH_RPC_CPSWTYPE_5G:
-            *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_5G;
-            break;
-
-        case ETH_RPC_CPSWTYPE_9G:
-            *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_9G;
+        case ETH_RPC_CPSWTYPE_MAIN:
+            *rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
             break;
 
         default:
-            retVal     = CPSW_EFAIL;
+            retVal = CPSW_EFAIL;
             break;
     }
     return retVal;
