@@ -32,7 +32,7 @@ PROFILE?=release
 
 # Treat compiler warning as error
 # Supported Values: yes | no
-TREAT_WARNINGS_AS_ERROR ?= true
+TREAT_WARNINGS_AS_ERROR ?= yes
 
 # R5F Thumb mode
 -BUILD_R5F_THUMB?=yes
