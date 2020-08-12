@@ -120,7 +120,7 @@ ifndef NO_TARGETS
 
 depend::
 
-all: release prebuilt_libs
+all: prebuilt_libs release
 
 # This rule copies the libs to the lib folder when 'make all' is called
 release: build
@@ -138,7 +138,7 @@ uninstall::
 
 prebuilt_libs:
 	$(if $(wildcard $(PREBUILT_LIBS)),$(info Copying Prebuilt libs from $(PREBUILT_LIBS) to $(BUILD_LIBS)))
-	$(if $(wildcard $(PREBUILT_LIBS)),-$(Q)$(COPYDIR) $(PREBUILT_LIBS) $(BUILD_LIBS))
+	$(if $(wildcard $(PREBUILT_LIBS)),-$(Q)$(COPYDIR) $(PREBUILT_LIBS)/. $(BUILD_LIBS))
 
 outputs:: $(foreach mod,$(MODULES),$(mod)_output)
 
