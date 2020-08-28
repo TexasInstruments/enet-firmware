@@ -103,10 +103,14 @@ ethfw_all_clean: pdk_custom_libs_clean remotedevicefw_clean clean scrub
 remoteswitchcfg_all_clean: | pdk_custom_libs_clean remotedevicefw_clean clean scrub
 
 remotedevicefw:
-	make -C ${REMOTE_DEVICE_PATH} lib_remote_device_client lib_remote_device
-	make -C ${REMOTE_DEVICE_PATH} cp_to_lib
+	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
+	make -C ${REMOTE_DEVICE_PATH} SOC=${soc} lib_remote_device_client lib_remote_device; \
+	make -C ${REMOTE_DEVICE_PATH} SOC=${soc} cp_to_lib; \
+	)
 
 remotedevicefw_clean:
-	make -C ${REMOTE_DEVICE_PATH} clean scrub
+	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
+	make -C ${REMOTE_DEVICE_PATH} SOC=${soc} clean scrub; \
+	)
 
 .PHONY: ethfw_all remoteswitchcfg_all ethfw_all_clean remoteswitchcfg_all_clean remotedevicefw remotedevicefw_clean
