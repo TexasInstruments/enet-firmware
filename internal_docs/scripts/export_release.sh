@@ -92,7 +92,7 @@ echo "TEMP DIR is ${TEMP_DIR}"
 echo "CURR_DIR is ${CURR_DIR}"
 
 echo "Exporting package: ${PKG_TAR}"
-TAGNAME="REL.ETHFW.J7.0${OLD_VERSION//_/.}"
+TAGNAME="REL.ETHFW.0${OLD_VERSION//_/.}"
 git archive --format=tar ${TAGNAME} > ${TEMP_DIR}/${PKG_TAR}
 
 pushd ${TEMP_DIR} > /dev/null

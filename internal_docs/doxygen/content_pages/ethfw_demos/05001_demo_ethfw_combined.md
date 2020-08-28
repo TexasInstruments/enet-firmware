@@ -326,7 +326,7 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
 -# Connect the laptops/PCs as per demo connections diagram above.
    * **Important:** DHCP server (if required) must be connected to
      **MAC Port 1**.
-   * **Note:** Do not connect any device to **MAC Port 0** if using J7 EVM alpha
+   * **Note:** Do not connect any device to **MAC Port 0** if using J721E/J7200 EVM alpha
      version as it may not be functional, please refer to the
      @ref ethfw_known_issues sections for further details
 

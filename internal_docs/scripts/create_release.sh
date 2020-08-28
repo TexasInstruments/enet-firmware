@@ -238,7 +238,7 @@ LOGMSG="${NEW_PKGNAME} Release, Ver. ${NEW_VERSION}, ${NEW_PKGDATE}"
 git commit -a -m "${LOGMSG}"
 
 # Tagging the release
-TAGNAME="REL.ETHFW.J7.0${NEW_VERSION//_/.}"
+TAGNAME="REL.ETHFW.0${NEW_VERSION//_/.}"
 echo "Tagging the release as ${TAGNAME}"
 git tag ${TAGNAME}
 
