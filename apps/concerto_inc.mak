@@ -9,11 +9,6 @@ endif
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 TARGET_BOARD_FOLDER := $(call lowercase,${$(TARGET_PLATFORM)_BOARD})
 CPU_ID_FOLDER       := $(strip $(if $(filter $(call lowercase,${CPU_ID}),mpu1),mpu1_0,$(call lowercase,${CPU_ID})))
-ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200))
-REMOTE_DEVICE_SOC_FOLDER := J7
-else
-REMOTE_DEVICE_SOC_FOLDER := 
-endif
 
 DEFS+=CPU_$(CPU_ID)
 
@@ -88,7 +83,7 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/udma/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLD
 LDIRS += $(PDK_PATH)/packages/ti/drv/sciclient/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/pm/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/ipc/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
-LDIRS += $(REMOTE_DEVICE_PATH)/out/${REMOTE_DEVICE_SOC_FOLDER}/${REMOTE_DEVICE_TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
+LDIRS += $(REMOTE_DEVICE_PATH)/out/${TARGET_SOC_FOLDER}/${REMOTE_DEVICE_TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(NS_PATH)/source/ti/net/lib/ccs/r5f/
