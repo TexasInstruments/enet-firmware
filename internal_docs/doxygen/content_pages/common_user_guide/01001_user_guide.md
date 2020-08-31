@@ -16,29 +16,29 @@ which provides a high-level interface for applications to configure and use the
 integrated Ethernet switch peripheral (CPSW9G).
 
 The following sample applications are key to demonstrate the capabilities of the
-CPSW9G hardware as well as the EthFw stack.
+CPSW9G/CPSW5G hardware as well as the EthFw stack.
 
 Demo                               | Comments
 -----------------------------------|--------------
 L2 Switching | Configures CPSW9G switch to enable switching between its external ports
 L2/L3 address based classification | Illustrates traffic steering to A72 (Linux) and R5F (RTOS) based on Layer-2 Ethernet header. iperf tool and web servers are used to demonstrate traffic steering to/from PCs connected to the switch
 Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of CPSW LLD
-Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load
+Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW5G/CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load
 
 
 ## EthFw Switching & TCP/IP Apps Demo {#ethfw_switching_demo}
 
-This demo showcases switching capabilities of the J721E integrated Ethernet
-Switch (CPSW9G) for features like VLAN, Multicast, etc.  It also demonstrates
-TI NDK (TCP/IP stack) integration into the EthFw, incorporating a sample
-HTTP server.
+This demo showcases switching capabilities of the integrated Ethernet Switch
+(CPSW9G or CPSW5G) found in J721E or J7200 devices for features like VLAN,
+Multicast, etc.  It also demonstrates TI NDK (TCP/IP stack) integration into
+the EthFw, incorporating a sample HTTP server.
 
 
 ## Inter-VLAN Routing Demo {#ethfw_intervlan_demo}
 
 This demo illustrates hardware and software based inter-VLAN routing.  The
-hardware inter-VLAN routing makes use of the CPSW9G hardware features which
-enable line-rate inter-VLAN routing without any additional CPU load on
+hardware inter-VLAN routing makes use of the CPSW9G/CPSW5G hardware features
+which enable line-rate inter-VLAN routing without any additional CPU load on
 the EthFw core.  The software inter-VLAN routing is implemented as a
 fall-back alternative.
 
@@ -93,26 +93,49 @@ vs running demo applications only).
 
 EthFw is supported on the boards/EVM listed below
 - @ref ethfw_depend_evm_j721e
-- @ref ethfw_depend_evm_gesi_j721e
+- @ref ethfw_depend_evm_gesi_j721e (J721E only)
+- @ref ethfw_depend_evm_quadport_j7200 (J7200 only)
 
 
-### J721E EVM {#ethfw_depend_evm_j721e}
+### J721E/J7200 EVM {#ethfw_depend_evm_j721e}
 
-![](J7EVM_CPSW_TopView.png "J721E EVM connections")
+![](J7EVM_CPSW_TopView.png "J721E/J7200 EVM connections")
 
 
-### J721E EVM GESI Expansion Board {#ethfw_depend_evm_gesi_j721e}
+### J721E GESI Expansion Board {#ethfw_depend_evm_gesi_j721e}
 
 ![](GESI_Board.jpg "J721E EVM GESI Board Top View")
 
-There are four RGMII PHYs in the J721E GESI board as show in the following image.
+There are four RGMII PHYs in the J721E GESI board as shown in the following image.
 They will be referred to as **MAC Port 0**, **MAC Port 1**, **MAC Port 2** and
 **MAC Port 3** throughout this document.
 
-![](GESI_RJ45_SideView.png "J721E EVM GESI Board connections")
+![](GESI_RJ45_SideView.png "GESI Board connections")
 
 Please refer to the SDK Description for details about installation and getting
 started of J721E EVM.
+
+**Note:** GESI expansion board is also available in J7200 EVM, but only one MAC
+port is routed to the CPSW5G in J7200, hence GESI board is not enabled and used
+by default in the Ethernet Firmware for J7200.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+### J7200 Quad-Port Eth Expansion Board {#ethfw_depend_evm_quadport_j7200}
+
+There is one QSGMII PHY in the Quad Port Eth expansion board as shown in the
+following image.  It enables four MAC ports which will be referred to as
+**MAC Port 0**, **MAC Port 1**, **MAC Port 2** and **MAC Port 3** throughout
+this document.
+
+![](QPENet_Board.png "Quad Port Eth Board connections")
+
+Please refer to the SDK Description for details about installation and getting
+started of J7200 EVM.
+
+**Note:** Quad Port Eth expansion board is also available in J721E EVM, but it's
+not enabled by default in the Ethernet Firmware for J721E.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -153,8 +176,10 @@ receive packets to the CPSW's host port.
 
 
 #### CPSW LLD {#ethfw_depend_pdk_cpsw}
-This is CPSW driver module used to program the CPSW9G(Switch) IP. EthFw receives
-commands/configuration from application and uses CPSW LLD to configure CPSW9G.
+
+This is CPSW driver module used to program the CPSW5G or CPSW9G (Switch) IP. EthFw
+receives commands/configuration from application and uses CPSW LLD to configure
+CPSW5G/CPSW9G.
 
 
 ### NDK {#ethfw_depend_ndk}
@@ -174,7 +199,7 @@ section.
 ## IDE (CCS) {#ethfw_instal_ccs}
 
 -# Install Code Composer Studio and setup a <b>Target Configuration</b> for
-   use with J721E EVM.
+   use with J721E or J7200 EVM.
 
 -# Refer to the instructions in @ref ccs_setup_top section for Code Code Composer
    and emulation packs installation as well as Target Configuration file creation.
@@ -399,8 +424,10 @@ Flag                       | Description
 `--preproc_with_compile`   | Continue compilation after using -pp`<X>` options
 `-D=TARGET_BUILD=2`        | Identifies the build profile as 'debug'
 `-D_DEBUG_=1`              | Identifies as debug build
-`-D=SOC_J721E`             | Identifies the SoC type
-`-D=J721E`                 | Identifies the device type
+`-D=SOC_J721E`             | Identifies the J721E SoC type
+`-D=J721E`                 | Identifies the J721E device type
+`-D=SOC_J7200`             | Identifies the J7200 SoC type
+`-D=J7200`                 | Identifies the J7200 device type
 `-D=R5F="R5F"`             | Identifies the core type as ARM R5F
 `-D=ARCH_32`               | Identifies the architecture as 32-bit
 `-D=SYSBIOS`               | Identifies as TI RTOS operating system build
@@ -423,8 +450,10 @@ Flag                       | Description
 `--gen_opt_info=2`         | Generate optimizer information file at level 2
 `-D=TARGET_BUILD=1`        | Identifies the build profile as 'release'
 `-DNDEBUG`                 | Disable standard-C assertions
-`-D=SOC_J721E`             | Identifies the SoC type
-`-D=J721E`                 | Identifies the device type
+`-D=SOC_J721E`             | Identifies the J721E SoC type
+`-D=J721E`                 | Identifies the J721E device type
+`-D=SOC_J7200`             | Identifies the J7200 SoC type
+`-D=J7200`                 | Identifies the J7200 device type
 `-D=R5F="R5F"`             | Identifies the core type as ARM R5F
 `-D=ARCH_32`               | Identifies the architecture as 32-bit
 `-D=SYSBIOS`               | Identifies as TI RTOS operating system build
@@ -439,7 +468,7 @@ Flag                       | Description
 
 Device Family | Variant          | Known by other names
 --------------|------------------|--------------------
-Jacinto 7     | J721E            | -
+Jacinto 7     | J721E, J7200     | -
 
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -458,6 +487,7 @@ Revision | Date          | Author                 | Description
 0.4      | 17 Jul 2019   | Misael Lopez           | Updates for v.0.09.00
 0.5      | 15 Oct 2019   | Misael Lopez, Santhana Bharathi | Updates for v.1.00.00
 1.0      | 28 Jan 2020   | Misael Lopez           | Updates for SDK 6.02.00
+1.1      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)

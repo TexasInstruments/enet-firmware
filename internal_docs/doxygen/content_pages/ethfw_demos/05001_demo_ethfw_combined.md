@@ -14,9 +14,10 @@ The traffic forwarding process among the ports don't require CPU involvement
 or DMA bandwidth as everything is completely handled by CPSW hardware.
 
 The intention behind this demo which encompasses multiple sub-demos is to show
-the switching capabilities of the J721E integrated Ethernet Switch (CPSW9G) as
-well as the software developed which includes CPSW IP low-level driver (CPSW
-LLD), TI NDK TCP/IP integration and Ethernet Switch Firmware (EthFw) application.
+the switching capabilities of the J721E/J7200 integrated Ethernet Switch
+(CPSW9G or CPSW5G) as well as the software developed which includes CPSW IP
+low-level driver (CPSW LLD), TI NDK TCP/IP integration and Ethernet Switch
+Firmware (EthFw) application.
 
 Below are top-level features demonstrated:
 
@@ -41,11 +42,12 @@ The Ethernet Firmware demo application is in charge of:
  - Initializing NDK stack
  - Configuring the HTTP and TCP/IP data servers
 
-This application runs on the J721E EVM with GESI (Gateway/Ethernet
-Switch/Industrial Expansion Board) board.  The demo requires two PCs running
-Ubuntu connected to the GESI board in order to demonstrate the L2 switching
-capabilities as well as to generate and monitor Ethernet traffic at different
-stages of the demo.  The connection diagram is shown below.
+This application runs on the GESI (Gateway/Ethernet Switch/Industrial Expansion
+Board) board in J721E devices and on the QPENet (Quad Port Eth Expansion Board)
+board in the J7200 devices.  The demo requires two PCs running Ubuntu connected
+to the GESI board in order to demonstrate the L2 switching capabilities as well
+as to generate and monitor Ethernet traffic at different stages of the demo.
+The connection diagram is shown below.
 
 ![](demo_l2_switching_connections.png "EthFw demo connections diagram")
 
@@ -223,14 +225,14 @@ demo.
      for suggested instructions about static IP configuration under a Windows
      environment.
 
-    Device                              |  IP address
-    ----------------------------------- | -------------
-    PC 1 (Plex server)                  | 192.168.1.202
-    J721E Main R5F core (running EthFw) | 192.168.1.203
-    PC 2 (Plex client)                  | 192.168.1.204
-    J721E A72 core (virtual net driver) | 192.168.1.205
-    Default Gateway                     | 192.168.1.1
-    Subnet Mask                         | 255.255.255.0
+    Device                                    |  IP address
+    ----------------------------------------- | -------------
+    PC 1 (Plex server)                        | 192.168.1.202
+    J721E/J7200 Main R5F core (running EthFw) | 192.168.1.203
+    PC 2 (Plex client)                        | 192.168.1.204
+    J721E/J7200 A72 core (virtual net driver) | 192.168.1.205
+    Default Gateway                           | 192.168.1.1
+    Subnet Mask                               | 255.255.255.0
 
 > **Note:** Make sure that all IPs assigned manually are in the same subnet as the Ethernet Firmware.
 
@@ -297,16 +299,16 @@ Replace -S with -H if your NIC supports hardware timestamping.
 ### Prerequisites {#demo_l2_switchin_CCS_prereqs}
 
 Install Code Composer Studio and setup a <b>Target Configuration</b> for use
-with J721E EVM. Refer to @ref ethfw_instal_ccs.
+with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 ### Steps {#demo_ethfw_combined_CCS_steps}
 
--# Connect a micro USB cable to JTAG port of J721E_EVM. The XDS110 JTAG
+-# Connect a micro USB cable to JTAG port of J721E/J7200_EVM. The XDS110 JTAG
    connector is labeled `XDS110` (J3).  Alternatively, XDS560v2 debugger can
    be connected to the JTAG connected labeled `JTAG MIPI` (J16).
 
--# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM. It's
-   labeled `UART` (J44).
+-# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM or J7200_EVM.
+   It's labeled `UART` (J44).
 
 -# Set EVM's DIP switches `SW8` and `SW9` for no-boot mode:
    * SW8 = 10001000
@@ -320,7 +322,7 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
 
    ![](demo_l2_switching_minicom.png "Serial Port Settings in Minicom")
 
--# Power on the J721E EVM board. Ensure that SD card is not present or QSPI
+-# Power on the J721E/J7200 EVM board. Ensure that SD card is not present or QSPI
    flashed.
 
 -# Connect the laptops/PCs as per demo connections diagram above.
@@ -335,7 +337,7 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
    * Load Main R5F core 1: app_remoteswitchcfg_client.xer5f
    * Run Main R5F core 1
    * Run Main R5F core 0
-   * **Note:** For loading demo application binaries through CCS on J721E,
+   * **Note:** For loading demo application binaries through CCS on J721E/J7200,
      please refer to CCS setup section in SDK top level documentation.
 
 -# Start Runtime Object View (ROV) in CCS for the Main R5F core 1 and navigate
@@ -355,26 +357,44 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
    For details about SD card creation, refer to the Processor SDK Linux
    Automotive User's Guide.
 
--# Copy the demo application to the `firmware` directory of Linux file system
-   in SD card:
+-# Copy the demo application to the `ethfw` directory of Linux file system
+   in SD card.
+   For J721E:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/app_remoteswitchcfg_server.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
 
--# Update the soft-link `j7-main-r5f0_0-fw` to point to the demo application
-   copied to SD card in the previous step:
+   or for J7200:
+
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+
+-# If needed, update the soft-link `j7-main-r5f0_0-fw` or `j7200-main-r5f0_0-fw`
+   to point to the demo application copied to SD card in the previous step.
+   For J721E:
 
        cd <MOUNT>/rootfs/lib/firmware/
-       ln -sf app_remoteswitchcfg_server.xer5f j7-main-r5f0_0-fw
+       ln -sf ethfw/app_remoteswitchcfg_server_strip.xer5f j7-main-r5f0_0-fw
+
+   For J7200:
+
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf ethfw/app_remoteswitchcfg_server_strip.xer5f j7200-main-r5f0_0-fw
 
 -# **Optional:** Copy the remote client application to the `firmware` directory
    of Linux filesystem in SD card and update soft-link:
+   For J721E:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5F/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7-main-r5f0_1-fw
 
--# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM. It's
-   labeled `UART` (J44).
+   For J7200:
+
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
+
+-# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM or J7200_EVM.
+   It's labeled `UART` (J44).
 
 -# Set EVM's DIP switches `SW8` and `SW9` for SD card boot:
    * SW8 = 10000010
@@ -392,7 +412,7 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
 
    ![](demo_l2_switching_minicom.png "Serial Port Settings in Minicom")
 
--# Insert SD card into slot labeled `MICRO SD` and power on the J721E EVM board.
+-# Insert SD card into slot labeled `MICRO SD` and power on the J721E/J7200 EVM board.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -403,11 +423,21 @@ with J721E EVM. Refer to @ref ethfw_instal_ccs.
 
 ## Connecting External Devices {#ethfw_demo_connections}
 
--# Connect **PC 1** to MAC port 3 of GESI board. Refer to the
-   [J721E EVM GESI Expansion Board](@ref ethfw_depend_evm_gesi_j721e) section to
-   find the right RJ-45 connector.
+-# For J721E EVM:
 
--# Connect **PC 2** to MAC port 2 of GESI board.
+    -# Connect **PC 1** to MAC port 3 of GESI board. Refer to the
+       [J721E EVM GESI Expansion Board](@ref ethfw_depend_evm_gesi_j721e)
+       section to find the right RJ-45 connector.
+
+    -# Connect **PC 2** to MAC port 2 of GESI board.
+
+-# For J7200 EVM:
+
+    -# Connect **PC 1** to MAC port 0 of Quad Port Eth board. Refer to the
+       [J7200 EVM QPENet Expansion Board](@ref ethfw_depend_evm_quadport_j7200)
+       section to find the right RJ-45 connector.
+
+    -# Connect **PC 2** to MAC port 1 of QPENet board.
 
 > **Note:** The demo application in this release assumes that external devices,
 > **PC 1** and **PC 2**, are connected prior to starting the demo.  It's a
@@ -423,7 +453,7 @@ UART2 serial terminal.
 
 A HTTP server is also part of the demo application running in the Main R5F
 core 0. The following is a snapshot of the webpage loaded when client accesses
-the HTTP server on J721E EVM using a web browser: `http://192.168.1.<r5f_0>`.
+the HTTP server on J721E/J7200 EVM using a web browser: `http://192.168.1.<r5f_0>`.
 
 ![](tcpipdemopage.png "TCP/IP HTTP Server Landing Page")
 
@@ -810,3 +840,4 @@ Revision | Date          | Author                 | Description
 0.3      | 17 Jul 2019   | Misael Lopez           | Updates for v.0.09.00
 0.4      | 14 Oct 2019   | Santhana Bharathi N    | Updates for v.1.00.00
 0.5      | 03 Jun 2020   | Santhana Bharathi N    | Updates for v.7.00.00 (Updated logs and added instructions for TimeSync)
+1.0      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA

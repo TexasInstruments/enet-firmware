@@ -277,7 +277,7 @@ to install and setup the dependencies.
 <td align="left"> [ethfw] - LLIAddStaticEntryWithFlags fails when EthFw core doesn't acquire IP before remote clients </td>
 <td align="center"> EthFw </td>
 <td align="center"> 06.02.00.04 </td>
-<td align="center"> J721E </td>
+<td align="center"> J721E, J7200 </td>
 <td align="left"> Ethernet Firmware server must acquire IP before any remote client. </td>
 </tr>
 <tr>
@@ -285,8 +285,16 @@ to install and setup the dependencies.
 <td align="left"> [EthFw] EthFw server app + Linux - I2C access failure </td>
 <td align="center"> EthFw </td>
 <td align="center"> 07.00.00.09 </td>
-<td align="center"> J721E </td>
+<td align="center"> J721E, J7200 </td>
 <td align="left"> EthFw will use fixed MAC addresses in order to avoid I2C access altogether which could cause conflicts with u-boot in Linux environment. </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-1534 </td>
+<td align="left"> [CPSW] Packet drop with QSGMII ports IPerf </td>
+<td align="center"> EthFw </td>
+<td align="center"> 06.02.00.00 </td>
+<td align="center"> J721E, J7200 </td>
+<td align="left"> Packet drop observed when running iperf tests on the QSGMII ports in CPSW5G (~10%) or CPSW9G (~3%). </td>
 </tr>
 </table>
 
