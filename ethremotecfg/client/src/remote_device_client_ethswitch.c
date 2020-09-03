@@ -174,10 +174,14 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
 
     appRemoteDeviceDeviceConnectParamsInit(&prm);
 
-    snprintf(prm.device_name, APP_REMOTE_DEVICE_CONNECT_NAME_LEN, "%s", initPrms->device_name);
-    prm.message_cb = initPrms->cbHandler;
-    prm.message_cb_priv = NULL;
-    ret = appRemoteDeviceConnect(&prm, &initPrms->device_id);
+    ret = snprintf(prm.device_name, APP_REMOTE_DEVICE_CONNECT_NAME_LEN, "%s", initPrms->device_name);
+    if (ret >= 0)
+    {
+        ret = 0;
+        prm.message_cb = initPrms->cbHandler;
+        prm.message_cb_priv = NULL;
+        ret = appRemoteDeviceConnect(&prm, &initPrms->device_id);
+    }
 
     if ((ret == 0) && (initPrms->device_id != APP_REMOTE_DEVICE_DEVICE_ID_EAGAIN))
     {
