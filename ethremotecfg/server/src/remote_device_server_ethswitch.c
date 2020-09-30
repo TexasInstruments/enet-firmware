@@ -72,7 +72,7 @@
 #include <server-rtos/include/app_queue.h>
 #include <server-rtos/include/app_remote_device.h>
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
-#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/enet/enet.h>
 #include <utils/console_io/include/app_log.h>
 
 #define ETHREMOTECFG_SERVER_MAX_MESSAGES         (32)
@@ -262,11 +262,11 @@ static int32_t rdevEthSwitchServerHandleAttachRequest(rdevEthSwitchServerInstanc
         uint32_t features;
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->attach_handler(inst->inst_prm.host_id, req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, CPSW_UTILS_ARRAYSIZE(txMtu), &features);
+        resp->info.status = cb->attach_handler(inst->inst_prm.host_id, req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, ENET_ARRAYSIZE(txMtu), &features);
         resp->id = id;
         resp->core_key = coreKey;
         resp->rx_mtu = rxMtu;
-        CPSW_UTILS_ARRAY_COPY(resp->tx_mtu, txMtu);
+        ENET_UTILS_ARRAY_COPY(resp->tx_mtu, txMtu);
         resp->features = features;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
@@ -783,17 +783,17 @@ static int32_t rdevEthSwitchServerHandleExtAttachRequest(rdevEthSwitchServerInst
         uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->attach_ext_handler(inst->inst_prm.host_id, req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, CPSW_UTILS_ARRAYSIZE(
+        resp->info.status = cb->attach_ext_handler(inst->inst_prm.host_id, req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, ENET_ARRAYSIZE(
                                                                                                                                               txMtu), &features, &alloc_flow_idx, &tx_cpsw_psil_dst_id,
                                                    mac_address);
         resp->id = id;
         resp->core_key = coreKey;
         resp->rx_mtu = rxMtu;
-        CPSW_UTILS_ARRAY_COPY(resp->tx_mtu, txMtu);
+        ENET_UTILS_ARRAY_COPY(resp->tx_mtu, txMtu);
         resp->features = features;
         resp->alloc_flow_idx = alloc_flow_idx;
         resp->tx_cpsw_psil_dst_id = tx_cpsw_psil_dst_id;
-        CPSW_UTILS_ARRAY_COPY(resp->mac_address, mac_address);
+        ENET_UTILS_ARRAY_COPY(resp->mac_address, mac_address);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -871,7 +871,7 @@ static int32_t rdevEthSwitchServerRequest(uint32_t device_id,
     if (ret == 0)
     {
         ETHREMOTECFG_SERVER_ASSERT((int32_t)hdr->message_type >= (int32_t)RPMSG_KDRV_TP_ETHSWITCH_REQUEST_FIRST);
-        if ((RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(hdr->message_type) < CPSW_UTILS_ARRAYSIZE(rdevEthSwitchServerRequestHandlers))
+        if ((RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(hdr->message_type) < ENET_ARRAYSIZE(rdevEthSwitchServerRequestHandlers))
             &&
             (rdevEthSwitchServerRequestHandlers[RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(hdr->message_type)] != NULL))
         {
@@ -952,7 +952,7 @@ static int32_t rdevEthSwitchServerMessage(uint32_t device_id,
     if (ret == 0)
     {
         ETHREMOTECFG_SERVER_ASSERT(hdr->message_type >= RPMSG_KDRV_TP_ETHSWITCH_NOTIFY_FIRST);
-        if ((RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(hdr->message_type) < CPSW_UTILS_ARRAYSIZE(rdevEthSwitchServerNotifyHandlers))
+        if ((RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(hdr->message_type) < ENET_ARRAYSIZE(rdevEthSwitchServerNotifyHandlers))
             &&
             (rdevEthSwitchServerNotifyHandlers[RPMSG_KDRV_TP_ETHSWITCH_NOTIFYID_NORMALIZE(hdr->message_type)] != NULL))
         {
@@ -1422,7 +1422,7 @@ int32_t rdevEthSwitchServerInit(rdevEthSwitchServerInitPrm_t *prm)
     SemaphoreP_Params sem_params;
     char err_str[128];
 
-    CPSW_UTILS_COMPILETIME_ASSERT(sizeof(union rdevEthSwitchServerMessageList_u) <=
+    ENET_UTILS_COMPILETIME_ASSERT(sizeof(union rdevEthSwitchServerMessageList_u) <=
                                   ETHREMOTECFG_SERVER_MAX_PACKET_SIZE);
     if (ret == 0)
     {

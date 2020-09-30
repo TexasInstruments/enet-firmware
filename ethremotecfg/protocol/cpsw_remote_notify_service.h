@@ -68,7 +68,8 @@
 /* ========================================================================== */
 
 #include <stdint.h>
-#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/per/cpsw.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -163,7 +164,7 @@ typedef struct CpswRemoteNotifyService_HwPushMsg_s
     CpswRemoteNotifyService_MessageHeader header;
 
     /*! CPSW type */
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
 
     /*! CPTS hardware push number */
     CpswCpts_HwPush hwPushNum;

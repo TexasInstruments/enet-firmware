@@ -77,8 +77,8 @@
 extern "C" {
 #endif
 
-#include <ti/drv/cpsw/cpsw_cfgserver/cpsw_cfgserver.h>
-#include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+#include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
+#include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -96,12 +96,12 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void EthHwInterVlan_setupRouting(Cpsw_Type cpswType,
-                                 CpswCfgServer_InterVlanConfig *pInterVlanCfg);
+void EthHwInterVlan_setupRouting(Enet_Type enetType,
+                                 EnetCfgServer_InterVlanConfig *pInterVlanCfg);
 
-void EthHwInterVlan_setOpenPrms(Cpsw_Config *pCpswCfg);
+void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg);
 
-void EthHwInterVlan_setVlanConfig(CpswPort_VlanConfig *vlanCfg,
+void EthHwInterVlan_setVlanConfig(EnetPort_VlanCfg *vlanCfg,
                                   uint32_t portNum);
 
 /* ========================================================================== */

@@ -78,7 +78,7 @@
 #include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <client-rtos/remote-device.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
-#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/enet/enet.h>
 
 #ifdef QNX_OS
 static void slog_printf(const char *pcString, ...);
@@ -204,7 +204,7 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
 }
 
 int32_t rdevEthSwitchClient_attach(uint32_t device_id,
-                                   uint8_t cpswType,
+                                   uint8_t enetType,
                                    uint64_t *id,
                                    uint32_t *core_key,
                                    uint32_t *rx_mtu,
@@ -218,10 +218,10 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t attach_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_ATTACH;
-    msg->cpsw_type = cpswType;
+    msg->cpsw_type = enetType;
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &attach_reponse, sizeof(attach_reponse), &respMsgSize);
     if (ret == 0)
     {
@@ -232,11 +232,11 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
             *core_key = attach_reponse.rdevEthSwitchMsg.attach_res.core_key;
             *rx_mtu = attach_reponse.rdevEthSwitchMsg.attach_res.rx_mtu;
             *pFeatures = attach_reponse.rdevEthSwitchMsg.attach_res.features;
-            if (tx_mtu_array_size >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu))
+            if (tx_mtu_array_size >= ENET_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu))
             {
                 uint32_t i;
 
-                for (i = 0; i < CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu); i++)
+                for (i = 0; i < ENET_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu); i++)
                 {
                     tx_mtu[i] = attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu[i];
                 }
@@ -256,7 +256,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
 }
 
 int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
-                                      uint8_t cpswType,
+                                      uint8_t enetType,
                                       uint64_t *id,
                                       uint32_t *core_key,
                                       uint32_t *rx_mtu,
@@ -274,10 +274,10 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t attach_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT;
-    msg->cpsw_type = cpswType;
+    msg->cpsw_type = enetType;
     ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &attach_reponse, sizeof(attach_reponse), &respMsgSize);
     if (ret == 0)
     {
@@ -290,7 +290,7 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
             *pFeatures = attach_reponse.rdevEthSwitchMsg.attach_ext_res.features;
             *tx_cpsw_psil_dst_id = attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_cpsw_psil_dst_id;
             *rx_flow_allocidx = attach_reponse.rdevEthSwitchMsg.attach_ext_res.alloc_flow_idx;
-            if (mac_address_len >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address))
+            if (mac_address_len >= ENET_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address))
             {
                 memcpy(mac_address,
                        attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address,
@@ -303,11 +303,11 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
 
             if (ret == 0)
             {
-                if (tx_mtu_array_size >= CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu))
+                if (tx_mtu_array_size >= ENET_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu))
                 {
                     uint32_t i;
 
-                    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu); i++)
+                    for (i = 0; i < ENET_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu); i++)
                     {
                         tx_mtu[i] = attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_mtu[i];
                     }
@@ -338,7 +338,7 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t alloc_tx_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX;
     msg->info.id = id;
@@ -371,7 +371,7 @@ int32_t rdevEthSwitchClient_allocrx(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t alloc_rx_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX;
     msg->info.id = id;
@@ -404,7 +404,7 @@ int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t register_rx_default_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGISTER_DEFAULTFLOW;
     msg->info.id = id;
@@ -432,7 +432,7 @@ int32_t rdevEthSwitchClient_allocmac(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t alloc_mac_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC;
     msg->info.id = id;
@@ -443,7 +443,7 @@ int32_t rdevEthSwitchClient_allocmac(uint32_t device_id,
         assert(respMsgSize == (sizeof(alloc_mac_reponse.hdr) + sizeof(alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res)));
         if (alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res.info.status == RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
         {
-            if (mac_address_len >= CPSW_UTILS_ARRAYSIZE(alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res.mac_address))
+            if (mac_address_len >= ENET_ARRAYSIZE(alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res.mac_address))
             {
                 memcpy(mac_address, alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res.mac_address, sizeof(alloc_mac_reponse.rdevEthSwitchMsg.alloc_mac_res.mac_address));
             }
@@ -473,7 +473,7 @@ int32_t rdevEthSwitchClient_registermac(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t register_mac_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC;
     msg->info.id = id;
@@ -505,7 +505,7 @@ int32_t rdevEthSwitchClient_unregistermac(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t unregister_mac_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC;
     msg->info.id = id;
@@ -536,7 +536,7 @@ int32_t rdevEthSwitchClient_unregisterrxdefault(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t unregister_rx_default_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW;
     msg->info.id = id;
@@ -566,7 +566,7 @@ int32_t rdevEthSwitchClient_freemac(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t free_mac_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC;
     msg->info.id = id;
@@ -596,8 +596,8 @@ int32_t rdevEthSwitchClient_freetx(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t free_tx_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, rdevEthSwitchMsg) == sizeof(struct rpmsg_kdrv_device_header));
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, rdevEthSwitchMsg) == sizeof(struct rpmsg_kdrv_device_header));
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_FREE_TX;
     msg->info.id = id;
@@ -627,7 +627,7 @@ int32_t rdevEthSwitchClient_freerx(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t free_rx_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_FREE_RX;
     msg->info.id = id;
@@ -656,7 +656,7 @@ int32_t rdevEthSwitchClient_detach(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t detach_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_DETACH;
     msg->info.id = id;
@@ -689,7 +689,7 @@ int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t ioctl_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     if (inargs_len <= sizeof(msg->inargs))
     {
         memset(&clientMsg, 0, sizeof(clientMsg));
@@ -734,7 +734,7 @@ int32_t rdevEthSwitchClient_regwr(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t regwr_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGWR;
     msg->regaddr = regaddr;
@@ -766,7 +766,7 @@ int32_t rdevEthSwitchClient_regrd(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t regrd_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGRD;
     msg->regaddr = regaddr;
@@ -799,7 +799,7 @@ int32_t rdevEthSwitchClient_sendping(uint32_t device_id,
     int32_t ret = 0;
     uint32_t respMsgSize;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
 
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_PING_REQUEST;
@@ -832,7 +832,7 @@ int32_t rdevEthSwitchClient_ipv4macregister(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t ipv4_register_mac_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER;
     msg->info.id = id;
@@ -864,7 +864,7 @@ int32_t rdevEthSwitchClient_ipv6macregister(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t ipv6_register_mac_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER;
     msg->info.id = id;
@@ -895,7 +895,7 @@ int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t ipv4_unregister_mac_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER;
     msg->info.id = id;
@@ -926,7 +926,7 @@ int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t register_ethertype_reponse;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE;
     msg->info.id = id;
@@ -958,7 +958,7 @@ int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t unregister_ethertype_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE;
     msg->info.id = id;
@@ -990,7 +990,7 @@ int32_t rdevEthSwitchClient_registerremotetimer(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t register_remotetimer_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER;
     msg->info.id = id;
@@ -1021,7 +1021,7 @@ int32_t rdevEthSwitchClient_unregisterremotetimer(uint32_t device_id,
     uint32_t respMsgSize;
     rdevEthSwitchClientMessageList_t unregister_remotetimer_response;
 
-    CPSW_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
     memset(&clientMsg, 0, sizeof(clientMsg));
     msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER;
     msg->info.id = id;

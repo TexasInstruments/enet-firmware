@@ -114,9 +114,9 @@ typedef enum
  */
 typedef enum 
 {
-    /*! Ethernet Remote Device for MCU domain CPSW type (e.g. CPSW_2G in J721E and J7200) */
+    /*! Ethernet Remote Device for MCU domain CPSW type (e.g. ENET_CPSW_2G in J721E and J7200) */
     ETH_RPC_CPSWTYPE_MCU                          = 0x00,
-    /*! Ethernet Remote Device for Main domain CPSW type (e.g. CPSW_5G in J7200, CPSW_9G in J721E) */
+    /*! Ethernet Remote Device for Main domain CPSW type (e.g. ENET_CPSW_5G in J7200, ENET_CPSW_9G in J721E) */
     ETH_RPC_CPSWTYPE_MAIN                         = 0x01,
     /*! Max Ethernet Remote Device CPSW type. For internal use */
     ETH_RPC_CPSWTYPE_LAST                         = (ETH_RPC_CPSWTYPE_MAIN)
@@ -276,7 +276,7 @@ typedef struct Eth_RpcAttachExtendedRequest_s
     /*! common message header */
     Eth_RpcMessageHeader header;
     /*! CPSW TYPE  enum: Eth_RpcCpswType  */
-    uint8_t cpswType;
+    uint8_t enetType;
 } Eth_RpcAttachExtendedRequest;
 
 /*!

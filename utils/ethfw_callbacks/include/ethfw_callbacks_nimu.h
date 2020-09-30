@@ -73,8 +73,8 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,12 +102,12 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-extern bool EthFwCallbacks_isPortLinked(Cpsw_Handle hCpsw);
+extern bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet);
 
-void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
-                                      NimuCpswAppIf_GetHandleOutArgs *outArgs);
+void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
+                                      NimuEnetAppIf_GetHandleOutArgs *outArgs);
 
-void EthFwCallbacks_nimuCpswReleaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo);
+void EthFwCallbacks_nimuCpswReleaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

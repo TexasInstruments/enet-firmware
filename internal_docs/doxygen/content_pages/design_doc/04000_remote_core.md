@@ -76,7 +76,7 @@ APIs send IPC msg to the master core to allocate resources.  The client APIs
 also support remote core invocation of all CPSW LLD runtime IOCTLs.
 
 The application `app_remoteswitchcfg_client` demonstrates the remote core IOCTL
-invocation using the `CPSW_IOCTL_IS_PORT_LINK_UP` to query PHY status.
+invocation using the `ENET_PER_IOCTL_IS_PORT_LINK_UP` to query PHY status.
 
 [Back To Top](@ref ethfw_remotecore_top)
 

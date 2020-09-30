@@ -85,12 +85,15 @@
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
 #include <ethremotecfg/server/include/cpsw_proxy_server.h>
 
-#include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/udma/udma.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apprm.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/core/enet_dma.h>
+#include <ti/drv/enet/include/core/enet_mod_hostport.h>
+#include <ti/drv/enet/include/per/cpsw.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apprm.h>
+
 
 /* NDK headers */
 #include <ti/ndk/inc/netmain.h>
@@ -138,15 +141,15 @@
 /* ========================================================================== */
 typedef struct CpswProxyServer_HandleEntry_s
 {
-    Cpsw_Type   cpswType;
-    Cpsw_Handle cpswHandle;
-    CpswMcm_CmdIf  *hMcmCmdIf;
+    Enet_Type   enetType;
+    Enet_Handle cpswHandle;
+    EnetMcm_CmdIf  *hMcmCmdIf;
 } CpswProxyServer_HandleEntry;
 
 typedef struct CpswProxyServer_HandleTable_s
 {
     uint32_t numEntries;
-    CpswProxyServer_HandleEntry entries[CPSW_COUNT];
+    CpswProxyServer_HandleEntry entries[ENET_TYPE_NUM];
 } CpswProxyServer_HandleTable;
 
 typedef struct CpswProxyServer_EthDriverObj_s
@@ -160,10 +163,10 @@ typedef struct CpswProxyServer_EthDriverObj_s
 
 typedef struct CpswProxyServer_NotifyServiceObj_s
 {
-    Cpsw_Type                    notifyServiceCpswType;
+    Enet_Type                    notifyServiceCpswType;
     Task_Handle                  hNotifyServiceTsk;
     EventP_Handle                hHwPushNotifyServiceEvent;
-    uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HW_PUSH_COUNT_MAX];
+    uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HWPUSH_COUNT_MAX];
     RPMessage_Handle             hNotifyServicRpMsgEp;
     uint32_t                     dstProc;
     uint32_t                     localEp;
@@ -211,16 +214,16 @@ static uint8_t g_CpswProxyServerNotifyServiceRpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-static int32_t CpswProxyServer_getMcmCmdIf(const CpswProxyServer_HandleTable *tbl, Cpsw_Type key, CpswMcm_CmdIf  **hMcmCmdIf)
+static int32_t CpswProxyServer_getMcmCmdIf(const CpswProxyServer_HandleTable *tbl, Enet_Type key, EnetMcm_CmdIf  **hMcmCmdIf)
 {
     int32_t i;
     int32_t retVal;
 
-    CpswAppUtils_assert(tbl->numEntries < CPSW_UTILS_ARRAYSIZE(tbl->entries));
+    EnetAppUtils_assert(tbl->numEntries < ENET_ARRAYSIZE(tbl->entries));
 
     for (i = 0; i < tbl->numEntries; i++)
     {
-        if (key == tbl->entries[i].cpswType)
+        if (key == tbl->entries[i].enetType)
         {
             break;
         }
@@ -228,26 +231,26 @@ static int32_t CpswProxyServer_getMcmCmdIf(const CpswProxyServer_HandleTable *tb
     if (i < tbl->numEntries)
     {
         *hMcmCmdIf = tbl->entries[i].hMcmCmdIf;
-        retVal = CPSW_SOK;
+        retVal = ENET_SOK;
     }
     else
     {
         *hMcmCmdIf = NULL;
-        retVal = CPSW_EFAIL;
+        retVal = ENET_EFAIL;
     }
     return retVal;
 }
 
-static int32_t CpswProxyServer_getCpswHandle(const CpswProxyServer_HandleTable *tbl, Cpsw_Type key, Cpsw_Handle  *pCpswHandle)
+static int32_t CpswProxyServer_getCpswHandle(const CpswProxyServer_HandleTable *tbl, Enet_Type key, Enet_Handle  *pCpswHandle)
 {
     int32_t i;
     int32_t retVal;
 
-    CpswAppUtils_assert(tbl->numEntries < CPSW_UTILS_ARRAYSIZE(tbl->entries));
+    EnetAppUtils_assert(tbl->numEntries < ENET_ARRAYSIZE(tbl->entries));
 
     for (i = 0; i < tbl->numEntries; i++)
     {
-        if (key == tbl->entries[i].cpswType)
+        if (key == tbl->entries[i].enetType)
         {
             break;
         }
@@ -255,64 +258,64 @@ static int32_t CpswProxyServer_getCpswHandle(const CpswProxyServer_HandleTable *
     if (i < tbl->numEntries)
     {
         *pCpswHandle = tbl->entries[i].cpswHandle;
-        retVal = CPSW_SOK;
+        retVal = ENET_SOK;
     }
     else
     {
         *pCpswHandle = NULL;
-        retVal = CPSW_EFAIL;
+        retVal = ENET_EFAIL;
     }
     return retVal;
 }
 
-static int32_t CpswProxyServer_getCpswType(const CpswProxyServer_HandleTable *tbl, Cpsw_Handle hCpsw, Cpsw_Type *pCpswType)
+static int32_t CpswProxyServer_getCpswType(const CpswProxyServer_HandleTable *tbl, Enet_Handle hEnet, Enet_Type *pCpswType)
 {
     int32_t i;
     int32_t retVal;
 
-    CpswAppUtils_assert(tbl->numEntries < CPSW_UTILS_ARRAYSIZE(tbl->entries));
+    EnetAppUtils_assert(tbl->numEntries < ENET_ARRAYSIZE(tbl->entries));
 
     for (i = 0; i < tbl->numEntries; i++)
     {
-        if (hCpsw == tbl->entries[i].cpswHandle)
+        if (hEnet == tbl->entries[i].cpswHandle)
         {
             break;
         }
     }
     if (i < tbl->numEntries)
     {
-        *pCpswType = tbl->entries[i].cpswType;
-        retVal = CPSW_SOK;
+        *pCpswType = tbl->entries[i].enetType;
+        retVal = ENET_SOK;
     }
     else
     {
-        retVal = CPSW_EFAIL;
+        retVal = ENET_EFAIL;
     }
     return retVal;
 }
 
-static  int32_t CpswProxy_mapRdev2CpswType(enum rpmsg_kdrv_ethswitch_cpsw_type  rdevCpswType, Cpsw_Type * pCpswType)
+static  int32_t CpswProxy_mapRdev2CpswType(enum rpmsg_kdrv_ethswitch_cpsw_type  rdevCpswType, Enet_Type * pCpswType)
 {
-    int32_t retVal = CPSW_SOK;
+    int32_t retVal = ENET_SOK;
 
     switch (rdevCpswType)
     {
         case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MCU:
-            *pCpswType = CPSW_2G;
+            *pCpswType = ENET_CPSW_2G;
             break;
 
         case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN:
 #if defined(SOC_J7200)
-            *pCpswType = CPSW_5G;
+            *pCpswType = ENET_CPSW_5G;
 #elif defined(SOC_J721E)
-            *pCpswType = CPSW_9G;
+            *pCpswType = ENET_CPSW_9G;
 #else
-            retVal = CPSW_EFAIL;
+            retVal = ENET_EFAIL;
 #endif
             break;
 
         default:
-            retVal = CPSW_EFAIL;
+            retVal = ENET_EFAIL;
             break;
     }
     return retVal;
@@ -320,7 +323,7 @@ static  int32_t CpswProxy_mapRdev2CpswType(enum rpmsg_kdrv_ethswitch_cpsw_type  
 
 static  int32_t CpswProxy_mapEthRpc2RdevCpswType(Eth_RpcCpswType ethRpcCpswType, enum rpmsg_kdrv_ethswitch_cpsw_type  *rdevCpswType)
 {
-    int32_t retVal = CPSW_SOK;
+    int32_t retVal = ENET_SOK;
 
     switch (ethRpcCpswType)
     {
@@ -333,7 +336,7 @@ static  int32_t CpswProxy_mapEthRpc2RdevCpswType(Eth_RpcCpswType ethRpcCpswType,
             break;
 
         default:
-            retVal = CPSW_EFAIL;
+            retVal = ENET_EFAIL;
             break;
     }
     return retVal;
@@ -341,7 +344,7 @@ static  int32_t CpswProxy_mapEthRpc2RdevCpswType(Eth_RpcCpswType ethRpcCpswType,
 
 static  int32_t CpswProxy_mapEthRpcClientNotify2RdevClientNotifyType(Eth_RpcClientNotifyType ethRpcClientNotifyType, enum rpmsg_kdrv_ethswitch_client_notify_type *rdevNotifyType)
 {
-    int32_t retVal = CPSW_SOK;
+    int32_t retVal = ENET_SOK;
 
     switch (ethRpcClientNotifyType)
     {
@@ -354,7 +357,7 @@ static  int32_t CpswProxy_mapEthRpcClientNotify2RdevClientNotifyType(Eth_RpcClie
             break;
 
         default:
-            retVal     = CPSW_EFAIL;
+            retVal     = ENET_EFAIL;
             break;
     }
     return retVal;
@@ -375,26 +378,26 @@ static CpswProxyServer_Obj * CpswProxyServer_getHandle(void)
 }
 
 
-static void CpswProxyServer_addHandleEntry(CpswProxyServer_HandleTable *tbl, Cpsw_Handle hCpsw, Cpsw_Type cpswType, CpswMcm_CmdIf *hMcmCmdIf)
+static void CpswProxyServer_addHandleEntry(CpswProxyServer_HandleTable *tbl, Enet_Handle hEnet, Enet_Type enetType, EnetMcm_CmdIf *hMcmCmdIf)
 {
     int32_t status;
-    Cpsw_Handle hCpswLocal;
+    Enet_Handle hCpswLocal;
 
-    status = CpswProxyServer_getCpswHandle(tbl, cpswType, &hCpswLocal);
+    status = CpswProxyServer_getCpswHandle(tbl, enetType, &hCpswLocal);
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
-        CpswMcm_CmdIf *hMcmCmdIfLocal;
+        EnetMcm_CmdIf *hMcmCmdIfLocal;
 
-        CpswAppUtils_assert(hCpswLocal == hCpsw);
-        CpswProxyServer_getMcmCmdIf(tbl, cpswType, &hMcmCmdIfLocal);
-        CpswAppUtils_assert(hMcmCmdIfLocal == hMcmCmdIf);
+        EnetAppUtils_assert(hCpswLocal == hEnet);
+        CpswProxyServer_getMcmCmdIf(tbl, enetType, &hMcmCmdIfLocal);
+        EnetAppUtils_assert(hMcmCmdIfLocal == hMcmCmdIf);
     }
     else
     {
-        CpswAppUtils_assert(tbl->numEntries < CPSW_UTILS_ARRAYSIZE(tbl->entries));
-        tbl->entries[tbl->numEntries].cpswHandle = hCpsw;
-        tbl->entries[tbl->numEntries].cpswType   = cpswType;
+        EnetAppUtils_assert(tbl->numEntries < ENET_ARRAYSIZE(tbl->entries));
+        tbl->entries[tbl->numEntries].cpswHandle = hEnet;
+        tbl->entries[tbl->numEntries].enetType   = enetType;
         tbl->entries[tbl->numEntries].hMcmCmdIf  = hMcmCmdIf;
         tbl->numEntries++;
     }
@@ -412,62 +415,62 @@ static int32_t CpswProxyServer_attachHandlerCb(uint32_t host_id,
 {
     int32_t status;
     int32_t retVal;
-    CpswMcm_HandleInfo handleInfo;
-    Cpsw_AttachCoreOutArgs attachInfo;
-    Cpsw_IoctlPrms prms;
+    EnetMcm_HandleInfo handleInfo;
+    EnetPer_AttachCoreOutArgs attachInfo;
+    Enet_IoctlPrms prms;
     bool csumOffloadFlag;
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
     CpswProxyServer_Obj * hProxyServer;
-    CpswMcm_CmdIf *hMcmCmdIf;
+    EnetMcm_CmdIf *hMcmCmdIf;
     enum rpmsg_kdrv_ethswitch_cpsw_type  rdevCpswType = (enum rpmsg_kdrv_ethswitch_cpsw_type)cpsw_type;
 
-    status = CpswProxy_mapRdev2CpswType(rdevCpswType, &cpswType);
-    if (CPSW_SOK == status)
+    status = CpswProxy_mapRdev2CpswType(rdevCpswType, &enetType);
+    if (ENET_SOK == status)
     {
-        appLogPrintf("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, cpswType);
+        appLogPrintf("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, enetType);
 
         hProxyServer = CpswProxyServer_getHandle();
-        CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-        status = CpswProxyServer_getMcmCmdIf(&hProxyServer->handleTbl, cpswType, &hMcmCmdIf);
-        if ((status != CPSW_SOK) || (hMcmCmdIf == NULL))
+        EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+        status = CpswProxyServer_getMcmCmdIf(&hProxyServer->handleTbl, enetType, &hMcmCmdIf);
+        if ((status != ENET_SOK) || (hMcmCmdIf == NULL))
         {
-            CpswAppUtils_assert(hProxyServer->getMcmCmdIfCb != NULL);
-            hProxyServer->getMcmCmdIfCb(cpswType, &hMcmCmdIf);
-            CpswAppUtils_assert(hMcmCmdIf != NULL);
-            status = CPSW_SOK;
+            EnetAppUtils_assert(hProxyServer->getMcmCmdIfCb != NULL);
+            hProxyServer->getMcmCmdIfCb(enetType, &hMcmCmdIf);
+            EnetAppUtils_assert(hMcmCmdIf != NULL);
+            status = ENET_SOK;
         }
     }
 
-    if (CPSW_SOK == status)
+    if (ENET_SOK == status)
     {
-        CpswAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
-        CpswAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
+        EnetAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
+        EnetAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
 
-        CpswMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
-        CpswMcm_coreAttach(hMcmCmdIf, host_id, &attachInfo);
+        EnetMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
+        EnetMcm_coreAttach(hMcmCmdIf, host_id, &attachInfo);
 
-        *pId = (uint64_t)(handleInfo.hCpsw);
+        *pId = (uint64_t)(handleInfo.hEnet);
         *pCoreKey = attachInfo.coreKey;
         *pRxMtu = attachInfo.rxMtu;
-        CpswAppUtils_assert(txMtuArraySize ==
-                            CPSW_UTILS_ARRAYSIZE(attachInfo.txMtu));
+        EnetAppUtils_assert(txMtuArraySize ==
+                            ENET_ARRAYSIZE(attachInfo.txMtu));
         memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
         *pFeatures = 0;
-        CPSW_IOCTL_SET_OUT_ARGS(&prms, &csumOffloadFlag);
-        status = Cpsw_ioctl(handleInfo.hCpsw,
+        ENET_IOCTL_SET_OUT_ARGS(&prms, &csumOffloadFlag);
+        status = Enet_ioctl(handleInfo.hEnet,
                             host_id,
-                            CPSW_HOSTPORT_IS_CSUM_OFFLOAD_ENABLE,
+                            ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED,
                             &prms);
 
-        CpswAppUtils_assert(status == CPSW_SOK);
+        EnetAppUtils_assert(status == ENET_SOK);
 
         if (csumOffloadFlag)
         {
             *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM;
         }
-        CpswProxyServer_addHandleEntry(&hProxyServer->handleTbl, handleInfo.hCpsw, cpswType, hMcmCmdIf);
+        CpswProxyServer_addHandleEntry(&hProxyServer->handleTbl, handleInfo.hEnet, enetType, hMcmCmdIf);
     }
-    if (CPSW_SOK == status)
+    if (ENET_SOK == status)
     {
         retVal = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
@@ -478,17 +481,17 @@ static int32_t CpswProxyServer_attachHandlerCb(uint32_t host_id,
     return retVal;
 }
 
-static void CpswProxyServer_validateHandle(Cpsw_Handle hCpsw)
+static void CpswProxyServer_validateHandle(Enet_Handle hEnet)
 {
     int32_t status;
     CpswProxyServer_Obj * hProxyServer;
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
 
     hProxyServer = CpswProxyServer_getHandle();
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hCpsw, &cpswType);
-    CpswAppUtils_assert(CPSW_SOK == status);
-    CpswAppUtils_assert(hCpsw == Cpsw_getHandle(cpswType));
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
+    EnetAppUtils_assert(ENET_SOK == status);
+    EnetAppUtils_assert(hEnet == Enet_getHandle(enetType, 0U));
 
 }
 
@@ -498,17 +501,17 @@ static int32_t CpswProxyServer_allocTxHandlerCb(uint32_t host_id,
                                                 uint32_t *pTxCpswPsilDstId)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
 
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
-    CpswProxyServer_validateHandle(hCpsw);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hEnet, core_key);
+    CpswProxyServer_validateHandle(hEnet);
 
-    status = CpswAppUtils_allocTxCh(hCpsw,
+    status = EnetAppUtils_allocTxCh(hEnet,
                                     core_key,
                                     host_id,
                                     pTxCpswPsilDstId);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -520,14 +523,14 @@ static int32_t CpswProxyServer_allocTxHandlerCb(uint32_t host_id,
     return status;
 }
 
-static void CpswProxyServer_validateStartIdx(Cpsw_Handle hCpsw,
+static void CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
                                              uint32_t host_id,
                                              uint32_t rxFlowStartId)
 {
     uint32_t p0FlowIdOffset;
 
-    p0FlowIdOffset = CpswAppUtils_getStartFlowIdx(hCpsw, host_id);
-    CpswAppUtils_assert(rxFlowStartId == p0FlowIdOffset);
+    p0FlowIdOffset = EnetAppUtils_getStartFlowIdx(hEnet, host_id);
+    EnetAppUtils_assert(rxFlowStartId == p0FlowIdOffset);
 }
 
 static int32_t CpswProxyServer_allocRxHandlerCb(uint32_t host_id,
@@ -536,21 +539,21 @@ static int32_t CpswProxyServer_allocRxHandlerCb(uint32_t host_id,
                                                 uint32_t *pAllocFlowIdx)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
 
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
-    CpswProxyServer_validateHandle(hCpsw);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hEnet, core_key);
+    CpswProxyServer_validateHandle(hEnet);
 
-    status = CpswAppUtils_allocRxFlow(hCpsw, core_key, host_id, &start_flow_idx, &flow_idx_offset);
+    status = EnetAppUtils_allocRxFlow(hEnet, core_key, host_id, &start_flow_idx, &flow_idx_offset);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
     {
-        CpswProxyServer_validateStartIdx(hCpsw, host_id, start_flow_idx);
+        CpswProxyServer_validateStartIdx(hEnet, host_id, start_flow_idx);
         *pAllocFlowIdx = start_flow_idx + flow_idx_offset;
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
@@ -564,13 +567,13 @@ static int32_t CpswProxyServer_allocMacHandlerCb(uint32_t host_id,
                                                  u8 *mac_address)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
 
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
-    CpswProxyServer_validateHandle(hCpsw);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hEnet, core_key);
+    CpswProxyServer_validateHandle(hEnet);
 
-    status = CpswAppUtils_allocMac(hCpsw, core_key, host_id, mac_address);
-    if (status != CPSW_SOK)
+    status = EnetAppUtils_allocMac(hEnet, core_key, host_id, mac_address);
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -589,15 +592,15 @@ static int32_t CpswProxyServer_registerMacHandlerCb(uint32_t host_id,
                                                     uint32_t flow_idx)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
 
-    CpswProxyServer_validateHandle(hCpsw);
-    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
                  __func__,
                  host_id,
-                 hCpsw,
+                 hEnet,
                  core_key,
                  mac_address[0],
                  mac_address[1],
@@ -608,10 +611,10 @@ static int32_t CpswProxyServer_registerMacHandlerCb(uint32_t host_id,
                  flow_idx,
                  flow_idx_offset);
 
-    status = CpswAppUtils_registerDstMacRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
-    if (status != CPSW_SOK)
+    status = EnetAppUtils_regDstMacRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
+    if (status != ENET_SOK)
     {
-        appLogPrintf("CpswAppUtils_registerDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
+        appLogPrintf("EnetAppUtils_regDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -629,15 +632,15 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(uint32_t host_id,
                                                       uint32_t flow_idx)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
 
-    CpswProxyServer_validateHandle(hCpsw);
-    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, FlowIdx:%u, FlowIdOffset:%u\n",
                  __func__,
                  host_id,
-                 hCpsw,
+                 hEnet,
                  core_key,
                  mac_address[0],
                  mac_address[1],
@@ -648,10 +651,10 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(uint32_t host_id,
                  flow_idx,
                  flow_idx_offset);
 
-    status = CpswAppUtils_unregisterDstMacRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
-    if (status != CPSW_SOK)
+    status = EnetAppUtils_unregDstMacRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
+    if (status != ENET_SOK)
     {
-        appLogPrintf("Failed CpswAppUtils_unregisterDstMacRxFlow: %d\n", status);
+        appLogPrintf("Failed EnetAppUtils_unregDstMacRxFlow: %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -667,18 +670,18 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(uint32_t host_id,
                                                           uint32_t core_key,
                                                           uint32_t flow_idx)
 {
-    int32_t status = CPSW_SOK;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    int32_t status = ENET_SOK;
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
 
-    CpswProxyServer_validateHandle(hCpsw);
-    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
 
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x, FlowIdOffset:%x\n",
-                 __func__, host_id, hCpsw, core_key, flow_idx, flow_idx_offset);
+                 __func__, host_id, hEnet, core_key, flow_idx, flow_idx_offset);
 
-    status = CpswAppUtils_registerDefaultRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset);
-    if (status != CPSW_SOK)
+    status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -695,18 +698,18 @@ static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(uint32_t host_id,
                                                             uint32_t core_key,
                                                             uint32_t flow_idx)
 {
-    int32_t status = CPSW_SOK;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    int32_t status = ENET_SOK;
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
 
-    CpswProxyServer_validateHandle(hCpsw);
-    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
 
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x\n",
-                 __func__, host_id, hCpsw, core_key, flow_idx);
+                 __func__, host_id, hEnet, core_key, flow_idx);
 
-    status = CpswAppUtils_unregisterDefaultRxFlow(hCpsw, core_key, host_id, start_flow_idx, flow_idx_offset);
-    if (status != CPSW_SOK)
+    status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -724,16 +727,16 @@ static int32_t CpswProxyServer_freeTxHandlerCb(uint32_t host_id,
                                                uint32_t tx_cpsw_psil_dst_id)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
 
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, TxId:%x\n",
-                 __func__, host_id, hCpsw, core_key, tx_cpsw_psil_dst_id);
+                 __func__, host_id, hEnet, core_key, tx_cpsw_psil_dst_id);
 
-    CpswProxyServer_validateHandle(hCpsw);
+    CpswProxyServer_validateHandle(hEnet);
 
-    status = CpswAppUtils_freeTxCh(hCpsw, core_key, host_id, tx_cpsw_psil_dst_id);
+    status = EnetAppUtils_freeTxCh(hEnet, core_key, host_id, tx_cpsw_psil_dst_id);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -751,22 +754,22 @@ static int32_t CpswProxyServer_freeRxHandlerCb(uint32_t host_id,
                                                   uint32_t alloc_flow_idx)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
 
-    CpswProxyServer_validateHandle(hCpsw);
-    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, alloc_flow_idx, &start_flow_idx, &flow_idx_offset);
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, alloc_flow_idx, &start_flow_idx, &flow_idx_offset);
 
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, RxId:%x RxOffset:%x\n",
-                 __func__, host_id, hCpsw, core_key, alloc_flow_idx, flow_idx_offset);
+                 __func__, host_id, hEnet, core_key, alloc_flow_idx, flow_idx_offset);
 
-    CpswProxyServer_validateStartIdx(hCpsw, host_id, start_flow_idx);
-    status = CpswAppUtils_freeRxFlow(hCpsw,
+    CpswProxyServer_validateStartIdx(hEnet, host_id, start_flow_idx);
+    status = EnetAppUtils_freeRxFlow(hEnet,
                                      core_key,
                                      host_id,
                                      flow_idx_offset);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -784,12 +787,12 @@ static int32_t CpswProxyServer_freeMacHandlerCb(uint32_t host_id,
                                                 u8 *mac_address)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
 
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x\n",
                  __func__,
                  host_id,
-                 hCpsw,
+                 hEnet,
                  core_key,
                  mac_address[0],
                  mac_address[1],
@@ -798,11 +801,11 @@ static int32_t CpswProxyServer_freeMacHandlerCb(uint32_t host_id,
                  mac_address[4],
                  mac_address[5]);
 
-    CpswProxyServer_validateHandle(hCpsw);
+    CpswProxyServer_validateHandle(hEnet);
 
-    status = CpswAppUtils_freeMac(hCpsw, core_key, host_id, mac_address);
+    status = EnetAppUtils_freeMac(hEnet, core_key, host_id, mac_address);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -818,66 +821,66 @@ static int32_t CpswProxyServer_detachHandlerCb(uint32_t host_id,
                                                uint64_t handle,
                                                uint32_t core_key)
 {
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    CpswMcm_CmdIf *hMcmCmdIf;
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    EnetMcm_CmdIf *hMcmCmdIf;
     CpswProxyServer_Obj * hProxyServer;
     int32_t status;
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
 
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hCpsw, core_key);
-    CpswProxyServer_validateHandle(hCpsw);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x\n", __func__, host_id, hEnet, core_key);
+    CpswProxyServer_validateHandle(hEnet);
 
     hProxyServer = CpswProxyServer_getHandle();
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hCpsw, &cpswType);
-    CpswAppUtils_assert(status == CPSW_SOK);
-    status = CpswProxyServer_getMcmCmdIf(&hProxyServer->handleTbl, cpswType, &hMcmCmdIf);
-    CpswAppUtils_assert((status == CPSW_SOK) && (hMcmCmdIf != NULL));
-    CpswAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
-    CpswAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
+    EnetAppUtils_assert(status == ENET_SOK);
+    status = CpswProxyServer_getMcmCmdIf(&hProxyServer->handleTbl, enetType, &hMcmCmdIf);
+    EnetAppUtils_assert((status == ENET_SOK) && (hMcmCmdIf != NULL));
+    EnetAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
+    EnetAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
 
-    CpswMcm_coreDetach(hMcmCmdIf, host_id, core_key);
-    CpswMcm_releaseHandleInfo(hMcmCmdIf);
+    EnetMcm_coreDetach(hMcmCmdIf, host_id, core_key);
+    EnetMcm_releaseHandleInfo(hMcmCmdIf);
 
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
-static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
-                                       Cpsw_Type cpswType,
+static void CpswProxyServer_printStats(Enet_Handle hEnet,
+                                       Enet_Type enetType,
                                        uint32_t coreId)
 {
-    Cpsw_IoctlPrms prms;
-    CpswStats_GenericMacPortInArgs inArgs;
+    Enet_IoctlPrms prms;
+    Enet_MacPort portNum;
     CpswStats_PortStats portStats;
-    int32_t status = CPSW_SOK;
+    int32_t status = ENET_SOK;
     uint32_t i;
 
-    CPSW_IOCTL_SET_OUT_ARGS(&prms, &portStats);
+    ENET_IOCTL_SET_OUT_ARGS(&prms, &portStats);
     status =
-        Cpsw_ioctl(hCpsw, coreId, CPSW_STATS_IOCTL_GET_HOSTPORT_STATS,
+        Enet_ioctl(hEnet, coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS,
                    &prms);
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         appLogPrintf("\n Port 0 Statistics\n");
         appLogPrintf("-----------------------------------------\n");
-        switch (cpswType)
+        switch (enetType)
         {
-            case CPSW_2G:
+            case ENET_CPSW_2G:
             {
                 CpswStats_HostPort_2g *st;
 
                 st = (CpswStats_HostPort_2g *)&portStats;
-                CpswAppUtils_printHostPortStats2G(st);
+                EnetAppUtils_printHostPortStats2G(st);
                 break;
             }
 
-            case CPSW_5G:
-            case CPSW_9G:
+            case ENET_CPSW_5G:
+            case ENET_CPSW_9G:
             {
-                CpswStats_HostPort_9g *st;
+                CpswStats_HostPort_Ng *st;
 
-                st = (CpswStats_HostPort_9g *)&portStats;
-                CpswAppUtils_printHostPortStats9G(st);
+                st = (CpswStats_HostPort_Ng *)&portStats;
+                EnetAppUtils_printHostPortStats9G(st);
                 break;
             }
         }
@@ -889,36 +892,36 @@ static void CpswProxyServer_printStats(Cpsw_Handle hCpsw,
         appLogPrintf("CpswProxyServer_printStats() failed to get host stats: %d\n", status);
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
-        for (i = 0, inArgs.portNum = CPSW_MAC_PORT_FIRST; i < Cpsw_getMacPortMax(cpswType); i++, inArgs.portNum++)
+        for (i = 0, portNum = ENET_MAC_PORT_FIRST; i < Enet_getMacPortMax(enetType, 0u); i++, portNum++)
         {
-            CPSW_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &portStats);
+            ENET_IOCTL_SET_INOUT_ARGS(&prms, &portNum, &portStats);
             status =
-                Cpsw_ioctl(hCpsw, coreId, CPSW_STATS_IOCTL_GET_MACPORT_STATS,
+                Enet_ioctl(hEnet, coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS,
                            &prms);
-            if (status == CPSW_SOK)
+            if (status == ENET_SOK)
             {
-                appLogPrintf("\n External Port %d Statistics\n", CPSW_NORMALIZE_MACPORT(inArgs.portNum));
+                appLogPrintf("\n External Port %d Statistics\n", ENET_NORM_MACPORT(portNum));
                 appLogPrintf("-----------------------------------------\n");
-                switch (cpswType)
+                switch (enetType)
                 {
-                    case CPSW_2G:
+                    case ENET_CPSW_2G:
                     {
                         CpswStats_MacPort_2g *st;
 
                         st = (CpswStats_MacPort_2g *)&portStats;
-                        CpswAppUtils_printMacPortStats2G(st);
+                        EnetAppUtils_printMacPortStats2G(st);
                         break;
                     }
 
-                    case CPSW_5G:
-                    case CPSW_9G:
+                    case ENET_CPSW_5G:
+                    case ENET_CPSW_9G:
                     {
-                        CpswStats_MacPort_9g *st;
+                        CpswStats_MacPort_Ng *st;
 
-                        st = (CpswStats_MacPort_9g *)&portStats;
-                        CpswAppUtils_printMacPortStats9G(st);
+                        st = (CpswStats_MacPort_Ng *)&portStats;
+                        EnetAppUtils_printMacPortStats9G(st);
                         break;
                     }
                 }
@@ -943,24 +946,24 @@ static int32_t CpswProxyServer_ioctlHandlerCb(uint32_t host_id,
                                               uint32_t outargs_len)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    Enet_IoctlPrms prms;
     uint64_t inArgsBuf[(RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
     uint64_t outArgsBuf[(RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
 
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Cmd:%x,InArgsLen:%u, OutArgsLen:%u\n",
-                 __func__, host_id, hCpsw, core_key, cmd, inargs_len, outargs_len);
+                 __func__, host_id, hEnet, core_key, cmd, inargs_len, outargs_len);
 
-    CpswProxyServer_validateHandle(hCpsw);
+    CpswProxyServer_validateHandle(hEnet);
 
     prms.inArgsSize = inargs_len;
     prms.outArgsSize = outargs_len;
-    CpswAppUtils_assert(inargs_len <= sizeof(inArgsBuf));
+    EnetAppUtils_assert(inargs_len <= sizeof(inArgsBuf));
     /* To ensure structure are aligned, copy the inArgs to unit64_t aligned buffer */
     memcpy(inArgsBuf, inargs, inargs_len);
     prms.inArgs = inArgsBuf;
     /* To ensure structure are aligned, use unit64_t aligned buffer for outArgs  */
-    CpswAppUtils_assert(outargs_len <= sizeof(outArgsBuf));
+    EnetAppUtils_assert(outargs_len <= sizeof(outArgsBuf));
     prms.outArgs = outArgsBuf;
     if (prms.inArgsSize == 0)
     {
@@ -972,9 +975,9 @@ static int32_t CpswProxyServer_ioctlHandlerCb(uint32_t host_id,
         prms.outArgs = NULL;
     }
 
-    status = Cpsw_ioctl(hCpsw, host_id, cmd, &prms);
+    status = Enet_ioctl(hEnet, host_id, cmd, &prms);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
@@ -1059,14 +1062,14 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     uint32_t numEntries;
     int32_t status;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     LLI_INFO *llitable = NULL;
 
     ipaddr = htonl(ipaddr);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%d.%d.%d.%d\n",
                  __func__,
                  host_id,
-                 hCpsw,
+                 hEnet,
                  core_key,
                  mac_address[0],
                  mac_address[1],
@@ -1079,7 +1082,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
                  ipv4_addr[2],
                  ipv4_addr[3]);
 
-    CpswProxyServer_validateHandle(hCpsw);
+    CpswProxyServer_validateHandle(hEnet);
 
     ConCmdRoute(1, "print", NULL, NULL, NULL);
 
@@ -1123,21 +1126,21 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
     uint32_t numEntries;
     int32_t status;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     LLI_INFO *llitable = NULL;
 
     ipaddr = htonl(ipaddr);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,IPv4Addr:%x:%x:%x:%x\n",
                  __func__,
                  host_id,
-                 hCpsw,
+                 hEnet,
                  core_key,
                  ipv4_addr[0],
                  ipv4_addr[1],
                  ipv4_addr[2],
                  ipv4_addr[3]);
 
-    CpswProxyServer_validateHandle(hCpsw);
+    CpswProxyServer_validateHandle(hEnet);
 
     status = LLIRemoveStaticEntry(ipaddr);
     if (status != 0)
@@ -1211,56 +1214,56 @@ static int32_t CpswProxyServer_attachExtHandlerCb(uint32_t host_id,
                                                   uint32_t *pTxCpswPsilDstId,
                                                   uint8_t *macAddress)
 {
-    int32_t status = CPSW_SOK;
-    CpswMcm_HandleInfo handleInfo;
-    Cpsw_AttachCoreOutArgs attachInfo;
-    Cpsw_IoctlPrms prms;
+    int32_t status = ENET_SOK;
+    EnetMcm_HandleInfo handleInfo;
+    EnetPer_AttachCoreOutArgs attachInfo;
+    Enet_IoctlPrms prms;
     bool csumOffloadFlag;
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
     uint32_t start_flow_idx, flow_idx_offset;
     CpswProxyServer_Obj * hProxyServer;
-    CpswMcm_CmdIf *hMcmCmdIf;
+    EnetMcm_CmdIf *hMcmCmdIf;
     enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType = (enum rpmsg_kdrv_ethswitch_cpsw_type) cpsw_type;
 
-    status = CpswProxy_mapRdev2CpswType(rdevCpswType, &cpswType);
-    if (CPSW_SOK == status)
+    status = CpswProxy_mapRdev2CpswType(rdevCpswType, &enetType);
+    if (ENET_SOK == status)
     {
-        appLogPrintf("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, cpswType);
+        appLogPrintf("Function:%s,HostId:%u,CpswType:%u\n", __func__, host_id, enetType);
 
         hProxyServer = CpswProxyServer_getHandle();
-        CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-        status = CpswProxyServer_getMcmCmdIf(&hProxyServer->handleTbl, cpswType, &hMcmCmdIf);
-        if ((status != CPSW_SOK) || (hMcmCmdIf == NULL))
+        EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+        status = CpswProxyServer_getMcmCmdIf(&hProxyServer->handleTbl, enetType, &hMcmCmdIf);
+        if ((status != ENET_SOK) || (hMcmCmdIf == NULL))
         {
-            CpswAppUtils_assert(hProxyServer->getMcmCmdIfCb != NULL);
-            hProxyServer->getMcmCmdIfCb(cpswType, &hMcmCmdIf);
-            CpswAppUtils_assert(hMcmCmdIf != NULL);
-            status = CPSW_SOK;
+            EnetAppUtils_assert(hProxyServer->getMcmCmdIfCb != NULL);
+            hProxyServer->getMcmCmdIfCb(enetType, &hMcmCmdIf);
+            EnetAppUtils_assert(hMcmCmdIf != NULL);
+            status = ENET_SOK;
         }
     }
 
-    if (CPSW_SOK == status)
+    if (ENET_SOK == status)
     {
-        CpswAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
-        CpswAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
+        EnetAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
+        EnetAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
 
-        CpswMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
-        CpswMcm_coreAttach(hMcmCmdIf, host_id, &attachInfo);
+        EnetMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
+        EnetMcm_coreAttach(hMcmCmdIf, host_id, &attachInfo);
 
-        *pId = (uint64_t)(handleInfo.hCpsw);
+        *pId = (uint64_t)(handleInfo.hEnet);
         *pCoreKey = attachInfo.coreKey;
         *pRxMtu = attachInfo.rxMtu;
-        CpswAppUtils_assert(txMtuArraySize ==
-                            CPSW_UTILS_ARRAYSIZE(attachInfo.txMtu));
+        EnetAppUtils_assert(txMtuArraySize ==
+                            ENET_ARRAYSIZE(attachInfo.txMtu));
         memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
         *pFeatures = 0;
-        CPSW_IOCTL_SET_OUT_ARGS(&prms, &csumOffloadFlag);
-        status = Cpsw_ioctl(handleInfo.hCpsw,
+        ENET_IOCTL_SET_OUT_ARGS(&prms, &csumOffloadFlag);
+        status = Enet_ioctl(handleInfo.hEnet,
                             host_id,
-                            CPSW_HOSTPORT_IS_CSUM_OFFLOAD_ENABLE,
+                            ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED,
                             &prms);
 
-        CpswAppUtils_assert(status == CPSW_SOK);
+        EnetAppUtils_assert(status == ENET_SOK);
 
         if (csumOffloadFlag)
         {
@@ -1268,43 +1271,43 @@ static int32_t CpswProxyServer_attachExtHandlerCb(uint32_t host_id,
         }
     }
 
-    if (CPSW_SOK == status)
+    if (ENET_SOK == status)
     {
-        status = CpswAppUtils_allocRxFlow(handleInfo.hCpsw,
+        status = EnetAppUtils_allocRxFlow(handleInfo.hEnet,
                                           attachInfo.coreKey,
                                           host_id,
                                           &start_flow_idx,
                                           &flow_idx_offset);
-        if (CPSW_SOK == status)
+        if (ENET_SOK == status)
         {
-            CpswProxyServer_validateStartIdx(handleInfo.hCpsw, host_id, start_flow_idx);
+            CpswProxyServer_validateStartIdx(handleInfo.hEnet, host_id, start_flow_idx);
             *pAllocFlowIdx = start_flow_idx + flow_idx_offset;
         }
     }
 
-    if (CPSW_SOK == status)
+    if (ENET_SOK == status)
     {
-        status = CpswAppUtils_allocTxCh(handleInfo.hCpsw,
+        status = EnetAppUtils_allocTxCh(handleInfo.hEnet,
                                         attachInfo.coreKey,
                                         host_id,
                                         pTxCpswPsilDstId);
     }
 
-    if (CPSW_SOK == status)
+    if (ENET_SOK == status)
     {
-        status = CpswAppUtils_allocMac(handleInfo.hCpsw,
+        status = EnetAppUtils_allocMac(handleInfo.hEnet,
                                        attachInfo.coreKey,
                                        host_id,
                                        macAddress);
     }
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
     {
-        CpswProxyServer_addHandleEntry(&hProxyServer->handleTbl, handleInfo.hCpsw, cpswType, hMcmCmdIf);
+        CpswProxyServer_addHandleEntry(&hProxyServer->handleTbl, handleInfo.hEnet, enetType, hMcmCmdIf);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
@@ -1318,9 +1321,9 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
                                                   uint8_t *notify_info,
                                                   uint32_t notify_info_len)
 {
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    Cpsw_Type cpswType;
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    Enet_IoctlPrms prms;
+    Enet_Type enetType;
     int32_t status;
     CpswProxyServer_Obj *hProxyServer;
 #define STRINGIFY(x) # x
@@ -1328,13 +1331,13 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
     char *notify_type_str[] = {XSTRINGIFY(RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS),
                                XSTRINGIFY(RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM)};
 
-    CpswAppUtils_assert(notifyid < CPSW_UTILS_ARRAYSIZE(notify_type_str));
+    EnetAppUtils_assert(notifyid < ENET_ARRAYSIZE(notify_type_str));
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,NotifyId:%s,NotifyLen\n",
-                 __func__, host_id, core_key, hCpsw, notify_type_str[notifyid], notify_info_len);
+                 __func__, host_id, core_key, hEnet, notify_type_str[notifyid], notify_info_len);
     hProxyServer = CpswProxyServer_getHandle();
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hCpsw, &cpswType);
-    CpswAppUtils_assert(CPSW_SOK == status);
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
+    EnetAppUtils_assert(ENET_SOK == status);
 
     switch (notifyid)
     {
@@ -1342,29 +1345,29 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
         {
             int32_t status;
 
-            CpswProxyServer_validateHandle(hCpsw);
+            CpswProxyServer_validateHandle(hEnet);
 
-            CPSW_IOCTL_SET_NO_ARGS(&prms);
-            status = Cpsw_ioctl(hCpsw, host_id, CPSW_ALE_IOCTL_DUMP_TABLE,
+            ENET_IOCTL_SET_NO_ARGS(&prms);
+            status = Enet_ioctl(hEnet, host_id, CPSW_ALE_IOCTL_DUMP_TABLE,
                                 &prms);
-            CpswAppUtils_assert(status == CPSW_SOK);
+            EnetAppUtils_assert(status == ENET_SOK);
 
-            CPSW_IOCTL_SET_NO_ARGS(&prms);
-            status = Cpsw_ioctl(hCpsw, host_id, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES,
+            ENET_IOCTL_SET_NO_ARGS(&prms);
+            status = Enet_ioctl(hEnet, host_id, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES,
                                 &prms);
 
-            CpswAppUtils_assert(status == CPSW_SOK);
+            EnetAppUtils_assert(status == ENET_SOK);
 
-            CpswProxyServer_printStats(hCpsw, cpswType, host_id);
+            CpswProxyServer_printStats(hEnet, enetType, host_id);
             break;
         }
         case RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM:
         {
-            CpswProxyServer_validateHandle(hCpsw);
+            CpswProxyServer_validateHandle(hEnet);
 
             if (hProxyServer->notifyCb != NULL)
             {
-                hProxyServer->notifyCb(host_id, hCpsw, cpswType, core_key, notifyid, notify_info, notify_info_len);
+                hProxyServer->notifyCb(host_id, hEnet, enetType, core_key, notifyid, notify_info, notify_info_len);
             }
             break;
         }
@@ -1380,8 +1383,8 @@ static void  CpswProxyServer_initDeviceDataHandlerCb(uint32_t host_id,
     CpswProxyServer_Obj *hProxyServer;
 
     hProxyServer = CpswProxyServer_getHandle();
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    CpswAppUtils_assert(hProxyServer->initEthfwDeviceDataCb != NULL);
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+    EnetAppUtils_assert(hProxyServer->initEthfwDeviceDataCb != NULL);
     hProxyServer->initEthfwDeviceDataCb(host_id, eth_dev_data);
 }
 
@@ -1392,37 +1395,37 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(uint32_t host_id,
                                                           uint32_t flow_idx)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
-    Cpsw_IoctlPrms prms;
+    Enet_IoctlPrms prms;
     CpswAle_SetPolicerEntryOutArgs setPolicerOutArgs;
     CpswAle_SetPolicerEntryInArgs setPolicerInArgs;
 
-    CpswProxyServer_validateHandle(hCpsw);
-    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
                  __func__,
                  host_id,
-                 hCpsw,
+                 hEnet,
                  core_key,
                  ether_type,
                  flow_idx,
                  flow_idx_offset);
 
     memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
-    setPolicerInArgs.policerMatch.policerMatchEnableMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
-    setPolicerInArgs.policerMatch.etherType.etherType = ether_type;
+    setPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+    setPolicerInArgs.policerMatch.etherType = ether_type;
     setPolicerInArgs.threadIdEnable                   = TRUE;
     setPolicerInArgs.threadId                         = flow_idx_offset;
     setPolicerInArgs.peakRateInBitsPerSec             = 0;
     setPolicerInArgs.commitRateInBitsPerSec           = 0;
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
 
-    status = Cpsw_ioctl(hCpsw,host_id, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-    if (status != CPSW_SOK)
+    status = Enet_ioctl(hEnet,host_id, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+    if (status != ENET_SOK)
     {
-        appLogPrintf("Cpsw_ioctl() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
+        appLogPrintf("Enet_ioctl() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -1440,33 +1443,33 @@ static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(uint32_t host_id,
                                                             uint32_t flow_idx)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
-    Cpsw_IoctlPrms prms;
+    Enet_IoctlPrms prms;
     CpswAle_DelPolicerEntryInArgs delPolicerInArgs;
 
-    CpswProxyServer_validateHandle(hCpsw);
-    CpswAppUtils_absFlowIdx2FlowIdxOffset(hCpsw, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdOffset:%u\n",
                  __func__,
                  host_id,
-                 hCpsw,
+                 hEnet,
                  core_key,
                  ether_type,
                  flow_idx,
                  flow_idx_offset);
 
     memset(&delPolicerInArgs, 0, sizeof(delPolicerInArgs));
-    delPolicerInArgs.policerMatch.policerMatchEnableMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
-    delPolicerInArgs.policerMatch.etherType.etherType = ether_type;
-    delPolicerInArgs.delAleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ETHERTYPE;
+    delPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+    delPolicerInArgs.policerMatch.etherType = ether_type;
+    delPolicerInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ETHERTYPE;
 
-    CPSW_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
+    ENET_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
 
-    status = Cpsw_ioctl(hCpsw,host_id, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
-    if (status != CPSW_SOK)
+    status = Enet_ioctl(hEnet,host_id, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+    if (status != ENET_SOK)
     {
-        appLogPrintf("Failed Cpsw_ioctl CPSW_ALE_IOCTL_DEL_POLICER : %d\n", status);
+        appLogPrintf("Failed Enet_ioctl CPSW_ALE_IOCTL_DEL_POLICER : %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
@@ -1485,37 +1488,37 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(uint32_t host_id,
                                                             uint8_t hwPushNum)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    Enet_IoctlPrms prms;
     CpswCpts_RegisterHwPushCbInArgs hwPushCbInArgs;
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
     CpswProxyServer_Obj *hProxyServer;
 
     hProxyServer = CpswProxyServer_getHandle();
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hCpsw, &cpswType);
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
 
     /* Register hardware push callback */
     hwPushCbInArgs.hwPushNum = (CpswCpts_HwPush)hwPushNum;
-    hwPushCbInArgs.pHwPushNotifyCb = CpswProxyServer_hwPushNotifyFxn;
-    hwPushCbInArgs.pHwPushNotifyCbArg = (void *)hProxyServer;
-    CPSW_IOCTL_SET_IN_ARGS(&prms, &hwPushCbInArgs);
-    status = Cpsw_ioctl(hCpsw,
+    hwPushCbInArgs.hwPushNotifyCb = CpswProxyServer_hwPushNotifyFxn;
+    hwPushCbInArgs.hwPushNotifyCbArg = (void *)hProxyServer;
+    ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushCbInArgs);
+    status = Enet_ioctl(hEnet,
                         host_id,
-                        CPSW_CPTS_IOCTL_REGISTER_HW_PUSH_CALLBACK,
+                        CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK,
                         &prms);
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
-        appLogPrintf("Failed Cpsw_ioctl CPSW_CPTS_IOCTL_REGISTER_HW_PUSH_CALLBACK : %d\n", status);
+        appLogPrintf("Failed Enet_ioctl CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK : %d\n", status);
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
     else
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
         /* Configure timesync router */
-        status = CpswAppUtils_setTimeSyncRouter(cpswType,
+        status = EnetAppUtils_setTimeSyncRouter(enetType,
                                                 timer_id,
-                                                CPSW_CPTS_HW_PUSH_NORMALIZE((CpswCpts_HwPush)hwPushNum) +
+                                                CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum) +
                                                 CPSWPROXY_CPSW9G_HWPUSH_BASE);
     }
 
@@ -1529,28 +1532,28 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(uint32_t host_id,
                                                               uint8_t hwPushNum)
 {
     int32_t status;
-    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)handle);
-    Cpsw_IoctlPrms prms;
-    Cpsw_Type cpswType;
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    Enet_IoctlPrms prms;
+    Enet_Type enetType;
     CpswProxyServer_Obj *hProxyServer;
 
     hProxyServer = CpswProxyServer_getHandle();
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hCpsw, &cpswType);
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
 
     /* Unregister hardware push callback */
     hwPushNum = (CpswCpts_HwPush)hwPushNum;
-    CPSW_IOCTL_SET_IN_ARGS(&prms, &hwPushNum);
-    status = Cpsw_ioctl(hCpsw,
+    ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushNum);
+    status = Enet_ioctl(hEnet,
                         host_id,
-                        CPSW_CPTS_IOCTL_UNREGISTER_HW_PUSH_CALLBACK,
+                        CPSW_CPTS_IOCTL_UNREGISTER_HWPUSH_CALLBACK,
                         &prms);
 
     /* Clear timesync router configuration for hardware push,
      * Note: This assumes input signal is stopped */
-    status = CpswAppUtils_setTimeSyncRouter(cpswType,
+    status = EnetAppUtils_setTimeSyncRouter(enetType,
                                             0U,
-                                            CPSW_CPTS_HW_PUSH_NORMALIZE((CpswCpts_HwPush)hwPushNum) +
+                                            CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum) +
                                             CPSWPROXY_CPSW9G_HWPUSH_BASE);
 
     return status;
@@ -1598,11 +1601,11 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
     hProxyServer = CpswProxyServer_getHandle();
 
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == false));
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == false));
     SemaphoreP_Params_init(&sem_params);
     sem_params.mode = SemaphoreP_Mode_BINARY;
     hProxyServer->rdevStartSem = SemaphoreP_create(0, &sem_params);
-    CpswAppUtils_assert(hProxyServer->rdevStartSem != NULL);
+    EnetAppUtils_assert(hProxyServer->rdevStartSem != NULL);
 
 
     hProxyServer->getMcmCmdIfCb = cfg->getMcmCmdIfCb;
@@ -1617,7 +1620,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
     status = appRemoteDeviceInit(&remote_dev_init_prm);
 
-    CpswAppUtils_assert(status == 0);
+    EnetAppUtils_assert(status == 0);
 
     rdevEthSwitchServerInitPrmSetDefault(&remote_ethswitch_init_prm);
 
@@ -1625,8 +1628,8 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     remote_ethswitch_init_prm.num_instances = cfg->numRemoteCores;
     remote_ethswitch_init_prm.cb = CpswProxyRdevEthSwitchServerCbFxnTbl;
 
-    CpswAppUtils_assert(cfg->numRemoteCores <= CPSW_UTILS_ARRAYSIZE(remote_ethswitch_init_prm.inst_prm));
-    CpswAppUtils_assert(cfg->numRemoteCores <= CPSW_UTILS_ARRAYSIZE(cfg->remoteCoreCfg));
+    EnetAppUtils_assert(cfg->numRemoteCores <= ENET_ARRAYSIZE(remote_ethswitch_init_prm.inst_prm));
+    EnetAppUtils_assert(cfg->numRemoteCores <= ENET_ARRAYSIZE(cfg->remoteCoreCfg));
 
     for ( i = 0 ; i < cfg->numRemoteCores; i++)
     {
@@ -1635,17 +1638,17 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         strncpy((char *)&inst->name[0], cfg->remoteCoreCfg[i].serverName, ETHREMOTECFG_SERVER_MAX_NAME_LEN);
     }
     status = rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
-    CpswAppUtils_assert(status == 0);
+    EnetAppUtils_assert(status == 0);
 
     status = CpswProxyServer_initAutosarEthDeviceEp(hProxyServer, cfg);
-    CpswAppUtils_assert(status == 0);
+    EnetAppUtils_assert(status == 0);
 
     status = CpswProxyServer_initNotifyServiceEp(hProxyServer, cfg);
-    CpswAppUtils_assert(status == 0);
+    EnetAppUtils_assert(status == 0);
 
     hProxyServer->initDone = true;
     appLogPrintf("Remote demo device (core : mcu2_0) .....\r\n");
-    return CPSW_SOK;
+    return ENET_SOK;
 }
 
 int32_t  CpswProxyServer_start(void)
@@ -1653,17 +1656,17 @@ int32_t  CpswProxyServer_start(void)
     CpswProxyServer_Obj * hProxyServer;
 
     hProxyServer = CpswProxyServer_getHandle();
-    CpswAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
 
     SemaphoreP_post(hProxyServer->rdevStartSem);
-    return CPSW_SOK;
+    return ENET_SOK;
 }
 
 static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hProxyServer, CpswProxyServer_Config_t * cfg)
 {
     Error_Block     eb;
     Task_Params     taskParams;
-    int32_t retVal = CPSW_SOK;
+    int32_t retVal = ENET_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
 
@@ -1678,10 +1681,10 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
     if (NULL == hProxyServer->ethDrvObj.hAutosarEthRpMsgEp)
     {
         appLogPrintf("Could not create communication channel \n");
-        retVal = CPSW_EFAIL;
+        retVal = ENET_EFAIL;
     }
 
-    if (CPSW_SOK == retVal)
+    if (ENET_SOK == retVal)
     {
         if (localEp != cfg->autosarEthDeviceEndPointId)
         {
@@ -1693,7 +1696,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
         }
     }
 
-    if (CPSW_SOK == retVal)
+    if (ENET_SOK == retVal)
     {
         Error_init(&eb);
 
@@ -1706,7 +1709,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
         hProxyServer->ethDrvObj.hAutosarEthTsk = Task_create(CpswProxyServer_autosarEthDriverTaskFxn, &taskParams, &eb);
         if(Error_check(&eb))
         {
-            retVal = CPSW_EFAIL;
+            retVal = ENET_EFAIL;
             appLogPrintf("Could not create a Task \n");
         }
     }
@@ -1718,7 +1721,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
 {
     Error_Block     eb;
     Task_Params     taskParams;
-    int32_t retVal = CPSW_SOK;
+    int32_t retVal = ENET_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
     EventP_Params eventParams;
@@ -1736,10 +1739,10 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
     if (NULL == hProxyServer->notifyServiceObj.hNotifyServicRpMsgEp)
     {
         appLogPrintf("Could not create communication channel\n");
-        retVal = CPSW_EFAIL;
+        retVal = ENET_EFAIL;
     }
 
-    if (CPSW_SOK == retVal)
+    if (ENET_SOK == retVal)
     {
         if (localEp != CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID)
         {
@@ -1752,7 +1755,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
     }
 
     /* Announce service */
-    if (CPSW_SOK == retVal)
+    if (ENET_SOK == retVal)
     {
         retVal = RPMessage_announce(RPMESSAGE_ALL,
                                     CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID,
@@ -1760,11 +1763,11 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
     }
 
     /* Create Event to notify task */
-    if (CPSW_SOK == retVal)
+    if (ENET_SOK == retVal)
     {
         EventP_Params_init(&eventParams);
 
-        for (i = 0U; i < CPSW_CPTS_HW_PUSH_COUNT_MAX; i++)
+        for (i = 0U; i < CPSW_CPTS_HWPUSH_COUNT_MAX; i++)
         {
             hProxyServer->notifyServiceObj.hwPushNotifyEventId[i] = (1U << i);
         }
@@ -1773,12 +1776,12 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
 
         if (hProxyServer->notifyServiceObj.hHwPushNotifyServiceEvent == NULL)
         {
-            retVal = CPSW_EFAIL;
+            retVal = ENET_EFAIL;
             appLogPrintf("Could not create an Event \n");
         }
     }
 
-    if (CPSW_SOK == retVal)
+    if (ENET_SOK == retVal)
     {
         Error_init(&eb);
 
@@ -1791,7 +1794,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
         hProxyServer->notifyServiceObj.hNotifyServiceTsk = Task_create(CpswProxyServer_notifyServiceTaskFxn, &taskParams, &eb);
         if(Error_check(&eb))
         {
-            retVal = CPSW_EFAIL;
+            retVal = ENET_EFAIL;
             appLogPrintf("Could not create a Task \n");
         }
     }
@@ -1807,11 +1810,11 @@ static void  CpswProxyServer_initDeviceData(const struct rpmsg_kdrv_ethswitch_de
     dst->uartId = src->uart_id;
     dst->uartConnected = src->uart_connected;
     dst->permissionFlags = src->permission_flags;
-    CPSW_UTILS_ARRAY_COPY(dst->fwVer.commitHash ,src->fw_ver.commit_hash);
-    CPSW_UTILS_ARRAY_COPY(dst->fwVer.date , src->fw_ver.date);
+    ENET_UTILS_ARRAY_COPY(dst->fwVer.commitHash ,src->fw_ver.commit_hash);
+    ENET_UTILS_ARRAY_COPY(dst->fwVer.date , src->fw_ver.date);
     dst->fwVer.major = src->fw_ver.major;
     dst->fwVer.minor = src->fw_ver.minor;
-    CPSW_UTILS_ARRAY_COPY(dst->fwVer.month , src->fw_ver.month);
+    ENET_UTILS_ARRAY_COPY(dst->fwVer.month , src->fw_ver.month);
     dst->fwVer.rev = src->fw_ver.rev;
     memcpy(dst->fwVer.year , src->fw_ver.year, sizeof(dst->fwVer.year));
 }
@@ -1843,7 +1846,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
         Eth_RpcDeviceData deviceData;
         bool exitTask = false;
 
-        CpswAppUtils_assert(hProxyServer->initEthfwDeviceDataCb != NULL);
+        EnetAppUtils_assert(hProxyServer->initEthfwDeviceDataCb != NULL);
         hProxyServer->initEthfwDeviceDataCb(remoteProcId, &eth_dev_data);
 
         CpswProxyServer_initDeviceData(&eth_dev_data, &deviceData);
@@ -1857,7 +1860,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                 hProxyServer->ethDrvObj.localEp,
                                 (Ptr)&deviceData,
                                 sizeof(deviceData));
-        CpswAppUtils_assert(IPC_SOK == rtnVal);
+        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
         while (!exitTask)
         {
@@ -1872,9 +1875,9 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                 Eth_RpcMessageHeader *header;
                 int32_t status;
 
-                CpswAppUtils_assert(len <= sizeof(msgBuffer));
-                CpswAppUtils_assert(remoteEp == remoteEndPt);
-                CpswAppUtils_assert(remoteProcId == remoteProc);
+                EnetAppUtils_assert(len <= sizeof(msgBuffer));
+                EnetAppUtils_assert(remoteEp == remoteEndPt);
+                EnetAppUtils_assert(remoteProcId == remoteProc);
 
                 header = (Eth_RpcMessageHeader *)msgBuffer;
 
@@ -1887,11 +1890,11 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
                         uint32_t allocFlowIdx;
 
-                        CpswAppUtils_assert((attachReq->header.messageId == ETH_RPC_CMD_TYPE_ATTACH_EXT_REQ)
+                        EnetAppUtils_assert((attachReq->header.messageId == ETH_RPC_CMD_TYPE_ATTACH_EXT_REQ)
                                             &&
                                             (attachReq->header.messageLen == sizeof(*attachReq)));
-                        status = CpswProxy_mapEthRpc2RdevCpswType((Eth_RpcCpswType)attachReq->cpswType, &rdevCpswType);
-                        if (CPSW_SOK == status)
+                        status = CpswProxy_mapEthRpc2RdevCpswType((Eth_RpcCpswType)attachReq->enetType, &rdevCpswType);
+                        if (ENET_SOK == status)
                         {
                             status =  CpswProxyServer_attachExtHandlerCb(remoteProc,
                                                                          rdevCpswType,
@@ -1899,22 +1902,22 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                          &attachRes.coreKey,
                                                                          &attachRes.rxMtu,
                                                                          attachRes.txMtu,
-                                                                         CPSW_UTILS_ARRAYSIZE(attachRes.txMtu),
+                                                                         ENET_ARRAYSIZE(attachRes.txMtu),
                                                                          &attachRes.features,
                                                                          &allocFlowIdx,
                                                                          &attachRes.txCpswPsilDstId,
                                                                          attachRes.macAddress);
 
-                            if (CPSW_SOK == status)
+                            if (ENET_SOK == status)
                             {
-                                Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)attachRes.id);
+                                Enet_Handle hEnet = (Enet_Handle)((uintptr_t)attachRes.id);
 
-                                attachRes.allocFlowIdxBase = CpswAppUtils_getStartFlowIdx(hCpsw, remoteProc);
-                                CpswAppUtils_assert(allocFlowIdx >= attachRes.allocFlowIdxBase);
+                                attachRes.allocFlowIdxBase = EnetAppUtils_getStartFlowIdx(hEnet, remoteProc);
+                                EnetAppUtils_assert(allocFlowIdx >= attachRes.allocFlowIdxBase);
                                 attachRes.allocFlowIdxOffset =  allocFlowIdx - attachRes.allocFlowIdxBase;
                             }
                         }
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             attachRes.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -1930,7 +1933,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &attachRes,
                                                 sizeof(attachRes));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
                         break;
                     }
                     case ETH_RPC_CMD_TYPE_DETACH_REQ:
@@ -1938,7 +1941,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         Eth_RpcDetachRequest *detachReq = (Eth_RpcDetachRequest *)msgBuffer;
                         Eth_RpcDetachResponse detachRes;
 
-                        CpswAppUtils_assert((detachReq->header.messageId == ETH_RPC_CMD_TYPE_DETACH_REQ)
+                        EnetAppUtils_assert((detachReq->header.messageId == ETH_RPC_CMD_TYPE_DETACH_REQ)
                                             &&
                                             (detachReq->header.messageLen == sizeof(*detachReq)));
 
@@ -1946,7 +1949,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                   detachReq->info.id,
                                                                   detachReq->info.coreKey);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             detachRes.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -1962,7 +1965,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &detachRes,
                                                 sizeof(detachRes));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -1972,7 +1975,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         Eth_RpcRegisterRxDefaultRequest *registerDefaultReq = (Eth_RpcRegisterRxDefaultRequest *)msgBuffer;
                         Eth_RpcRegisterRxDefaultResponse registerDefaultRes;
 
-                        CpswAppUtils_assert((registerDefaultReq->header.messageId == ETH_RPC_CMD_TYPE_REGISTER_DEFAULTFLOW_REQ)
+                        EnetAppUtils_assert((registerDefaultReq->header.messageId == ETH_RPC_CMD_TYPE_REGISTER_DEFAULTFLOW_REQ)
                                             &&
                                             (registerDefaultReq->header.messageLen == sizeof(*registerDefaultReq)));
 
@@ -1981,7 +1984,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                   registerDefaultReq->info.coreKey,
                                                                   registerDefaultReq->defaultFlowIdx);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             registerDefaultRes.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -1999,7 +2002,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &registerDefaultRes,
                                                 sizeof(registerDefaultRes));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2008,7 +2011,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         Eth_RpcRegisterMacRequest * registerMacReq = (Eth_RpcRegisterMacRequest * )msgBuffer;
                         Eth_RpcRegisterMacResponse registerMacRes;
 
-                        CpswAppUtils_assert((registerMacReq->header.messageId == ETH_RPC_CMD_TYPE_REGISTER_MAC_REQ)
+                        EnetAppUtils_assert((registerMacReq->header.messageId == ETH_RPC_CMD_TYPE_REGISTER_MAC_REQ)
                                             &&
                                             (registerMacReq->header.messageLen == sizeof(*registerMacReq)));
 
@@ -2018,7 +2021,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                   registerMacReq->macAddress,
                                                                   registerMacReq->flowIdx);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             registerMacRes.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -2036,7 +2039,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &registerMacRes,
                                                 sizeof(registerMacRes));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2045,7 +2048,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         Eth_RpcUnregisterMacRequest *unregisterMacReq = (Eth_RpcUnregisterMacRequest *)msgBuffer;
                         Eth_RpcUnregisterMacResponse unregisterMacRes;
 
-                        CpswAppUtils_assert((unregisterMacReq->header.messageId == ETH_RPC_CMD_TYPE_UNREGISTER_MAC_REQ)
+                        EnetAppUtils_assert((unregisterMacReq->header.messageId == ETH_RPC_CMD_TYPE_UNREGISTER_MAC_REQ)
                                             &&
                                             (unregisterMacReq->header.messageLen == sizeof(*unregisterMacReq)));
 
@@ -2055,7 +2058,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                   unregisterMacReq->macAddress,
                                                                   unregisterMacReq->flowIdx);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             unregisterMacRes.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -2073,7 +2076,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &unregisterMacRes,
                                                 sizeof(unregisterMacRes));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2082,7 +2085,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         Eth_RpcUnregisterRxDefaultRequest *unregisterDefaultReq = (Eth_RpcUnregisterRxDefaultRequest *)msgBuffer;
                         Eth_RpcUnregisterRxDefaultResponse unregisterDefaultRes;
 
-                        CpswAppUtils_assert((unregisterDefaultReq->header.messageId == ETH_RPC_CMD_TYPE_UNREGISTER_DEFAULTFLOW_REQ)
+                        EnetAppUtils_assert((unregisterDefaultReq->header.messageId == ETH_RPC_CMD_TYPE_UNREGISTER_DEFAULTFLOW_REQ)
                                             &&
                                             (unregisterDefaultReq->header.messageLen == sizeof(*unregisterDefaultReq)));
 
@@ -2091,7 +2094,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                   unregisterDefaultReq->info.coreKey,
                                                                   unregisterDefaultReq->defaultFlowIdx);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             unregisterDefaultRes.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -2109,7 +2112,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &unregisterDefaultRes,
                                                 sizeof(unregisterDefaultRes));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2118,7 +2121,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                         Eth_RpcIoctlRequest *ioctlReq = (Eth_RpcIoctlRequest *)msgBuffer;
                         Eth_RpcIoctlResponse ioctlRes;
 
-                        CpswAppUtils_assert((ioctlReq->header.messageId == ETH_RPC_CMD_TYPE_IOCTL_REQ)
+                        EnetAppUtils_assert((ioctlReq->header.messageId == ETH_RPC_CMD_TYPE_IOCTL_REQ)
                                              &&
                                              (ioctlReq->header.messageLen == sizeof(*ioctlReq)));
 
@@ -2131,7 +2134,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                  (u8 *)ioctlRes.outargs,
                                                                  ioctlReq->outargsLen);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             ioctlRes.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -2155,7 +2158,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &ioctlRes,
                                                 sizeof(ioctlRes));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2164,7 +2167,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                          Eth_RpcIpv4RegisterMacRequest *registerIpv4Req = (Eth_RpcIpv4RegisterMacRequest *)msgBuffer;
                          Eth_RpcIpv4RegisterMacResponse registerIpv4Res;
 
-                        CpswAppUtils_assert((registerIpv4Req->header.messageId == ETH_RPC_CMD_TYPE_IPV4_MAC_REGISTER_REQ)
+                        EnetAppUtils_assert((registerIpv4Req->header.messageId == ETH_RPC_CMD_TYPE_IPV4_MAC_REGISTER_REQ)
                                             &&
                                             (registerIpv4Req->header.messageLen == sizeof(*registerIpv4Req)));
 
@@ -2174,7 +2177,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                  registerIpv4Req->macAddress,
                                                                  registerIpv4Req->ipv4Addr);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             registerIpv4Res.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -2192,7 +2195,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &registerIpv4Res,
                                                 sizeof(registerIpv4Res));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2201,7 +2204,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                          Eth_RpcIpv4UnregisterMacRequest *unregisterIpv4Req = (Eth_RpcIpv4UnregisterMacRequest *)msgBuffer;
                          Eth_RpcIpv4UnregisterMacResponse unregisterIpv4Res;
 
-                        CpswAppUtils_assert((unregisterIpv4Req->header.messageId == ETH_RPC_CMD_TYPE_IPV4_MAC_UNREGISTER_REQ)
+                        EnetAppUtils_assert((unregisterIpv4Req->header.messageId == ETH_RPC_CMD_TYPE_IPV4_MAC_UNREGISTER_REQ)
                                             &&
                                             (unregisterIpv4Req->header.messageLen == sizeof(*unregisterIpv4Req)));
 
@@ -2210,7 +2213,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                                  unregisterIpv4Req->info.coreKey,
                                                                  unregisterIpv4Req->ipv4Addr);
 
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             unregisterIpv4Res.info.status =  ETH_RPC_CMDSTATUS_OK;
                         }
@@ -2228,7 +2231,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &unregisterIpv4Res,
                                                 sizeof(unregisterIpv4Res));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2237,12 +2240,12 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                          Eth_RpcC2SNotify *c2sNotify = (Eth_RpcC2SNotify *)msgBuffer;
                          enum rpmsg_kdrv_ethswitch_client_notify_type rdevNotifyType;
 
-                        CpswAppUtils_assert((c2sNotify->header.messageId == ETH_RPC_CMD_TYPE_C2S_NOTIFY)
+                        EnetAppUtils_assert((c2sNotify->header.messageId == ETH_RPC_CMD_TYPE_C2S_NOTIFY)
                                             &&
                                             (c2sNotify->header.messageLen == sizeof(*c2sNotify)));
 
                         status = CpswProxy_mapEthRpcClientNotify2RdevClientNotifyType((Eth_RpcClientNotifyType)c2sNotify->notifyid, &rdevNotifyType);
-                        if (CPSW_SOK == status)
+                        if (ENET_SOK == status)
                         {
                             CpswProxyServer_clientNotifyHandlerCb(remoteProcId,
                                                                   c2sNotify->info.id,
@@ -2268,7 +2271,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &s2cNotify,
                                                 sizeof(s2cNotify));
-                        CpswAppUtils_assert(IPC_SOK == rtnVal);
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;
                     }
@@ -2288,20 +2291,20 @@ static void CpswProxyServer_hwPushNotifyFxn(void *arg, CpswCpts_HwPush hwPushNum
 
         /* Post Event */
         EventP_post(hProxyServer->notifyServiceObj.hHwPushNotifyServiceEvent,
-                    hProxyServer->notifyServiceObj.hwPushNotifyEventId[CPSW_CPTS_HW_PUSH_NORMALIZE(hwPushNum)]);
+                    hProxyServer->notifyServiceObj.hwPushNotifyEventId[CPSW_CPTS_HWPUSH_NORM(hwPushNum)]);
     }
 }
 
 static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
 {
     int32_t rtnVal = IPC_SOK;
-    Cpsw_Handle hCpsw;
+    Enet_Handle hEnet;
     CpswProxyServer_Obj * hProxyServer = (CpswProxyServer_Obj *)arg0;
     uint64_t msgBuffer[(CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE / sizeof(uint64_t))];
     volatile bool exitTask = false;
     uint32_t i = 0U, events = 0U;
-    Cpsw_IoctlPrms prms;
-    CpswCpts_LookUpEventInArgs lookupEventInArgs;
+    Enet_IoctlPrms prms;
+    CpswCpts_Event lookupEventInArgs;
     CpswCpts_Event lookupEventOutArgs;
 
     while (!exitTask)
@@ -2317,20 +2320,20 @@ static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
         {
             rtnVal = CpswProxyServer_getCpswHandle(&hProxyServer->handleTbl,
                                                    hProxyServer->notifyServiceObj.notifyServiceCpswType,
-                                                   &hCpsw);
+                                                   &hEnet);
 
-            if ((rtnVal == CPSW_SOK) && (NULL != hCpsw))
+            if ((rtnVal == ENET_SOK) && (NULL != hEnet))
             {
-                for ( i = 0U; i < CPSW_CPTS_HW_PUSH_COUNT_MAX; i++)
+                for ( i = 0U; i < CPSW_CPTS_HWPUSH_COUNT_MAX; i++)
                 {
-                    if(CPSW_IS_BIT_SET(events, i))
+                    if(ENET_IS_BIT_SET(events, i))
                     {
                         CpswRemoteNotifyService_HwPushMsg *hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)msgBuffer;
 
                         memset(hwPushMsg, 0, sizeof(*hwPushMsg));
                         hwPushMsg->header.messageId = CPSW_REMOTE_NOTIFY_SERVICE_CMD_HWPUSH;
                         hwPushMsg->header.messageLen = sizeof(*hwPushMsg);
-                        hwPushMsg->cpswType = hProxyServer->notifyServiceObj.notifyServiceCpswType;
+                        hwPushMsg->enetType = hProxyServer->notifyServiceObj.notifyServiceCpswType;
                         hwPushMsg->hwPushNum = (CpswCpts_HwPush)(i + 1U);
 
                         lookupEventInArgs.eventType = CPSW_CPTS_EVENTTYPE_HW_TS_PUSH;
@@ -2339,12 +2342,12 @@ static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
                         lookupEventInArgs.seqId = 0U;
                         lookupEventInArgs.domain  = 0U;
 
-                        CPSW_IOCTL_SET_INOUT_ARGS(&prms, &lookupEventInArgs, &lookupEventOutArgs);
-                        rtnVal = Cpsw_ioctl(hCpsw,
+                        ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupEventInArgs, &lookupEventOutArgs);
+                        rtnVal = Enet_ioctl(hEnet,
                                             hProxyServer->notifyServiceObj.dstProc,
                                             CPSW_CPTS_IOCTL_LOOKUP_EVENT,
                                             &prms);
-                        if (rtnVal == CPSW_SOK)
+                        if (rtnVal == ENET_SOK)
                         {
                             hwPushMsg->timeStamp = lookupEventOutArgs.tsVal;
 
@@ -2354,7 +2357,7 @@ static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
                                                     hProxyServer->notifyServiceObj.localEp,
                                                     hwPushMsg,
                                                     sizeof(*hwPushMsg));
-                            CpswAppUtils_assert(IPC_SOK == rtnVal);
+                            EnetAppUtils_assert(IPC_SOK == rtnVal);
                         }
                     }
                 }

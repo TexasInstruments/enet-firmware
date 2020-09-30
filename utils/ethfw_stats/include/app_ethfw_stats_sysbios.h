@@ -73,10 +73,10 @@
 #include <ti/osal/TaskP.h>
 #include <ti/osal/SemaphoreP.h>
 
-#include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
 
 #include "app_ethfw_stats.h"
 
@@ -92,11 +92,12 @@
  * TI-RTOS only API
  * MUST be called before any other API
  *
- * \param cpswType     [IN] CPSW instance type
+ * \param enetType     [IN] Enet instance type
+ * \param instId       [IN] Enet instance id
  *
  * \return \ref Cpsw_ErrorCodes
  */
-int32_t appEthfwStatsInit(Cpsw_Type cpswType);
+int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId);
 
 /*!
  * \brief Initialize Ethfw remote service

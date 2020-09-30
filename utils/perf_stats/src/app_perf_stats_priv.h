@@ -64,7 +64,7 @@
 #define __APP_PERF_STATS_PRIV_H__
 
 #include <stdint.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
 #include <utils/perf_stats/include/app_perf_stats.h>
 
 #define APP_PERF_STATS_SERVICE_NAME  "com.ti.perf_stats"

@@ -93,14 +93,15 @@
 /* PDK Driver header files */
 #include <ti/osal/osal.h>
 #include <ti/drv/ipc/ipc.h>
-#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/uart/UART_stdio.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
-#include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appboardutils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
+#include <ti/drv/enet/nimuenet/nimu_ndk.h>
 
 /* EthFw utils header files */
 #include <utils/remote_service/include/app_remote_service.h>
@@ -153,23 +154,26 @@ typedef struct EthFw_Obj_s
     /* Core Id */
     uint32_t coreId;
 
-    /* CPSW instance type */
-    Cpsw_Type cpswType;
+    /* Enet instance type */
+    Enet_Type enetType;
+
+    /* Enet instance id */
+    uint32_t instId;
 
     /*! CPSW configuration */
-    Cpsw_Config cpswCfg;
+    Cpsw_Cfg cpswCfg;
 
     /*! Firmware version */
     EthFw_Version version;
 
     /*! MAC ports owned by EthFw */
-    EthFw_Port ports[CPSW_MAC_PORT_NUM];
+    EthFw_Port ports[ENET_MAC_PORT_NUM];
 
     /*! Number of MAC ports owned by EthFw */
     uint32_t numPorts;
 
     /* Multiclient Manager (MCM) handle */
-    CpswMcm_CmdIf mcmCmdIf;
+    EnetMcm_CmdIf mcmCmdIf;
 } EthFw_Obj;
 
 /* ========================================================================== */
@@ -180,20 +184,20 @@ static int32_t EthFw_initMcm(void);
 
 static void EthFw_deinitMcm(void);
 
-static void EthFw_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
-                               Cpsw_MacPort macPort);
+static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
+                               Enet_MacPort macPort);
 
 static int32_t EthFw_setAleBcastEntry(void);
 
-static void EthFw_getMcmCmdIfCb(Cpsw_Type cpswType,
-                                CpswMcm_CmdIf **pMcmCmdIfHandle);
+static void EthFw_getMcmCmdIfCb(Enet_Type enetType,
+                                EnetMcm_CmdIf **pMcmCmdIfHandle);
 
 static void EthFw_getDeviceData(uint32_t host_id,
                                 struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
 
 static void EthFw_handleProfileInfoNotify(uint32_t host_id,
-                                          Cpsw_Handle hCpsw,
-                                          Cpsw_Type cpswType,
+                                          Enet_Handle hEnet,
+                                          Enet_Type enetType,
                                           uint32_t core_key,
                                           enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
                                           uint8_t *notify_info,
@@ -216,23 +220,54 @@ EthFw_Obj gEthFwObj;
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-void EthFw_initConfigParams(Cpsw_Type cpswType,
+static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
+{
+    /* ALE configuration */
+    aleCfg->modeFlags = CPSW_ALE_CFG_MODULE_EN |
+                        CPSW_ALE_CFG_UNKNOWN_UCAST_FLOOD2HOST;
+    aleCfg->agingCfg.enableAutoAging = TRUE;
+    aleCfg->agingCfg.agingPeriodInMs = 1000;
+    aleCfg->nwSecCfg.enableVid0Mode = FALSE;
+    aleCfg->vlanCfg.aleVlanAwareMode = TRUE;
+    aleCfg->vlanCfg.cpswVlanAwareMode = FALSE;
+    aleCfg->vlanCfg.unknownUnregMcastFloodMask = 0U;
+    aleCfg->vlanCfg.unknownRegMcastFloodMask = 0U;
+    aleCfg->vlanCfg.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
+    aleCfg->vlanCfg.autoLearnWithVLAN = false;
+    aleCfg->policerGlobalCfg.policingEnable = true;
+    aleCfg->policerGlobalCfg.yellowDropEnable = false;
+    aleCfg->policerGlobalCfg.redDropEnable = true;
+    aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
+    aleCfg->portCfg[0].learningCfg.noLearn = FALSE;
+    aleCfg->portCfg[0].vlanCfg.dropUntagged = FALSE;
+    aleCfg->portCfg[1].learningCfg.noLearn = FALSE;
+    aleCfg->portCfg[1].vlanCfg.dropUntagged = FALSE;
+
+    /* ALE policer configuration */
+    aleCfg->policerGlobalCfg.policingEnable = true;
+    aleCfg->policerGlobalCfg.yellowDropEnable = false;
+    aleCfg->policerGlobalCfg.redDropEnable = true;
+    aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
+}
+
+void EthFw_initConfigParams(Enet_Type enetType,
                             EthFw_Config *config)
 {
-    Cpsw_Config *cpswCfg = &config->cpswConfig;
-    CpswAle_Config *aleCfg = &cpswCfg->aleConfig;
-    CpswDma_Config *dmaCfg = &cpswCfg->dmaConfig;
-    Cpsw_VlanConfig *vlanCfg = &cpswCfg->vlanConfig;
-    CpswHostPort_Config *hostPortCfg = &cpswCfg->hostPortConfig;
-    CpswRm_ResourceConfig *resCfg = &cpswCfg->resourceConfig;
+    Cpsw_Cfg *cpswCfg = &config->cpswCfg;
+    CpswAle_Cfg *aleCfg = &cpswCfg->aleCfg;
+    cpswCfg->dmaCfg = NULL;
+    Cpsw_VlanCfg *vlanCfg = &cpswCfg->vlanCfg;
+    CpswHostPort_Cfg *hostPortCfg = &cpswCfg->hostPortCfg;
+    EnetRm_ResCfg *resCfg = &cpswCfg->resCfg;
 
     /* MAC port ownership */
     config->ports = NULL;
     config->numPorts = 0U;
 
     /* Start with CPSW LLD's default configuration */
-    Cpsw_initParams(cpswCfg);
-    CpswAppUtils_initResourceConfig(cpswType, CpswAppSoc_getCoreId(), resCfg);
+    // FIXME
+    Enet_initCfg(enetType, 0U, cpswCfg, sizeof (*cpswCfg));
+    EnetAppUtils_initResourceConfig(enetType, CpswAppSoc_getCoreId(), resCfg);
 
     /* VLAN configuration */
     vlanCfg->vlanAware = true;
@@ -241,65 +276,38 @@ void EthFw_initConfigParams(Cpsw_Type cpswType,
     hostPortCfg->removeCrc = true;
     hostPortCfg->padShortPacket = true;
     hostPortCfg->passCrcErrors = true;
-    hostPortCfg->enableCsumOffload = true;
+    hostPortCfg->csumOffloadEn = true;
     hostPortCfg->rxMtu = 1522U;
 
-    /* ALE configuration */
-    aleCfg->modeFlags = CPSW_ALE_CONFIG_MASK_ALE_MODULE_ENABLE |
-                        CPSW_ALE_CONFIG_MASK_UNKNOWN_UNICAST_FLOOD2HOST;
-    aleCfg->agingConfig.enableAutoAging = TRUE;
-    aleCfg->agingConfig.agingPeriodInMs = 1000;
-    aleCfg->nwSecCfg.enableVid0Mode = FALSE;
-    aleCfg->vlanConfig.aleVlanAwareMode = TRUE;
-    aleCfg->vlanConfig.cpswVlanAwareMode = FALSE;
-    aleCfg->vlanConfig.unknownUnregMcastFloodMask = 0U;
-    aleCfg->vlanConfig.unknownRegMcastFloodMask = 0U;
-    aleCfg->vlanConfig.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
-    aleCfg->vlanConfig.autoLearnWithVLAN = false;
-    aleCfg->policerGlobalConfig.policingEnable = true;
-    aleCfg->policerGlobalConfig.yellowDropEnable = false;
-    aleCfg->policerGlobalConfig.redDropEnable = true;
-    aleCfg->policerGlobalConfig.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
-    aleCfg->portCfg[0].learningCfg.noLearn = FALSE;
-    aleCfg->portCfg[0].vlanCfg.dropUntagged = FALSE;
-    aleCfg->portCfg[1].learningCfg.noLearn = FALSE;
-    aleCfg->portCfg[1].vlanCfg.dropUntagged = FALSE;
-
-    /* DMA configuration */
-    dmaCfg->hUdmaDrv = NULL;
-    /* Use high priority RX channel to get higher priority on the UDMA */
-    dmaCfg->rxChInitPrms.dmaPriority = TISCI_MSG_VALUE_RM_UDMAP_CH_SCHED_PRIOR_HIGH;
-
-    /* ALE policer configuration */
-    aleCfg->policerGlobalConfig.policingEnable = true;
-    aleCfg->policerGlobalConfig.yellowDropEnable = false;
-    aleCfg->policerGlobalConfig.redDropEnable = true;
-    aleCfg->policerGlobalConfig.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
+    EthFw_initAleCfg(aleCfg);
 }
 
-EthFw_Handle EthFw_init(Cpsw_Type cpswType,
+EthFw_Handle EthFw_init(Enet_Type enetType,
                         const EthFw_Config *config)
 {
     char *date = __DATE__;
     char *time = __TIME__;
     int32_t status;
 
-    CpswAppUtils_assert(config != NULL);
-    CpswAppUtils_assert(config->ports != NULL);
-    CpswAppUtils_assert(config->numPorts <= CPSW_MAC_PORT_NUM);
-    CpswAppUtils_assert(config->cpswConfig.dmaConfig.hUdmaDrv != NULL);
+    EnetAppUtils_assert(config != NULL);
+    EnetAppUtils_assert(config->ports != NULL);
+    EnetAppUtils_assert(config->numPorts <= ENET_MAC_PORT_NUM);
+    EnetUdma_Cfg *udmaCfg = (EnetUdma_Cfg *)config->cpswCfg.dmaCfg;
+    EnetAppUtils_assert(udmaCfg != NULL);
+    EnetAppUtils_assert(udmaCfg->hUdmaDrv != NULL);
 
     memset(&gEthFwObj, 0, sizeof(gEthFwObj));
 
     /* Save config parameters */
-    gEthFwObj.cpswCfg = config->cpswConfig;
+    gEthFwObj.cpswCfg = config->cpswCfg;
     gEthFwObj.numPorts = config->numPorts;
     memcpy(&gEthFwObj.ports[0U],
            config->ports,
            gEthFwObj.numPorts * sizeof(EthFw_Port));
 
     gEthFwObj.coreId = CpswAppSoc_getCoreId();
-    gEthFwObj.cpswType = cpswType;
+    gEthFwObj.enetType = enetType;
+    gEthFwObj.instId = 0U;
 
     /* Populate EthFw version */
     gEthFwObj.version.major = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR;
@@ -345,32 +353,32 @@ EthFw_Handle EthFw_init(Cpsw_Type cpswType,
 
     /* Initialize MCM */
     status = EthFw_initMcm();
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
     }
-    CpswAppUtils_assert(status == CPSW_SOK);
+    EnetAppUtils_assert(status == ENET_SOK);
 
     /* Add ALE entry for broadcast MAC address. Note this is needed as the broadcast
      * is disabled via unknownRegMcastFloodMask and other flags in ALE init config.
      * In EthFw we need broadcast to handle ARP entries for clients */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         EthFw_setAleBcastEntry();
     }
 
-    return (status == CPSW_SOK) ? &gEthFwObj : NULL;
+    return (status == ENET_SOK) ? &gEthFwObj : NULL;
 }
 
 void EthFw_deinit(EthFw_Handle hEthFw)
 {
-    CpswAppUtils_assert(hEthFw != NULL);
+    EnetAppUtils_assert(hEthFw != NULL);
 
     /* De-initialize MCM */
     EthFw_deinitMcm();
 
     gEthFwObj.numPorts = 0U;
-    memset(&gEthFwObj.cpswCfg, 0, sizeof(Cpsw_Config));
+    memset(&gEthFwObj.cpswCfg, 0, sizeof(Cpsw_Cfg));
 }
 
 int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
@@ -378,7 +386,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     CpswProxyServer_Config_t cfg;
     int32_t status;
 
-    CpswAppUtils_assert(hEthFw != NULL);
+    EnetAppUtils_assert(hEthFw != NULL);
 
     /* Initialize Proxy Server */
     memset(&cfg, 0, sizeof(cfg));
@@ -399,20 +407,20 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.autosarEthDeviceEndPointId = AUTOSAR_ETHDRIVER_DEVICE_ENDPT;
 
     /* Enable server-to-client notify service */
-    cfg.notifyServiceCpswType = gEthFwObj.cpswType;
+    cfg.notifyServiceCpswType = gEthFwObj.enetType;
     cfg.notifyServiceRemoteCoreId = IPC_MCU2_1;
 
     status = CpswProxyServer_init(&cfg);
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         appLogPrintf("EthFw_initRemoteConfig() failed to init CPSW Proxy: %d\n", status);
     }
 
     /* Start Proxy Server */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = CpswProxyServer_start();
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("EthFw_initRemoteConfig() failed to start CPSW Proxy: %d\n", status);
         }
@@ -426,7 +434,7 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
 {
     int32_t status;
 
-    CpswAppUtils_assert(hEthFw != NULL);
+    EnetAppUtils_assert(hEthFw != NULL);
 
     /* Late announcement of server's endpoint to remote processor */
     status = appRemoteDeviceLateAnnounce(procId);
@@ -441,47 +449,47 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
 void EthFw_getVersion(EthFw_Handle hEthFw,
                       EthFw_Version *version)
 {
-    CpswAppUtils_assert(hEthFw != NULL);
+    EnetAppUtils_assert(hEthFw != NULL);
 
     *version = gEthFwObj.version;
 }
 
 static int32_t EthFw_initMcm(void)
 {
-    CpswMcm_InitConfig cpswMcmCfg;
-    CpswMcm_HandleInfo handleInfo;
+    EnetMcm_InitConfig cpswMcmCfg;
+    EnetMcm_HandleInfo handleInfo;
     uint32_t i;
     int32_t status;
 
     /* Initialize CPSW MCM */
-    cpswMcmCfg.pCpswCfg = &gEthFwObj.cpswCfg;
-    cpswMcmCfg.cpswType = gEthFwObj.cpswType;
+    cpswMcmCfg.cpswCfg = &gEthFwObj.cpswCfg;
+    cpswMcmCfg.enetType = gEthFwObj.enetType;
+    cpswMcmCfg.instId = gEthFwObj.instId;
     cpswMcmCfg.setPortLinkCfg = EthFw_initLinkArgs;
     cpswMcmCfg.numMacPorts = gEthFwObj.numPorts;
-    cpswMcmCfg.periodicTaskPeriod = CPSW_PHY_FSM_TICK_PERIOD_MS;
+    cpswMcmCfg.periodicTaskPeriod = ENETPHY_FSM_TICK_PERIOD_MS;
     cpswMcmCfg.printFxn = appLogPrintf;
-    cpswMcmCfg.traceFxn = appLogPrintf;
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
         cpswMcmCfg.macPortList[i] = gEthFwObj.ports[i].portNum;
     }
 
-    status = CpswMcm_init(&cpswMcmCfg);
-    CpswAppUtils_assert(status == CPSW_SOK);
+    status = EnetMcm_init(&cpswMcmCfg);
+    EnetAppUtils_assert(status == ENET_SOK);
 
     /* Get MCM command interface */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
-        CpswMcm_getCmdIf(gEthFwObj.cpswType, &gEthFwObj.mcmCmdIf);
-        CpswAppUtils_assert(gEthFwObj.mcmCmdIf.hMboxCmd != NULL);
-        CpswAppUtils_assert(gEthFwObj.mcmCmdIf.hMboxResponse != NULL);
+        EnetMcm_getCmdIf(gEthFwObj.enetType, &gEthFwObj.mcmCmdIf);
+        EnetAppUtils_assert(gEthFwObj.mcmCmdIf.hMboxCmd != NULL);
+        EnetAppUtils_assert(gEthFwObj.mcmCmdIf.hMboxResponse != NULL);
     }
 
     /* Get MCM handle - CPSW driver should be open as a consequence */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
-        CpswMcm_acquireHandleInfo(&gEthFwObj.mcmCmdIf, &handleInfo);
+        EnetMcm_acquireHandleInfo(&gEthFwObj.mcmCmdIf, &handleInfo);
     }
 
     return status;
@@ -490,41 +498,40 @@ static int32_t EthFw_initMcm(void)
 static void EthFw_deinitMcm(void)
 {
     /* Release MCM handle - CPSW should close if we're last client */
-    CpswMcm_releaseHandleInfo(&gEthFwObj.mcmCmdIf);
+    EnetMcm_releaseHandleInfo(&gEthFwObj.mcmCmdIf);
 
     /* De-initialize CPSW MCM */
-    CpswMcm_deInit(gEthFwObj.cpswType);
+    EnetMcm_deInit(gEthFwObj.enetType);
 }
 
-static void EthFw_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
-                               Cpsw_MacPort macPort)
+static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
+                               Enet_MacPort macPort)
 {
-    CpswMacPort_Config *macConfig = &linkArgs->macConfig;
-    CpswMacPort_LinkConfig *linkConfig = &linkArgs->linkConfig;
-    CpswMacPort_Interface *interface = &linkArgs->interface;
-    CpswPhy_Config *phyConfig = &linkArgs->phyConfig;
+    EnetPhy_Cfg *phyCfg = &linkArgs->phyCfg;
+    CpswMacPort_Cfg *macCfg = (CpswMacPort_Cfg *)linkArgs->macCfg;
+    EnetMacPort_LinkCfg *linkCfg = &linkArgs->linkCfg;
+    EnetMacPort_Interface *mii = &linkArgs->mii;
     uint32_t i;
 
-    linkArgs->portNum = macPort;
-
-    Cpsw_initMacPortParams(macConfig);
+    CpswMacPort_initCfg(macCfg);
+    EnetPhy_initCfg(phyCfg);
 
     /* PHY parameters from board specific code */
-    CpswAppBoardUtils_setPhyConfig(gEthFwObj.cpswType,
-                                   linkArgs->portNum,
-                                   macConfig,
-                                   interface,
-                                   phyConfig);
+    CpswAppBoardUtils_setPhyConfig(gEthFwObj.enetType,
+                                   macPort,
+                                   macCfg,
+                                   mii,
+                                   phyCfg);
 
-    if (phyConfig->phyAddr == CPSW_PHY_INVALID_PHYADDR)
+    if (phyCfg->phyAddr == ENETPHY_INVALID_PHYADDR)
     {
-        linkConfig->speed = CPSW_SPEED_1GBIT;
-        linkConfig->duplexity = CPSW_DUPLEX_FULL;
+        linkCfg->speed = ENET_SPEED_1GBIT;
+        linkCfg->duplexity = ENET_DUPLEX_FULL;
     }
     else
     {
-        linkConfig->speed = CPSW_SPEED_AUTO;
-        linkConfig->duplexity = CPSW_DUPLEX_AUTO;
+        linkCfg->speed = ENET_SPEED_AUTO;
+        linkCfg->duplexity = ENET_DUPLEX_AUTO;
     }
 
     /* Use VLAN config from parameters given to EthFw */
@@ -532,34 +539,34 @@ static void EthFw_initLinkArgs(Cpsw_OpenPortLinkInArgs *linkArgs,
     {
         if (gEthFwObj.ports[i].portNum == macPort)
         {
-            macConfig->vlanConfig = gEthFwObj.ports[i].vlanConfig;
+            macCfg->vlanCfg = gEthFwObj.ports[i].vlanCfg;
         }
     }
 }
 
 static int32_t EthFw_setAleBcastEntry(void)
 {
-    Cpsw_Handle hCpsw = Cpsw_getHandle(gEthFwObj.cpswType);
-    Cpsw_IoctlPrms prms;
-    CpswAle_AddEntryOutArgs setMcastOutArgs;
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    Enet_IoctlPrms prms;
+    uint32_t setMcastOutArgs;
     CpswAle_SetMcastEntryInArgs setMcastInArgs;
     uint8_t bCastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     int32_t status;
 
     memcpy(&setMcastInArgs.addr.addr[0], &bCastAddr[0U], sizeof(setMcastInArgs.addr.addr));
     setMcastInArgs.addr.vlanId = 0U;
-    setMcastInArgs.info.superFlag  = false;
-    setMcastInArgs.info.fwdState   = CPSW_ALE_FWDSTLVL_FORWARDING;
+    setMcastInArgs.info.super  = false;
+    setMcastInArgs.info.fwdState   = CPSW_ALE_FWDSTLVL_FWD;
     setMcastInArgs.info.portMask   = CPSW_ALE_ALL_PORTS_MASK;
     setMcastInArgs.info.numIgnBits = 0U;
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setMcastInArgs, &setMcastOutArgs);
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &setMcastInArgs, &setMcastOutArgs);
 
-    status = Cpsw_ioctl(hCpsw,
+    status = Enet_ioctl(hEnet,
                         gEthFwObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_MULTICAST,
+                        CPSW_ALE_IOCTL_ADD_MCAST,
                         &prms);
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         appLogPrintf("EthFw_setAleBcastEntry() ADD_MULTICAST ioctl failed: %d\n", status);
     }
@@ -569,8 +576,8 @@ static int32_t EthFw_setAleBcastEntry(void)
 
 /* Proxy Server callbacks */
 
-static void EthFw_getMcmCmdIfCb(Cpsw_Type cpswType,
-                                CpswMcm_CmdIf **pMcmCmdIfHandle)
+static void EthFw_getMcmCmdIfCb(Enet_Type enetType,
+                                EnetMcm_CmdIf **pMcmCmdIfHandle)
 {
     *pMcmCmdIfHandle = &gEthFwObj.mcmCmdIf;
 }
@@ -606,8 +613,8 @@ static void EthFw_getDeviceData(uint32_t host_id,
 }
 
 static void EthFw_handleProfileInfoNotify(uint32_t host_id,
-                                          Cpsw_Handle hCpsw,
-                                          Cpsw_Type cpswType,
+                                          Enet_Handle hEnet,
+                                          Enet_Type enetType,
                                           uint32_t core_key,
                                           enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
                                           uint8_t *notify_info,
@@ -616,9 +623,9 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
     appProfileAvgLoadInfo *info = (appProfileAvgLoadInfo *)notify_info;
     uint32_t i;
 
-    CpswAppUtils_assert(Cpsw_getHandle(cpswType) == hCpsw);
-    CpswAppUtils_assert(notifyid == RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM);
-    CpswAppUtils_assert(notify_info_len == sizeof(appProfileAvgLoadInfo));
+    EnetAppUtils_assert(Enet_getHandle(enetType, 0U) == hEnet);
+    EnetAppUtils_assert(notifyid == RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM);
+    EnetAppUtils_assert(notify_info_len == sizeof(appProfileAvgLoadInfo));
 
     appLogPrintf("\n***********************************\n");
     appLogPrintf(" CPU Load         : %d\n", info->cpuLoad);

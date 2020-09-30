@@ -45,7 +45,7 @@ ifeq ($(TARGET_PLATFORM),J7200)
     DEFS += ENABLE_QSGMII_PORTS
 endif
 
-CPSW_APPUTILS_LIB = cpsw_apputils
+CPSW_APPUTILS_LIB = enet_example_utils
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
@@ -99,9 +99,9 @@ STATIC_LIBS += lib_remoteswitchcfg_server
 
 ifeq ($(TARGET_PLATFORM),J7200)
     DEFS += ENABLE_QSGMII_PORTS
-    CPSW_APPUTILS_LIB = cpsw_apputils_full
+    CPSW_APPUTILS_LIB = enet_example_utils_full
 else
-    CPSW_APPUTILS_LIB = cpsw_apputils
+    CPSW_APPUTILS_LIB = enet_example_utils
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

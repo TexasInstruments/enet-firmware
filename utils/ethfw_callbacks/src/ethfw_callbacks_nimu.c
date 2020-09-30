@@ -73,17 +73,18 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/dma/udma/enet_udma.h>
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/uart/UART_stdio.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils_cfg.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apprm.h>
-#include <ti/drv/cpsw/nimucpsw/nimu_ndk.h>
-#include <ti/drv/cpsw/nimucpsw/ndk2cpsw_appif.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils_cfg.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apprm.h>
+#include <ti/drv/enet/nimuenet/nimu_ndk.h>
+#include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_nimu.h>
 #include <utils/console_io/include/app_log.h>
@@ -133,19 +134,19 @@ NIMU_DEVICE_TABLE_ENTRY NIMUDeviceTable[2U] =
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
-                                      NimuCpswAppIf_GetHandleOutArgs *outArgs)
+void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
+                                      NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
-    CpswMcm_CmdIf mcmCmdIf;
-    CpswMcm_HandleInfo handleInfo;
-    Cpsw_AttachCoreOutArgs attachInfo;
-    CpswDma_OpenTxChPrms cpswTxChCfg;
-    CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
-    CpswDma_UdmaRingPrms *pFqRingPrms;
+    EnetMcm_CmdIf mcmCmdIf;
+    EnetMcm_HandleInfo handleInfo;
+    EnetPer_AttachCoreOutArgs attachInfo;
+    EnetUdma_OpenTxChPrms cpswTxChCfg;
+    EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
+    EnetUdma_UdmaRingPrms *pFqRingPrms;
 #if defined(SOC_J721E)
-    Cpsw_Type cpswType = CPSW_9G;
+    Enet_Type enetType = ENET_CPSW_9G;
 #elif defined(SOC_J7200)
-    Cpsw_Type cpswType = CPSW_5G;
+    Enet_Type enetType = ENET_CPSW_5G;
 #endif
     uint8_t *macAddr;
     uint32_t coreId = CpswAppSoc_getCoreId();
@@ -153,21 +154,21 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     bool useRingMon = true;
 
     /* Get MCM command interface */
-    CpswMcm_getCmdIf(cpswType, &mcmCmdIf);
-    CpswAppUtils_assert(mcmCmdIf.hMboxCmd != NULL);
-    CpswAppUtils_assert(mcmCmdIf.hMboxResponse != NULL);
+    EnetMcm_getCmdIf(enetType, &mcmCmdIf);
+    EnetAppUtils_assert(mcmCmdIf.hMboxCmd != NULL);
+    EnetAppUtils_assert(mcmCmdIf.hMboxResponse != NULL);
 
     /* Get CPSW and UDMA driver handles */
-    CpswMcm_acquireHandleInfo(&mcmCmdIf, &handleInfo);
+    EnetMcm_acquireHandleInfo(&mcmCmdIf, &handleInfo);
 
     /* Attach this core, if not done already */
-    CpswMcm_coreAttach(&mcmCmdIf, coreId, &attachInfo);
+    EnetMcm_coreAttach(&mcmCmdIf, coreId, &attachInfo);
 
     /* Open TX channel */
-    CpswDma_initTxChParams(&cpswTxChCfg);
+    EnetDma_initTxChParams(&cpswTxChCfg);
     cpswTxChCfg.hUdmaDrv            = handleInfo.hUdmaDrv;
     cpswTxChCfg.numTxPkts           = inArgs->txCfg.numPackets;
-    cpswTxChCfg.hCbArg              = inArgs->txCfg.cbArg;
+    cpswTxChCfg.cbArg              = inArgs->txCfg.cbArg;
     cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
     cpswTxChCfg.useProxy            = true;
     cpswTxChCfg.disableCacheOpsFlag = false;
@@ -176,7 +177,7 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     cpswTxChCfg.dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
     cpswTxChCfg.dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
 
-    CpswAppUtils_openTxCh(handleInfo.hCpsw,
+    EnetAppUtils_openTxCh(handleInfo.hEnet,
                           attachInfo.coreKey,
                           coreId,
                           &outArgs->txInfo.txChNum,
@@ -184,11 +185,11 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
                           &cpswTxChCfg);
 
     /* Open RX Flow */
-    CpswDma_initRxFlowParams(&cpswRxFlowCfg);
+    EnetDma_initRxChParams(&cpswRxFlowCfg);
     cpswRxFlowCfg.notifyCb  = inArgs->rxCfg.notifyCb;
     cpswRxFlowCfg.numRxPkts = inArgs->rxCfg.numPackets;
     cpswRxFlowCfg.hUdmaDrv  = handleInfo.hUdmaDrv;
-    cpswRxFlowCfg.hCbArg    = inArgs->rxCfg.cbArg;
+    cpswRxFlowCfg.cbArg    = inArgs->rxCfg.cbArg;
     cpswRxFlowCfg.useProxy  = true;
 
     /* Use ring monitor for the CQ ring of RX flow */
@@ -212,7 +213,7 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
     cpswRxFlowCfg.dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
 
-    CpswAppUtils_openRxFlow(handleInfo.hCpsw,
+    EnetAppUtils_openRxFlow(handleInfo.hEnet,
                             attachInfo.coreKey,
                             coreId,
                             useDefaultFlow,
@@ -224,11 +225,11 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
 
     outArgs->coreId          = coreId;
     outArgs->coreKey         = attachInfo.coreKey;
-    outArgs->hCpsw           = handleInfo.hCpsw;
+    outArgs->hEnet           = handleInfo.hEnet;
     outArgs->hostPortRxMtu   = attachInfo.rxMtu;
-    CPSW_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
+    ENET_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
     outArgs->hUdmaDrv        = handleInfo.hUdmaDrv;
-    outArgs->printFxnCb      = &CpswAppUtils_print;
+    outArgs->printFxnCb      = &EnetAppUtils_print;
     outArgs->isPortLinkedFxn = &EthFwCallbacks_isPortLinked;
 
     /* TODO: NIMU's polling timer is getting corrupted at times of sudden burst of
@@ -250,27 +251,27 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
                  macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
 }
 
-void EthFwCallbacks_nimuCpswReleaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
+void EthFwCallbacks_nimuCpswReleaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
-    CpswMcm_CmdIf mcmCmdIf;
-    CpswDma_PktInfoQ fqPktInfoQ;
-    CpswDma_PktInfoQ cqPktInfoQ;
+    EnetMcm_CmdIf mcmCmdIf;
+    EnetDma_PktInfoQ fqPktInfoQ;
+    EnetDma_PktInfoQ cqPktInfoQ;
 #if defined(SOC_J721E)
-    Cpsw_Type cpswType = CPSW_9G;
+    Enet_Type enetType = ENET_CPSW_9G;
 #elif defined(SOC_J7200)
-    Cpsw_Type cpswType = CPSW_5G;
+    Enet_Type enetType = ENET_CPSW_5G;
 #endif
     bool useDefaultFlow = true;    /* NDK must handle the default flow */
 
     /* Get MCM command interface */
-    CpswMcm_getCmdIf(cpswType, &mcmCmdIf);
-    CpswAppUtils_assert(mcmCmdIf.hMboxCmd != NULL);
-    CpswAppUtils_assert(mcmCmdIf.hMboxResponse != NULL);
+    EnetMcm_getCmdIf(enetType, &mcmCmdIf);
+    EnetAppUtils_assert(mcmCmdIf.hMboxCmd != NULL);
+    EnetAppUtils_assert(mcmCmdIf.hMboxResponse != NULL);
 
     /* Close TX channel */
-    CpswUtils_initQ(&fqPktInfoQ);
-    CpswUtils_initQ(&cqPktInfoQ);
-    CpswAppUtils_closeTxCh(releaseInfo->hCpsw,
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+    EnetAppUtils_closeTxCh(releaseInfo->hEnet,
                            releaseInfo->coreKey,
                            releaseInfo->coreId,
                            &fqPktInfoQ,
@@ -280,9 +281,9 @@ void EthFwCallbacks_nimuCpswReleaseHandle(NimuCpswAppIf_ReleaseHandleInfo *relea
     releaseInfo->txFreePktCb(releaseInfo->freePktCbArg, &fqPktInfoQ, &cqPktInfoQ);
 
     /* Close RX Flow */
-    CpswUtils_initQ(&fqPktInfoQ);
-    CpswUtils_initQ(&cqPktInfoQ);
-    CpswAppUtils_closeRxFlow(releaseInfo->hCpsw,
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+    EnetAppUtils_closeRxFlow(releaseInfo->hEnet,
                              releaseInfo->coreKey,
                              releaseInfo->coreId,
                              useDefaultFlow,
@@ -294,6 +295,6 @@ void EthFwCallbacks_nimuCpswReleaseHandle(NimuCpswAppIf_ReleaseHandleInfo *relea
                              releaseInfo->rxInfo.hRxFlow);
     releaseInfo->rxFreePktCb(releaseInfo->freePktCbArg, &fqPktInfoQ, &cqPktInfoQ);
 
-    CpswMcm_coreDetach(&mcmCmdIf, releaseInfo->coreId, releaseInfo->coreKey);
-    CpswMcm_releaseHandleInfo(&mcmCmdIf);
+    EnetMcm_coreDetach(&mcmCmdIf, releaseInfo->coreId, releaseInfo->coreKey);
+    EnetMcm_releaseHandleInfo(&mcmCmdIf);
 }

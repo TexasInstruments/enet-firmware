@@ -189,7 +189,7 @@ flashable
 renderers
 uarts
 initializing
-nimucpsw
+nimuenet
 vpe
 pdksetupenv
 testptp

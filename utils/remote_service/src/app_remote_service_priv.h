@@ -69,7 +69,7 @@
 #include <string.h>
 
 #include <ti/drv/ipc/ipc.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
 
 #include <utils/remote_service/include/app_remote_service.h>
 

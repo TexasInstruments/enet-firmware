@@ -77,9 +77,11 @@
 
 typedef struct
 {
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
 
-    Cpsw_Handle hCpsw;
+    uint32_t instId;
+
+    Enet_Handle hEnet;
 
     uint32_t coreId;
 
@@ -121,7 +123,7 @@ static Void appEthfwStats_clockCb(void *arg)
 
 static int32_t appEthfw_createClock(app_ethfw_stats_obj_t *obj)
 {
-    int32_t status = CPSW_SOK;
+    int32_t status = ENET_SOK;
     Clock_Params clkParams;
     Error_Block eb;
 
@@ -138,7 +140,7 @@ static int32_t appEthfw_createClock(app_ethfw_stats_obj_t *obj)
                                     &eb);
     if (obj->hStatsClock == NULL)
     {
-        status = CPSW_EFAIL;
+        status = ENET_EFAIL;
     }
 
     return status;
@@ -152,7 +154,7 @@ static void appEthfw_calculateBw(CpswStats_PortStats currPortStats,
     uint32_t txOctetsDiff = 0U, rxOctetsDiff = 0U, txFramesDiff = 0U, rxFramesDiff = 0U;
     app_ethfw_stats_obj_t *obj = &g_app_ethfw_stats_obj;
 
-    if (obj->cpswType == CPSW_2G)
+    if (obj->enetType == ENET_CPSW_2G)
     {
         CpswStats_HostPort_2g *cpsw2gCurrPortStats = (CpswStats_HostPort_2g *)&currPortStats;
         CpswStats_HostPort_2g *cpsw2gPrevPortStats = (CpswStats_HostPort_2g *)&prevPortStats;
@@ -163,10 +165,10 @@ static void appEthfw_calculateBw(CpswStats_PortStats currPortStats,
         rxOctetsDiff = cpsw2gCurrPortStats->rxOctets - cpsw2gPrevPortStats->rxOctets;
         rxFramesDiff = cpsw2gCurrPortStats->rxGoodFrames - cpsw2gPrevPortStats->rxGoodFrames;
     }
-    if  ((obj->cpswType == CPSW_9G)||(obj->cpswType == CPSW_5G))
+    if  ((obj->enetType == ENET_CPSW_9G)||(obj->enetType == ENET_CPSW_5G))
     {
-        CpswStats_HostPort_9g *cpsw9gCurrPortStats = (CpswStats_HostPort_9g *)&currPortStats;
-        CpswStats_HostPort_9g *cpsw9gPrevPortStats = (CpswStats_HostPort_9g *)&prevPortStats;
+        CpswStats_HostPort_Ng *cpsw9gCurrPortStats = (CpswStats_HostPort_Ng *)&currPortStats;
+        CpswStats_HostPort_Ng *cpsw9gPrevPortStats = (CpswStats_HostPort_Ng *)&prevPortStats;
 
         txOctetsDiff = cpsw9gCurrPortStats->txOctets - cpsw9gPrevPortStats->txOctets;
         txFramesDiff = cpsw9gCurrPortStats->txGoodFrames - cpsw9gPrevPortStats->txGoodFrames;
@@ -181,13 +183,12 @@ static void appEthfw_calculateBw(CpswStats_PortStats currPortStats,
 
 static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
 {
-    Cpsw_IoctlPrms prms;
-    CpswStats_GenericMacPortInArgs inArgs;
+    Enet_IoctlPrms prms;
     CpswStats_PortStats currPortStats;
     app_ethfw_stats_obj_t *obj = (app_ethfw_stats_obj_t *)arg0;
     uint8_t i, portCnt = 0U;
-    Cpsw_MacPort portNum;
-    int32_t status = CPSW_SOK;
+    Enet_MacPort portNum;
+    int32_t status = ENET_SOK;
 
     while (!obj->ethfwStatsShutdown)
     {
@@ -197,9 +198,9 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
         obj->ethfwPortBw.isportenabled[0] = true;
 
         /* Collect host port statistics and calculate bandwidth*/
-        CPSW_IOCTL_SET_OUT_ARGS(&prms, &currPortStats);
-        status = Cpsw_ioctl(obj->hCpsw, obj->coreId, CPSW_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
-        if (status != CPSW_SOK)
+        ENET_IOCTL_SET_OUT_ARGS(&prms, &currPortStats);
+        status = Enet_ioctl(obj->hEnet, obj->coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+        if (status != ENET_SOK)
         {
             appLogPrintf("ETHFW STATS: Error in collecting host port statistics: %d\n", status);
         }
@@ -213,18 +214,17 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
 
         }
 
-        portCnt = Cpsw_getMacPortMax(obj->cpswType);
-        for (i = 0U, portNum = CPSW_MAC_PORT_FIRST; i < portCnt ; i++, portNum++)
+        portCnt = Enet_getMacPortMax(obj->enetType, obj->instId);
+        for (i = 0U, portNum = ENET_MAC_PORT_FIRST; i < portCnt ; i++, portNum++)
         {
-            obj->ethfwPortBw.isportenabled[i+1] = CpswAppUtils_isPortLinkUp(obj->hCpsw, obj->coreId, portNum);
+            obj->ethfwPortBw.isportenabled[i+1] = EnetAppUtils_isPortLinkUp(obj->hEnet, obj->coreId, portNum);
 
             if (obj->ethfwPortBw.isportenabled[i+1] == true)
             {
                 /* Collect MAC port statistics and calculate bandwidth */
-                inArgs.portNum = portNum;
-                CPSW_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &currPortStats);
-                status = Cpsw_ioctl(obj->hCpsw, obj->coreId, CPSW_STATS_IOCTL_GET_MACPORT_STATS, &prms);
-                if (status != CPSW_SOK)
+                ENET_IOCTL_SET_INOUT_ARGS(&prms, &portNum, &currPortStats);
+                status = Enet_ioctl(obj->hEnet, obj->coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+                if (status != ENET_SOK)
                 {
                     appLogPrintf("ETHFW STATS: Error in collecting host port statistics: %d\n", status);
                 }
@@ -246,30 +246,31 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
     }
 }
 
-int32_t appEthfwStatsInit(Cpsw_Type cpswType)
+int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
 {
-    int32_t status = CPSW_SOK;
+    int32_t status = ENET_SOK;
     SemaphoreP_Params semParams;
     TaskP_Params params;
-    Cpsw_AttachCoreOutArgs attachInfo;
-    CpswMcm_HandleInfo handleInfo;
-    CpswMcm_CmdIf cmdIf;
+    EnetPer_AttachCoreOutArgs attachInfo;
+    EnetMcm_HandleInfo handleInfo;
+    EnetMcm_CmdIf cmdIf;
     app_ethfw_stats_obj_t *obj;
 
     obj = &g_app_ethfw_stats_obj;
     memset(obj, 0, sizeof(app_ethfw_stats_obj_t));
 
-    obj->cpswType = cpswType;
+    obj->enetType = enetType;
+    obj->instId   = instId;
     obj->coreId   = CpswAppSoc_getCoreId();
 
-    CpswMcm_getCmdIf(obj->cpswType, &cmdIf);
-    CpswAppUtils_assert(cmdIf.hMboxCmd != NULL);
-    CpswAppUtils_assert(cmdIf.hMboxResponse != NULL);
+    EnetMcm_getCmdIf(obj->enetType, &cmdIf);
+    EnetAppUtils_assert(cmdIf.hMboxCmd != NULL);
+    EnetAppUtils_assert(cmdIf.hMboxResponse != NULL);
 
-    CpswMcm_acquireHandleInfo(&cmdIf, &handleInfo);
-    CpswMcm_coreAttach(&cmdIf, obj->coreId, &attachInfo);
+    EnetMcm_acquireHandleInfo(&cmdIf, &handleInfo);
+    EnetMcm_coreAttach(&cmdIf, obj->coreId, &attachInfo);
 
-    obj->hCpsw = handleInfo.hCpsw;
+    obj->hEnet = handleInfo.hEnet;
     obj->coreKey = attachInfo.coreKey;
 
     SemaphoreP_Params_init(&semParams);
@@ -278,10 +279,10 @@ int32_t appEthfwStatsInit(Cpsw_Type cpswType)
     if(obj->clockSem==NULL)
     {
         appLogPrintf("ETHFW STATS: Unable to create clock semaphore\n");
-        status = CPSW_EFAIL;
+        status = ENET_EFAIL;
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         TaskP_Params_init(&params);
         params.name      = "EthFw stats collector Task";
@@ -296,20 +297,20 @@ int32_t appEthfwStatsInit(Cpsw_Type cpswType)
         if (NULL == obj->hStatsCollectorTask)
         {
             appLogPrintf("ETHFW STATS: Unable to create Stats collector task\n");
-            status = CPSW_EFAIL;
+            status = ENET_EFAIL;
         }
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = appEthfw_createClock(obj);
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("ETHFW STATS: Unable to create clock\n");
         }
     }
 
-    if(status == CPSW_SOK)
+    if(status == ENET_SOK)
     {
         /* Now enable Ethfw statistics calculation */
         obj->ethfwStatsUpdateEnable = true;

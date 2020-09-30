@@ -93,10 +93,10 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void EthSwInterVlan_setupRouting(Cpsw_Type cpswType,
+void EthSwInterVlan_setupRouting(Enet_Type enetType,
                                  uint32_t swInterVlanTaskPri);
 
-int32_t EthSwInterVlan_addClassifierEntries(CpswCfgServer_InterVlanConfig *pInterVlanCfg);
+int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInterVlanCfg);
 
 /* ========================================================================== */
 /*                       Static Function Definitions                          */

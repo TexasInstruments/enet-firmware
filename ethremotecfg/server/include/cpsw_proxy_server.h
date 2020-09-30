@@ -65,8 +65,8 @@
 
 #include <stdint.h>
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
-#include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -118,11 +118,11 @@ typedef void  (*CpswProxyServer_InitEthfwDeviceDataCb)(uint32_t host_id,
  * The CPSW Proxy server needs the MCM command interface to perform ATTACH.
  * The MCM command interface is obtained by invoking this application callback.
  *
- * \param cpswType         CPSW instance type
+ * \param enetType         Enet instance type
  * \param pMcmCmdIfHandle  Pointer to MCM command interface structure which will
  *                         be populated by application
  */
-typedef void  (*CpswProxyServer_GetMcmCmdIfCb)(Cpsw_Type  cpswType, CpswMcm_CmdIf  **pMcmCmdIfHandle);
+typedef void  (*CpswProxyServer_GetMcmCmdIfCb)(Enet_Type  enetType, EnetMcm_CmdIf  **pMcmCmdIfHandle);
 
 /*!
  * \brief Application Callback function pointer to handle custom notification
@@ -135,15 +135,15 @@ typedef void  (*CpswProxyServer_GetMcmCmdIfCb)(Cpsw_Type  cpswType, CpswMcm_CmdI
  * should match.
  *
  * \param host_id      Remote Core IPC core id
- * \param hCpsw        Handle to CPSW
- * \param cpswType     CPSW instance type
+ * \param hEnet        Handle to CPSW
+ * \param enetType     Enet instance type
  * \param notifyid     Custom notify id. Will be #RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM
  * \param notify_info  Notify info
  * \param notify_info_len Notify info length
  */
 typedef void  (*CpswProxyServer_NotifyCb)(uint32_t host_id,
-                                          Cpsw_Handle hCpsw,
-                                          Cpsw_Type cpswType,
+                                          Enet_Handle hEnet,
+                                          Enet_Type enetType,
                                           uint32_t core_key,
                                           enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
                                           uint8_t *notify_info,
@@ -192,7 +192,7 @@ typedef struct CpswProxyServer_Config_s
     uint32_t autosarEthDriverRemoteCoreId;
 
     /*! CPSW type for which notify service is enabled */
-    Cpsw_Type notifyServiceCpswType;
+    Enet_Type notifyServiceCpswType;
 
     /*! Remote Core Id for Notification service */
     uint32_t notifyServiceRemoteCoreId;
@@ -213,7 +213,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg);
  *
  * Starts the remote device framework.
  *
- * \return CPSW_SOK if succeeded, an error code otherwise.
+ * \return ENET_SOK if succeeded, an error code otherwise.
  */
 int32_t  CpswProxyServer_start(void);
 

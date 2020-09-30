@@ -88,14 +88,16 @@
 #include <ti/csl/csl_cpswitch.h>
 
 #include <ti/drv/udma/udma.h>
-#include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils_cfg.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appmemutils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpswapp_ethutils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_mcm.h>
-#include <ti/drv/cpsw/cpsw_cfgserver/cpsw_cfgserver.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/dma/udma/enet_udma.h>
+
+#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils_cfg.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/cpswapp_ethutils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
+#include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
 
 #include <ti/osal/osal.h>
 #include <ti/sysbios/hal/Cache.h>
@@ -117,8 +119,8 @@
 #define PKT_HEADER_SIZE                 (64U)
 #define APP_TSK_STACK_SIZE              (6U * 1024U)
 
-#define APP_INTERVLAN_INGRESS_PORT_NUM  (CPSW_MAC_PORT_3)
-#define APP_INTERVLAN_EGRESS_PORT_NUM   (CPSW_MAC_PORT_2)
+#define APP_INTERVLAN_INGRESS_PORT_NUM  (ENET_MAC_PORT_4)
+#define APP_INTERVLAN_EGRESS_PORT_NUM   (ENET_MAC_PORT_3)
 
 #define APP_INTERVLAN_INGRESS_VLANID    (100)
 #define APP_INTERVLAN_EGRESS_VLANID     (200)
@@ -133,29 +135,29 @@
 
 typedef struct
 {
-    Cpsw_Type cpswType;
+    Enet_Type enetType;
 
     /* CPSW driver handle */
-    Cpsw_Handle hCpsw;
+    Enet_Handle hEnet;
 
     Udma_DrvHandle hUdmaDrv;
 
-    CpswDma_RxFlowHandle hIngRxFlow;
+    EnetDma_RxChHandle hIngRxFlow;
 
     uint32_t rxFlowStartIdx;
 
     uint32_t ingRxFlowIdx;
 
-    CpswDma_PktInfoQ rxReadyQ;
+    EnetDma_PktInfoQ rxReadyQ;
 
-    CpswDma_TxChHandle hTxCh;
+    EnetDma_TxChHandle hTxCh;
 
     uint32_t txChNum;
 
     /* Semaphore for signalling packet ready for processing*/
     Semaphore_Handle completionSem;
 
-    uint8_t hostMacAddr[CPSW_MAC_ADDR_LEN];
+    uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
     uint32_t num_pkts;
 
@@ -201,36 +203,36 @@ static Void CpswApp_InterVlanRouting(UArg a0,
                                      UArg a1)
 {
     int32_t status;
-    CpswDma_PktInfoQ fqPktInfoQ, cqPktInfoQ;
+    EnetDma_PktInfoQ fqPktInfoQ, cqPktInfoQ;
     Semaphore_Params semParams;
-    CpswMcm_HandleInfo handleInfo;
-    Cpsw_AttachCoreOutArgs attachInfo;
-    CpswMcm_CmdIf cmdIf;
+    EnetMcm_HandleInfo handleInfo;
+    EnetPer_AttachCoreOutArgs attachInfo;
+    EnetMcm_CmdIf cmdIf;
 
-    CpswMcm_getCmdIf(gCpswInterVlanAppObj.cpswType, &cmdIf);
-    CpswAppUtils_assert(cmdIf.hMboxCmd != NULL);
-    CpswAppUtils_assert(cmdIf.hMboxResponse != NULL);
+    EnetMcm_getCmdIf(gCpswInterVlanAppObj.enetType, &cmdIf);
+    EnetAppUtils_assert(cmdIf.hMboxCmd != NULL);
+    EnetAppUtils_assert(cmdIf.hMboxResponse != NULL);
 
     gCpswInterVlanAppObj.coreId = CpswAppSoc_getCoreId();
 
-    CpswMcm_acquireHandleInfo(&cmdIf, &handleInfo);
-    CpswMcm_coreAttach(&cmdIf, gCpswInterVlanAppObj.coreId, &attachInfo);
+    EnetMcm_acquireHandleInfo(&cmdIf, &handleInfo);
+    EnetMcm_coreAttach(&cmdIf, gCpswInterVlanAppObj.coreId, &attachInfo);
 
-    gCpswInterVlanAppObj.hCpsw = handleInfo.hCpsw;
+    gCpswInterVlanAppObj.hEnet = handleInfo.hEnet;
     gCpswInterVlanAppObj.hUdmaDrv = handleInfo.hUdmaDrv;
     gCpswInterVlanAppObj.coreKey = attachInfo.coreKey;
     gCpswInterVlanAppObj.isDefaultFlow = false;
 
-    if (gCpswInterVlanAppObj.hCpsw == NULL)
+    if (gCpswInterVlanAppObj.hEnet == NULL)
     {
         appLogPrintf("Failed to open CPSW\n");
-        CpswAppUtils_assert(gCpswInterVlanAppObj.hCpsw == NULL);
+        EnetAppUtils_assert(gCpswInterVlanAppObj.hEnet == NULL);
     }
 
     if (gCpswInterVlanAppObj.hUdmaDrv == NULL)
     {
         appLogPrintf("Failed to Get UDMA Handle\n");
-        CpswAppUtils_assert(gCpswInterVlanAppObj.hUdmaDrv == NULL);
+        EnetAppUtils_assert(gCpswInterVlanAppObj.hUdmaDrv == NULL);
     }
 
     Semaphore_Params_init(&semParams);
@@ -241,16 +243,16 @@ static Void CpswApp_InterVlanRouting(UArg a0,
     status = CpswApp_getRxTxHandle();
     appLogPrintf("Rx Flow for Software Inter-VLAN Routing is up\n");
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         CpswApp_pktRxTx();
     }
 
-    CpswUtils_initQ(&fqPktInfoQ);
-    CpswUtils_initQ(&cqPktInfoQ);
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
 
     /* Close RX Flow */
-    CpswAppUtils_closeRxFlow(gCpswInterVlanAppObj.hCpsw,
+    EnetAppUtils_closeRxFlow(gCpswInterVlanAppObj.hEnet,
                              gCpswInterVlanAppObj.coreKey,
                              gCpswInterVlanAppObj.coreId,
                              true,
@@ -261,14 +263,14 @@ static Void CpswApp_InterVlanRouting(UArg a0,
                              gCpswInterVlanAppObj.hostMacAddr,
                              gCpswInterVlanAppObj.hIngRxFlow);
 
-    CpswAppUtils_freePktInfoQ(&fqPktInfoQ);
-    CpswAppUtils_freePktInfoQ(&cqPktInfoQ);
+    EnetAppUtils_freePktInfoQ(&fqPktInfoQ);
+    EnetAppUtils_freePktInfoQ(&cqPktInfoQ);
 
     /* Close TX channel */
-    CpswUtils_initQ(&fqPktInfoQ);
-    CpswUtils_initQ(&cqPktInfoQ);
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
 
-    CpswAppUtils_closeTxCh(gCpswInterVlanAppObj.hCpsw,
+    EnetAppUtils_closeTxCh(gCpswInterVlanAppObj.hEnet,
                            gCpswInterVlanAppObj.coreKey,
                            gCpswInterVlanAppObj.coreId,
                            &fqPktInfoQ,
@@ -276,15 +278,15 @@ static Void CpswApp_InterVlanRouting(UArg a0,
                            gCpswInterVlanAppObj.hTxCh,
                            gCpswInterVlanAppObj.txChNum);
 
-    CpswAppUtils_freePktInfoQ(&fqPktInfoQ);
-    CpswAppUtils_freePktInfoQ(&cqPktInfoQ);
+    EnetAppUtils_freePktInfoQ(&fqPktInfoQ);
+    EnetAppUtils_freePktInfoQ(&cqPktInfoQ);
 
-    CpswMcm_releaseHandleInfo(&cmdIf);
+    EnetMcm_releaseHandleInfo(&cmdIf);
 }
 
 void CpswApp_ingRxIsrFxn(void *appData)
 {
-    CpswDma_RxFlowHandle *rxFlow = (CpswDma_RxFlowHandle *)appData;
+    EnetDma_RxChHandle *rxFlow = (EnetDma_RxChHandle *)appData;
 
     /* In Rx completion handler, post the Semaphore for Forwarding task to handle
      * further processing. We also disable further Rx completion events notifications
@@ -292,7 +294,7 @@ void CpswApp_ingRxIsrFxn(void *appData)
      * interrupt subsequently*/
 
     /*Step1 : disable any further completion event handling*/
-    CpswDma_disableRxEvent(*rxFlow);
+    EnetDma_disableRxEvent(*rxFlow);
 
     /*Step2 : Post semaphore for signalling the Forwarding task */
     Semaphore_post(gCpswInterVlanAppObj.completionSem);
@@ -300,11 +302,11 @@ void CpswApp_ingRxIsrFxn(void *appData)
 
 void CpswApp_txIsrFxn(void *appData)
 {
-    CpswDma_TxChHandle *txChn = (CpswDma_TxChHandle *)appData;
+    EnetDma_TxChHandle *txChn = (EnetDma_TxChHandle *)appData;
 
     /*Step1 : Disable Tx completion notification callback. Tx completion will be handled as part
      * of Rx completion handling - this being a forwarding case*/
-    CpswDma_disableTxEvent(*txChn);
+    EnetDma_disableTxEvent(*txChn);
 
     /*Step2 : Post semaphore for signalling the Forwarding task */
     Semaphore_post(gCpswInterVlanAppObj.completionSem);
@@ -312,40 +314,41 @@ void CpswApp_txIsrFxn(void *appData)
 
 static void CpswApp_initRxReadyPktQ(void)
 {
-    CpswDma_PktInfoQ rxFreeQ;
-    CpswDma_PktInfoQ rxReadyQ;
+    EnetDma_PktInfoQ rxFreeQ;
+    EnetDma_PktInfoQ rxReadyQ;
     int32_t status;
     uint32_t i;
-    CpswDma_PktInfo *pPktInfo;
+    EnetDma_PktInfo *pPktInfo;
 
-    CpswUtils_initQ(&rxFreeQ);
-    CpswUtils_initQ(&rxReadyQ);
+    EnetQueue_initQ(&rxFreeQ);
+    EnetQueue_initQ(&rxReadyQ);
 
     for (i = 0U; i < CPSW_FRWD_APP_NUM_PKTS; i++)
     {
         pPktInfo = CpswAppMemUtils_allocEthPktFxn(&gCpswInterVlanAppObj,
                                                   CPSW_APPMEMUTILS_LARGE_POOL_PKT_SIZE,
                                                   UDMA_CACHELINE_ALIGNMENT);
-        CpswAppUtils_assert(pPktInfo != NULL);
-        CpswUtils_enQ(&rxFreeQ, &pPktInfo->node);
+        EnetAppUtils_assert(pPktInfo != NULL);
+        EnetQueue_enq(&rxFreeQ, &pPktInfo->node);
     }
 
     /* Retrieve any CPSW packets which are ready */
-    status = CpswDma_retrieveRxPackets(gCpswInterVlanAppObj.hIngRxFlow, &rxReadyQ);
-    CpswAppUtils_assert(status == CPSW_SOK);
+    status = EnetDma_retrieveRxPktQ(gCpswInterVlanAppObj.hIngRxFlow, &rxReadyQ);
+    EnetAppUtils_assert(status == ENET_SOK);
     /* There should not be any packet with DMA during init */
-    CpswAppUtils_assert(CpswUtils_getQCount(&rxReadyQ) == 0U);
+    EnetAppUtils_assert(EnetQueue_getQCount(&rxReadyQ) == 0U);
 
-    CpswAppUtils_submitRxPackets(gCpswInterVlanAppObj.hIngRxFlow,
+    EnetDma_submitRxPktQ(gCpswInterVlanAppObj.hIngRxFlow,
                                  &rxFreeQ);
 
     /* Assert here as during init no. of DMA descriptors should be equal to
      * no. of free Ethernet buffers available with app */
 
-    CpswAppUtils_assert(0U == CpswUtils_getQCount(&rxFreeQ));
+    EnetAppUtils_assert(0U == EnetQueue_getQCount(&rxFreeQ));
 }
 
-static uint32_t CpswAppInterVlan_getIngressVlanMembershipMask(CpswCfgServer_InterVlanConfig *pInterVlanCfg)
+
+static uint32_t CpswAppInterVlan_getIngressVlanMembershipMask(EnetCfgServer_InterVlanConfig *pInterVlanCfg)
 {
     uint32_t memberShipMask;
 
@@ -355,7 +358,7 @@ static uint32_t CpswAppInterVlan_getIngressVlanMembershipMask(CpswCfgServer_Inte
     return memberShipMask;
 }
 
-static uint32_t CpswAppInterVlan_getEgressVlanMembershipMask(CpswCfgServer_InterVlanConfig *pInterVlanCfg)
+static uint32_t CpswAppInterVlan_getEgressVlanMembershipMask(EnetCfgServer_InterVlanConfig *pInterVlanCfg)
 {
     uint32_t memberShipMask;
 
@@ -365,11 +368,11 @@ static uint32_t CpswAppInterVlan_getEgressVlanMembershipMask(CpswCfgServer_Inter
     return memberShipMask;
 }
 
-static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCfg)
+static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCfg)
 {
     int32_t status;
-    Cpsw_IoctlPrms prms;
-    CpswAle_AddEntryOutArgs setUcastOutArgs;
+    Enet_IoctlPrms prms;
+    uint32_t setUcastOutArgs;
     CpswAle_SetUcastEntryInArgs setUcastInArgs;
 
     /* Add ALE entry for GW/Router that enables Inter VLAN routing */
@@ -382,15 +385,15 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
     setUcastInArgs.info.ageable = false;
     setUcastInArgs.info.trunk = false;
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Cpsw_ioctl(gCpswInterVlanAppObj.hCpsw,
+    status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
                         gCpswInterVlanAppObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_UNICAST,
+                        CPSW_ALE_IOCTL_ADD_UCAST,
                         &prms);
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
-        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n", __func__, status);
+        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UCAST: %d\n", __func__, status);
     }
 
     memcpy(&setUcastInArgs.addr.addr[0U], &pInterVlanCfg->srcMacAddr[0U],
@@ -403,16 +406,16 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
     setUcastInArgs.info.ageable = false;
     setUcastInArgs.info.trunk = false;
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Cpsw_ioctl(gCpswInterVlanAppObj.hCpsw,
+    status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
                         gCpswInterVlanAppObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_UNICAST,
+                        CPSW_ALE_IOCTL_ADD_UCAST,
                         &prms);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
-        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n", __func__, status);
+        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UCAST: %d\n", __func__, status);
     }
 
     memcpy(&setUcastInArgs.addr.addr[0U], &pInterVlanCfg->dstMacAddr[0U],
@@ -425,26 +428,26 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
     setUcastInArgs.info.ageable = false;
     setUcastInArgs.info.trunk = false;
 
-    CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Cpsw_ioctl(gCpswInterVlanAppObj.hCpsw,
+    status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
                         gCpswInterVlanAppObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_UNICAST,
+                        CPSW_ALE_IOCTL_ADD_UCAST,
                         &prms);
 
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
-        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UNICAST: %d\n", __func__, status);
+        appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UCAST: %d\n", __func__, status);
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         CpswAle_VlanEntryInfo inArgs;
-        CpswAle_AddEntryOutArgs outArgs;
+        uint32_t outArgs;
 
         memset(&inArgs, 0U, sizeof (CpswAle_VlanEntryInfo));
         inArgs.vlanIdInfo.vlanId = pInterVlanCfg->ingVlanId;
-        inArgs.vlanIdInfo.outerVlanFlag = false;
+        inArgs.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
         inArgs.vlanMemberList = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
         inArgs.unregMcastFloodMask = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
         inArgs.regMcastFloodMask = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
@@ -454,25 +457,25 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
         inArgs.limitIPNxtHdr = false;
         inArgs.disallowIPFragmentation = false;
 
-        CPSW_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Cpsw_ioctl(gCpswInterVlanAppObj.hCpsw,
+        status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
                             gCpswInterVlanAppObj.coreId,
                             CPSW_ALE_IOCTL_ADD_VLAN,
                             &prms);
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
         }
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         CpswAle_VlanEntryInfo inArgs;
-        CpswAle_AddEntryOutArgs outArgs;
+        uint32_t outArgs;
 
         inArgs.vlanIdInfo.vlanId = pInterVlanCfg->egrVlanId;
-        inArgs.vlanIdInfo.outerVlanFlag = false;
+        inArgs.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
         inArgs.vlanMemberList = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
         inArgs.unregMcastFloodMask = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
         inArgs.regMcastFloodMask = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
@@ -482,13 +485,13 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
         inArgs.limitIPNxtHdr = false;
         inArgs.disallowIPFragmentation = false;
 
-        CPSW_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Cpsw_ioctl(gCpswInterVlanAppObj.hCpsw,
+        status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
                             gCpswInterVlanAppObj.coreId,
                             CPSW_ALE_IOCTL_ADD_VLAN,
                             &prms);
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
         }
@@ -497,27 +500,27 @@ static int32_t CpswApp_addAleEntries(CpswCfgServer_InterVlanConfig *pInterVlanCf
     return status;
 }
 
-int32_t EthSwInterVlan_addClassifierEntries(CpswCfgServer_InterVlanConfig *pInterVlanCfg)
+int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInterVlanCfg)
 {
-    int32_t status = CPSW_SOK;
-    Cpsw_IoctlPrms prms;
+    int32_t status = ENET_SOK;
+    Enet_IoctlPrms prms;
     CpswAle_SetPolicerEntryOutArgs setPolicerEntryOutArgs;
     CpswAle_SetPolicerEntryInArgs setPolicerEntryInArgs;
 
-    CpswAppUtils_addHostPortEntry(gCpswInterVlanAppObj.hCpsw,
+    EnetAppUtils_addHostPortEntry(gCpswInterVlanAppObj.hEnet,
                                   gCpswInterVlanAppObj.coreId,
                                   &gCpswInterVlanAppObj.hostMacAddr[0U]);
 
     /* Copy the Dst MAC address to use it in routing */
     memcpy(&testDstMacAddr[0U],
            &pInterVlanCfg->dstMacAddr[0U],
-           CPSW_MAC_ADDR_LEN);
+           ENET_MAC_ADDR_LEN);
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         /* Add Policer Entry for Ingress Flow */
         /*TODO: Adding MACPORT based classification is not working, need to debug further */
-        setPolicerEntryInArgs.policerMatch.policerMatchEnableMask = ( // CPSW_ALE_POLICER_MATCH_PORT |
+        setPolicerEntryInArgs.policerMatch.policerMatchEnMask = ( // CPSW_ALE_POLICER_MATCH_PORT |
                                                                      CPSW_ALE_POLICER_MATCH_MACSRC |
                                                                      CPSW_ALE_POLICER_MATCH_MACDST |
                                                                      CPSW_ALE_POLICER_MATCH_IVLAN |
@@ -528,59 +531,59 @@ int32_t EthSwInterVlan_addClassifierEntries(CpswCfgServer_InterVlanConfig *pInte
         setPolicerEntryInArgs.policerMatch.portNum = pInterVlanCfg->ingPortNum;
         setPolicerEntryInArgs.policerMatch.portIsTrunk = false;
 
-        setPolicerEntryInArgs.policerMatch.srcMacAddr.ingressPortNum = pInterVlanCfg->ingPortNum;
-        setPolicerEntryInArgs.policerMatch.dstMacAddr.egressPortNum = 0U;
+        setPolicerEntryInArgs.policerMatch.srcMacAddrInfo.portNum = pInterVlanCfg->ingPortNum;
+        setPolicerEntryInArgs.policerMatch.dstMacAddrInfo.portNum = 0U;
 
-        memcpy(&setPolicerEntryInArgs.policerMatch.srcMacAddr.addr.addr[0U],
+        memcpy(&setPolicerEntryInArgs.policerMatch.srcMacAddrInfo.addr.addr[0U],
                &pInterVlanCfg->srcMacAddr[0U],
-               CPSW_MAC_ADDR_LEN);
+               ENET_MAC_ADDR_LEN);
 
-        memcpy(&setPolicerEntryInArgs.policerMatch.dstMacAddr.addr.addr[0U],
+        memcpy(&setPolicerEntryInArgs.policerMatch.dstMacAddrInfo.addr.addr[0U],
                &gCpswInterVlanAppObj.hostMacAddr[0U],
-               CPSW_MAC_ADDR_LEN);
+               ENET_MAC_ADDR_LEN);
 
-        setPolicerEntryInArgs.policerMatch.srcMacAddr.addr.vlanId = 0U;
-        setPolicerEntryInArgs.policerMatch.dstMacAddr.addr.vlanId = 0U;
+        setPolicerEntryInArgs.policerMatch.srcMacAddrInfo.addr.vlanId = 0U;
+        setPolicerEntryInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
 
         setPolicerEntryInArgs.policerMatch.ivlanId = pInterVlanCfg->ingVlanId;
-        setPolicerEntryInArgs.policerMatch.etherType.etherType = APP_INTERVLAN_IPV4_ETHERTYPE;
+        setPolicerEntryInArgs.policerMatch.etherType = APP_INTERVLAN_IPV4_ETHERTYPE;
 
-        setPolicerEntryInArgs.policerMatch.srcIp.ipAddrtype = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
-        setPolicerEntryInArgs.policerMatch.dstIp.ipAddrtype = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
+        setPolicerEntryInArgs.policerMatch.srcIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
+        setPolicerEntryInArgs.policerMatch.dstIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
 
-        memcpy(&setPolicerEntryInArgs.policerMatch.srcIp.ipv4.ipv4Addr[0U],
+        memcpy(&setPolicerEntryInArgs.policerMatch.srcIpInfo.ipv4Info.ipv4Addr[0U],
                &pInterVlanCfg->srcIpv4Addr[0U],
-               sizeof(setPolicerEntryInArgs.policerMatch.srcIp.ipv4.ipv4Addr));
+               sizeof(setPolicerEntryInArgs.policerMatch.srcIpInfo.ipv4Info.ipv4Addr));
 
-        memcpy(&setPolicerEntryInArgs.policerMatch.dstIp.ipv4.ipv4Addr[0U],
+        memcpy(&setPolicerEntryInArgs.policerMatch.dstIpInfo.ipv4Info.ipv4Addr[0U],
                &pInterVlanCfg->dstIpv4Addr[0U],
-               sizeof(setPolicerEntryInArgs.policerMatch.dstIp.ipv4.ipv4Addr));
+               sizeof(setPolicerEntryInArgs.policerMatch.dstIpInfo.ipv4Info.ipv4Addr));
 
-        setPolicerEntryInArgs.policerMatch.srcIp.ipv4.numLSBIgnoreBits = 0U;
-        setPolicerEntryInArgs.policerMatch.dstIp.ipv4.numLSBIgnoreBits = 0U;
+        setPolicerEntryInArgs.policerMatch.srcIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
+        setPolicerEntryInArgs.policerMatch.dstIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
 
         setPolicerEntryInArgs.threadIdEnable = true;
         setPolicerEntryInArgs.threadId = gCpswInterVlanAppObj.ingRxFlowIdx;
         setPolicerEntryInArgs.peakRateInBitsPerSec = 0;
         setPolicerEntryInArgs.commitRateInBitsPerSec = 0;
 
-        CPSW_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerEntryInArgs, &setPolicerEntryOutArgs);
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerEntryInArgs, &setPolicerEntryOutArgs);
 
-        status = Cpsw_ioctl(gCpswInterVlanAppObj.hCpsw,
+        status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
                             gCpswInterVlanAppObj.coreId,
                             CPSW_ALE_IOCTL_SET_POLICER,
                             &prms);
 
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", __func__, status);
         }
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = CpswApp_addAleEntries(pInterVlanCfg);
-        CpswAppUtils_assert(CPSW_SOK == status);
+        EnetAppUtils_assert(ENET_SOK == status);
     }
 
     return status;
@@ -588,20 +591,20 @@ int32_t EthSwInterVlan_addClassifierEntries(CpswCfgServer_InterVlanConfig *pInte
 
 static int32_t CpswApp_getRxTxHandle(void)
 {
-    int32_t status = CPSW_SOK;
-    CpswDma_OpenTxChPrms cpswTxChCfg;
-    CpswDma_OpenRxFlowPrms cpswRxFlowCfg;
-    CpswDma_UdmaRingPrms *pFqRingPrms;
+    int32_t status = ENET_SOK;
+    EnetUdma_OpenTxChPrms cpswTxChCfg;
+    EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
+    EnetUdma_UdmaRingPrms *pFqRingPrms;
 
     /* Open the CPSW RX flow for Ingress */
     {
-        CpswDma_initRxFlowParams(&cpswRxFlowCfg);
-        CpswAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
+        EnetDma_initRxChParams(&cpswRxFlowCfg);
+        EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
 
         cpswRxFlowCfg.notifyCb = &CpswApp_ingRxIsrFxn;
         cpswRxFlowCfg.numRxPkts = CPSW_FRWD_APP_NUM_PKTS;
         cpswRxFlowCfg.hUdmaDrv = gCpswInterVlanAppObj.hUdmaDrv;
-        cpswRxFlowCfg.hCbArg = &gCpswInterVlanAppObj.hIngRxFlow;
+        cpswRxFlowCfg.cbArg = &gCpswInterVlanAppObj.hIngRxFlow;
         cpswRxFlowCfg.useProxy = true;
         cpswRxFlowCfg.disableCacheOpsFlag = true;
 
@@ -626,44 +629,44 @@ static int32_t CpswApp_getRxTxHandle(void)
         /* Ring mon high threshold - to get only low  threshold event, setting high threshold as more than ring depth*/
         pFqRingPrms->ringMonCfg.data1 = CPSW_FRWD_APP_NUM_PKTS;
 
-        status = CpswAppUtils_allocRxFlow(gCpswInterVlanAppObj.hCpsw,
+        status = EnetAppUtils_allocRxFlow(gCpswInterVlanAppObj.hEnet,
                                           gCpswInterVlanAppObj.coreKey,
                                           gCpswInterVlanAppObj.coreId,
                                           &gCpswInterVlanAppObj.rxFlowStartIdx,
                                           &gCpswInterVlanAppObj.ingRxFlowIdx);
-        CpswAppUtils_assert(status == CPSW_SOK);
+        EnetAppUtils_assert(status == ENET_SOK);
 
         cpswRxFlowCfg.startIdx = gCpswInterVlanAppObj.rxFlowStartIdx;
         cpswRxFlowCfg.flowIdx = gCpswInterVlanAppObj.ingRxFlowIdx;
 
-        gCpswInterVlanAppObj.hIngRxFlow = CpswDma_openRxFlow(&cpswRxFlowCfg);
+        gCpswInterVlanAppObj.hIngRxFlow = EnetDma_openRxCh(&cpswRxFlowCfg);
         if (gCpswInterVlanAppObj.hIngRxFlow == NULL)
         {
-            CpswAppUtils_freeRxFlow(gCpswInterVlanAppObj.hCpsw,
+            EnetAppUtils_freeRxFlow(gCpswInterVlanAppObj.hEnet,
                                     gCpswInterVlanAppObj.coreKey,
                                     gCpswInterVlanAppObj.coreId,
                                     gCpswInterVlanAppObj.ingRxFlowIdx);
-            CpswAppUtils_assert(false);
+            EnetAppUtils_assert(false);
 
         }
     }
 
     /* Open the CPSW TX channel  */
     {
-        CpswDma_initTxChParams(&cpswTxChCfg);
-        CpswAppUtils_setCommonTxChPrms(&cpswTxChCfg);
+        EnetDma_initTxChParams(&cpswTxChCfg);
+        EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
 
         cpswTxChCfg.hUdmaDrv = gCpswInterVlanAppObj.hUdmaDrv;
         cpswTxChCfg.numTxPkts = CPSW_FRWD_APP_NUM_PKTS;
-        cpswTxChCfg.hCbArg = &gCpswInterVlanAppObj.hTxCh;
+        cpswTxChCfg.cbArg = &gCpswInterVlanAppObj.hTxCh;
         cpswTxChCfg.notifyCb = &CpswApp_txIsrFxn;
         cpswTxChCfg.useProxy = true;
         cpswTxChCfg.disableCacheOpsFlag = true;
 
 #ifdef AUTO_RECLAIM_TXCQ
         cpswTxChCfg.autoReclaimPrms.enableFlag   = true;
-        cpswTxChCfg.autoReclaimPrms.hDmaDescPool = CpswDma_getRxFlowDescPoolHandle(gCpswInterVlanAppObj.hIngRxFlow);
-        cpswTxChCfg.autoReclaimPrms.hReclaimRing = CpswDma_getRxFlowFqHandle(gCpswInterVlanAppObj.hIngRxFlow);
+        cpswTxChCfg.autoReclaimPrms.hDmaDescPool = EnetUdma_getRxFlowDescPoolHandle(gCpswInterVlanAppObj.hIngRxFlow);
+        cpswTxChCfg.autoReclaimPrms.hReclaimRing = EnetUdma_getRxFlowFqHandle(gCpswInterVlanAppObj.hIngRxFlow);
 
         /* Filter all protocol specific and extended info as we are using auto reclaim and this
          * information might corrupt RX flow */
@@ -675,29 +678,29 @@ static int32_t CpswApp_getRxTxHandle(void)
         cpswTxChCfg.notifyCb = &CpswApp_txIsrFxn;
 #endif
 
-        CpswAppUtils_openTxCh(gCpswInterVlanAppObj.hCpsw,
+        EnetAppUtils_openTxCh(gCpswInterVlanAppObj.hEnet,
                               gCpswInterVlanAppObj.coreKey,
                               gCpswInterVlanAppObj.coreId,
                               &gCpswInterVlanAppObj.txChNum,
                               &gCpswInterVlanAppObj.hTxCh,
                               &cpswTxChCfg);
-        CpswAppUtils_assert(NULL != gCpswInterVlanAppObj.hTxCh);
+        EnetAppUtils_assert(NULL != gCpswInterVlanAppObj.hTxCh);
 
 #ifndef AUTO_RECLAIM_TXCQ
-        status = CpswDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
+        status = EnetDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
 #endif
 
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
-            CpswAppUtils_freeTxCh(gCpswInterVlanAppObj.hCpsw,
+            EnetAppUtils_freeTxCh(gCpswInterVlanAppObj.hEnet,
                                   gCpswInterVlanAppObj.coreKey,
                                   gCpswInterVlanAppObj.coreId,
                                   gCpswInterVlanAppObj.txChNum);
-            CpswAppUtils_assert(false);
+            EnetAppUtils_assert(false);
         }
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         CpswApp_initRxReadyPktQ();
     }
@@ -707,10 +710,10 @@ static int32_t CpswApp_getRxTxHandle(void)
 
 static void CpswApp_pktRxTx(void)
 {
-    int32_t status = CPSW_SOK;
-    CpswDma_PktInfoQ txSubmitQ;
-    CpswDma_PktInfoQ rxFreeQ;
-    CpswDma_PktInfo *pktInfo;
+    int32_t status = ENET_SOK;
+    EnetDma_PktInfoQ txSubmitQ;
+    EnetDma_PktInfoQ rxFreeQ;
+    EnetDma_PktInfo *pktInfo;
     EthVlanFrame *frame;
     uint32_t rxReadyCnt;
     bool isSemPosted;
@@ -728,7 +731,7 @@ static void CpswApp_pktRxTx(void)
      *  We then handle Tx packet completion - for each TX packets transmitted, when the buffer
      *  is reclaimed we then add it back to Rx Free Q (this implicitly acts SW flow control)
      */
-    CpswUtils_initQ(&gCpswInterVlanAppObj.rxReadyQ);
+    EnetQueue_initQ(&gCpswInterVlanAppObj.rxReadyQ);
     Task_setPri(Task_self(), 5);
 
     do
@@ -738,11 +741,11 @@ static void CpswApp_pktRxTx(void)
 
         /* rxReadyQ should be empty here as we would have processed and queued all packets from
          * last iteration. */
-        CpswAppUtils_assert(CpswUtils_getQCount(&gCpswInterVlanAppObj.rxReadyQ) == 0);
+        EnetAppUtils_assert(EnetQueue_getQCount(&gCpswInterVlanAppObj.rxReadyQ) == 0);
 
         /* Initialize the Tx Submission, Rx Free SW Qs*/
-        CpswUtils_initQ(&txSubmitQ);
-        CpswUtils_initQ(&rxFreeQ);
+        EnetQueue_initQ(&txSubmitQ);
+        EnetQueue_initQ(&rxFreeQ);
 
         /* Get the packets received so far */
         rxReadyCnt = CpswApp_receivePkts();
@@ -755,10 +758,10 @@ static void CpswApp_pktRxTx(void)
              */
 
             /* Re-enable the Rx completion notification from ISR here */
-            CpswDma_enableRxEvent(gCpswInterVlanAppObj.hIngRxFlow);
+            EnetDma_enableRxEvent(gCpswInterVlanAppObj.hIngRxFlow);
 
             /* Re-enable the Tx completion notification from ISR here */
-            CpswDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
+            EnetDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
 
             /* Pend on semaphore notification event from Rx Completion ISR */
             isSemPosted = Semaphore_pend(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
@@ -779,7 +782,7 @@ static void CpswApp_pktRxTx(void)
             gCpswInterVlanAppObj.num_pkts += rxReadyCnt;
 
             /* Consume the received packets and release them */
-            pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&gCpswInterVlanAppObj.rxReadyQ);
+            pktInfo = (EnetDma_PktInfo *)EnetQueue_deq(&gCpswInterVlanAppObj.rxReadyQ);
 
             /*Processing loop for received packets, we will perform Header inspection,
              * mangling and enqueue the same for Tx Processing */
@@ -796,11 +799,11 @@ static void CpswApp_pktRxTx(void)
                  * Modify VLAN ID
                  * Modify TTL
                  */
-                memcpy(frame->hdr.dstMac, testDstMacAddr, CPSW_MAC_ADDR_LEN);
-                memcpy(frame->hdr.srcMac, gCpswInterVlanAppObj.hostMacAddr, CPSW_MAC_ADDR_LEN);
+                memcpy(frame->hdr.dstMac, testDstMacAddr, ENET_MAC_ADDR_LEN);
+                memcpy(frame->hdr.srcMac, gCpswInterVlanAppObj.hostMacAddr, ENET_MAC_ADDR_LEN);
                 status = EthFrame_changeVlanId(frame,
                                                APP_INTERVLAN_EGRESS_VLANID);
-                if (status == CPSW_SOK)
+                if (status == ENET_SOK)
                 {
                     /* Decrement TTL by 1U*/
                     EthFrame_decrementTTL(frame);
@@ -809,26 +812,26 @@ static void CpswApp_pktRxTx(void)
                     Cache_wbInv((Ptr)frame, PKT_HEADER_SIZE, Cache_Type_L1D, FALSE);
 
                     /* Step3: Enq the modified frame for transmission */
-                    CpswUtils_enQ(&txSubmitQ, &pktInfo->node);
+                    EnetQueue_enq(&txSubmitQ, &pktInfo->node);
 
-                    pktInfo = (CpswDma_PktInfo *)CpswUtils_deQ(&gCpswInterVlanAppObj.rxReadyQ);
+                    pktInfo = (EnetDma_PktInfo *)EnetQueue_deq(&gCpswInterVlanAppObj.rxReadyQ);
                 }
             } /* end of while loop*/
 
             Cache_wait();
 
             /* Submit the list of Packets to be Tx to HW */
-            status = CpswAppUtils_submitTxPackets(gCpswInterVlanAppObj.hTxCh,
+            status = EnetDma_submitTxReadyPktQ(gCpswInterVlanAppObj.hTxCh,
                                                   &txSubmitQ);
-            CpswAppUtils_assert(CpswUtils_getQCount(&txSubmitQ) == 0);
+            EnetAppUtils_assert(EnetQueue_getQCount(&txSubmitQ) == 0);
         } /*end of else condition*/
 
 #ifndef AUTO_RECLAIM_TXCQ
         /* Reclaim Transmitted packets and add the reclaimed buffers to Rx FreeQ */
-        status = CpswDma_retrieveTxDonePackets(gCpswInterVlanAppObj.hTxCh, &rxFreeQ);
-        CpswAppUtils_submitRxPackets(gCpswInterVlanAppObj.hIngRxFlow,
+        status = EnetDma_retrieveTxDonePktQ(gCpswInterVlanAppObj.hTxCh, &rxFreeQ);
+        EnetDma_submitRxPktQ(gCpswInterVlanAppObj.hIngRxFlow,
                                      &rxFreeQ);
-        CpswAppUtils_assert(CpswUtils_getQCount(&rxFreeQ) == 0);
+        EnetAppUtils_assert(EnetQueue_getQCount(&rxFreeQ) == 0);
 #endif
     }
     while (testDone != true);
@@ -844,10 +847,10 @@ static uint32_t CpswApp_receivePkts(void)
      * pending Rx packets from SW Q before going back to check on the HW Q status*/
 
     /* Retrieve any CPSW packets which are ready */
-    status = CpswDma_retrieveRxPackets(gCpswInterVlanAppObj.hIngRxFlow, &gCpswInterVlanAppObj.rxReadyQ);
-    if (status == CPSW_SOK)
+    status = EnetDma_retrieveRxPktQ(gCpswInterVlanAppObj.hIngRxFlow, &gCpswInterVlanAppObj.rxReadyQ);
+    if (status == ENET_SOK)
     {
-        rxReadyCnt = CpswUtils_getQCount(&gCpswInterVlanAppObj.rxReadyQ);
+        rxReadyCnt = EnetQueue_getQCount(&gCpswInterVlanAppObj.rxReadyQ);
     }
     else
     {
@@ -857,13 +860,13 @@ static uint32_t CpswApp_receivePkts(void)
     return rxReadyCnt;
 }
 
-void EthSwInterVlan_setupRouting(Cpsw_Type cpswType,
+void EthSwInterVlan_setupRouting(Enet_Type enetType,
                                  uint32_t swInterVlanTaskPri)
 {
     Task_Params params;
     Error_Block eb;
 
-    gCpswInterVlanAppObj.cpswType = cpswType;
+    gCpswInterVlanAppObj.enetType = enetType;
     Error_init(&eb);
 
     /* Initialize the task params. Set the task priority higher than the

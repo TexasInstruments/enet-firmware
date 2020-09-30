@@ -87,10 +87,14 @@
 /* PDK Driver Header files */
 #include <ti/drv/ipc/ipc.h>
 #include <ti/drv/udma/udma.h>
-#include <ti/drv/cpsw/cpsw.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appboardutils.h>
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_appsoc.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/core/enet_mod_hostport.h>
+#include <ti/drv/enet/include/per/cpsw.h>
+#include <ti/drv/enet/include/dma/udma/enet_udma.h>
+#include <ti/drv/enet/include/core/enet_dma.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appboardutils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
 
 /* EthFw header files */
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
@@ -146,8 +150,11 @@ typedef struct
     /* Core Id */
     uint32_t coreId;
 
-    /* CPSW instance type */
-    Cpsw_Type cpswType;
+    /* Enet instance type */
+    Enet_Type enetType;
+
+    /* Enet instance id */
+    uint32_t instId;
 
     /* Ethernet Firmware handle */
     EthFw_Handle hEthFw;
@@ -159,10 +166,10 @@ typedef struct
     Semaphore_Handle hInitSem;
 
     /* Host MAC address */
-    uint8_t hostMacAddr[CPSW_MAC_ADDR_LEN];
+    uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
     /* Host IP address */
-    uint8_t hostIpAddr[CPSW_ALE_IPV4ADDR_NUM_OCTETS];
+    uint8_t hostIpAddr[ENET_IPv4_ADDR_LEN];
 
     /* Handle to PTP stack */
     TimeSyncPtp_Handle hTimeSyncPtp;
@@ -203,9 +210,11 @@ static void EthApp_startHwInterVlan(char *recvBuff,
 static EthAppObj gEthAppObj =
 {
 #if defined(SOC_J721E)
-    .cpswType = CPSW_9G,
+    .enetType = ENET_CPSW_9G,
+    .instId   = 0U,
 #elif defined(SOC_J7200)
-    .cpswType = CPSW_5G,
+    .enetType = ENET_CPSW_5G,
+    .instId   = 0U,
 #endif
     .hEthFw = NULL,
     .hUdmaDrv = NULL,
@@ -217,37 +226,37 @@ static EthFw_Port gEthAppPorts[] =
     /* On J721E EVM to use all 8 ports simultaneously, we use below configuration
        RGMII Ports - 1,3,4,8. QSGMII ports - 2,5,6,7 */
     {
-        .portNum    = CPSW_MAC_PORT_0,
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U },
+        .portNum    = ENET_MAC_PORT_1,
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U },
     },
     {
-        .portNum    = CPSW_MAC_PORT_2, /* RGMII */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_3, /* RGMII */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_3, /* RGMII */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_4, /* RGMII */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_7, /* RGMII */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_8, /* RGMII */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
 #if defined(ENABLE_QSGMII_PORTS) //kept it disabled for 6.2
     {
-        .portNum    = CPSW_MAC_PORT_1, /* QSGMII main */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_2, /* QSGMII main */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_4, /* QSGMII sub */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_5, /* QSGMII sub */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_5, /* QSGMII sub */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_6, /* QSGMII sub */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_6, /* QSGMII sub */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_7, /* QSGMII sub */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
 #endif
 #endif
@@ -256,27 +265,27 @@ static EthFw_Port gEthAppPorts[] =
     /* On J7200 to use all 4 ports simultaneously, we use below configuration
      * QSGMII ports - 0, 1, 2, 3 */
     {
-        .portNum    = CPSW_MAC_PORT_0, /* QSGMII main */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_1, /* QSGMII main */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_1, /* QSGMII sub */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_2, /* QSGMII sub */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_2, /* QSGMII sub */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_3, /* QSGMII sub */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
     {
-        .portNum    = CPSW_MAC_PORT_3, /* QSGMII sub */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_4, /* QSGMII sub */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
 #else
     /* For internal testing only - Alternatively, a single RGMII port
      * configuration via GESI board is also available */
     {
-        .portNum    = CPSW_MAC_PORT_1, /* RGMII */
-        .vlanConfig = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
+        .portNum    = ENET_MAC_PORT_2, /* RGMII */
+        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
 #endif
 #endif
@@ -324,7 +333,7 @@ int main(void)
 
     /* Board related initialization */
     CpswAppBoardUtils_initEthFw();
-    CpswAppUtils_enableClocks(gEthAppObj.cpswType);
+    EnetAppUtils_enableClocks(gEthAppObj.enetType);
 
     /* Create semaphore used to synchronize EthFw and NDK init.
      * EthFw opens the CPSW driver which is required by NDK during NIMU
@@ -361,7 +370,7 @@ void appLogPrintf(const char *format, ...)
 
     va_start(args, format);
     System_vprintf(format, args);
-    CpswAppUtils_vprint(format, args);
+    EnetAppUtils_vprint(format, args);
     va_end(args);
 }
 
@@ -384,7 +393,7 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1)
     appLogPrintf("=======================================================\n");
 
     /* Open UDMA driver */
-    gEthAppObj.hUdmaDrv = CpswAppUtils_udmaOpen(gEthAppObj.cpswType, NULL);
+    gEthAppObj.hUdmaDrv = EnetAppUtils_udmaOpen(gEthAppObj.enetType, NULL);
     if (gEthAppObj.hUdmaDrv == NULL)
     {
         appLogPrintf("ETHFW: failed to open UDMA driver\n");
@@ -398,7 +407,7 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1)
     }
 
     /* Create IPC initialization task */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         Task_Params_init(&taskParams);
         taskParams.priority = 1;
@@ -423,38 +432,47 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
 
     appLogPrintf("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
 
-    Ipc_init(NULL);
+    status = Ipc_init(NULL);
 
 #if !defined(A72_QNX_OS)
-    Ipc_loadResourceTable(appGetIpcResourceTable());
+    if (status == ENET_SOK)
+    {
+        status = Ipc_loadResourceTable(appGetIpcResourceTable());
+    }
 #endif
 
-    /* Step 2: Initialize Virtio */
-    vqParam.vqObjBaseAddr = (void *)&gEthAppSysVqBuf[0];
-    vqParam.vqBufSize = numProc * Ipc_getVqObjMemoryRequiredPerCore();
-    vqParam.vringBaseAddr = (void *)gEthAppVringMemBuf;
-    vqParam.vringBufSize = sizeof(gEthAppVringMemBuf);
-    vqParam.timeoutCnt = 100;     /* Wait for counts */
-    Ipc_initVirtIO(&vqParam);
+    if (status == ENET_SOK)
+    {
+        /* Step 2: Initialize Virtio */
+        vqParam.vqObjBaseAddr = (void *)&gEthAppSysVqBuf[0];
+        vqParam.vqBufSize = numProc * Ipc_getVqObjMemoryRequiredPerCore();
+        vqParam.vringBaseAddr = (void *)gEthAppVringMemBuf;
+        vqParam.vringBufSize = sizeof(gEthAppVringMemBuf);
+        vqParam.timeoutCnt = 100;     /* Wait for counts */
+        status = Ipc_initVirtIO(&vqParam);
+    }
 
-    /* Step 3: Initialize RPMessage */
-    /* Initialize the param and set memory for HeapMemory for control task */
-    RPMessageParams_init(&cntrlParam);
-    cntrlParam.buf = &gEthAppCntrlBuf[0];
-    cntrlParam.bufSize = RPMSG_DATA_SIZE;
-    cntrlParam.stackBuffer = &gEthAppCtrlTaskBuf[0];
-    cntrlParam.stackSize = IPC_TASK_STACKSIZE;
-    RPMessage_init(&cntrlParam);
+    if (status == ENET_SOK)
+    {
+        /* Step 3: Initialize RPMessage */
+        /* Initialize the param and set memory for HeapMemory for control task */
+        RPMessageParams_init(&cntrlParam);
+        cntrlParam.buf = &gEthAppCntrlBuf[0];
+        cntrlParam.bufSize = RPMSG_DATA_SIZE;
+        cntrlParam.stackBuffer = &gEthAppCtrlTaskBuf[0];
+        cntrlParam.stackSize = IPC_TASK_STACKSIZE;
+        status = RPMessage_init(&cntrlParam);
+    }
 
     /* Initialize the Remote Config server (CPSW Proxy Server) */
     status = EthFw_initRemoteConfig(gEthAppObj.hEthFw);
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote config: %d\n", status);
     }
 
     /* Wait for Linux VDev ready... */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         while (!Ipc_isRemoteReady(IPC_MPU1_0))
         {
@@ -463,7 +481,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     }
 
     /* Create the VRing now ... */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = Ipc_lateVirtioCreate(IPC_MPU1_0);
         if (status != IPC_SOK)
@@ -486,7 +504,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     if (status == IPC_SOK)
     {
         status = EthFw_lateAnnounce(gEthAppObj.hEthFw, IPC_MPU1_0);
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("EthApp_initIpcTask: late announcement failed: %d\n", status);
         }
@@ -496,7 +514,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     if (status == IPC_SOK)
     {
         status = EthApp_initRemoteServices();
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
         }
@@ -507,26 +525,29 @@ static int32_t EthApp_initEthFw(void)
 {
     EthFw_Version ver;
     EthFw_Config ethFwCfg;
-    uint32_t i;
+    EnetUdma_Cfg dmaCfg;
     int32_t status = ETHAPP_OK;
 
     /* Set EthFw config params */
-    EthFw_initConfigParams(gEthAppObj.cpswType, &ethFwCfg);
-    ethFwCfg.cpswConfig.dmaConfig.hUdmaDrv = gEthAppObj.hUdmaDrv;
-    ethFwCfg.ports = &gEthAppPorts[0];
+    EthFw_initConfigParams(gEthAppObj.enetType, &ethFwCfg);
+    dmaCfg.hUdmaDrv                 = gEthAppObj.hUdmaDrv;
+    dmaCfg.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
+    ethFwCfg.cpswCfg.dmaCfg         = (void *)&dmaCfg;
+    ethFwCfg.ports                  = &gEthAppPorts[0];
     ethFwCfg.numPorts = ARRAY_SIZE(gEthAppPorts);
 
+    uint32_t i;
     /* Overwrite config params with those for hardware interVLAN */
-    EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswConfig);
+    EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswCfg);
 
     for (i = 0U; i < ethFwCfg.numPorts; i++)
     {
-        EthHwInterVlan_setVlanConfig(&ethFwCfg.ports[i].vlanConfig,
+        EthHwInterVlan_setVlanConfig(&ethFwCfg.ports[i].vlanCfg,
                                      ethFwCfg.ports[i].portNum);
     }
 
     /* Initialize the EthFw */
-    gEthAppObj.hEthFw = EthFw_init(gEthAppObj.cpswType, &ethFwCfg);
+    gEthAppObj.hEthFw = EthFw_init(gEthAppObj.enetType, &ethFwCfg);
     if (gEthAppObj.hEthFw == NULL)
     {
         appLogPrintf("ETHFW: failed to initialize the firmware\n");
@@ -556,42 +577,42 @@ static int32_t EthApp_initRemoteServices(void)
 
     appRemoteServiceInitSetDefault(&remoteServicePrms);
     status = appRemoteServiceInit(&remoteServicePrms);
-    if (status != CPSW_SOK)
+    if (status != ENET_SOK)
     {
         appLogPrintf("Remote service init failed: %d !!!\n", status);
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = appPerfStatsInit();
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("Perf stats init failed: %d !!!\n", status);
         }
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = appPerfStatsRemoteServiceInit();
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("Perf stats remote service init failed: %d !!!\n", status);
         }
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
-        status = appEthfwStatsInit(gEthAppObj.cpswType);
-        if (status != CPSW_SOK)
+        status = appEthfwStatsInit(gEthAppObj.enetType, gEthAppObj.instId);
+        if (status != ENET_SOK)
         {
             appLogPrintf("Ethfw stats init failed: %d !!!\n", status);
         }
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = appEthfwStatsRemoteServiceInit();
-        if (status != CPSW_SOK)
+        if (status != ENET_SOK)
         {
             appLogPrintf("Ethfw stats remote service init failed: %d !!!\n", status);
         }
@@ -604,7 +625,7 @@ static int32_t EthApp_initRemoteServices(void)
 
 static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
 {
-    Cpsw_MacPort portNum;
+    Enet_MacPort portNum;
 
 #if defined(SOC_J721E)
     ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
@@ -616,29 +637,29 @@ static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
     ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
     ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
 #if defined(SOC_J721E)
-    portNum = CPSW_MAC_PORT_2;
+    portNum = ENET_MAC_PORT_3;
 #elif defined(SOC_J7200)
 #if defined(ENABLE_QSGMII_PORTS)
-    portNum = CPSW_MAC_PORT_0;
+    portNum = ENET_MAC_PORT_1;
 #else
-    portNum = CPSW_MAC_PORT_1;
+    portNum = ENET_MAC_PORT_2;
 #endif
 #endif
 
-    ptpConfig->portMask |= CPSW_SET_BIT(CPSW_NORMALIZE_MACPORT(portNum));
+    ptpConfig->portMask |= ENET_BIT(ENET_NORM_MACPORT(portNum));
 
     memcpy(&ptpConfig->ifMacID[0U],
            &gEthAppObj.hostMacAddr[0U],
-           CPSW_MAC_ADDR_LEN);
+           ENET_MAC_ADDR_LEN);
 
     memcpy(&ptpConfig->ipAddr[0U],
            &gEthAppObj.hostIpAddr[0U],
-           CPSW_ALE_IPV4ADDR_NUM_OCTETS);
+           ENET_IPv4_ADDR_LEN);
 }
 
 /* NIMU callbacks (exact name required) */
 
-bool EthFwCallbacks_isPortLinked(Cpsw_Handle hCpsw)
+bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
 {
     bool linked = false;
     uint32_t i;
@@ -646,7 +667,7 @@ bool EthFwCallbacks_isPortLinked(Cpsw_Handle hCpsw)
     /* Report port linked as long as any port owned by EthFw is up */
     for (i = 0U; (i < ARRAY_SIZE(gEthAppPorts)) && !linked; i++)
     {
-        linked = CpswAppUtils_isPortLinkUp(hCpsw,
+        linked = EnetAppUtils_isPortLinkUp(hEnet,
                                            gEthAppObj.coreId,
                                            gEthAppPorts[i].portNum);
     }
@@ -654,8 +675,8 @@ bool EthFwCallbacks_isPortLinked(Cpsw_Handle hCpsw)
     return linked;
 }
 
-void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
-                             NimuCpswAppIf_GetHandleOutArgs *outArgs)
+void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
+                             NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
     /* Wait for EthFw to be initialized */
     Semaphore_pend(gEthAppObj.hInitSem, BIOS_WAIT_FOREVER);
@@ -665,10 +686,10 @@ void NimuCpswAppCb_getHandle(NimuCpswAppIf_GetHandleInArgs *inArgs,
     /* Save host port MAC address */
     memcpy(&gEthAppObj.hostMacAddr[0U],
            &outArgs->rxInfo.macAddr[0U],
-           CPSW_MAC_ADDR_LEN);
+           ENET_MAC_ADDR_LEN);
 }
 
-void NimuCpswAppCb_releaseHandle(NimuCpswAppIf_ReleaseHandleInfo *releaseInfo)
+void NimuEnetAppCb_releaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
     EthFwCallbacks_nimuCpswReleaseHandle(releaseInfo);
 }
@@ -682,18 +703,18 @@ int32_t ti_net_SlNet_initConfig()
 
     status = SlNetIf_init(0);
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = SlNetSock_init(0);
     }
 
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         SlNetUtil_init(0);
     }
 
     /* add CONFIG_SLNET_0 interface */
-    if (status == CPSW_SOK)
+    if (status == ENET_SOK)
     {
         status = SlNetIf_add(SLNETIF_ID_2,
                              "eth0",
@@ -721,11 +742,11 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     ipAddrHex = ntohl(IPAddr);
     memcpy(&gEthAppObj.hostIpAddr[0U],
            (uint8_t *)&ipAddrHex,
-       CPSW_ALE_IPV4ADDR_NUM_OCTETS);
+       ENET_IPv4_ADDR_LEN);
 
     /* initialize SlNet interface(s) */
     status = ti_net_SlNet_initConfig();
-    if (status < CPSW_SOK)
+    if (status < ENET_SOK)
     {
         appLogPrintf("Failed to initialize SlNet interface(s) - status (%d)\n", status);
     }
@@ -734,21 +755,21 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     TimeSyncPtp_setDefaultPtpConfig(&ptpConfig);
     CpswApp_setPtpConfig(&ptpConfig);
     gEthAppObj.hTimeSyncPtp = TimeSyncPtp_init(&ptpConfig);
-    CpswAppUtils_assert(gEthAppObj.hTimeSyncPtp != NULL);
+    EnetAppUtils_assert(gEthAppObj.hTimeSyncPtp != NULL);
     TimeSyncPtp_enable(gEthAppObj.hTimeSyncPtp);
 
     /* Assign functions that are to be called based on actions in GUI.
      * These cannot be dynamically pushed to function pointer array, as the
      * index is used in GUI as command */
-    cpswCfgServer_fxn_table[9] = &EthApp_startSwInterVlan;
-    cpswCfgServer_fxn_table[10] = &EthApp_startHwInterVlan;
+    EnetCfgServer_fxn_table[9] = &EthApp_startSwInterVlan;
+    EnetCfgServer_fxn_table[10] = &EthApp_startHwInterVlan;
 
     /* Start Configuration server */
-    status = CpswCfgServer_init(gEthAppObj.cpswType);
-    CpswAppUtils_assert(CPSW_SOK == status);
+    status = EnetCfgServer_init(gEthAppObj.enetType);
+    EnetAppUtils_assert(ENET_SOK == status);
 
     /* Start the software-based interVLAN routing */
-    EthSwInterVlan_setupRouting(gEthAppObj.cpswType,
+    EthSwInterVlan_setupRouting(gEthAppObj.enetType,
                                 ETH_SWINTERVLAN_TASK_PRI);
 
     AddWebFiles();
@@ -759,25 +780,25 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
 static void EthApp_startSwInterVlan(char *recvBuff,
                                     char *sendBuff)
 {
-    CpswCfgServer_InterVlanConfig *pInterVlanCfg;
+    EnetCfgServer_InterVlanConfig *pInterVlanCfg;
     int32_t status;
 
     if (recvBuff != NULL)
     {
-        pInterVlanCfg = (CpswCfgServer_InterVlanConfig *)recvBuff;
+        pInterVlanCfg = (EnetCfgServer_InterVlanConfig *)recvBuff;
         status = EthSwInterVlan_addClassifierEntries(pInterVlanCfg);
-        CpswAppUtils_assert(CPSW_SOK == status);
+        EnetAppUtils_assert(ENET_SOK == status);
     }
 }
 
 static void EthApp_startHwInterVlan(char *recvBuff,
                                     char *sendBuff)
 {
-    CpswCfgServer_InterVlanConfig *pInterVlanCfg;
+    EnetCfgServer_InterVlanConfig *pInterVlanCfg;
 
     if (recvBuff != NULL)
     {
-        pInterVlanCfg = (CpswCfgServer_InterVlanConfig *)recvBuff;
-        EthHwInterVlan_setupRouting(gEthAppObj.cpswType, pInterVlanCfg);
+        pInterVlanCfg = (EnetCfgServer_InterVlanConfig *)recvBuff;
+        EthHwInterVlan_setupRouting(gEthAppObj.enetType, pInterVlanCfg);
     }
 }

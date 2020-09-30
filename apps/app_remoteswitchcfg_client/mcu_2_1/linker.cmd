@@ -27,26 +27,26 @@ SECTIONS
     .utilsCopyVecsToAtcm : {} palign(8) > R5F_TCMB0
 
     .text_fast {
-        *(.text:CpswDma_retrieveRxPackets*)
-        *(.text:CpswDma_retrieveTxDonePackets*)
-        *(.text:CpswDma_ringDequeue*)
-        *(.text:CpswDma_ringEnqueue*)
-        *(.text:CpswDma_submitPkts*)
-        *(.text:CpswDma_submitRxPackets*)
-        *(.text:CpswDma_submitTxReadyPackets*)
-        *(.text:CpswUtils_appendQ*)
-        *(.text:CpswUtils_copyQ*)
-        *(.text:CpswUtils_deQ*)
-        *(.text:CpswUtils_enQ*)
-        *(.text:CpswUtils_enQHead*)
-        *(.text:CpswUtils_getQCount*)
-        *(.text:CpswUtils_phyToVirtFxn*)
-        *(.text:CpswUtils_virtToPhyFxn*)
+        *(.text:EnetDma_retrieveRxPktQ*)
+        *(.text:EnetDma_retrieveTxDonePktQ*)
+        *(.text:EnetUdma_ringDequeue*)
+        *(.text:EnetUdma_ringEnqueue*)
+        *(.text:EnetUdma_submitPkts*)
+        *(.text:EnetDma_submitRxPktQ*)
+        *(.text:EnetDma_submitTxReadyPktQ*)
+        *(.text:EnetQueue_append*)
+        *(.text:EnetQueue_copyQ*)
+        *(.text:EnetQueue_deq*)
+        *(.text:EnetQueue_enq*)
+        *(.text:EnetQueue_enqHead*)
+        *(.text:EnetQueue_getQCount*)
+        *(.text:EnetUtils_physToVirt*)
+        *(.text:EnetUtils_virtToPhys*)
         *(.text:NIMUPacketService*)
         *(.text:NIMUReceivePacket*)
         *(.text:NIMUSendPacket*)
         *(.text:NIMUCreatePacket*)
-        *(.text:Ndk2Cpsw_sendTxPackets*)
+        *(.text:Ndk2Enet_sendTxPackets*)
         *(.text:PBM_alloc*)
         *(.text:PBMQ_enq*)
         *(.text:PBMQ_deq*)
@@ -79,7 +79,7 @@ SECTIONS
 
     /* For NDK packet memory, we need to map this sections before .bss*/
     /* For NDK packet memory, we need to map this sections before .bss*/
-    
+
     .bss:CPSW_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
     .bss:CPSW_DMA_RING_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
     .bss:CPSW_DMA_PKT_MEMPOOL (NOLOAD) {} ALIGN (128) > DDR_MCU2_1

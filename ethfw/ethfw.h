@@ -73,7 +73,8 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/per/cpsw.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -171,10 +172,10 @@ typedef struct EthFw_Version_s
 typedef struct EthFw_PortConfig_s
 {
     /*! MAC port number */
-    Cpsw_MacPort portNum;
+    Enet_MacPort portNum;
 
     /*! Port VLAN config */
-    CpswPort_VlanConfig vlanConfig;
+    EnetPort_VlanCfg vlanCfg;
 } EthFw_Port;
 
 /*!
@@ -185,7 +186,7 @@ typedef struct EthFw_PortConfig_s
 typedef struct EthFw_Config_s
 {
     /*! CPSW configuration */
-    Cpsw_Config cpswConfig;
+    Cpsw_Cfg cpswCfg;
 
     /*! MAC ports owned by EthFw. It must be provided as an array of
      *  MAC port ids and their VLAN configuration */
@@ -220,13 +221,13 @@ typedef struct EthFw_Obj_s *EthFw_Handle;
  * must (at least) set the following parameters after this call:
  *  - The list of MAC ports to be used by Ethernet Firmware via
  *    EthFw_Config::ports and EthFw_Config::numPorts.
- *  - The UDMA driver handle via dmaConfig's UDMA driver handle in
- *    EthFw_Config::cpswConfig.
+ *  - The UDMA driver handle via dmaCfg's UDMA driver handle in
+ *    EthFw_Config::cpswCfg.
  *
- * \param cpswType    CPSW instance type
+ * \param enetType    Enet instance type
  * \param config      Pointer to the EthFw config to be initialized
  */
-void EthFw_initConfigParams(Cpsw_Type cpswType,
+void EthFw_initConfigParams(Enet_Type enetType,
                             EthFw_Config *config);
 
 /*!
@@ -236,13 +237,13 @@ void EthFw_initConfigParams(Cpsw_Type cpswType,
  * will open the CPSW low-level driver and its multi-client manager (CPSW MCM).
  * It must be called from task context, cannot be called from main().
  *
- * \param cpswType    CPSW instance type
+ * \param enetType    Enet instance type
  * \param config      EthFw configuration
  *
  * \retval EthFw handle if initialization was successful
  * \retval NULL if initialization failed
  */
-EthFw_Handle EthFw_init(Cpsw_Type cpswType,
+EthFw_Handle EthFw_init(Enet_Type enetType,
                         const EthFw_Config *config);
 
 /*!
@@ -262,7 +263,7 @@ void EthFw_deinit(EthFw_Handle hEthFw);
  *
  * \param hEthFw      EthFw handle
  *
- * \retval CPSW_SOK if remote config initialization was successful
+ * \retval ENET_SOK if remote config initialization was successful
  * \retval Negative error code if initialization failed
  */
 int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw);
@@ -279,7 +280,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw);
  * \param hEthFw      EthFw handle
  * \param procId      IPC processor id, refer to IPC driver definitions.
  *
- * \retval CPSW_SOK if remote services initialization was successful
+ * \retval ENET_SOK if remote services initialization was successful
  * \retval Negative error code if announcement failed
  */
 int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,

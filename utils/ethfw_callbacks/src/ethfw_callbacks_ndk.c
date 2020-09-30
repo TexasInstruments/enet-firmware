@@ -80,7 +80,7 @@
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
 
-#include <ti/drv/cpsw/examples/cpsw_apputils/inc/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
 #include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */
@@ -216,6 +216,6 @@ void EthFwCallbacks_serviceReportHook(uint32_t Item,
 
         status = CfgAddEntry(0, CFGTAG_SERVICE, CFGITEM_SERVICE_DHCPCLIENT, 0,
                              sizeof(dhcpc), (unsigned char *)&dhcpc, 0);
-        CpswAppUtils_assert(status >= 0);
+        EnetAppUtils_assert(status >= 0);
     }
 }

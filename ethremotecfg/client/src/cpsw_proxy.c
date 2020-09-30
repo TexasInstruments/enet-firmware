@@ -101,7 +101,7 @@
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 
 #include <ti/drv/ipc/ipc.h>
-#include <ti/drv/cpsw/cpsw.h>
+#include <ti/drv/enet/enet.h>
 
 #include "cpsw_proxy_cfg.h"
 
@@ -164,12 +164,12 @@ typedef void * UArg;
 /* ========================================================================== */
 typedef struct CpswProxy_rdevCmdAttachReq_s
 {
-    enum rpmsg_kdrv_ethswitch_cpsw_type cpswType;
+    enum rpmsg_kdrv_ethswitch_cpsw_type enetType;
 } CpswProxy_rdevCmdAttachReq_t;
 
 typedef struct CpswProxy_rdevCmdAttachExtReq_s
 {
-    enum rpmsg_kdrv_ethswitch_cpsw_type cpswType;
+    enum rpmsg_kdrv_ethswitch_cpsw_type enetType;
 } CpswProxy_rdevCmdAttachExtReq_t;
 
 typedef struct CpswProxy_rdevCmdAttachRes_s
@@ -487,7 +487,7 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                               CpswProxy_rdevCmd_t *msg);
 
 static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
-                                        Cpsw_Handle hCpsw,
+                                        Enet_Handle hEnet,
                                         uint32_t coreKey,
                                         uint32_t *startFlowIdx);
 
@@ -629,19 +629,19 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
             case CPSWPROXY_RDEVCMD_ATTACH:
             {
                 msg.res.retVal = rdevEthSwitchClient_attach(deviceId,
-                                                            msg.req.u.attach.cpswType,
+                                                            msg.req.u.attach.enetType,
                                                             &msg.res.u.attach.id,
                                                             &msg.res.u.attach.core_key,
                                                             &msg.res.u.attach.rx_mtu,
                                                             msg.res.u.attach.tx_mtu,
-                                                            CPSW_UTILS_ARRAYSIZE(msg.res.u.attach.tx_mtu),
+                                                            ENET_ARRAYSIZE(msg.res.u.attach.tx_mtu),
                                                             &msg.res.u.attach.features);
                 if (0 == msg.res.retVal)
                 {
-                    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)(msg.res.u.attach.id));
+                    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
                     System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",
                                   __func__,
-                                  hCpsw,
+                                  hEnet,
                                   msg.res.u.attach.core_key,
                                   msg.res.u.attach.rx_mtu,
                                   msg.res.u.attach.tx_mtu[0],
@@ -661,23 +661,23 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
             case CPSWPROXY_RDEVCMD_ATTACHEXT:
             {
                 msg.res.retVal = rdevEthSwitchClient_attachext(deviceId,
-                                                               msg.req.u.attachext.cpswType,
+                                                               msg.req.u.attachext.enetType,
                                                                &msg.res.u.attachext.id,
                                                                &msg.res.u.attachext.core_key,
                                                                &msg.res.u.attachext.rx_mtu,
                                                                msg.res.u.attachext.tx_mtu,
-                                                               CPSW_UTILS_ARRAYSIZE(msg.res.u.attachext.tx_mtu),
+                                                               ENET_ARRAYSIZE(msg.res.u.attachext.tx_mtu),
                                                                &msg.res.u.attachext.features,
                                                                &msg.res.u.attachext.tx_id,
                                                                &msg.res.u.attachext.rx_flow_allocidx,
                                                                msg.res.u.attachext.mac_address,
-                                                               CPSW_UTILS_ARRAYSIZE(msg.res.u.attachext.mac_address));
+                                                               ENET_ARRAYSIZE(msg.res.u.attachext.mac_address));
                 if (0 == msg.res.retVal)
                 {
-                    Cpsw_Handle hCpsw = (Cpsw_Handle)((uintptr_t)(msg.res.u.attach.id));
+                    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
                     System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",
                                   __func__,
-                                  hCpsw,
+                                  hEnet,
                                   msg.res.u.attach.core_key,
                                   msg.res.u.attach.rx_mtu,
                                   msg.res.u.attach.tx_mtu[0],
@@ -724,7 +724,7 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
 
             case CPSWPROXY_RDEVCMD_ALLOCMAC:
             {
-                msg.res.retVal = rdevEthSwitchClient_allocmac(deviceId, msg.req.u.alloc.id, msg.req.u.alloc.core_key, msg.res.u.mac.mac_address, CPSW_UTILS_ARRAYSIZE(msg.res.u.mac.mac_address));
+                msg.res.retVal = rdevEthSwitchClient_allocmac(deviceId, msg.req.u.alloc.id, msg.req.u.alloc.core_key, msg.res.u.mac.mac_address, ENET_ARRAYSIZE(msg.res.u.mac.mac_address));
                 if (0 == msg.res.retVal)
                 {
                     System_printf("Function:%s,mac_address:%2x:%2x:%2x:%2x:%2x:%2x \n",
@@ -920,8 +920,8 @@ static void CpswProxy_rdevCmdTskFxn(UArg a0, UArg a1)
     if (ret == 0)
     {
         System_printf("Registered a device name = %s, id = %u, type = %u\n",
-                      hProxy->cfg.device_name, 
-                      prm.device_id, 
+                      hProxy->cfg.device_name,
+                      prm.device_id,
                       prm.device_type);
         hProxy->cfg.deviceDataNotifyCb(&prm.eth_device_data);
     }
@@ -954,10 +954,10 @@ static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
     if (NULL == hProxy->notifyServiceObj.hNotifyServicRpMsgEp)
     {
         System_printf("Could not create communication channel\n");
-        ret = CPSW_EFAIL;
+        ret = ENET_EFAIL;
     }
 
-    if (CPSW_SOK == ret)
+    if (ENET_SOK == ret)
     {
         if (localEp != CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID)
         {
@@ -1149,7 +1149,7 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                      msg,
                      size);
     CpswProxy_assert(status != -1);
-    CpswProxy_assert(msg->res.retVal == CPSW_SOK);
+    CpswProxy_assert(msg->res.retVal == ENET_SOK);
 #else
     Bool mbxStatus;
     Mailbox_Handle hCmdMbx = hProxy->hCmdMbx;
@@ -1164,7 +1164,7 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     CpswProxy_assert(mbxStatus == TRUE);
     mbxStatus = Mailbox_pend(hResponseMbx, msg, BIOS_WAIT_FOREVER);
     CpswProxy_assert(mbxStatus == TRUE);
-    CpswProxy_assert(msg->res.retVal == CPSW_SOK);
+    CpswProxy_assert(msg->res.retVal == ENET_SOK);
 #endif
 }
 
@@ -1203,10 +1203,10 @@ void CpswProxy_start(CpswProxy_Handle hProxy)
 
     CpswProxy_assert(hProxy != NULL);
     do {
-        status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY, 
-                                          ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE, 
-                                          &remoteCoreId, 
-                                          &remoteEndPt, 
+        status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY,
+                                          ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE,
+                                          &remoteCoreId,
+                                          &remoteEndPt,
                                           CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT);
         if (status != IPC_SOK)
         {
@@ -1221,12 +1221,12 @@ void CpswProxy_start(CpswProxy_Handle hProxy)
 
 
 void CpswProxy_addHostPortEntry(CpswProxy_Handle hProxy,
-                                Cpsw_Handle hCpsw,
+                                Enet_Handle hEnet,
                                 uint32_t coreKey,
                                 const uint8_t *macAddr)
 {
     CpswProxy_rdevCmd_t msg;
-    CpswAle_AddEntryOutArgs setUcastOutArgs;
+    uint32_t setUcastOutArgs;
     CpswAle_SetUcastEntryInArgs setUcastInArgs;
 
     memset(&setUcastInArgs, 0, sizeof(setUcastInArgs));
@@ -1238,9 +1238,9 @@ void CpswProxy_addHostPortEntry(CpswProxy_Handle hProxy,
     setUcastInArgs.info.super = false;
     setUcastInArgs.info.ageable = false;
 
-    msg.req.u.ioctl.cmd = CPSW_ALE_IOCTL_ADD_UNICAST;
+    msg.req.u.ioctl.cmd = CPSW_ALE_IOCTL_ADD_UCAST;
     msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hCpsw;
+    msg.req.u.ioctl.id = (uint64_t)hEnet;
     msg.req.u.ioctl.inArgsSize = sizeof(setUcastInArgs);
     msg.req.u.ioctl.inArgs = &setUcastInArgs;
     msg.req.u.ioctl.outArgs = &setUcastOutArgs;
@@ -1250,7 +1250,7 @@ void CpswProxy_addHostPortEntry(CpswProxy_Handle hProxy,
 }
 
 void CpswProxy_delAddrEntry(CpswProxy_Handle hProxy,
-                            Cpsw_Handle hCpsw,
+                            Enet_Handle hEnet,
                             uint32_t coreKey,
                             const uint8_t *macAddr)
 {
@@ -1263,7 +1263,7 @@ void CpswProxy_delAddrEntry(CpswProxy_Handle hProxy,
 
     msg.req.u.ioctl.cmd = CPSW_ALE_IOCTL_REMOVE_ADDR;
     msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hCpsw;
+    msg.req.u.ioctl.id = (uint64_t)hEnet;
     msg.req.u.ioctl.inArgsSize = sizeof(addrInfo);
     msg.req.u.ioctl.inArgs = &addrInfo;
     msg.req.u.ioctl.outArgs = NULL;
@@ -1273,7 +1273,7 @@ void CpswProxy_delAddrEntry(CpswProxy_Handle hProxy,
 }
 
 static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
-                                        Cpsw_Handle hCpsw,
+                                        Enet_Handle hEnet,
                                         uint32_t coreKey,
                                         uint32_t *startFlowIdx)
 {
@@ -1281,7 +1281,7 @@ static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
 
     msg.req.u.ioctl.cmd = CPSW_HOSTPORT_GET_FLOW_ID_OFFSET;
     msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hCpsw;
+    msg.req.u.ioctl.id = (uint64_t)hEnet;
     msg.req.u.ioctl.inArgsSize = 0;
     msg.req.u.ioctl.inArgs = NULL;
     msg.req.u.ioctl.outArgs = startFlowIdx;
@@ -1290,30 +1290,30 @@ static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_IOCTL, &msg);
 }
 
-static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Cpsw_Type cpswType)
+static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Enet_Type enetType)
 {
     enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAX;
 
-    switch (cpswType)
+    switch (enetType)
     {
-        case CPSW_2G:
+        case ENET_CPSW_2G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MCU;
             break;
 
 #if defined(SOC_J7200)
-        case CPSW_5G:
+        case ENET_CPSW_5G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
             break;
 #endif
 
 #if defined(SOC_J721E)
-        case CPSW_9G:
+        case ENET_CPSW_9G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
             break;
 #endif
 
         default:
-            /* Invalid Cpsw_Type value */
+            /* Invalid Enet_Type value */
             CpswProxy_assert(FALSE);
             break;
     }
@@ -1322,7 +1322,7 @@ static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Cpsw_Type c
 }
 
 void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
-                           Cpsw_Handle hCpsw,
+                           Enet_Handle hEnet,
                            uint32_t coreKey,
                            uint32_t *rxFlowStartIdx,
                            uint32_t *rxFlowIdx)
@@ -1330,58 +1330,58 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
     CpswProxy_rdevCmd_t msg;
     uint32_t absRxFlowIdx;
 
-    msg.req.u.alloc.id = (uint64_t)hCpsw;
+    msg.req.u.alloc.id = (uint64_t)hEnet;
     msg.req.u.alloc.core_key = coreKey;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ALLOCRX, &msg);
     absRxFlowIdx = msg.res.u.rx.rx_flow_allocidx;
-    CpswProxy_getRxStartFlowIdx(hProxy, hCpsw, coreKey, rxFlowStartIdx);
-    CpswProxy_assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
+    CpswProxy_getRxStartFlowIdx(hProxy, hEnet, coreKey, rxFlowStartIdx);
+    CpswProxy_assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + ENET_CFG_RM_RX_CH_MAX)));
     *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
 }
 
 void CpswProxy_allocMac(CpswProxy_Handle hProxy,
-                        Cpsw_Handle hCpsw,
+                        Enet_Handle hEnet,
                         uint32_t coreKey,
                         uint8_t *macAddress)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.alloc.id = (uint64_t)hCpsw;
+    msg.req.u.alloc.id = (uint64_t)hEnet;
     msg.req.u.alloc.core_key = coreKey;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ALLOCMAC, &msg);
     memcpy(macAddress, msg.res.u.mac.mac_address, sizeof(msg.res.u.mac.mac_address));
 }
 
 void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
-                                     Cpsw_Handle hCpsw,
+                                     Enet_Handle hEnet,
                                      uint32_t coreKey,
                                      uint32_t rxFlowStartIdx,
                                      uint32_t freeRxFlowIdx)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.regdefault.id = (uint64_t)hCpsw;
+    msg.req.u.regdefault.id = (uint64_t)hEnet;
     msg.req.u.regdefault.core_key = coreKey;
     msg.req.u.regdefault.rx_default_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_REGDEFAULT, &msg);
 }
 
 void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
-                                       Cpsw_Handle hCpsw,
+                                       Enet_Handle hEnet,
                                        uint32_t coreKey,
                                        uint32_t rxFlowStartIdx,
                                        uint32_t freeRxFlowIdx)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.unregdefault.id = (uint64_t)hCpsw;
+    msg.req.u.unregdefault.id = (uint64_t)hEnet;
     msg.req.u.unregdefault.core_key = coreKey;
     msg.req.u.unregdefault.rx_default_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGDEFAULT, &msg);
 }
 
 void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
-                                    Cpsw_Handle hCpsw,
+                                    Enet_Handle hEnet,
                                     uint32_t coreKey,
                                     uint32_t rxFlowStartIdx,
                                     uint32_t freeRxFlowIdx,
@@ -1389,7 +1389,7 @@ void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.regmac.id = (uint64_t)hCpsw;
+    msg.req.u.regmac.id = (uint64_t)hEnet;
     msg.req.u.regmac.core_key = coreKey;
     msg.req.u.regmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
     memcpy(msg.req.u.regmac.mac_address, macAddress, sizeof(msg.req.u.regmac.mac_address));
@@ -1397,7 +1397,7 @@ void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
 }
 
 void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
-                                      Cpsw_Handle hCpsw,
+                                      Enet_Handle hEnet,
                                       uint32_t coreKey,
                                       uint32_t rxFlowStartIdx,
                                       uint32_t freeRxFlowIdx,
@@ -1405,7 +1405,7 @@ void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.unregmac.id = (uint64_t)hCpsw;
+    msg.req.u.unregmac.id = (uint64_t)hEnet;
     msg.req.u.unregmac.core_key = coreKey;
     msg.req.u.unregmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
     memcpy(msg.req.u.unregmac.mac_address, macAddress, sizeof(msg.req.u.unregmac.mac_address));
@@ -1414,26 +1414,26 @@ void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
 
 
 void CpswProxy_freeMac(CpswProxy_Handle hProxy,
-                       Cpsw_Handle hCpsw,
+                       Enet_Handle hEnet,
                        uint32_t coreKey,
                        const uint8_t *macAddress)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.freemac.id = (uint64_t)hCpsw;
+    msg.req.u.freemac.id = (uint64_t)hEnet;
     msg.req.u.freemac.core_key = coreKey;
     memcpy(msg.req.u.freemac.mac_address, macAddress, sizeof(msg.req.u.freemac.mac_address));
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FREEMAC, &msg);
 }
 
 void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
-                          Cpsw_Handle hCpsw,
+                          Enet_Handle hEnet,
                           uint32_t coreKey,
                           uint32_t rxFlowIdx)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.freerx.id = (uint64_t)hCpsw;
+    msg.req.u.freerx.id = (uint64_t)hEnet;
     msg.req.u.freerx.core_key = coreKey;
     msg.req.u.freerx.rx_flow_allocidx = rxFlowIdx;
 
@@ -1442,27 +1442,27 @@ void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
 
 
 void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
-                         Cpsw_Handle hCpsw,
+                         Enet_Handle hEnet,
                          uint32_t coreKey,
                          uint32_t *txPSILThreadId)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.alloc.id = (uint64_t)hCpsw;
+    msg.req.u.alloc.id = (uint64_t)hEnet;
     msg.req.u.alloc.core_key = coreKey;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ALLOCTX, &msg);
     *txPSILThreadId = msg.res.u.tx.tx_id;
 }
 
 void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
-                        Cpsw_Handle hCpsw,
+                        Enet_Handle hEnet,
                         uint32_t coreKey,
                         uint32_t txChNum)
 {
     CpswProxy_rdevCmd_t msg;
 
     msg.req.cmd = CPSWPROXY_RDEVCMD_FREETX;
-    msg.req.u.freetx.id = (uint64_t)hCpsw;
+    msg.req.u.freetx.id = (uint64_t)hEnet;
     msg.req.u.freetx.core_key = coreKey;
     msg.req.u.freetx.tx_id = txChNum;
 
@@ -1471,8 +1471,8 @@ void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
 
 
 void CpswProxy_attach(CpswProxy_Handle hProxy,
-                      Cpsw_Type cpswType,
-                      Cpsw_Handle *pCpswHandle,
+                      Enet_Type enetType,
+                      Enet_Handle *pCpswHandle,
                       uint32_t *coreKey,
                       uint32_t *rxMtu,
                       uint32_t *txMtu)
@@ -1481,21 +1481,21 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
     uint32_t i;
     enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
 
-    rdevCpswType = CpswProxy_getRdevCpswType(cpswType);
-    msg.req.u.attach.cpswType = rdevCpswType;
+    rdevCpswType = CpswProxy_getRdevCpswType(enetType);
+    msg.req.u.attach.enetType = rdevCpswType;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ATTACH, &msg);
-    *pCpswHandle = (Cpsw_Handle)((uintptr_t)(msg.res.u.attach.id));
+    *pCpswHandle = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
     *coreKey = msg.res.u.attach.core_key;
     *rxMtu = msg.res.u.attach.rx_mtu;
-    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(msg.res.u.attach.tx_mtu); i++)
+    for (i = 0; i < ENET_ARRAYSIZE(msg.res.u.attach.tx_mtu); i++)
     {
         txMtu[i] = msg.res.u.attach.tx_mtu[i];
     }
 }
 
 void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
-                              Cpsw_Type cpswType,
-                              Cpsw_Handle *pCpswHandle,
+                              Enet_Type enetType,
+                              Enet_Handle *pCpswHandle,
                               uint32_t *coreKey,
                               uint32_t *rxMtu,
                               uint32_t *txMtu,
@@ -1509,13 +1509,13 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
     uint32_t absRxFlowIdx;
     enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
 
-    rdevCpswType = CpswProxy_getRdevCpswType(cpswType);
-    msg.req.u.attach.cpswType = rdevCpswType;
+    rdevCpswType = CpswProxy_getRdevCpswType(enetType);
+    msg.req.u.attach.enetType = rdevCpswType;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ATTACHEXT, &msg);
-    *pCpswHandle = (Cpsw_Handle)((uintptr_t)(msg.res.u.attachext.id));
+    *pCpswHandle = (Enet_Handle)((uintptr_t)(msg.res.u.attachext.id));
     *coreKey = msg.res.u.attachext.core_key;
     *rxMtu = msg.res.u.attachext.rx_mtu;
-    for (i = 0; i < CPSW_UTILS_ARRAYSIZE(msg.res.u.attachext.tx_mtu); i++)
+    for (i = 0; i < ENET_ARRAYSIZE(msg.res.u.attachext.tx_mtu); i++)
     {
         txMtu[i] = msg.res.u.attachext.tx_mtu[i];
     }
@@ -1526,47 +1526,47 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                                 *pCpswHandle,
                                 *coreKey,
                                 rxFlowStartIdx);
-    CpswProxy_assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + CPSW_DMA_MAX_RX_FLOW)));
+    CpswProxy_assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + ENET_CFG_RM_RX_CH_MAX)));
     *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
     memcpy(macAddress, msg.res.u.attachext.mac_address, sizeof(msg.res.u.attachext.mac_address));
 }
 
 void CpswProxy_detach(CpswProxy_Handle hProxy,
-                      Cpsw_Handle hCpsw,
+                      Enet_Handle hEnet,
                       uint32_t coreKey)
 {
     CpswProxy_rdevCmd_t msg;
 
     msg.req.cmd = CPSWPROXY_RDEVCMD_DETACH;
-    msg.req.u.detach.id = (uint64_t)hCpsw;
+    msg.req.u.detach.id = (uint64_t)hEnet;
     msg.req.u.detach.core_key = coreKey;
 
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_DETACH, &msg);
 }
 
 void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
-                                Cpsw_Handle hCpsw,
+                                Enet_Handle hEnet,
                                 uint32_t coreKey,
                                 uint8_t *macAddr,
                                 uint8_t *ipv4Addr)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.regipv4.id = (uint64_t)hCpsw;
+    msg.req.u.regipv4.id = (uint64_t)hEnet;
     msg.req.u.regipv4.core_key = coreKey;
-    CPSW_UTILS_ARRAY_COPY(msg.req.u.regipv4.mac_address, macAddr);
+    ENET_UTILS_ARRAY_COPY(msg.req.u.regipv4.mac_address, macAddr);
     memcpy(msg.req.u.regipv4.ipv4Addr, ipv4Addr, sizeof(msg.req.u.regipv4.ipv4Addr));
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_REGIPV4, &msg);
 }
 
 void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
-                                  Cpsw_Handle hCpsw,
+                                  Enet_Handle hEnet,
                                   uint32_t coreKey,
                                   uint8_t *ipv4Addr)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.unregipv4.id = (uint64_t)hCpsw;
+    msg.req.u.unregipv4.id = (uint64_t)hEnet;
     msg.req.u.unregipv4.core_key = coreKey;
     memcpy(msg.req.u.unregipv4.ipv4Addr, ipv4Addr, sizeof(msg.req.u.unregipv4.ipv4Addr));
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGIPV4, &msg);
@@ -1574,22 +1574,18 @@ void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
 
 
 bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy,
-                           Cpsw_Handle hCpsw,
+                           Enet_Handle hEnet,
                            uint32_t coreKey,
-                           Cpsw_MacPort portNum)
+                           Enet_MacPort portNum)
 {
     CpswProxy_rdevCmd_t msg;
-    Cpsw_GenericPortLinkInArgs inArgs;
     bool isLinked;
 
-    memset(&inArgs, 0, sizeof(inArgs));
-    inArgs.portNum = portNum;
-
-    msg.req.u.ioctl.cmd = CPSW_IOCTL_IS_PORT_LINK_UP;
+    msg.req.u.ioctl.cmd = ENET_PER_IOCTL_IS_PORT_LINK_UP;
     msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hCpsw;
-    msg.req.u.ioctl.inArgsSize = sizeof(inArgs);
-    msg.req.u.ioctl.inArgs = &inArgs;
+    msg.req.u.ioctl.id = (uint64_t)hEnet;
+    msg.req.u.ioctl.inArgsSize = sizeof(portNum);
+    msg.req.u.ioctl.inArgs = &portNum;
     msg.req.u.ioctl.outArgs = &isLinked;
     msg.req.u.ioctl.outArgsSize = sizeof(isLinked);
 
@@ -1598,16 +1594,16 @@ bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy,
 }
 
 void CpswProxy_ioctl(CpswProxy_Handle hProxy,
-                     Cpsw_Handle hCpsw,
+                     Enet_Handle hEnet,
                      uint32_t coreKey,
                      uint32_t cmd,
-                     Cpsw_IoctlPrms *prms)
+                     Enet_IoctlPrms *prms)
 {
     CpswProxy_rdevCmd_t msg;
 
     msg.req.u.ioctl.cmd = cmd;
     msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hCpsw;
+    msg.req.u.ioctl.id = (uint64_t)hEnet;
     msg.req.u.ioctl.inArgsSize = prms->inArgsSize;
     msg.req.u.ioctl.inArgs = prms->inArgs;
     msg.req.u.ioctl.outArgs = prms->outArgs;
@@ -1617,7 +1613,7 @@ void CpswProxy_ioctl(CpswProxy_Handle hProxy,
 }
 
 void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                       Cpsw_Handle hCpsw,
+                                       Enet_Handle hEnet,
                                        uint32_t coreKey,
                                        uint32_t rxFlowStartIdx,
                                        uint32_t freeRxFlowIdx,
@@ -1625,7 +1621,7 @@ void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.regethtype.id = (uint64_t)hCpsw;
+    msg.req.u.regethtype.id = (uint64_t)hEnet;
     msg.req.u.regethtype.core_key = coreKey;
     msg.req.u.regethtype.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
     msg.req.u.regethtype.ether_type = etherType;
@@ -1633,7 +1629,7 @@ void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
 }
 
 void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                      Cpsw_Handle hCpsw,
+                                      Enet_Handle hEnet,
                                       uint32_t coreKey,
                                       uint32_t rxFlowStartIdx,
                                       uint32_t freeRxFlowIdx,
@@ -1641,7 +1637,7 @@ void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.unregethtype.id = (uint64_t)hCpsw;
+    msg.req.u.unregethtype.id = (uint64_t)hEnet;
     msg.req.u.unregethtype.core_key = coreKey;
     msg.req.u.unregethtype.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
     msg.req.u.unregethtype.ether_type = etherType;
@@ -1649,14 +1645,14 @@ void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
 }
 
 void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
-                                   Cpsw_Handle hCpsw,
+                                   Enet_Handle hEnet,
                                    uint32_t coreKey,
                                    uint8_t timerId,
                                    uint8_t hwPushNum)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.regremotetimer.id = (uint64_t)hCpsw;
+    msg.req.u.regremotetimer.id = (uint64_t)hEnet;
     msg.req.u.regremotetimer.core_key = coreKey;
     msg.req.u.regremotetimer.timerId = timerId;
     msg.req.u.regremotetimer.hwPushNum = hwPushNum;
@@ -1664,27 +1660,27 @@ void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
 }
 
 void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
-                                     Cpsw_Handle hCpsw,
+                                     Enet_Handle hEnet,
                                      uint32_t coreKey,
                                      uint8_t hwPushNum)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.unregremotetimer.id = (uint64_t)hCpsw;
+    msg.req.u.unregremotetimer.id = (uint64_t)hEnet;
     msg.req.u.unregremotetimer.core_key = coreKey;
     msg.req.u.unregremotetimer.hwPushNum = hwPushNum;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGREMOTETIMER, &msg);
 }
 
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
-                          Cpsw_Handle hCpsw,
+                          Enet_Handle hEnet,
                           uint32_t coreKey,
                           uint8_t *notifyInfo,
                           uint32_t notifyInfoLength)
 {
     CpswProxy_rdevCmd_t msg;
 
-    msg.req.u.notify.id = (uint64_t)hCpsw;
+    msg.req.u.notify.id = (uint64_t)hEnet;
     msg.req.u.notify.core_key = coreKey;
     msg.req.u.notify.notify_info = notifyInfo;
     msg.req.u.notify.notify_len = notifyInfoLength;
@@ -1694,7 +1690,7 @@ void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
 int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
                                          CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn)
 {
-    int status = CPSW_SOK;
+    int status = ENET_SOK;
 
     if ((NULL != hProxy) && (NULL != cbFxn))
     {
@@ -1704,7 +1700,7 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
         }
         else
         {
-            status = CPSW_EALREADY_OPEN;
+            status = ENET_EALREADYOPEN;
         }
     }
 

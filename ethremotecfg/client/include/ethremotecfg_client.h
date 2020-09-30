@@ -382,7 +382,7 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id,
  * except regrd / regwr functions
  *
  * \param device_id Device id returned by rdevEthSwitchClient_connect
- * \param cpswType CPSW TYPE of type enum rpmsg_kdrv_ethswitch_cpsw_type
+ * \param enetType CPSW TYPE of type enum rpmsg_kdrv_ethswitch_cpsw_type
  * \param id Pointer to Unique Opaque Handle populated by this function 
  * \param core_key Pointer to Core key populated by this function
  * \param rx_mtu   Pointer to Maximum receive packet length . Populated by this function
@@ -391,7 +391,7 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id,
  * \param features Pointer to feature bitmap. Bitmask of type RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx
  */
 int32_t rdevEthSwitchClient_attach(uint32_t device_id,
-                                   uint8_t cpswType,
+                                   uint8_t enetType,
                                    uint64_t *id,
                                    uint32_t *core_key,
                                    uint32_t *rx_mtu,
@@ -410,7 +410,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
  * Client can avoid further calls to alloctx/allocrx etc.
  *
  * \param device_id Device id returned by rdevEthSwitchClient_connect
- * \param cpswType CPSW TYPE of type enum rpmsg_kdrv_ethswitch_cpsw_type
+ * \param enetType CPSW TYPE of type enum rpmsg_kdrv_ethswitch_cpsw_type
  * \param id Pointer to Unique Opaque Handle populated by this function 
  * \param core_key Pointer to Core key populated by this function
  * \param rx_mtu   Pointer to Maximum receive packet length . Populated by this function
@@ -423,7 +423,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
  * \param mac_address_len Destination mac address buffer length
  */
 int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
-                                      uint8_t cpswType,
+                                      uint8_t enetType,
                                       uint64_t *id,
                                       uint32_t *core_key,
                                       uint32_t *rx_mtu,
