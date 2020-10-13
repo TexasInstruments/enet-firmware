@@ -468,7 +468,7 @@ static int32_t EthFw_initMcm(void)
     cpswMcmCfg.setPortLinkCfg = EthFw_initLinkArgs;
     cpswMcmCfg.numMacPorts = gEthFwObj.numPorts;
     cpswMcmCfg.periodicTaskPeriod = ENETPHY_FSM_TICK_PERIOD_MS;
-    cpswMcmCfg.printFxn = appLogPrintf;
+    cpswMcmCfg.print = appLogPrintf;
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {

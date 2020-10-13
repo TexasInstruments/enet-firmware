@@ -229,7 +229,7 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->hostPortRxMtu   = attachInfo.rxMtu;
     ENET_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
     outArgs->hUdmaDrv        = handleInfo.hUdmaDrv;
-    outArgs->printFxnCb      = &EnetAppUtils_print;
+    outArgs->print           = &EnetAppUtils_print;
     outArgs->isPortLinkedFxn = &EthFwCallbacks_isPortLinked;
 
     /* TODO: NIMU's polling timer is getting corrupted at times of sudden burst of
