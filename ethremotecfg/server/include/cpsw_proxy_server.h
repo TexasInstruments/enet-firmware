@@ -195,7 +195,7 @@ typedef struct CpswProxyServer_Config_s
     Enet_Type notifyServiceCpswType;
 
     /*! Remote Core Id for Notification service */
-    uint32_t notifyServiceRemoteCoreId;
+    uint32_t notifyServiceRemoteCoreId[ETHREMOTECFG_SERVER_MAX_INSTANCES];
 
     /*! Remote Core configuration */
     CpswProxyServer_RemoteCoreConfig remoteCoreCfg[ETHREMOTECFG_SERVER_MAX_INSTANCES];

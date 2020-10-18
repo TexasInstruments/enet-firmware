@@ -117,6 +117,10 @@
 
 #include <utils/profile/include/app_profile.h>
 
+/* Timesync header files */
+#include <ti/transport/timeSync/v2/include/timeSync.h>
+#include <ti/transport/timeSync/v2/protocol/ptp/include/timeSync_ptp.h>
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -174,6 +178,10 @@ typedef struct EthFw_Obj_s
 
     /* Multiclient Manager (MCM) handle */
     EnetMcm_CmdIf mcmCmdIf;
+
+    /* Handle to PTP stack */
+    TimeSyncPtp_Handle timeSyncPtp;
+
 } EthFw_Obj;
 
 /* ========================================================================== */
@@ -408,7 +416,8 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 
     /* Enable server-to-client notify service */
     cfg.notifyServiceCpswType = gEthFwObj.enetType;
-    cfg.notifyServiceRemoteCoreId = IPC_MCU2_1;
+    cfg.notifyServiceRemoteCoreId[0] = IPC_MPU1_0;
+    cfg.notifyServiceRemoteCoreId[1] = IPC_MCU2_1;
 
     status = CpswProxyServer_init(&cfg);
     if (status != ENET_SOK)
@@ -641,4 +650,41 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
     }
 
     appLogPrintf("***********************************\n");
+}
+
+/* PTP related functions */
+
+static void EthFw_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
+{
+#if defined(SOC_J721E)
+    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
+    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
+#elif defined(SOC_J7200)
+    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J7200;
+    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_5G;
+#endif
+    ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
+    ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
+}
+
+void EthFw_initTimeSyncPtp(uint32_t ipAddr,
+                           const uint8_t *hostMacAddr,
+                           uint32_t portMask)
+{
+    TimeSyncPtp_Config ptpConfig;
+
+    /* Initialize and enable PTP stack */
+    TimeSyncPtp_setDefaultPtpConfig(&ptpConfig);
+    EthFw_setPtpConfig(&ptpConfig);
+    ptpConfig.portMask = portMask;
+
+    /* Save host port IP address and MAC address */
+    memcpy(&ptpConfig.ipAddr[0U], &ipAddr, ENET_IPv4_ADDR_LEN);
+    memcpy(&ptpConfig.ifMacID[0U], hostMacAddr, ENET_MAC_ADDR_LEN);
+
+    gEthFwObj.timeSyncPtp = TimeSyncPtp_init(&ptpConfig);
+    EnetAppUtils_assert(gEthFwObj.timeSyncPtp != NULL);
+
+    TimeSyncPtp_enable(gEthFwObj.timeSyncPtp);
+    appLogPrintf("EthFw: TimeSync PTP enabled\n");
 }

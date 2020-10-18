@@ -125,7 +125,7 @@ extern "C" {
 #define CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY        (2U)
 
 /*! Remote notify service task stack size */
-#define CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE       (8U * 1024U)
+#define CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE       (16U * 1024U)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -149,7 +149,7 @@ typedef enum
 typedef struct CpswRemoteNotifyService_MessageHeader_s
 {
     /*! Message Type enum: CpswRemoteNotifyService_Cmd */
-    uint8_t  messageId;
+    uint32_t messageId;
 
     /*! Message length */
     uint32_t messageLen;
@@ -167,7 +167,7 @@ typedef struct CpswRemoteNotifyService_HwPushMsg_s
     Enet_Type enetType;
 
     /*! CPTS hardware push number */
-    CpswCpts_HwPush hwPushNum;
+    uint32_t hwPushNum;
 
     /*! CPTS hardware push event timestamp  */
     uint64_t timeStamp;

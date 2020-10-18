@@ -168,9 +168,10 @@ typedef struct CpswProxyServer_NotifyServiceObj_s
     EventP_Handle                hHwPushNotifyServiceEvent;
     uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HWPUSH_COUNT_MAX];
     RPMessage_Handle             hNotifyServicRpMsgEp;
-    uint32_t                     dstProc;
+    uint32_t                     dstProc[ETHREMOTECFG_SERVER_MAX_INSTANCES];
     uint32_t                     localEp;
     uint32_t                     remoteEp;
+    uint32_t                     numRemoteCores;
 } CpswProxyServer_NotifyServiceObj;
 
 typedef struct CpswProxyServer_Obj_s
@@ -1494,6 +1495,14 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(uint32_t host_id,
     Enet_Type enetType;
     CpswProxyServer_Obj *hProxyServer;
 
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Name:%s, Timer:%d, PushNum:%u\n",
+                 __func__,
+                 host_id,
+                 hEnet,
+                 core_key,
+                 name,
+                 timer_id,
+                 hwPushNum);
     hProxyServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
     status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
@@ -1728,7 +1737,11 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
     uint8_t i = 0;
 
     hProxyServer->notifyServiceObj.notifyServiceCpswType = cfg->notifyServiceCpswType;
-    hProxyServer->notifyServiceObj.dstProc = cfg->notifyServiceRemoteCoreId;
+    hProxyServer->notifyServiceObj.numRemoteCores = cfg->numRemoteCores;
+    for (i = 0U; i< cfg->numRemoteCores; i++)
+    {
+        hProxyServer->notifyServiceObj.dstProc[i] = cfg->notifyServiceRemoteCoreId[i];
+    }
     RPMessageParams_init(&comChParam);
     comChParam.numBufs = CPSW_REMOTE_NOTIFY_SERVICE_NUM_RPMSG_BUFS;
     comChParam.buf = g_CpswProxyServerNotifyServiceRpmsgBuf;
@@ -2302,7 +2315,7 @@ static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
     CpswProxyServer_Obj * hProxyServer = (CpswProxyServer_Obj *)arg0;
     uint64_t msgBuffer[(CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE / sizeof(uint64_t))];
     volatile bool exitTask = false;
-    uint32_t i = 0U, events = 0U;
+    uint32_t i = 0U, events = 0U, j = 0U;
     Enet_IoctlPrms prms;
     CpswCpts_Event lookupEventInArgs;
     CpswCpts_Event lookupEventOutArgs;
@@ -2334,30 +2347,33 @@ static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
                         hwPushMsg->header.messageId = CPSW_REMOTE_NOTIFY_SERVICE_CMD_HWPUSH;
                         hwPushMsg->header.messageLen = sizeof(*hwPushMsg);
                         hwPushMsg->enetType = hProxyServer->notifyServiceObj.notifyServiceCpswType;
-                        hwPushMsg->hwPushNum = (CpswCpts_HwPush)(i + 1U);
+                        hwPushMsg->hwPushNum = i + 1U;
 
                         lookupEventInArgs.eventType = CPSW_CPTS_EVENTTYPE_HW_TS_PUSH;
-                        lookupEventInArgs.hwPushNum = hwPushMsg->hwPushNum;
+                        lookupEventInArgs.hwPushNum = (CpswCpts_HwPush) hwPushMsg->hwPushNum;
                         lookupEventInArgs.portNum = 0U;
                         lookupEventInArgs.seqId = 0U;
                         lookupEventInArgs.domain  = 0U;
 
-                        ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupEventInArgs, &lookupEventOutArgs);
-                        rtnVal = Enet_ioctl(hEnet,
-                                            hProxyServer->notifyServiceObj.dstProc,
-                                            CPSW_CPTS_IOCTL_LOOKUP_EVENT,
-                                            &prms);
-                        if (rtnVal == ENET_SOK)
+                        for (j = 0U; j < hProxyServer->notifyServiceObj.numRemoteCores; j++)
                         {
-                            hwPushMsg->timeStamp = lookupEventOutArgs.tsVal;
+                            ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupEventInArgs, &lookupEventOutArgs);
+                            rtnVal = Enet_ioctl(hEnet,
+                                                hProxyServer->notifyServiceObj.dstProc[j],
+                                                CPSW_CPTS_IOCTL_LOOKUP_EVENT,
+                                                &prms);
+                            if (rtnVal == ENET_SOK)
+                            {
+                                hwPushMsg->timeStamp = lookupEventOutArgs.tsVal;
 
-                            rtnVal = RPMessage_send(hProxyServer->notifyServiceObj.hNotifyServicRpMsgEp,
-                                                    hProxyServer->notifyServiceObj.dstProc,
-                                                    CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID,
-                                                    hProxyServer->notifyServiceObj.localEp,
-                                                    hwPushMsg,
-                                                    sizeof(*hwPushMsg));
-                            EnetAppUtils_assert(IPC_SOK == rtnVal);
+                                rtnVal = RPMessage_send(hProxyServer->notifyServiceObj.hNotifyServicRpMsgEp,
+                                                        hProxyServer->notifyServiceObj.dstProc[j],
+                                                        CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID,
+                                                        hProxyServer->notifyServiceObj.localEp,
+                                                        hwPushMsg,
+                                                        sizeof(*hwPushMsg));
+                                EnetAppUtils_assert(IPC_SOK == rtnVal);
+                            }
                         }
                     }
                 }

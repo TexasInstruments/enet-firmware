@@ -298,6 +298,20 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
 void EthFw_getVersion(EthFw_Handle hEthFw,
                       EthFw_Version *version);
 
+/*!
+ * \brief Initialize and Enable EthFw PTP Stack
+ *
+ * Initializes and enable the EthFw PTP Stack with the provided configuration parameters.
+ *
+ * \param ipAddr        IP Address
+ * \param hostMacAddr   Host Port MAC Address
+ * \param portMask      Mask of ports used for PTP. The mask is built by or-ing
+ *                      ENET_BIT(ENET_NORM_MACPORT(macPort)).
+ */
+void EthFw_initTimeSyncPtp(uint32_t ipAddr,
+                           const uint8_t *hostMacAddr,
+                           uint32_t portMask);
+
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */
 /* ========================================================================== */

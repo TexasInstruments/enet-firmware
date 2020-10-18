@@ -939,9 +939,12 @@ static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
     uint32_t remoteProc, remoteEp;
     CpswRemoteNotifyService_MessageHeader *header = NULL;
     uint16_t len;
-    uint64_t msgBuffer[(CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE / sizeof(uint64_t))];
+    uint8_t msgBuffer[CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE];
     volatile bool exitTask = false;
+    void *data;
+    CpswRemoteNotifyService_HwPushMsg *hwPushMsg;
 
+    data = (void *)msgBuffer;
     /* Create RPMsg */
     RPMessageParams_init(&rpmsgPrm);
     rpmsgPrm.requestedEndpt = CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID;
@@ -983,7 +986,7 @@ static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
     while (!exitTask)
     {
         ret = RPMessage_recv(hProxy->notifyServiceObj.hNotifyServicRpMsgEp,
-                            (Ptr)msgBuffer,
+                            data,
                             &len,
                             &remoteEp,
                             &remoteProc,
@@ -995,17 +998,17 @@ static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
             CpswProxy_assert(remoteProcId == remoteProc);
 
             /* Process received message */
-            header = (CpswRemoteNotifyService_MessageHeader *)msgBuffer;
+            header = (CpswRemoteNotifyService_MessageHeader *)data;
             switch(header->messageId)
             {
                 case CPSW_REMOTE_NOTIFY_SERVICE_CMD_HWPUSH:
                 {
-                    CpswRemoteNotifyService_HwPushMsg *hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)msgBuffer;
-
+                    hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)data;
                     CpswProxy_assert(hwPushMsg->header.messageLen == sizeof(CpswRemoteNotifyService_HwPushMsg));
+
                     if(hProxy->notifyServiceObj.cb.hwPushCb != NULL)
                     {
-                        hProxy->notifyServiceObj.cb.hwPushCb(hwPushMsg->hwPushNum,
+                        hProxy->notifyServiceObj.cb.hwPushCb((CpswCpts_HwPush)hwPushMsg->hwPushNum,
                                                              hwPushMsg->timeStamp);
                     }
 
