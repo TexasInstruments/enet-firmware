@@ -77,12 +77,12 @@
 #include <ti/drv/enet/include/dma/udma/enet_udma.h>
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/uart/UART_stdio.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_apprm.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
+#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
+#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 #include <ti/drv/enet/nimuenet/nimu_ndk.h>
 #include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
 
@@ -254,8 +254,8 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
 void EthFwCallbacks_nimuCpswReleaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
     EnetMcm_CmdIf mcmCmdIf;
-    EnetDma_PktInfoQ fqPktInfoQ;
-    EnetDma_PktInfoQ cqPktInfoQ;
+    EnetDma_PktQ fqPktInfoQ;
+    EnetDma_PktQ cqPktInfoQ;
 #if defined(SOC_J721E)
     Enet_Type enetType = ENET_CPSW_9G;
 #elif defined(SOC_J7200)

@@ -80,7 +80,7 @@
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
 
-#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */

@@ -97,10 +97,10 @@
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/uart/UART_stdio.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appboardutils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+#include <ti/drv/enet/examples/utils/include/enet_appboardutils.h>
+#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 #include <ti/drv/enet/nimuenet/nimu_ndk.h>
 
 /* EthFw utils header files */

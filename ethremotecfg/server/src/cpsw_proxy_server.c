@@ -89,10 +89,10 @@
 #include <ti/drv/enet/include/core/enet_dma.h>
 #include <ti/drv/enet/include/core/enet_mod_hostport.h>
 #include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_apprm.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 
 /* NDK headers */

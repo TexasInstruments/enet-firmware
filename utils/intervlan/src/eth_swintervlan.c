@@ -91,12 +91,12 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/dma/udma/enet_udma.h>
 
-#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
-#include <ti/drv/enet/examples/utils/include/cpswapp_ethutils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
+#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
+#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
+#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 #include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
 
 #include <ti/osal/osal.h>
@@ -148,7 +148,7 @@ typedef struct
 
     uint32_t ingRxFlowIdx;
 
-    EnetDma_PktInfoQ rxReadyQ;
+    EnetDma_PktQ rxReadyQ;
 
     EnetDma_TxChHandle hTxCh;
 
@@ -203,7 +203,7 @@ static Void CpswApp_InterVlanRouting(UArg a0,
                                      UArg a1)
 {
     int32_t status;
-    EnetDma_PktInfoQ fqPktInfoQ, cqPktInfoQ;
+    EnetDma_PktQ fqPktInfoQ, cqPktInfoQ;
     Semaphore_Params semParams;
     EnetMcm_HandleInfo handleInfo;
     EnetPer_AttachCoreOutArgs attachInfo;
@@ -314,11 +314,11 @@ void CpswApp_txIsrFxn(void *appData)
 
 static void CpswApp_initRxReadyPktQ(void)
 {
-    EnetDma_PktInfoQ rxFreeQ;
-    EnetDma_PktInfoQ rxReadyQ;
+    EnetDma_PktQ rxFreeQ;
+    EnetDma_PktQ rxReadyQ;
     int32_t status;
     uint32_t i;
-    EnetDma_PktInfo *pPktInfo;
+    EnetDma_Pkt *pPktInfo;
 
     EnetQueue_initQ(&rxFreeQ);
     EnetQueue_initQ(&rxReadyQ);
@@ -711,9 +711,9 @@ static int32_t CpswApp_getRxTxHandle(void)
 static void CpswApp_pktRxTx(void)
 {
     int32_t status = ENET_SOK;
-    EnetDma_PktInfoQ txSubmitQ;
-    EnetDma_PktInfoQ rxFreeQ;
-    EnetDma_PktInfo *pktInfo;
+    EnetDma_PktQ txSubmitQ;
+    EnetDma_PktQ rxFreeQ;
+    EnetDma_Pkt *pktInfo;
     EthVlanFrame *frame;
     uint32_t rxReadyCnt;
     bool isSemPosted;
@@ -782,7 +782,7 @@ static void CpswApp_pktRxTx(void)
             gCpswInterVlanAppObj.num_pkts += rxReadyCnt;
 
             /* Consume the received packets and release them */
-            pktInfo = (EnetDma_PktInfo *)EnetQueue_deq(&gCpswInterVlanAppObj.rxReadyQ);
+            pktInfo = (EnetDma_Pkt *)EnetQueue_deq(&gCpswInterVlanAppObj.rxReadyQ);
 
             /*Processing loop for received packets, we will perform Header inspection,
              * mangling and enqueue the same for Tx Processing */
@@ -814,21 +814,21 @@ static void CpswApp_pktRxTx(void)
                     /* Step3: Enq the modified frame for transmission */
                     EnetQueue_enq(&txSubmitQ, &pktInfo->node);
 
-                    pktInfo = (EnetDma_PktInfo *)EnetQueue_deq(&gCpswInterVlanAppObj.rxReadyQ);
+                    pktInfo = (EnetDma_Pkt *)EnetQueue_deq(&gCpswInterVlanAppObj.rxReadyQ);
                 }
             } /* end of while loop*/
 
             Cache_wait();
 
             /* Submit the list of Packets to be Tx to HW */
-            status = EnetDma_submitTxReadyPktQ(gCpswInterVlanAppObj.hTxCh,
+            status = EnetDma_submitTxPktQ(gCpswInterVlanAppObj.hTxCh,
                                                   &txSubmitQ);
             EnetAppUtils_assert(EnetQueue_getQCount(&txSubmitQ) == 0);
         } /*end of else condition*/
 
 #ifndef AUTO_RECLAIM_TXCQ
         /* Reclaim Transmitted packets and add the reclaimed buffers to Rx FreeQ */
-        status = EnetDma_retrieveTxDonePktQ(gCpswInterVlanAppObj.hTxCh, &rxFreeQ);
+        status = EnetDma_retrieveTxPktQ(gCpswInterVlanAppObj.hTxCh, &rxFreeQ);
         EnetDma_submitRxPktQ(gCpswInterVlanAppObj.hIngRxFlow,
                                      &rxFreeQ);
         EnetAppUtils_assert(EnetQueue_getQCount(&rxFreeQ) == 0);

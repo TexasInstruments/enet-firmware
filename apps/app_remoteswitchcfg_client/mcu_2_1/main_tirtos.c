@@ -92,10 +92,10 @@
 
 #include <ti/drv/enet/nimuenet/nimu_ndk.h>
 #include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
-#include <ti/drv/enet/examples/utils/include/cpswapp_ethutils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appmemutils.h>
+#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
+#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
+#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 
 /* NDK headers */
 #include <ti/ndk/inc/netmain.h>
@@ -802,8 +802,8 @@ static void CpswRemoteApp_closeNDKRxCh(CpswProxy_Handle hProxy,
                                      void *freeFxnArg,
                                      NimuEnetAppIf_FreePktCbFxn freeFxn)
 {
-  EnetDma_PktInfoQ fqPktInfoQ;
-  EnetDma_PktInfoQ cqPktInfoQ;
+  EnetDma_PktQ fqPktInfoQ;
+  EnetDma_PktQ cqPktInfoQ;
   int32_t status;
 
   EnetQueue_initQ(&fqPktInfoQ);
@@ -902,8 +902,8 @@ static void CpswRemoteApp_closeNDKTxCh(CpswProxy_Handle hProxy,
                                      void *freeFxnArg,
                                      NimuEnetAppIf_FreePktCbFxn freeFxn)
 {
-  EnetDma_PktInfoQ fqPktInfoQ;
-  EnetDma_PktInfoQ cqPktInfoQ;
+  EnetDma_PktQ fqPktInfoQ;
+  EnetDma_PktQ cqPktInfoQ;
   int32_t status;
 
   EnetQueue_initQ(&fqPktInfoQ);
@@ -1009,7 +1009,7 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
   localAssert(status == ENET_SOK);
   outArgs->coreId = coreId;
   outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
-  outArgs->printFxnCb = (Enet_Print) & ConPrintf;
+  outArgs->print = (Enet_Print) & ConPrintf;
   outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
   outArgs->isRingMonUsed = false;
   outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;

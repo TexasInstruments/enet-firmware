@@ -66,7 +66,7 @@
 #include <stdint.h>
 #include <ethremotecfg/server/include/ethremotecfg_server.h>
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
+#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -28,12 +28,12 @@ SECTIONS
 
     .text_fast {
         *(.text:EnetDma_retrieveRxPktQ*)
-        *(.text:EnetDma_retrieveTxDonePktQ*)
+        *(.text:EnetDma_retrieveTxPktQ*)
         *(.text:EnetUdma_ringDequeue*)
         *(.text:EnetUdma_ringEnqueue*)
         *(.text:EnetUdma_submitPkts*)
         *(.text:EnetDma_submitRxPktQ*)
-        *(.text:EnetDma_submitTxReadyPktQ*)
+        *(.text:EnetDma_submitTxPktQ*)
         *(.text:EnetQueue_append*)
         *(.text:EnetQueue_copyQ*)
         *(.text:EnetQueue_deq*)

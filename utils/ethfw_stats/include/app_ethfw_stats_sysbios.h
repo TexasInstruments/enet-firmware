@@ -74,9 +74,9 @@
 #include <ti/osal/SemaphoreP.h>
 
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_apputils.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_mcm.h>
-#include <ti/drv/enet/examples/utils/include/cpsw_appsoc.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 
 #include "app_ethfw_stats.h"
 
