@@ -903,7 +903,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
                            &prms);
             if (status == ENET_SOK)
             {
-                appLogPrintf("\n External Port %d Statistics\n", ENET_NORM_MACPORT(portNum));
+                appLogPrintf("\n External Port %d Statistics\n", ENET_MACPORT_NORM(portNum));
                 appLogPrintf("-----------------------------------------\n");
                 switch (enetType)
                 {

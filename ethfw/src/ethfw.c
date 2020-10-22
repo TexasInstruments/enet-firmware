@@ -275,7 +275,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
     /* Start with CPSW LLD's default configuration */
     // FIXME
     Enet_initCfg(enetType, 0U, cpswCfg, sizeof (*cpswCfg));
-    EnetAppUtils_initResourceConfig(enetType, CpswAppSoc_getCoreId(), resCfg);
+    EnetAppUtils_initResourceConfig(enetType, EnetSoc_getCoreId(), resCfg);
 
     /* VLAN configuration */
     vlanCfg->vlanAware = true;
@@ -313,7 +313,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
            config->ports,
            gEthFwObj.numPorts * sizeof(EthFw_Port));
 
-    gEthFwObj.coreId = CpswAppSoc_getCoreId();
+    gEthFwObj.coreId = EnetSoc_getCoreId();
     gEthFwObj.enetType = enetType;
     gEthFwObj.instId = 0U;
 
@@ -526,7 +526,7 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
     EnetPhy_initCfg(phyCfg);
 
     /* PHY parameters from board specific code */
-    CpswAppBoardUtils_setPhyConfig(gEthFwObj.enetType,
+    EnetBoard_setPhyConfig(gEthFwObj.enetType,
                                    macPort,
                                    macCfg,
                                    mii,
@@ -618,7 +618,7 @@ static void EthFw_getDeviceData(uint32_t host_id,
      * This should be changed based on trusted cores */
     eth_dev_data->permission_flags = ((1 << RPMSG_KDRV_TP_ETHSWITCH_MAX) - 1);
     eth_dev_data->uart_connected = true;
-    eth_dev_data->uart_id = CPSW_UTILS_MCU2_0_UART_INSTANCE;
+    eth_dev_data->uart_id = ENET_UTILS_MCU2_0_UART_INSTANCE;
 }
 
 static void EthFw_handleProfileInfoNotify(uint32_t host_id,

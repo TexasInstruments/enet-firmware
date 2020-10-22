@@ -229,7 +229,7 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.limitIPNxtHdr = false;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.disallowIPFragmentation = false;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_NORM_MACPORT(i);
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(i);
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanMemberList = CPSW_ALE_ALL_PORTS_MASK;
     }
 
@@ -242,9 +242,9 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
 void EthHwInterVlan_setVlanConfig(EnetPort_VlanCfg *vlanCfg,
                                   uint32_t portNum)
 {
-    vlanCfg->portPri = ENET_NORM_MACPORT(portNum);
+    vlanCfg->portPri = ENET_MACPORT_NORM(portNum);
     vlanCfg->portCfi = 0;
-    vlanCfg->portVID = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_NORM_MACPORT(portNum);
+    vlanCfg->portVID = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(portNum);
 }
 
 static uint32_t CpswAppInterVlan_getIngressVlanMembershipMask(EnetCfgServer_InterVlanConfig *pInterVlanCfg)
@@ -287,7 +287,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_UCAST,
+    status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_UCAST,
                         &prms);
     if (status != ENET_SOK)
     {
@@ -312,7 +312,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
@@ -337,7 +337,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
@@ -409,7 +409,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
+        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
                             &prms);
         if (status != ENET_SOK)
         {
@@ -425,7 +425,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.enableTTLCheck == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_PORT |
                                                                                        CPSW_ALE_POLICER_MATCH_MACSRC |
@@ -450,7 +450,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
+        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
                             &prms);
 
         if (status != ENET_SOK)
@@ -467,7 +467,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.enableTTLCheck == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_PORT |
                                                                                            CPSW_ALE_POLICER_MATCH_MACSRC |
@@ -528,7 +528,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
+        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
                             &prms);
         if (status != ENET_SOK)
         {
@@ -543,7 +543,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.enableTTLCheck == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_PORT |
                                                                                            CPSW_ALE_POLICER_MATCH_MACSRC |
@@ -598,7 +598,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
+        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
                             &prms);
         if (status != ENET_SOK)
         {
@@ -611,7 +611,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         *pNumRoutesUsed += 1;
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.enableTTLCheck == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_MACSRC |
                                                                                            CPSW_ALE_POLICER_MATCH_MACDST |
@@ -640,7 +640,7 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
     setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapEn = false;
     setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapLimitEn = false;
 
-    status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_PER_IOCTL_SET_SHORT_IPG_CFG,
+    status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_SHORT_IPG_CFG,
                         &prms);
     if (ENET_SOK == status)
     {
@@ -648,19 +648,19 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
 
         ENET_IOCTL_SET_OUT_ARGS(&prms, &getShortIPGOutArgs);
 
-        status = Enet_ioctl(hEnet, CpswAppSoc_getCoreId(), CPSW_PER_IOCTL_GET_SHORT_IPG_CFG, &prms);
+        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_GET_SHORT_IPG_CFG, &prms);
         if (ENET_SOK == status)
         {
             uint32_t portNum;
 
             EnetAppUtils_assert(getShortIPGOutArgs.ipgTriggerThreshBlkCnt == CPSW_TEST_INTERVLAN_DEFAULT_SHORTIPG_THRESHOLD);
 
-            portNum = ENET_NORM_MACPORT(CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM);
+            portNum = ENET_MACPORT_NORM(CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM);
             EnetAppUtils_assert(portNum < getShortIPGOutArgs.numMacPorts);
             EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapEn == false);
             EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapLimitEn == false);
 
-            portNum = ENET_NORM_MACPORT(CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM);
+            portNum = ENET_MACPORT_NORM(CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM);
             EnetAppUtils_assert(portNum < getShortIPGOutArgs.numMacPorts);
             EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapEn == false);
             EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapLimitEn == false);

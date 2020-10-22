@@ -149,7 +149,7 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     Enet_Type enetType = ENET_CPSW_5G;
 #endif
     uint8_t *macAddr;
-    uint32_t coreId = CpswAppSoc_getCoreId();
+    uint32_t coreId = EnetSoc_getCoreId();
     bool useDefaultFlow = true;    /* NDK must handle the default flow */
     bool useRingMon = true;
 
@@ -172,10 +172,10 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
     cpswTxChCfg.useProxy            = true;
     cpswTxChCfg.disableCacheOpsFlag = false;
-    cpswTxChCfg.ringMemAllocFxn     = &CpswAppMemUtils_allocRingMemFxn;
-    cpswTxChCfg.ringMemFreeFxn      = &CpswAppMemUtils_freeRingMemFxn;
-    cpswTxChCfg.dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
-    cpswTxChCfg.dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
+    cpswTxChCfg.ringMemAllocFxn     = &EnetMem_allocRingMem;
+    cpswTxChCfg.ringMemFreeFxn      = &EnetMem_freeRingMem;
+    cpswTxChCfg.dmaDescAllocFxn     = &EnetMem_allocDmaDesc;
+    cpswTxChCfg.dmaDescFreeFxn      = &EnetMem_freeDmaDesc;
 
     EnetAppUtils_openTxCh(handleInfo.hEnet,
                           attachInfo.coreKey,
@@ -208,10 +208,10 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
 
     cpswRxFlowCfg.disableCacheOpsFlag = false;
     cpswRxFlowCfg.rxFlowMtu           = attachInfo.rxMtu;
-    cpswRxFlowCfg.ringMemAllocFxn     = &CpswAppMemUtils_allocRingMemFxn;
-    cpswRxFlowCfg.ringMemFreeFxn      = &CpswAppMemUtils_freeRingMemFxn;
-    cpswRxFlowCfg.dmaDescAllocFxn     = &CpswAppMemUtils_allocDmaDescFxn;
-    cpswRxFlowCfg.dmaDescFreeFxn      = &CpswAppMemUtils_freeDmaDescFxn;
+    cpswRxFlowCfg.ringMemAllocFxn     = &EnetMem_allocRingMem;
+    cpswRxFlowCfg.ringMemFreeFxn      = &EnetMem_freeRingMem;
+    cpswRxFlowCfg.dmaDescAllocFxn     = &EnetMem_allocDmaDesc;
+    cpswRxFlowCfg.dmaDescFreeFxn      = &EnetMem_freeDmaDesc;
 
     EnetAppUtils_openRxFlow(handleInfo.hEnet,
                             attachInfo.coreKey,

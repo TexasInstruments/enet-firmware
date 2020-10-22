@@ -261,7 +261,7 @@ int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
 
     obj->enetType = enetType;
     obj->instId   = instId;
-    obj->coreId   = CpswAppSoc_getCoreId();
+    obj->coreId   = EnetSoc_getCoreId();
 
     EnetMcm_getCmdIf(obj->enetType, &cmdIf);
     EnetAppUtils_assert(cmdIf.hMboxCmd != NULL);

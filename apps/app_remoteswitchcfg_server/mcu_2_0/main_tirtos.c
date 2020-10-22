@@ -324,10 +324,10 @@ int main(void)
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
 
-    gEthAppObj.coreId = CpswAppSoc_getCoreId();
+    gEthAppObj.coreId = EnetSoc_getCoreId();
 
     /* Board related initialization */
-    CpswAppBoardUtils_initEthFw();
+    EnetBoard_initEthFw();
     EnetAppUtils_enableClocks(gEthAppObj.enetType);
 
     /* Create semaphore used to synchronize EthFw and NDK init.
@@ -722,7 +722,7 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     /* Initialize and enable PTP stack */
     EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
                           &gEthAppObj.hostMacAddr[0U],
-                          ENET_BIT(ENET_NORM_MACPORT(macPort)));
+                          ENET_BIT(ENET_MACPORT_NORM(macPort)));
 
     /* Assign functions that are to be called based on actions in GUI.
      * These cannot be dynamically pushed to function pointer array, as the

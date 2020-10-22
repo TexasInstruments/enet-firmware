@@ -725,16 +725,16 @@ static void CpswRemoteApp_setRxFlowPrms(EnetUdma_OpenRxFlowPrms *pRxFlowPrms,
 
   pRxFlowPrms->hUdmaDrv = hUdmaDrv;
 
-  pRxFlowPrms->ringMemAllocFxn = &CpswAppMemUtils_allocRingMemFxn;
-  pRxFlowPrms->ringMemFreeFxn = &CpswAppMemUtils_freeRingMemFxn;
+  pRxFlowPrms->ringMemAllocFxn = &EnetMem_allocRingMem;
+  pRxFlowPrms->ringMemFreeFxn = &EnetMem_freeRingMem;
 
   pRxFlowPrms->notifyCb = eventCb;
 
   pRxFlowPrms->numRxPkts = numRxPackets;
 
   pRxFlowPrms->disableCacheOpsFlag = false;
-  pRxFlowPrms->dmaDescAllocFxn = &CpswAppMemUtils_allocDmaDescFxn;
-  pRxFlowPrms->dmaDescFreeFxn = &CpswAppMemUtils_freeDmaDescFxn;
+  pRxFlowPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
+  pRxFlowPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
   pRxFlowPrms->cbArg = cbArg;
   pRxFlowPrms->useProxy = false;
   pRxFlowPrms->rxFlowMtu = rxFlowMtu;
@@ -859,14 +859,14 @@ static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
   pTxChPrms->chNum = txChNum;
   pTxChPrms->hUdmaDrv = hUdmaDrv;
 
-  pTxChPrms->ringMemAllocFxn = &CpswAppMemUtils_allocRingMemFxn;
-  pTxChPrms->ringMemFreeFxn = &CpswAppMemUtils_freeRingMemFxn;
+  pTxChPrms->ringMemAllocFxn = &EnetMem_allocRingMem;
+  pTxChPrms->ringMemFreeFxn = &EnetMem_freeRingMem;
 
   pTxChPrms->numTxPkts = numTxPackets;
   pTxChPrms->disableCacheOpsFlag = false;
 
-  pTxChPrms->dmaDescAllocFxn = &CpswAppMemUtils_allocDmaDescFxn;
-  pTxChPrms->dmaDescFreeFxn = &CpswAppMemUtils_freeDmaDescFxn;
+  pTxChPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
+  pTxChPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
 
   pTxChPrms->cbArg = cbArg;
 
@@ -982,7 +982,7 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
   int32_t status;
-  uint32_t coreId = CpswAppSoc_getCoreId();
+  uint32_t coreId = EnetSoc_getCoreId();
   EnetOsal_Cfg osalPrms;
   EnetUtils_Cfg utilsPrms;
 #if defined(SOC_J721E)
@@ -1005,7 +1005,7 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
 
   Enet_init(&osalPrms, &utilsPrms);
 
-  status = CpswAppMemUtils_init();
+  status = EnetMem_init();
   localAssert(status == ENET_SOK);
   outArgs->coreId = coreId;
   outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();

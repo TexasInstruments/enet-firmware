@@ -213,7 +213,7 @@ static Void CpswApp_InterVlanRouting(UArg a0,
     EnetAppUtils_assert(cmdIf.hMboxCmd != NULL);
     EnetAppUtils_assert(cmdIf.hMboxResponse != NULL);
 
-    gCpswInterVlanAppObj.coreId = CpswAppSoc_getCoreId();
+    gCpswInterVlanAppObj.coreId = EnetSoc_getCoreId();
 
     EnetMcm_acquireHandleInfo(&cmdIf, &handleInfo);
     EnetMcm_coreAttach(&cmdIf, gCpswInterVlanAppObj.coreId, &attachInfo);
@@ -325,8 +325,8 @@ static void CpswApp_initRxReadyPktQ(void)
 
     for (i = 0U; i < CPSW_FRWD_APP_NUM_PKTS; i++)
     {
-        pPktInfo = CpswAppMemUtils_allocEthPktFxn(&gCpswInterVlanAppObj,
-                                                  CPSW_APPMEMUTILS_LARGE_POOL_PKT_SIZE,
+        pPktInfo = EnetMem_allocEthPkt(&gCpswInterVlanAppObj,
+                                                  ENET_MEM_LARGE_POOL_PKT_SIZE,
                                                   UDMA_CACHELINE_ALIGNMENT);
         EnetAppUtils_assert(pPktInfo != NULL);
         EnetQueue_enq(&rxFreeQ, &pPktInfo->node);
