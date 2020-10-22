@@ -169,10 +169,7 @@ typedef struct
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
     /* Host IP address */
-    uint8_t hostIpAddr[ENET_IPv4_ADDR_LEN];
-
-    /* Handle to PTP stack */
-    TimeSyncPtp_Handle hTimeSyncPtp;
+    uint32_t hostIpAddr;
 } EthAppObj;
 
 /* ========================================================================== */
@@ -188,8 +185,6 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1);
 static int32_t EthApp_initEthFw(void);
 
 static int32_t EthApp_initRemoteServices(void);
-
-static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig);
 
 static void EthApp_startSwInterVlan(char *recvBuff,
                                     char *sendBuff);
@@ -621,42 +616,6 @@ static int32_t EthApp_initRemoteServices(void)
     return status;
 }
 
-/* PTP related functions */
-
-static void CpswApp_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
-{
-    Enet_MacPort portNum;
-
-#if defined(SOC_J721E)
-    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
-    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
-#elif defined(SOC_J7200)
-    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J7200;
-    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_5G;
-#endif
-    ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
-    ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
-#if defined(SOC_J721E)
-    portNum = ENET_MAC_PORT_3;
-#elif defined(SOC_J7200)
-#if defined(ENABLE_QSGMII_PORTS)
-    portNum = ENET_MAC_PORT_1;
-#else
-    portNum = ENET_MAC_PORT_2;
-#endif
-#endif
-
-    ptpConfig->portMask |= ENET_BIT(ENET_NORM_MACPORT(portNum));
-
-    memcpy(&ptpConfig->ifMacID[0U],
-           &gEthAppObj.hostMacAddr[0U],
-           ENET_MAC_ADDR_LEN);
-
-    memcpy(&ptpConfig->ipAddr[0U],
-           &gEthAppObj.hostIpAddr[0U],
-           ENET_IPv4_ADDR_LEN);
-}
-
 /* NIMU callbacks (exact name required) */
 
 bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
@@ -732,17 +691,11 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
                           uint32_t fAdd)
 {
     volatile uint32_t ipAddrHex = 0U;
-    TimeSyncPtp_Config ptpConfig;
+    Enet_MacPort macPort;
     int32_t status;
 
     /* Use default/generic hook function */
     EthFwCallbacks_ipAddrHookFxn(IPAddr, IfIdx, fAdd);
-
-    /* Save host port IP address */
-    ipAddrHex = ntohl(IPAddr);
-    memcpy(&gEthAppObj.hostIpAddr[0U],
-           (uint8_t *)&ipAddrHex,
-       ENET_IPv4_ADDR_LEN);
 
     /* initialize SlNet interface(s) */
     status = ti_net_SlNet_initConfig();
@@ -751,12 +704,25 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
         appLogPrintf("Failed to initialize SlNet interface(s) - status (%d)\n", status);
     }
 
+    /* Save host port IP address */
+    ipAddrHex = ntohl(IPAddr);
+    gEthAppObj.hostIpAddr = ipAddrHex;
+
+    /* MAC port used for PTP */
+#if defined(SOC_J721E)
+    macPort = ENET_MAC_PORT_3;
+#elif defined(SOC_J7200)
+#if defined(ENABLE_QSGMII_PORTS)
+    macPort = ENET_MAC_PORT_1;
+#else
+    macPort = ENET_MAC_PORT_2;
+#endif
+#endif
+
     /* Initialize and enable PTP stack */
-    TimeSyncPtp_setDefaultPtpConfig(&ptpConfig);
-    CpswApp_setPtpConfig(&ptpConfig);
-    gEthAppObj.hTimeSyncPtp = TimeSyncPtp_init(&ptpConfig);
-    EnetAppUtils_assert(gEthAppObj.hTimeSyncPtp != NULL);
-    TimeSyncPtp_enable(gEthAppObj.hTimeSyncPtp);
+    EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
+                          &gEthAppObj.hostMacAddr[0U],
+                          ENET_BIT(ENET_NORM_MACPORT(macPort)));
 
     /* Assign functions that are to be called based on actions in GUI.
      * These cannot be dynamically pushed to function pointer array, as the
