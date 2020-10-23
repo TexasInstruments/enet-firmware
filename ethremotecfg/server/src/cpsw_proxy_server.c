@@ -1416,7 +1416,7 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(uint32_t host_id,
     memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
     setPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
     setPolicerInArgs.policerMatch.etherType = ether_type;
-    setPolicerInArgs.threadIdEnable                   = TRUE;
+    setPolicerInArgs.threadIdEn                   = TRUE;
     setPolicerInArgs.threadId                         = flow_idx_offset;
     setPolicerInArgs.peakRateInBitsPerSec             = 0;
     setPolicerInArgs.commitRateInBitsPerSec           = 0;

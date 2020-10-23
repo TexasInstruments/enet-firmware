@@ -181,26 +181,26 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
 {
     Enet_MacPort i;
 
-    /* pCpswCfg->aleCfg.policerGlobalCfg.policingEnable SHOULD BE TRUE for interVLan.
+    /* pCpswCfg->aleCfg.policerGlobalCfg.policingEn SHOULD BE TRUE for interVLan.
      * Set to FALSE to exercise driver internal logic to auto enable policer when interVLan API
      * is invoked
      */
-    pCpswCfg->aleCfg.policerGlobalCfg.policingEnable = TRUE;
+    pCpswCfg->aleCfg.policerGlobalCfg.policingEn = TRUE;
     pCpswCfg->hostPortCfg.passPriorityTaggedUnchanged   = TRUE;
 
     pCpswCfg->aleCfg.modeFlags = CPSW_ALE_CFG_MODULE_EN;
 
-    pCpswCfg->aleCfg.policerGlobalCfg.redDropEnable = FALSE;
-    pCpswCfg->aleCfg.policerGlobalCfg.yellowDropEnable = FALSE;
+    pCpswCfg->aleCfg.policerGlobalCfg.redDropEn = FALSE;
+    pCpswCfg->aleCfg.policerGlobalCfg.yellowDropEn = FALSE;
     pCpswCfg->aleCfg.policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
     pCpswCfg->aleCfg.vlanCfg.aleVlanAwareMode = TRUE;
     pCpswCfg->aleCfg.vlanCfg.cpswVlanAwareMode = TRUE;
     pCpswCfg->aleCfg.vlanCfg.unknownVlanMemberListMask = 0;
 
     pCpswCfg->aleCfg.nwSecCfg.hostOuiNoMatchDeny                    = FALSE;
-    pCpswCfg->aleCfg.nwSecCfg.enableVid0Mode                        = TRUE;
-    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.enableDefaultNxtHdrWhitelist = TRUE;
-    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelistCount       = 2U;
+    pCpswCfg->aleCfg.nwSecCfg.vid0ModeEn                        = TRUE;
+    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.dfltNxtHdrWhitelistEn = TRUE;
+    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelistCnt       = 2U;
     pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[0]         = CPSW_TEST_IPV4_NXT_HDR_TCP;
     pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[1]         = CPSW_TEST_IPV4_NXT_HDR_UDP;
 
@@ -212,7 +212,7 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.noLearnMask = 0x0;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vidIngressCheck = 0x0;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.limitIPNxtHdr = false;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.disallowIPFragmentation = false;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.disallowIPFrag = false;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_HOSTPORT_PVID;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanMemberList = CPSW_ALE_ALL_PORTS_MASK;
@@ -227,7 +227,7 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.noLearnMask = 0x0;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vidIngressCheck = 0x0;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.limitIPNxtHdr = false;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.disallowIPFragmentation = false;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.disallowIPFrag = false;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(i);
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanMemberList = CPSW_ALE_ALL_PORTS_MASK;
@@ -308,7 +308,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
         inArgs.noLearnMask = 0U;
         inArgs.vidIngressCheck = false;
         inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFragmentation = false;
+        inArgs.disallowIPFrag = false;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -333,7 +333,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
         inArgs.noLearnMask = 0U;
         inArgs.vidIngressCheck = false;
         inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFragmentation = false;
+        inArgs.disallowIPFrag = false;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -423,7 +423,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         // EnetAppUtils_assert(outArgs.egressPortRouteId == expectedAllocRouteId);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.port == CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum)));
@@ -465,7 +465,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         // EnetAppUtils_assert(outArgs.egressPortRouteId == expectedAllocRouteId);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.port == CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum)));
@@ -541,7 +541,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         // EnetAppUtils_assert(outArgs.egressPortRouteId == (expectedAllocRouteId + 1));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.port == CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum)));
@@ -609,7 +609,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         *pNumRoutesUsed += 1;
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEnabled == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum)));

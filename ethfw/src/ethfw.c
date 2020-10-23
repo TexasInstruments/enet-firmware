@@ -233,18 +233,18 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     /* ALE configuration */
     aleCfg->modeFlags = CPSW_ALE_CFG_MODULE_EN |
                         CPSW_ALE_CFG_UNKNOWN_UCAST_FLOOD2HOST;
-    aleCfg->agingCfg.enableAutoAging = TRUE;
+    aleCfg->agingCfg.autoAgingEn = TRUE;
     aleCfg->agingCfg.agingPeriodInMs = 1000;
-    aleCfg->nwSecCfg.enableVid0Mode = FALSE;
+    aleCfg->nwSecCfg.vid0ModeEn = FALSE;
     aleCfg->vlanCfg.aleVlanAwareMode = TRUE;
     aleCfg->vlanCfg.cpswVlanAwareMode = FALSE;
     aleCfg->vlanCfg.unknownUnregMcastFloodMask = 0U;
     aleCfg->vlanCfg.unknownRegMcastFloodMask = 0U;
     aleCfg->vlanCfg.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
-    aleCfg->vlanCfg.autoLearnWithVLAN = false;
-    aleCfg->policerGlobalCfg.policingEnable = true;
-    aleCfg->policerGlobalCfg.yellowDropEnable = false;
-    aleCfg->policerGlobalCfg.redDropEnable = true;
+    aleCfg->vlanCfg.autoLearnWithVlan = false;
+    aleCfg->policerGlobalCfg.policingEn = true;
+    aleCfg->policerGlobalCfg.yellowDropEn = false;
+    aleCfg->policerGlobalCfg.redDropEn = true;
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
     aleCfg->portCfg[0].learningCfg.noLearn = FALSE;
     aleCfg->portCfg[0].vlanCfg.dropUntagged = FALSE;
@@ -252,9 +252,9 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->portCfg[1].vlanCfg.dropUntagged = FALSE;
 
     /* ALE policer configuration */
-    aleCfg->policerGlobalCfg.policingEnable = true;
-    aleCfg->policerGlobalCfg.yellowDropEnable = false;
-    aleCfg->policerGlobalCfg.redDropEnable = true;
+    aleCfg->policerGlobalCfg.policingEn = true;
+    aleCfg->policerGlobalCfg.yellowDropEn = false;
+    aleCfg->policerGlobalCfg.redDropEn = true;
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 }
 

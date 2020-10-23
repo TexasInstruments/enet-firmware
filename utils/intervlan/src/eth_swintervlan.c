@@ -455,7 +455,7 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
         inArgs.noLearnMask = 0U;
         inArgs.vidIngressCheck = false;
         inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFragmentation = false;
+        inArgs.disallowIPFrag = false;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -483,7 +483,7 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
         inArgs.noLearnMask = 0U;
         inArgs.vidIngressCheck = false;
         inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFragmentation = false;
+        inArgs.disallowIPFrag = false;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -562,7 +562,7 @@ int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInte
         setPolicerEntryInArgs.policerMatch.srcIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
         setPolicerEntryInArgs.policerMatch.dstIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
 
-        setPolicerEntryInArgs.threadIdEnable = true;
+        setPolicerEntryInArgs.threadIdEn = true;
         setPolicerEntryInArgs.threadId = gCpswInterVlanAppObj.ingRxFlowIdx;
         setPolicerEntryInArgs.peakRateInBitsPerSec = 0;
         setPolicerEntryInArgs.commitRateInBitsPerSec = 0;
