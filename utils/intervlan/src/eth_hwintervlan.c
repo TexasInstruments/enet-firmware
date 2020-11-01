@@ -651,19 +651,21 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
         status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_GET_SHORT_IPG_CFG, &prms);
         if (ENET_SOK == status)
         {
-            uint32_t portNum;
+            CpswMacPort_PortTxShortIpgCfg *ipgCfg;
+            uint32_t i;
 
             EnetAppUtils_assert(getShortIPGOutArgs.ipgTriggerThreshBlkCnt == CPSW_TEST_INTERVLAN_DEFAULT_SHORTIPG_THRESHOLD);
 
-            portNum = ENET_MACPORT_NORM(CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM);
-            EnetAppUtils_assert(portNum < getShortIPGOutArgs.numMacPorts);
-            EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapEn == false);
-            EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapLimitEn == false);
-
-            portNum = ENET_MACPORT_NORM(CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM);
-            EnetAppUtils_assert(portNum < getShortIPGOutArgs.numMacPorts);
-            EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapEn == false);
-            EnetAppUtils_assert(getShortIPGOutArgs.shortIpgCfg[portNum].txShortGapLimitEn == false);
+            for (i = 0U; i < getShortIPGOutArgs.numMacPorts; i++)
+            {
+                ipgCfg = &getShortIPGOutArgs.portShortIpgCfg[i];
+                if ((ipgCfg->macPort == CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM) ||
+                    (ipgCfg->macPort == CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM))
+                {
+                    EnetAppUtils_assert(ipgCfg->shortIpgCfg.txShortGapEn == false);
+                    EnetAppUtils_assert(ipgCfg->shortIpgCfg.txShortGapLimitEn == false);
+                }
+            }
         }
     }
 
