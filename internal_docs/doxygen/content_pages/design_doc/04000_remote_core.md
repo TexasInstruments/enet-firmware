@@ -73,7 +73,7 @@ handles.  The resources required to open a Tx channel and Rx flow such as Tx DMA
 channel, CPSW PSIL destination thread, Rx flow Id, destination MAC address are
 allocated by invoking the Ethernet Switch remote device client API.  The client
 APIs send IPC msg to the master core to allocate resources.  The client APIs
-also support remote core invocation of all CPSW LLD runtime IOCTLs.
+also support remote core invocation of all Enet LLD runtime IOCTLs.
 
 The application `app_remoteswitchcfg_client` demonstrates the remote core IOCTL
 invocation using the `ENET_PER_IOCTL_IS_PORT_LINK_UP` to query PHY status.

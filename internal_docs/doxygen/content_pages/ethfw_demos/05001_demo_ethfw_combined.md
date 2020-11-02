@@ -15,9 +15,9 @@ or DMA bandwidth as everything is completely handled by CPSW hardware.
 
 The intention behind this demo which encompasses multiple sub-demos is to show
 the switching capabilities of the J721E/J7200 integrated Ethernet Switch
-(CPSW9G or CPSW5G) as well as the software developed which includes CPSW IP
-low-level driver (CPSW LLD), TI NDK TCP/IP integration and Ethernet Switch
-Firmware (EthFw) application.
+(CPSW9G or CPSW5G) as well as the software developed which includes Enet low-level
+driver (Enet LLD), TI NDK TCP/IP integration and Ethernet Switch Firmware
+(EthFw) application.
 
 Below are top-level features demonstrated:
 
@@ -90,7 +90,7 @@ below:
      - OSAL library: Provides the abstraction layer implementation for TI RTOS
      - UART driver: Required to print output messages to serial port
      - UDMA driver: Required for global level initialization of the UDMA driver
-     - CPSW driver: Provides an interface for the application to configure the
+     - Enet driver: Provides an interface for the application to configure the
        control path of the CPSW switch, as well as the interface to send and
        receive Ethernet frames to/from CPSW's host port
 
@@ -534,7 +534,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# After getting the IP address printed on the console, launch the GUI tool:
 
-       cd <SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient
+       cd <SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient
        sudo python3 switchconfig_client.py
 
     You should be able to see a window opening up as shown below.
@@ -565,7 +565,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# To enable software-based interVLAN routing, click on the **Open** button
    and select the `sw_intervlan_routing_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient/config_files`
    directory.
    * **Note:** The list of allowed commands and the configurations are present in
      the `schemas.py` file in the `cpsw_configclient/inc` directory.
@@ -622,7 +622,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# To enable hardware-based interVLAN routing, click on the **Open** button and
    select the `hw_intervlan_routing_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient/config_files`
    directory.
 
 -# Press **Send Config** button to send the configuration to the switch.
@@ -685,7 +685,7 @@ of other protocols in the VLAN network.
 
 -# To add the above mentioned VLAN entry, click on the **Open** button and
    select the `ip_nxt_hdr_whitelisting_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient/config_files`
    directory.
 
 -# Press **Send Config** button to send the configuration to the switch.
@@ -718,7 +718,7 @@ of other protocols in the VLAN network.
 
 -# To enable rate limiting, click on the **Open** button and select the
    `rate_limiting_config.txt` file present in the
-   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/cpsw/tools/cpsw_configclient/config_files`
+   `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient/config_files`
    directory.
 
 -# Press **Send Config** button to send the configuration to the switch.

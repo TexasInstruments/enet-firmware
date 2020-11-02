@@ -18,7 +18,7 @@ The Ethernet Firmware is TI RTOS based application for configuration of
 Ethernet switch. The package contains remote configuration server, resource management
 library, switch resident protocols, proxy layers to handle local and remote API calls
 and demonstration applications (EthFw Demos).
-The switch software uses PDK CPSW and other drivers for respective IP configuration.
+The switch software uses PDK Enet and other drivers for respective IP configuration.
 Its is expected to be hosted on Cortex R5F in Main Domain.
 
 ![](switch_software_stack.png "Ethernet Switch Software Architecture")
@@ -31,3 +31,4 @@ Revision | Date          | Author                 | Description
 ---------|---------------|------------------------|-------------------------------------
 0.1      | 02 Apr 2019   | Prasad J, Misael Lopez | Added as per 0.8 Docs review meeting
 0.2      | 14 Oct 2019   | Prasad J               | Updated stack diagram
+1.0      | 02 Nov 2020   | Misael Lopez           | Updated for Enet LLD migration

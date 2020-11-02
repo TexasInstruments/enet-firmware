@@ -3,5 +3,5 @@
 [TOC]
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Please refer to ***CCS Setup*** section in SDK documentation for CCS related information.
+Please refer to **CCS Setup** section in SDK documentation for CCS related information.
 

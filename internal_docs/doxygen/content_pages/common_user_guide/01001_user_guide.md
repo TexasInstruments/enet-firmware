@@ -22,7 +22,7 @@ Demo                               | Comments
 -----------------------------------|--------------
 L2 Switching | Configures CPSW9G switch to enable switching between its external ports
 L2/L3 address based classification | Illustrates traffic steering to A72 (Linux) and R5F (RTOS) based on Layer-2 Ethernet header. iperf tool and web servers are used to demonstrate traffic steering to/from PCs connected to the switch
-Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of CPSW LLD
+Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of Enet LLD
 Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW5G/CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load
 
 
@@ -104,7 +104,7 @@ EthFw is supported on the boards/EVM listed below
 
 ### J721E GESI Expansion Board {#ethfw_depend_evm_gesi_j721e}
 
-![](GESI_Board.jpg "J721E EVM GESI Board Top View")
+![](GESI_Board.png "J721E EVM GESI Board Top View")
 
 There are four RGMII PHYs in the J721E GESI board as shown in the following image.
 They will be referred to as **MAC Port 0**, **MAC Port 1**, **MAC Port 2** and
@@ -171,15 +171,18 @@ EthFw uses CSL to determine peripheral addresses and program peripheral register
 Unified DMA (UDMA) is an integral part of the Jacinto 7 devices and is in charge of
 moving data between peripherals and memory.
 
-PDK includes an UDMA LLD which provides APIs that the CPSW LLD relies on to send and
+PDK includes an UDMA LLD which provides APIs that the Enet LLD relies on to send and
 receive packets to the CPSW's host port.
 
 
-#### CPSW LLD {#ethfw_depend_pdk_cpsw}
+#### Enet LLD {#ethfw_depend_pdk_enet}
 
-This is CPSW driver module used to program the CPSW5G or CPSW9G (Switch) IP. EthFw
-receives commands/configuration from application and uses CPSW LLD to configure
-CPSW5G/CPSW9G.
+This is Ethernet driver module used to program the CPSW5G or CPSW9G (Switch) IP.
+EthFw receives commands/configuration from application and uses Enet LLD to
+configure CPSW5G/CPSW9G.
+
+Enet LLD supports other Ethernet peripherals available in TI SoCs and provides a
+unified interface to program them.
 
 
 ### NDK {#ethfw_depend_ndk}
@@ -488,6 +491,7 @@ Revision | Date          | Author                 | Description
 0.5      | 15 Oct 2019   | Misael Lopez, Santhana Bharathi | Updates for v.1.00.00
 1.0      | 28 Jan 2020   | Misael Lopez           | Updates for SDK 6.02.00
 1.1      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
+1.2      | 02 Nov 2020   | Misael Lopez           | Updated for Enet LLD migration
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)

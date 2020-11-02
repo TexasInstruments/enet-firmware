@@ -37,7 +37,15 @@ The directory structure of the Ethernet Firmware is shown below::
     │       ├── include
     │       └── src
     ├── makerules                           # Helper makefiles for NDK, PDK
+    ├── ethfw                               # Ethernet firmware library
+    │   └── src
     └── utils                               # Helper utilities
+        ├── ethfw_callbacks                 # Frequently used NDK and NIMU callbacks
+        │   ├── include
+        │   └── src
+        ├── intervlan                       # Hardware and software interVLAN demo utils
+        │   ├── include
+        │   └── src
         ├── console_io                      # Application logging utils
         │   ├── include
         │   └── src
@@ -52,11 +60,11 @@ The directory structure of the Ethernet Firmware is shown below::
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Top-Level Component Interaction
 
-The *Ethernet Firmware* running on the *master core* interacts with the CPSW LLD
+The *Ethernet Firmware* running on the *master core* interacts with the Enet LLD
 running natively on the same core.  The Ethernet Firmware has access to all
-functionality provided by CPSW LLD public APIs for control path configuration
+functionality provided by Enet LLD public APIs for control path configuration
 and Rx and Tx data transfers.  The Ethernet Firmware also configures and makes
-use of the TCP/IP stack enabled by CPSW LLD by the means of NDK/NIMU.
+use of the TCP/IP stack enabled by Enet LLD by the means of NDK/NIMU.
 
 The *Ethernet Firmware* on the *master core* interacts with *remote cores*
 running virtual network device interfaces (Linux or TI-RTOS) via *Ethernet
