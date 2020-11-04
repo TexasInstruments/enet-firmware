@@ -203,6 +203,15 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms)
     return ret;
 }
 
+int32_t rdevEthSwitchClient_disconnect(uint32_t device_id)
+{
+    int32_t ret;
+
+    ret = appRemoteDeviceDisconnect(device_id);
+
+    return ret;
+}
+
 int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint8_t enetType,
                                    uint64_t *id,

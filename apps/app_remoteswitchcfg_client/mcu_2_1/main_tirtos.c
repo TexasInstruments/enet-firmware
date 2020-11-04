@@ -845,6 +845,7 @@ static void CpswRemoteApp_closeNDKRxCh(CpswProxy_Handle hProxy,
   CpswProxy_freeRxFlow(hProxy,
                        hEnet,
                        coreKey,
+                       rxHandleInfo->rxFlowStartIdx,
                        rxHandleInfo->rxFlowIdx);
   freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
 }

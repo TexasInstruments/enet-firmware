@@ -329,11 +329,16 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
  *                  CpswProxy_attachExtended()
  * \param coreKey   Unique core_key returned by CpswProxy_attach() or
  *                  CpswProxy_attachExtended()
- * \param rxFlowIdx Rx flow Id to be freed
+ * \param rxFlowStartIdx  Pointer to allocated Rx Flow Index Base value populated
+ *                        by this function.
+ *                        Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
+ * \param rxFlowIdx       Pointer to allocated allocated Rx flow Index offset
+ *                        value  populated by this function
  */
 void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
                           Enet_Handle hEnet,
                           uint32_t coreKey,
+                          uint32_t rxFlowStartIdx,
                           uint32_t rxFlowIdx);
 
 /*!
@@ -765,10 +770,21 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
  *
  * \return status   ENET_SOK if registered callback successfully
  *                  ENET_EALREADYOPEN if callback is already registered.
-
+ *                  ENET_EBADARGS if invalid input arguments
  */
 int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
                                          CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn);
+
+/*!
+ * \brief Unregister hardware push notification callback
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ *
+ * \return status   ENET_SOK if registered callback successfully
+ *                  ENET_EALREADYOPEN if callback is already registered.
+ *                  ENET_EBADARGS if invalid input arguments
+ */
+int32_t CpswProxy_unregisterHwPushNotifyCb(CpswProxy_Handle hProxy);
 
 /* @} */
 

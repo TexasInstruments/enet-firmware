@@ -113,6 +113,15 @@ typedef struct rdevEthSwitchClientInitPrms_s
 int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms);
 
 /*!
+ * \brief Disconnect to Ethernet Switch Remote Device
+ *
+ * The client can disconnect from the Ethernet Switch Remote Device server.
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ */
+int32_t rdevEthSwitchClient_disconnect(uint32_t device_id);
+
+/*!
  * \brief Send Ping to Ethernet Switch Remote Device
  *
  * The server will respond to ping request

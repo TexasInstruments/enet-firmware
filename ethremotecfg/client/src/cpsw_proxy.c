@@ -867,6 +867,7 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
             case CPSWPROXY_RDEVCMD_EXIT:
             {
                 exitCmdHandler = TRUE;
+                msg.res.retVal = rdevEthSwitchClient_disconnect(deviceId);
                 break;
             }
         }
@@ -1432,13 +1433,14 @@ void CpswProxy_freeMac(CpswProxy_Handle hProxy,
 void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
                           Enet_Handle hEnet,
                           uint32_t coreKey,
+                          uint32_t rxFlowStartIdx,
                           uint32_t rxFlowIdx)
 {
     CpswProxy_rdevCmd_t msg;
 
     msg.req.u.freerx.id = (uint64_t)hEnet;
     msg.req.u.freerx.core_key = coreKey;
-    msg.req.u.freerx.rx_flow_allocidx = rxFlowIdx;
+    msg.req.u.freerx.rx_flow_allocidx = rxFlowStartIdx + rxFlowIdx;
 
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FREERX, &msg);
 }
@@ -1705,6 +1707,26 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
         {
             status = ENET_EALREADYOPEN;
         }
+    }
+    else
+    {
+        status = ENET_EBADARGS;
+    }
+
+    return status;
+}
+
+int32_t CpswProxy_unregisterHwPushNotifyCb(CpswProxy_Handle hProxy)
+{
+    int status = ENET_SOK;
+
+    if (NULL != hProxy)
+    {
+        hProxy->notifyServiceObj.cb.hwPushCb = NULL;
+    }
+    else
+    {
+        status = ENET_EBADARGS;
     }
 
     return status;
