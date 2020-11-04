@@ -2355,14 +2355,14 @@ static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
                         lookupEventInArgs.seqId = 0U;
                         lookupEventInArgs.domain  = 0U;
 
-                        for (j = 0U; j < hProxyServer->notifyServiceObj.numRemoteCores; j++)
+                        ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupEventInArgs, &lookupEventOutArgs);
+                        rtnVal = Enet_ioctl(hEnet,
+                                            EnetSoc_getCoreId(),
+                                            CPSW_CPTS_IOCTL_LOOKUP_EVENT,
+                                            &prms);
+                        if (rtnVal == ENET_SOK)
                         {
-                            ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupEventInArgs, &lookupEventOutArgs);
-                            rtnVal = Enet_ioctl(hEnet,
-                                                hProxyServer->notifyServiceObj.dstProc[j],
-                                                CPSW_CPTS_IOCTL_LOOKUP_EVENT,
-                                                &prms);
-                            if (rtnVal == ENET_SOK)
+                            for (j = 0U; j < hProxyServer->notifyServiceObj.numRemoteCores; j++)
                             {
                                 hwPushMsg->timeStamp = lookupEventOutArgs.tsVal;
 
