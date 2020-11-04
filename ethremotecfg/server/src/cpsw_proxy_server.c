@@ -2372,7 +2372,6 @@ static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
                                                         hProxyServer->notifyServiceObj.localEp,
                                                         hwPushMsg,
                                                         sizeof(*hwPushMsg));
-                                EnetAppUtils_assert(IPC_SOK == rtnVal);
                             }
                         }
                     }
