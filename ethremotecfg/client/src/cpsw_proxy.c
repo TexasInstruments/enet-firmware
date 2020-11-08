@@ -939,7 +939,7 @@ static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
     uint32_t remoteProc, remoteEp;
     CpswRemoteNotifyService_MessageHeader *header = NULL;
     uint16_t len;
-    uint8_t msgBuffer[CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE];
+    uint64_t msgBuffer[CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE / sizeof(uint64_t)];
     volatile bool exitTask = false;
     void *data;
     CpswRemoteNotifyService_HwPushMsg *hwPushMsg;
