@@ -468,7 +468,7 @@ static int32_t EthFw_initMcm(void)
     EnetMcm_InitConfig cpswMcmCfg;
     EnetMcm_HandleInfo handleInfo;
     uint32_t i;
-    int32_t status;
+    int32_t status = ENET_SOK;
 
     /* Initialize CPSW MCM */
     cpswMcmCfg.cpswCfg = &gEthFwObj.cpswCfg;
@@ -484,8 +484,17 @@ static int32_t EthFw_initMcm(void)
         cpswMcmCfg.macPortList[i] = gEthFwObj.ports[i].portNum;
     }
 
-    status = EnetMcm_init(&cpswMcmCfg);
-    EnetAppUtils_assert(status == ENET_SOK);
+    if ((cpswMcmCfg.enetType != ENET_CPSW_5G) &&
+        (cpswMcmCfg.enetType != ENET_CPSW_9G))
+    {
+        status = ENET_ENOTSUPPORTED;
+    }
+
+    if (status == ENET_SOK)
+    {
+        status = EnetMcm_init(&cpswMcmCfg);
+        EnetAppUtils_assert(status == ENET_SOK);
+    }
 
     /* Get MCM command interface */
     if (status == ENET_SOK)

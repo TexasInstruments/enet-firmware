@@ -206,9 +206,12 @@ int URLSimple_process(URLHandler_Handle urlHandler, int method,
             char *buf;
 
             buf = malloc(contentLength);
-            /* This is done to flush the socket */
-            (void) Ssock_recvall(ssock, buf, contentLength, 0);
-            free(buf);
+            if (buf != NULL)
+            {
+                /* This is done to flush the socket */
+                (void) Ssock_recvall(ssock, buf, contentLength, 0);
+                free(buf);
+            }
         }
 
         HTTPServer_sendSimpleResponse(ssock, returnCode, contentType,

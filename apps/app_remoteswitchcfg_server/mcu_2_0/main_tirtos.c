@@ -691,7 +691,7 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
                           uint32_t fAdd)
 {
     volatile uint32_t ipAddrHex = 0U;
-    Enet_MacPort macPort;
+    Enet_MacPort macPort = ENET_MAC_PORT_1;
     int32_t status;
 
     /* Use default/generic hook function */

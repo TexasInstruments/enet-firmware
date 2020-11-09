@@ -154,9 +154,12 @@ int URLMemzip_process(URLHandler_Handle urlHandler, int method,
             char *buf;
 
             buf = malloc(contentLength);
-            /* This is done to flush the socket */
-            (void) recvall(s, buf, contentLength, 0);
-            free(buf);
+            if (buf != NULL)
+            {
+                /* This is done to flush the socket */
+                (void) recvall(s, buf, contentLength, 0);
+                free(buf);
+            }
         }
 
         HTTPServer_sendSimpleResponse(s, returnCode, contentType,
