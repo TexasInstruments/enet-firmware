@@ -240,6 +240,14 @@ demo.
 
 > **Note:** PTP stack is required only on **PC 2**.
 
+> **Note:** **PC 2** should be connected to MAC port 3 in J721E. Refer to
+> @ref ethfw_depend_evm_gesi_j721e for MAC port numbers in J721E EVM.
+> CPTS event lookup errors will be seen if connected to a different MAC port.
+
+> **Note:** **PC 2** should be connected to MAC port 1 in J7200. Refer to
+> @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J721E EVM.
+> CPTS event lookup errors will be seen if connected to a different MAC port.
+
 PTP stack is required to run master clock and synchronize with the slave
 running on EVM.
 
@@ -287,9 +295,16 @@ where eth3 is the interface you want to check.
 
 -# Start PTP master: 
 
-       sudo ptp4l -P -2 -S -i eth3 -m -q -p -l 7 /dev/ptp0 
+       sudo ptp4l -P -2 -S -i eth3 -m -q -p -l 7 /dev/ptp0
 
-Replace -S with -H if your NIC supports hardware timestamping.
+   Replace -S with -H if your NIC supports hardware timestamping.
+
+-# Optional: PTP packets can be monitored using Wireshark from PC by setting
+   `ptp` in Wireshark's display filter.  The timestamp sent from the
+   J721E/J7200 EVM should be updated to current time, i.e. responseOriginTimestamp
+   in TI EVM's Path_Delay_Resp_Follow_Up message.  The value from this field can
+   be converted to a human-readable date using [epochconverter.com](http://www.epochconverter.com)
+   or other tools.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -333,7 +348,7 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
      @ref ethfw_known_issues sections for further details
 
 -# Load application binaries to Main R5F cores in the following sequence:
-   * Load Main R5F core 0: app_remoteswitchcfg_server.xer5f
+   * Load Main R5F core 0: app_remoteswitchcfg_server_ccs.xer5f
    * Load Main R5F core 1: app_remoteswitchcfg_client.xer5f
    * Run Main R5F core 1
    * Run Main R5F core 0
@@ -425,15 +440,15 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 -# For J721E EVM:
 
-    -# Connect **PC 1** to MAC port 3 of GESI board. Refer to the
+    -# Connect **PC 1** to MAC port 4 of GESI board. Refer to the
        [J721E EVM GESI Expansion Board](@ref ethfw_depend_evm_gesi_j721e)
        section to find the right RJ-45 connector.
 
-    -# Connect **PC 2** to MAC port 2 of GESI board.
+    -# Connect **PC 2** to MAC port 3 of GESI board.
 
 -# For J7200 EVM:
 
-    -# Connect **PC 1** to MAC port 0 of Quad Port Eth board. Refer to the
+    -# Connect **PC 1** to MAC port 2 of Quad Port Eth board. Refer to the
        [J7200 EVM QPENet Expansion Board](@ref ethfw_depend_evm_quadport_j7200)
        section to find the right RJ-45 connector.
 
@@ -561,7 +576,7 @@ the external devices, **PC 1** or **PC 2**.
 
 -# Open the **CONFIGURATION FILE** tab of the GUI tool. Configuration files
    can be sent to the switch in order to enable or disable features of the
-   CPSW9G.
+   CPSW9G or CPSW5G.
 
 -# To enable software-based interVLAN routing, click on the **Open** button
    and select the `sw_intervlan_routing_config.txt` file present in the
@@ -569,6 +584,10 @@ the external devices, **PC 1** or **PC 2**.
    directory.
    * **Note:** The list of allowed commands and the configurations are present in
      the `schemas.py` file in the `cpsw_configclient/inc` directory.
+   * **Note:** Update the `ing_portNum` and `egr_portNum` accordingly if using
+     different MAC port numbers than those in the config file. This can be done
+     in the `CONFIG` panel of the **CONFIGURATION FILE** tab.  The port numbers
+     are 0-based, i.e. if packets are submitted via MAC port 1, then `"ing_portNum":0`.
 
 -# Press **Send Config** button to send the configuration to the switch.
 
@@ -616,6 +635,7 @@ the external devices, **PC 1** or **PC 2**.
 -# If packets are sent at a higher data rate, the CPU load will spike up.  This
    can be clearly seen from the GUI tool.
 
+
 ### Hardware InterVLAN Routing {#ethfw_hw_intervlan_routing}
 
 -# Open the **CONFIGURATION FILE** tab of the GUI tool.
@@ -624,6 +644,10 @@ the external devices, **PC 1** or **PC 2**.
    select the `hw_intervlan_routing_config.txt` file present in the
    `<SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient/config_files`
    directory.
+   * **Note:** Update the `ing_portNum` and `egr_portNum` accordingly if using
+     different MAC port numbers than those in the config file. This can be done
+     in the `CONFIG` panel of the **CONFIGURATION FILE** tab.  The port numbers
+     are 0-based, i.e. if packets are submitted via MAC port 1, then `"ing_portNum":0`.
 
 -# Press **Send Config** button to send the configuration to the switch.
 
@@ -739,95 +763,160 @@ of other protocols in the VLAN network.
 
 Below is a sample log from the execution of this demo application.
 
+### J721E {#demo_ethfw_combined_output_j721e}
 
-### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart}
+#### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart_j721e}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Enabling clocks for CPSW_9G!
+
 =======================================================
             CPSW Ethernet Firmware                     
 =======================================================
 CPSW_9G Test on MAIN NAVSS
-CpswPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
-CpswPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
-CpswPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
-CpswPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
 PHY 0 is alive
 PHY 3 is alive
 PHY 12 is alive
-PHY 15 is alive
 PHY 23 is alive
 
 ETHFW Version   : 0.01.01
-ETHFW Build Date: Jun  3, 2020
-ETHFW Build Time: 17:05:18
-ETHFW Commit SHA: 269c245e
+ETHFW Build Date: Nov  9, 2020
+ETHFW Build Time: 16:40:37
+ETHFW Commit SHA: 518142f5
 
-Host MAC address: IPC_echo_test (core : mcu2_0) .....
-70:ff:76:1d:92:c2
+Host MAC address: 70:ff:76:1d:92:c2
+IPC_echo_test (core : mcu2_0) .....
+[NIMU_NDK] ENET has been started successfully
 Remote demo device (core : mcu2_0) .....
-Host MAC address: Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:1
-70:ff:76:1d:92:c2
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:5000d,InArgsLen:0, OutArgsLen:4 
-[NIMU_NDK] CPSW has been started successfully
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:20000,InArgsLen:24, OutArgsLen:4 
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:178, FlowIdxOffset:6
-Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:11, Policer Entry:0Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, Cmd:10003,InArgsLen:1, OutArgsLen:1 
-Cpsw_handleLinkUp: port 2: Link up: 1-Gbps Full-Duplex
-Cpsw_handleLinkUp: port 3: Link up: 1-Gbps Full-Duplex
-Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2cfbbf8,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.10.21
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 4: Link up: 1-Gbps Full-Duplex
 
-CPSW NIMU application, IP address I/F 1: 192.168.10.19
+CPSW NIMU application, IP address I/F 1: 192.168.1.20
 
+EthFw: TimeSync PTP enabled
+Rx Flow for Software Inter-VLAN Routing is up
+Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:6
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:178, FlowIdxOffset:6
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:12, Policer Entry:2Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.1.22
 
 ================LLI Table entries=========== 
 
 Number of Static ARP Entries: 1 
-Rx Flow for Software Inter-VLAN Routing is up
 
 SNo.      IP Address         MAC Address  
 ------    -------------      --------------- 
-1         192.168.10.21      70:FF:76:1D:92:C3
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-### SysMin Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin}
+1         192.168.1.22       70:FF:76:1D:92:C3
+Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-0, Timer:1, PushNum:2
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Remote Device Framework Endpoint locate failed. Retrying !!!
-Remote Device Framework Endpoint locate failed. Retrying !!!
+
+
+#### SysMin Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j721e}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Remote device (core : mpu2_1) .....
+IPC_echo_test (core : mcu2_1) .....
 Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
 Registered a device name = mcu_2_1_ethswitch-device-0, id = 0, type = 3
 ETHFW Version: 0. 1. 1
-ETHFW Build Date (YYYY/MMM/DD):2020/Jun/ 3
-ETHFW Commit SHA:269c245e
-ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:2Function:CpswProxy_cmdHandler,Handle:@a2cfbbf8,CoreKey:38acb976, RxMtu:1518, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
-[NIMU_NDK] Registration of the CPSW Successful
-CPSW NIMU application, IP address I/F 1: 192.168.10.21
+ETHFW Build Date (YYYY/MMM/DD):2020/Nov/ 9
+ETHFW Commit SHA:518142f5
+ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:2Function:CpswProxy_cmdHandler,Handle:@a2bee00c,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
+[NIMU_NDK] Registration of the ENET Successful
+CPSW NIMU application, IP address I/F 1: 192.168.1.22
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
+
+### J7200 {#demo_ethfw_combined_output_j7200}
+
+#### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart_j7200}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+=======================================================
+            CPSW Ethernet Firmware                     
+=======================================================
+CPSW_5G Test on MAIN NAVSS
+EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 17: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 18: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 19: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+PHY 0 is alive
+PHY 3 is alive
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
+PHY 23 is alive
+
+ETHFW Version   : 0.01.01
+ETHFW Build Date: Nov  9, 2020
+ETHFW Build Time: 19:10:03
+ETHFW Commit SHA: 518142f5
+
+Host MAC address: 70:ff:76:1d:a1:92
+IPC_echo_test (core : mcu2_0) .....
+[NIMU_NDK] ENET has been started successfully
+Remote demo device (core : mcu2_0) .....
+CpswMacPort_checkSgmiiStatus: MAC 0: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+CpswMacPort_checkSgmiiStatus: MAC 1: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 2: Link up: 1-Gbps Full-Duplex
+
+CPSW NIMU application, IP address I/F 1: 192.168.1.28
+
+EthFw: TimeSync PTP enabled
+Rx Flow for Software Inter-VLAN Routing is up
+Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:5
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:a1:93, FlowIdx:90, FlowIdxOffset:6
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:9, Policer Entry:2Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:a1:93 IPv4Addr:192.168.1.25
+
+================LLI Table entries=========== 
+
+Number of Static ARP Entries: 1 
+
+SNo.      IP Address         MAC Address  
+------    -------------      --------------- 
+1         192.168.1.25       70:FF:76:1D:A1:93
+Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-0, Timer:1, PushNum:2
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+#### SysMin Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j7200}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Remote device (core : mpu2_1) .....
+IPC_echo_test (core : mcu2_1) .....
+Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
+Registered a device name = mcu_2_1_ethswitch-device-0, id = 0, type = 3
+ETHFW Version: 0. 1. 1
+ETHFW Build Date (YYYY/MMM/DD):2020/Nov/ 9
+ETHFW Commit SHA:518142f5
+ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:3Function:CpswProxy_cmdHandler,Handle:@a2bec00c,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
+[NIMU_NDK] Registration of the ENET Successful
+CPSW NIMU application, IP address I/F 1: 192.168.1.25
 
 Current Synchronized time in Epoch format: ld
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 [Back To Top](@ref demo_ethfw_combined_top)
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Document Revision History {#demo_ethfw_combined_rev_history}
@@ -841,3 +930,4 @@ Revision | Date          | Author                 | Description
 0.4      | 14 Oct 2019   | Santhana Bharathi N    | Updates for v.1.00.00
 0.5      | 03 Jun 2020   | Santhana Bharathi N    | Updates for v.7.00.00 (Updated logs and added instructions for TimeSync)
 1.0      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
+1.1      | 10 Nov 2020   | Misael Lopez           | Updates for v.7.01.00
