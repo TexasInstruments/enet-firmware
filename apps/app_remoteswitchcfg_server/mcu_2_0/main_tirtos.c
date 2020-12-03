@@ -328,7 +328,7 @@ int main(void)
 
     /* Board related initialization */
     EnetBoard_initEthFw();
-    EnetAppUtils_enableClocks(gEthAppObj.enetType);
+    EnetAppUtils_enableClocks(gEthAppObj.enetType, gEthAppObj.instId);
 
     /* Create semaphore used to synchronize EthFw and NDK init.
      * EthFw opens the CPSW driver which is required by NDK during NIMU

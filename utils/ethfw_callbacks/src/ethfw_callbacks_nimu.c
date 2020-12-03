@@ -213,7 +213,8 @@ void EthFwCallbacks_nimuCpswGetHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.dmaDescAllocFxn     = &EnetMem_allocDmaDesc;
     cpswRxFlowCfg.dmaDescFreeFxn      = &EnetMem_freeDmaDesc;
 
-    EnetAppUtils_openRxFlow(handleInfo.hEnet,
+    EnetAppUtils_openRxFlow(enetType,
+                            handleInfo.hEnet,
                             attachInfo.coreKey,
                             coreId,
                             useDefaultFlow,
@@ -283,7 +284,8 @@ void EthFwCallbacks_nimuCpswReleaseHandle(NimuEnetAppIf_ReleaseHandleInfo *relea
     /* Close RX Flow */
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
-    EnetAppUtils_closeRxFlow(releaseInfo->hEnet,
+    EnetAppUtils_closeRxFlow(enetType,
+                             releaseInfo->hEnet,
                              releaseInfo->coreKey,
                              releaseInfo->coreId,
                              useDefaultFlow,

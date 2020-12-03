@@ -465,34 +465,34 @@ void EthFw_getVersion(EthFw_Handle hEthFw,
 
 static int32_t EthFw_initMcm(void)
 {
-    EnetMcm_InitConfig cpswMcmCfg;
+    EnetMcm_InitConfig mcmCfg;
     EnetMcm_HandleInfo handleInfo;
     uint32_t i;
     int32_t status = ENET_SOK;
 
     /* Initialize CPSW MCM */
-    cpswMcmCfg.cpswCfg = &gEthFwObj.cpswCfg;
-    cpswMcmCfg.enetType = gEthFwObj.enetType;
-    cpswMcmCfg.instId = gEthFwObj.instId;
-    cpswMcmCfg.setPortLinkCfg = EthFw_initLinkArgs;
-    cpswMcmCfg.numMacPorts = gEthFwObj.numPorts;
-    cpswMcmCfg.periodicTaskPeriod = ENETPHY_FSM_TICK_PERIOD_MS;
-    cpswMcmCfg.print = appLogPrintf;
+    mcmCfg.perCfg = (void *)&gEthFwObj.cpswCfg;
+    mcmCfg.enetType = gEthFwObj.enetType;
+    mcmCfg.instId = gEthFwObj.instId;
+    mcmCfg.setPortLinkCfg = EthFw_initLinkArgs;
+    mcmCfg.numMacPorts = gEthFwObj.numPorts;
+    mcmCfg.periodicTaskPeriod = ENETPHY_FSM_TICK_PERIOD_MS;
+    mcmCfg.print = appLogPrintf;
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
-        cpswMcmCfg.macPortList[i] = gEthFwObj.ports[i].portNum;
+        mcmCfg.macPortList[i] = gEthFwObj.ports[i].portNum;
     }
 
-    if ((cpswMcmCfg.enetType != ENET_CPSW_5G) &&
-        (cpswMcmCfg.enetType != ENET_CPSW_9G))
+    if ((mcmCfg.enetType != ENET_CPSW_5G) &&
+        (mcmCfg.enetType != ENET_CPSW_9G))
     {
         status = ENET_ENOTSUPPORTED;
     }
 
     if (status == ENET_SOK)
     {
-        status = EnetMcm_init(&cpswMcmCfg);
+        status = EnetMcm_init(&mcmCfg);
         EnetAppUtils_assert(status == ENET_SOK);
     }
 

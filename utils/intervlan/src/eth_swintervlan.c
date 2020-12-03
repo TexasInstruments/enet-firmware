@@ -252,7 +252,8 @@ static Void CpswApp_InterVlanRouting(UArg a0,
     EnetQueue_initQ(&cqPktInfoQ);
 
     /* Close RX Flow */
-    EnetAppUtils_closeRxFlow(gCpswInterVlanAppObj.hEnet,
+    EnetAppUtils_closeRxFlow(gCpswInterVlanAppObj.enetType,
+                             gCpswInterVlanAppObj.hEnet,
                              gCpswInterVlanAppObj.coreKey,
                              gCpswInterVlanAppObj.coreId,
                              true,
