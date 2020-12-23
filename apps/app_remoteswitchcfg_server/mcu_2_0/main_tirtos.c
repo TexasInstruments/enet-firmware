@@ -77,6 +77,8 @@
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
 #include <xdc/runtime/Error.h>
+#include <xdc/runtime/Timestamp.h>
+#include <xdc/runtime/Types.h>
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
@@ -130,6 +132,10 @@
 
 #define ETHAPP_ERROR                    (-1)
 
+#define ETHAPP_TRACEBUF_FLUSH_PERIOD    (5ULL)
+
+#define IPC_TRACEBUF_SIZE               (0x80000U)
+
 #define VQ_BUF_SIZE                     (2048U)
 
 #define IPC_RPMESSAGE_OBJ_SIZE          (256U)
@@ -170,6 +176,15 @@ typedef struct
 
     /* Host IP address */
     uint32_t hostIpAddr;
+
+    /* IPC trace buffer address */
+    uint8_t *traceBufAddr;
+
+    /* IPC trace buffer size */
+    uint32_t traceBufSize;
+
+    /* Timestamp of last IPC trace buffer flush */
+    uint64_t traceBufLastFlushTicks;
 } EthAppObj;
 
 /* ========================================================================== */
@@ -514,6 +529,11 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
             appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
         }
     }
+
+    /* Trace buffer */
+    gEthAppObj.traceBufAddr = Ipc_getResourceTraceBufPtr();
+    gEthAppObj.traceBufSize = IPC_TRACEBUF_SIZE;
+    gEthAppObj.traceBufLastFlushTicks = 0ULL;
 }
 
 static int32_t EthApp_initEthFw(void)
@@ -766,5 +786,30 @@ static void EthApp_startHwInterVlan(char *recvBuff,
     {
         pInterVlanCfg = (EnetCfgServer_InterVlanConfig *)recvBuff;
         EthHwInterVlan_setupRouting(gEthAppObj.enetType, pInterVlanCfg);
+    }
+}
+
+/* IPC trace buffer flush */
+
+void EthApp_traceBufCacheWb(void)
+{
+    Types_Timestamp64 ts;
+    uint64_t newticks;
+
+    Timestamp_get64(&ts);
+    newticks = ((uint64_t)ts.hi << 32U) | ts.lo;
+
+    /* Don't keep flusing cache */
+    if ((newticks - gEthAppObj.traceBufLastFlushTicks) >=
+        (uint64_t)ETHAPP_TRACEBUF_FLUSH_PERIOD)
+    {
+        gEthAppObj.traceBufLastFlushTicks = newticks;
+
+        /* Flush the cache of the SysMin buffer only */
+        if (gEthAppObj.traceBufAddr != NULL)
+        {
+            CacheP_wb((const void *)gEthAppObj.traceBufAddr,
+                      gEthAppObj.traceBufSize);
+        }
     }
 }
