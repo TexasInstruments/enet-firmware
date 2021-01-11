@@ -329,10 +329,10 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
  *                  CpswProxy_attachExtended()
  * \param coreKey   Unique core_key returned by CpswProxy_attach() or
  *                  CpswProxy_attachExtended()
- * \param rxFlowStartIdx  Pointer to allocated Rx Flow Index Base value populated
+ * \param rxFlowStartIdx  Allocated Rx Flow Index Base value populated
  *                        by this function.
  *                        Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
- * \param rxFlowIdx       Pointer to allocated allocated Rx flow Index offset
+ * \param rxFlowIdx       Allocated Rx flow Index offset
  *                        value  populated by this function
  */
 void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
