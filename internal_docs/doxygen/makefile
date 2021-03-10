@@ -21,6 +21,7 @@ endif
 
 .PHONY : all clean allclean
 .PHONY : diagrams user_design user_design_clean api_guide api_guide_clean design_doc design_doc_clean
+.PHONY : datasheet datasheet_clean
 
 all: user_design api_guide design_doc
 
@@ -51,5 +52,11 @@ design_doc:
 design_doc_clean:
 	 $(RM) -R ../../docs/design_doc
 	 $(RM) -R ./content_pages/design_doc/output.txt
+
+datasheet:
+	$(DOXYGEN) datasheet.cfg 1>output.txt
+
+datasheet_clean:
+	 $(RM) -R ../datasheet/*
 
 # Nothing beyond this point
