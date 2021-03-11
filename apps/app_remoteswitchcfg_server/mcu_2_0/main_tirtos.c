@@ -449,6 +449,8 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     {
         status = Ipc_loadResourceTable(appGetIpcResourceTable());
     }
+#else
+    appLogPrintf("Skipping Ipc_loadResourceTable for QNX (core : %s) .....\r\n", Ipc_mpGetSelfName());
 #endif
 
     if (status == ENET_SOK)

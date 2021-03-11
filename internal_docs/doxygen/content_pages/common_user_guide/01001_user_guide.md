@@ -324,6 +324,17 @@ shown below:
 On successful compilation, the output folder would be created at
 `<ethfw_xx.yy.xx.bb>/out`.
 
+### QNX Build {#ethfw_qnx_build_all}
+
+Build EthFw components for QNX OS integration running on A72.
+
+    make ethfw_all BUILD_QNX_A72=yes
+
+For QNX integration, the **BUILD_QNX_A72** flag will make sure that EthFW would not
+load the IPC resource table, unlike in Linux.
+
+When building for Linux, the **BUILD_QNX_A72** can be omitted.
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 

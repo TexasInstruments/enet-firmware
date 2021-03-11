@@ -30,6 +30,9 @@ BUILD_APP_TIRTOS_LINUX?=no
 #Build Profile
 PROFILE?=release
 
+# A72 OS specific Build flag
+BUILD_QNX_A72?=no
+
 # Treat compiler warning as error
 # Supported Values: yes | no
 TREAT_WARNINGS_AS_ERROR ?= yes

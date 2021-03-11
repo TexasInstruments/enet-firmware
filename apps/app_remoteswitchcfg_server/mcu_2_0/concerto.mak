@@ -13,6 +13,10 @@ include $(PRELUDE)
 TARGET      := app_remoteswitchcfg_server
 TARGETTYPE  := exe
 
+ifeq ($(BUILD_QNX_A72), yes)
+DEFS+=A72_QNX_OS
+endif
+
 CSOURCES    := main_tirtos.c
 CSOURCES    += $(foreach cfile,$(call all-c-files-in,$(SDIR)/webdata),webdata/$(cfile))
 ASSEMBLY    := utilsCopyVecs2ATmc.asm
