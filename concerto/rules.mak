@@ -195,7 +195,7 @@ help:
 	$(PRINT) " # Installs built outputs into system folders. May need 'root' privledge"
 	$(PRINT) " $$ $(MAKE) install"
 	$(PRINT) " # Uninstalls built outputs from system folders. May need 'root' privledge"
-	$(PRINT) " $$ $(MAKE) install"
+	$(PRINT) " $$ $(MAKE) uninstall"
 	$(PRINT) " # Removes build outputs only"
 	$(PRINT) " $$ $(MAKE) clean"
 	$(PRINT) " # Removes $(BUILD_OUTPUT)/ and $(BUILD_LIBS)/ folders completely."
