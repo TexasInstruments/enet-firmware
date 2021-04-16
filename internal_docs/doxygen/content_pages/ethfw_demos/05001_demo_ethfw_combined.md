@@ -464,8 +464,6 @@ UART2 serial terminal.
 
 ## HTTP Server {#ethfw_http_client_page}
 
-> **Note:** HTTP server support is removed from NDK_3_75_01_01, so currently HTTP server is not supported in ETHFW. From 7.1 release, NS tools will be used to enable HTTP server.
-
 A HTTP server is also part of the demo application running in the Main R5F
 core 0. The following is a snapshot of the webpage loaded when client accesses
 the HTTP server on J721E/J7200 EVM using a web browser: `http://192.168.1.<r5f_0>`.
