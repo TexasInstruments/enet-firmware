@@ -593,6 +593,7 @@ int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInte
 static int32_t CpswApp_getRxTxHandle(void)
 {
     int32_t status = ENET_SOK;
+    EnetDma_Handle hDma;
     EnetUdma_OpenTxChPrms cpswTxChCfg;
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
     EnetUdma_UdmaRingPrms *pFqRingPrms;
@@ -640,7 +641,10 @@ static int32_t CpswApp_getRxTxHandle(void)
         cpswRxFlowCfg.startIdx = gCpswInterVlanAppObj.rxFlowStartIdx;
         cpswRxFlowCfg.flowIdx = gCpswInterVlanAppObj.ingRxFlowIdx;
 
-        gCpswInterVlanAppObj.hIngRxFlow = EnetDma_openRxCh(&cpswRxFlowCfg);
+        hDma = Enet_getDmaHandle(gCpswInterVlanAppObj.hEnet);
+        EnetAppUtils_assert(hDma != NULL);
+
+        gCpswInterVlanAppObj.hIngRxFlow = EnetDma_openRxCh(hDma, &cpswRxFlowCfg);
         if (gCpswInterVlanAppObj.hIngRxFlow == NULL)
         {
             EnetAppUtils_freeRxFlow(gCpswInterVlanAppObj.hEnet,

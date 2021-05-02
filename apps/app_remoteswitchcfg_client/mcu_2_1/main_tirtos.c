@@ -768,8 +768,8 @@ static void CpswRemoteApp_openNDKRxCh(CpswProxy_Handle hProxy,
                               rxConfig->cbArg,
                               rxConfig->notifyCb,
                               rxFlowMtu);
-  rxHandleInfo->hRxFlow = EnetDma_openRxCh(&cpswRxFlowCfg);
 
+  rxHandleInfo->hRxFlow = EnetDma_openRxCh(gRemoteAppObj.hDma, &cpswRxFlowCfg);
   localAssert(rxHandleInfo->hRxFlow != NULL);
 
   CpswProxy_addHostPortEntry(hProxy, hEnet, coreKey, rxHandleInfo->macAddr);
@@ -883,15 +883,18 @@ static void CpswRemoteApp_openNDKTxCh(Udma_DrvHandle hUdmaDrv,
   EnetUdma_OpenTxChPrms cpswTxChCfg;
 
   txHandleInfo->txChNum = txPSILId;
+
   /* Set configuration parameters */
   EnetDma_initTxChParams(&cpswTxChCfg);
+
   CpswRemoteApp_setTxChPrms(&cpswTxChCfg,
                             txHandleInfo->txChNum,
                             hUdmaDrv,
                             txConfig->numPackets,
                             txConfig->cbArg,
                             txConfig->notifyCb);
-  txHandleInfo->hTxChannel = EnetDma_openTxCh(&cpswTxChCfg);
+
+  txHandleInfo->hTxChannel = EnetDma_openTxCh(gRemoteAppObj.hDma, &cpswTxChCfg);
   localAssert(NULL != txHandleInfo->hTxChannel);
 }
 
