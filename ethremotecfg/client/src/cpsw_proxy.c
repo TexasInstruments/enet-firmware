@@ -518,6 +518,9 @@ static void CpswProxy_assertLocal(bool condition,
     {
         System_printf("Assertion @ Line: %d in %s: %s : failed !!!\n",
                            lineNum, fileName, str);
+#ifdef QNX_OS
+        gCpswProxyAssertWaitInLoop = FALSE;
+#endif
         while (gCpswProxyAssertWaitInLoop)
         {
         }
