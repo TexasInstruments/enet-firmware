@@ -36,7 +36,7 @@ ifeq ($(TARGET_PLATFORM),J7200)
     DEFS += ENABLE_QSGMII_PORTS
 endif
 
-CPSW_APPUTILS_LIB = enet_example_utils
+CPSW_APPUTILS_LIB = enet_example_utils_tirtos
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
