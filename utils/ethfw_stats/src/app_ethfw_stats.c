@@ -91,7 +91,7 @@ typedef struct
 
     CpswStats_PortStats prevPortStats[APP_ETHFW_PORT_NUM_MAX];
 
-    Clock_Handle hStatsClock;
+    ClockP_Handle hStatsClock;
 
     SemaphoreP_Handle clockSem;
 
@@ -110,7 +110,7 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1);
 static void appEthfwStats_clockCb(void *arg);
 
 
-static Void appEthfwStats_clockCb(void *arg)
+static void appEthfwStats_clockCb(void *arg)
 {
     /* Post semaphore to Stats collecting task */
     app_ethfw_stats_obj_t *obj = (app_ethfw_stats_obj_t *)arg;
@@ -124,20 +124,17 @@ static Void appEthfwStats_clockCb(void *arg)
 static int32_t appEthfw_createClock(app_ethfw_stats_obj_t *obj)
 {
     int32_t status = ENET_SOK;
-    Clock_Params clkParams;
-    Error_Block eb;
+    ClockP_Params clkParams;
 
-    Error_init(&eb);
-    Clock_Params_init(&clkParams);
-    clkParams.startFlag = true;
+    ClockP_Params_init(&clkParams);
+    clkParams.startMode = ClockP_StartMode_AUTO;
     clkParams.period    = APP_ETHFW_STATS_POLL_PERIOD_MS;
-    clkParams.arg       = (UArg)obj;
+    clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
+    clkParams.arg       = (void *)obj;
 
     /* Creating clock and setting clock callback function*/
-    obj->hStatsClock = Clock_create((Clock_FuncPtr) &appEthfwStats_clockCb,
-                                    APP_ETHFW_STATS_POLL_PERIOD_MS,
-                                    &clkParams,
-                                    &eb);
+    obj->hStatsClock = ClockP_create((void*) &appEthfwStats_clockCb,
+                                      &clkParams);
     if (obj->hStatsClock == NULL)
     {
         status = ENET_EFAIL;
@@ -403,8 +400,8 @@ void appEthfwStatsDeInit(void)
     SemaphoreP_delete(obj->clockSem);
 
     /* Stop and delete the clock */
-    Clock_stop(obj->hStatsClock);
-    Clock_delete(&obj->hStatsClock);
+    ClockP_stop(obj->hStatsClock);
+    ClockP_delete(obj->hStatsClock);
 
     obj->ethfwStatsUpdateEnable = false;
     obj->ethfwStatsShutdown = true;

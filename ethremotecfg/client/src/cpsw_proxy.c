@@ -67,34 +67,24 @@
 #include <stdint.h>
 
 #ifdef QNX_OS
-
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
 #include <sys/neutrino.h>
 #include <sys/netmgr.h>
 #include <sys/slogcodes.h>
-#include <ti/osal/TaskP.h>
-
 #else
-
 #if defined(__KLOCWORK__)
 #include <stdlib.h>
 #endif
-
-/* XDCtools Header files */
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-#include <xdc/runtime/Memory.h>
-#include <xdc/runtime/Error.h>
-/* BIOS Header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/knl/Mailbox.h>
-
 #endif
 
+/* OSAL */
+#include <ti/osal/osal.h>
 #include <ti/osal/SemaphoreP.h>
+#include <ti/osal/TaskP.h>
+#include <ti/osal/MailboxP.h>
+
 #include <client-rtos/remote-device.h>
 #include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
@@ -156,9 +146,7 @@ typedef enum CpswProxy_RdevCmd_tag
     CPSWPROXY_RDEVCMD_EXIT,
 } CpswProxy_rdevCmd_e;
 
-#ifdef QNX_OS
-typedef void * UArg;
-#endif
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -392,7 +380,7 @@ typedef struct CpswProxy_rdevCmdReqMsg_s
 {
     CpswProxy_rdevCmd_e cmd;
 #ifndef QNX_OS
-    Mailbox_Handle hResponseMbx;
+    MailboxP_Handle hResponseMbx;
 #endif
     union
     {
@@ -448,13 +436,8 @@ typedef struct CpswProxy_rdevCmdMsg_s
 
 typedef struct CpswProxy_notifyServiceObj_s
 {
-#ifdef QNX_OS
     TaskP_Params notifyServiceTskPrm;
     TaskP_Handle hNotifyServiceTsk;
-#else
-    Task_Params notifyServiceTskPrm;
-    Task_Handle hNotifyServiceTsk;
-#endif
     RPMessage_Handle hNotifyServicRpMsgEp;
     uint32_t localEp;
     CpswRemoteNotifyService_CallbackHandlers cb;
@@ -463,16 +446,15 @@ typedef struct CpswProxy_notifyServiceObj_s
 typedef struct CpswProxy_Obj_s
 {
     CpswProxy_Config cfg;
+
+    TaskP_Handle      hRdevCmdTsk;
+    TaskP_Params      rdevCmdTaskParams;
 #ifdef QNX_OS
     int chid;
     int coid;
-    TaskP_Handle      hRdevCmdTsk;
-    TaskP_Params      rdevCmdTaskParams;
 #else
-    Mailbox_Handle    hCmdMbx;
-    Mailbox_Handle    hResponseMbx;
-    Task_Params       rdevCmdTaskParams;
-    Task_Handle       hRdevCmdTsk;
+    MailboxP_Handle    hCmdMbx;
+    MailboxP_Handle    hResponseMbx;
 #endif
     SemaphoreP_Handle hRdevStartSem;
     SemaphoreP_Handle hRdevCmdTskStartSem;
@@ -494,13 +476,29 @@ static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
 #ifdef QNX_OS
 static void slog_printf(const char *pcString, ...);
 #define System_printf slog_printf
+#else
+// TODO: Need to replace with Ipc_Trace_printf
+#define System_printf printf
 #endif
+
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
 
 /**< Buffer to store received messages for remote notify service */
 static uint8_t gCpswProxyNotifyServiceRpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
+
+/**< Global structure that stores the  CpswProxy_Obj */
+static CpswProxy_Obj gCpswProxy_Obj;
+
+/**< Task Stack memory */
+static uint8_t gCpswProxy_rdevCmdTskStackBuf[CPSWPROXY_RDEVCMD_TSK_STACKSIZE] __attribute__ ((aligned(32)));
+static uint8_t gCpswProxy_notifyServiceTskStackBuf[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(32)));
+
+#ifndef QNX_OS
+static uint8_t gCmdMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
+static uint8_t gResponseMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
+#endif
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -550,21 +548,35 @@ static void slog_printf(const char *pcString, ...)
     /* End the varargs processing */
     va_end(arguments);
 }
-#else
-static void  CpswProxy_createMbx(Mailbox_Handle *pMailboxHandle)
-{
-    Mailbox_Params mbxParams;
-    Error_Block eb;
+#endif
 
-    Error_init(&eb);
-    Mailbox_Params_init(&mbxParams);
-    *pMailboxHandle =
-        Mailbox_create(
-                       sizeof(CpswProxy_rdevCmd_t),
-                       CPSWPROXY_RDEV_MSGCOUNT,
-                       &mbxParams,
-                       &eb);
-    CpswProxy_assert((Error_check(&eb) == FALSE) && (*pMailboxHandle != NULL));
+#ifndef QNX_OS
+static void  CpswProxy_createMbx(MailboxP_Handle *pMailboxHandle, bool IsCMD)
+{
+    MailboxP_Params mboxParams;
+
+    MailboxP_Params_init(&mboxParams);
+    if (IsCMD == true)
+    {
+        mboxParams.name = (uint8_t *)"CmdMbx";
+        mboxParams.buf = (void *)gCmdMbxBuf;
+    }
+    else
+    {
+        mboxParams.name = (uint8_t *)"ResponseMbx";
+        mboxParams.buf = (void *)gResponseMbxBuf;
+    }
+    mboxParams.size =  sizeof(CpswProxy_rdevCmd_t);
+    mboxParams.count = CPSWPROXY_RDEV_MSGCOUNT;
+    mboxParams.bufsize = sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT;
+
+    *pMailboxHandle = MailboxP_create(&mboxParams);
+    CpswProxy_assert(*pMailboxHandle != NULL);
+}
+
+static void  CpswProxy_deleteMbx(MailboxP_Handle *pMailboxHandle)
+{
+    MailboxP_delete(*pMailboxHandle);
 }
 #endif
 
@@ -579,13 +591,6 @@ static void CpswProxy_createSem(SemaphoreP_Handle *pSemHandle)
     CpswProxy_assert(*pSemHandle != NULL);
 }
 
-#ifndef QNX_OS
-static void  CpswProxy_deleteMbx(Mailbox_Handle *pMailboxHandle)
-{
-    Mailbox_delete(pMailboxHandle);
-}
-#endif
-
 static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                  uint32_t deviceId)
 {
@@ -594,7 +599,7 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
     int status;
 #else
     Bool mbxStatus;
-    Mailbox_Handle hMailbox = hProxy->hCmdMbx;
+    MailboxP_Handle hMailbox = hProxy->hCmdMbx;
 #endif
     Bool exitCmdHandler;
     CpswProxy_rdevCmd_t msg;
@@ -606,8 +611,7 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
         rcvid = MsgReceive(hProxy->chid, &msg, sizeof(msg), NULL);
         CpswProxy_assert(rcvid != -1);
 #else
-        mbxStatus =
-            Mailbox_pend(hMailbox, &msg, BIOS_WAIT_FOREVER);
+        mbxStatus = MailboxP_pend(hMailbox, &msg, MailboxP_WAIT_FOREVER);
         CpswProxy_assert(mbxStatus == TRUE);
 #endif
         switch (msg.req.cmd)
@@ -881,13 +885,13 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
 #else
         CpswProxy_assert(msg.req.hResponseMbx != NULL);
         mbxStatus =
-            Mailbox_post(msg.req.hResponseMbx, &msg, BIOS_WAIT_FOREVER);
+            MailboxP_post(msg.req.hResponseMbx, &msg, MailboxP_WAIT_FOREVER);
         CpswProxy_assert(mbxStatus == TRUE);
 #endif
     }
 }
 
-static void CpswProxy_rdevCmdTskFxn(UArg a0, UArg a1)
+static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
 {
     int32_t ret = 0;
     rdevEthSwitchClientInitPrms_t prm;
@@ -913,11 +917,7 @@ static void CpswProxy_rdevCmdTskFxn(UArg a0, UArg a1)
 
         if (ret == 0 && (prm.device_id == APP_REMOTE_DEVICE_DEVICE_ID_EAGAIN))
         {
-#ifdef QNX_OS
             TaskP_sleep(CPSWPROXY_RDEVCLIENT_CONNECT_RETRY_MS);
-#else
-            Task_sleep(CPSWPROXY_RDEVCLIENT_CONNECT_RETRY_MS);
-#endif
         }
     }
 
@@ -933,7 +933,7 @@ static void CpswProxy_rdevCmdTskFxn(UArg a0, UArg a1)
     CpswProxy_cmdHandler(hProxy, prm.device_id);
 }
 
-static void CpswProxy_notifyServiceTskFxn(UArg a0, UArg a1)
+static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
 {
     int32_t ret = 0;
     CpswProxy_Handle hProxy = (CpswProxy_Handle) a0;
@@ -1042,7 +1042,7 @@ static void CpswProxy_remoteDeviceInit(SemaphoreP_Handle rdevStartSem, const Cps
 
     appRemoteDeviceInit(&remote_dev_init_prm);
 #ifdef QNX_OS
-    System_printf("Remote device (core : mpu1_0) .....\r\n");
+    System_printf("Remote device (core : mcu1_0) .....\r\n");
 #else
     System_printf("Remote device (core : mpu2_1) .....\r\n");
 #endif
@@ -1050,52 +1050,28 @@ static void CpswProxy_remoteDeviceInit(SemaphoreP_Handle rdevStartSem, const Cps
 
 static void  CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
 {
-#ifdef QNX_OS
     TaskP_Params_init(&hProxy->rdevCmdTaskParams);
     hProxy->rdevCmdTaskParams.priority = CPSWPROXY_RDEVCMD_TSK_PRI;
     hProxy->rdevCmdTaskParams.arg0 = (void *) hProxy;
+    hProxy->rdevCmdTaskParams.stack = &gCpswProxy_rdevCmdTskStackBuf[0];
     hProxy->rdevCmdTaskParams.stacksize = CPSWPROXY_RDEVCMD_TSK_STACKSIZE;
     hProxy->hRdevCmdTsk = TaskP_create(CpswProxy_rdevCmdTskFxn, &hProxy->rdevCmdTaskParams);
     CpswProxy_assert(hProxy->hRdevCmdTsk != NULL);
-#else
-    Error_Block eb;
-
-    Error_init(&eb);
-    Task_Params_init(&hProxy->rdevCmdTaskParams);
-    hProxy->rdevCmdTaskParams.priority = CPSWPROXY_RDEVCMD_TSK_PRI;
-    hProxy->rdevCmdTaskParams.arg0 = (UArg) hProxy;
-    hProxy->rdevCmdTaskParams.stackSize = CPSWPROXY_RDEVCMD_TSK_STACKSIZE;
-    hProxy->hRdevCmdTsk = Task_create(CpswProxy_rdevCmdTskFxn, &hProxy->rdevCmdTaskParams, &eb);
-    CpswProxy_assert((Error_check(&eb) == FALSE) && (hProxy->hRdevCmdTsk != NULL));
-#endif
 }
 
 static void  CpswProxy_createNotifyServiceTask(CpswProxy_Handle hProxy)
 {
-#ifdef QNX_OS
     TaskP_Params *pTaskParams;
 
+    memset(&hProxy->notifyServiceObj, 0, sizeof(CpswProxy_notifyServiceObj));
     pTaskParams = &hProxy->notifyServiceObj.notifyServiceTskPrm;
     TaskP_Params_init(pTaskParams);
     pTaskParams->priority = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
-    pTaskParams->arg0 = (UArg) hProxy;
+    pTaskParams->arg0 = (void*) hProxy;
+    pTaskParams->stack = &gCpswProxy_notifyServiceTskStackBuf[0];
     pTaskParams->stacksize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
     hProxy->notifyServiceObj.hNotifyServiceTsk = TaskP_create(CpswProxy_notifyServiceTskFxn, pTaskParams);
     CpswProxy_assert(hProxy->notifyServiceObj.hNotifyServiceTsk != NULL);
-#else
-    Task_Params *pTaskParams;
-    Error_Block eb;
-
-    memset(&hProxy->notifyServiceObj, 0, sizeof(CpswProxy_notifyServiceObj));
-    Error_init(&eb);
-    pTaskParams = &hProxy->notifyServiceObj.notifyServiceTskPrm;
-    Task_Params_init(pTaskParams);
-    pTaskParams->priority = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
-    pTaskParams->arg0 = (UArg) hProxy;
-    pTaskParams->stackSize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
-    hProxy->notifyServiceObj.hNotifyServiceTsk = Task_create(CpswProxy_notifyServiceTskFxn, pTaskParams, &eb);
-    CpswProxy_assert((Error_check(&eb) == FALSE) && (hProxy->notifyServiceObj.hNotifyServiceTsk != NULL));
-#endif
 }
 
 static void  CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Config *cfg)
@@ -1107,8 +1083,8 @@ static void  CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Con
     hProxy->coid = ConnectAttach(ND_LOCAL_NODE, 0, hProxy->chid, _NTO_SIDE_CHANNEL, 0);
     CpswProxy_assert(hProxy->coid != -1);
 #else
-    CpswProxy_createMbx(&hProxy->hCmdMbx);
-    CpswProxy_createMbx(&hProxy->hResponseMbx);
+    CpswProxy_createMbx(&hProxy->hCmdMbx, true);
+    CpswProxy_createMbx(&hProxy->hResponseMbx, false);
 #endif
 
     CpswProxy_createSem(&hProxy->hRdevStartSem);
@@ -1134,8 +1110,8 @@ static void  CpswProxy_instanceDeInit(CpswProxy_Handle hProxy)
     CpswProxy_deleteMbx(&hProxy->hResponseMbx);
 #endif
 
-    SemaphoreP_delete(&hProxy->hRdevStartSem);
-    SemaphoreP_delete(&hProxy->hRdevCmdTskStartSem);
+    SemaphoreP_delete(hProxy->hRdevStartSem);
+    SemaphoreP_delete(hProxy->hRdevCmdTskStartSem);
 }
 
 static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
@@ -1159,17 +1135,17 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     CpswProxy_assert(msg->res.retVal == ENET_SOK);
 #else
     Bool mbxStatus;
-    Mailbox_Handle hCmdMbx = hProxy->hCmdMbx;
-    Mailbox_Handle hResponseMbx = hProxy->hResponseMbx;
+    MailboxP_Handle hCmdMbx = hProxy->hCmdMbx;
+    MailboxP_Handle hResponseMbx = hProxy->hResponseMbx;
 
     CpswProxy_assert(hCmdMbx != NULL);
     CpswProxy_assert(hResponseMbx != NULL);
 
     msg->req.cmd = cmd;
     msg->req.hResponseMbx = hResponseMbx;
-    mbxStatus = Mailbox_post(hCmdMbx, msg, BIOS_WAIT_FOREVER);
+    mbxStatus = MailboxP_post(hCmdMbx, msg, MailboxP_WAIT_FOREVER);
     CpswProxy_assert(mbxStatus == TRUE);
-    mbxStatus = Mailbox_pend(hResponseMbx, msg, BIOS_WAIT_FOREVER);
+    mbxStatus = MailboxP_pend(hResponseMbx, msg, MailboxP_WAIT_FOREVER);
     CpswProxy_assert(mbxStatus == TRUE);
     CpswProxy_assert(msg->res.retVal == ENET_SOK);
 #endif
@@ -1178,16 +1154,9 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
 CpswProxy_Handle CpswProxy_init(const CpswProxy_Config *cfg)
 {
     CpswProxy_Handle hProxy;
-#ifdef QNX_OS
-    hProxy = calloc(1, sizeof(CpswProxy_Obj));
-    CpswProxy_assert(hProxy != NULL);
-#else
-    Error_Block eb;
 
-    Error_init(&eb);
-    hProxy = Memory_calloc(NULL, sizeof(CpswProxy_Obj), sizeof(uint64_t), &eb);
-    CpswProxy_assert((Error_check(&eb) == FALSE) && (hProxy != NULL));
-#endif
+    memset(&gCpswProxy_Obj, 0, sizeof(gCpswProxy_Obj));
+    hProxy = &gCpswProxy_Obj;
 
     CpswProxy_instanceInit(hProxy, cfg);
     return hProxy;
@@ -1196,11 +1165,6 @@ CpswProxy_Handle CpswProxy_init(const CpswProxy_Config *cfg)
 void CpswProxy_deInit(CpswProxy_Handle hProxy)
 {
     CpswProxy_instanceDeInit(hProxy);
-#ifdef QNX_OS
-    free(hProxy);
-#else
-    Memory_free(NULL, hProxy, sizeof(*hProxy));
-#endif
 }
 
 void CpswProxy_start(CpswProxy_Handle hProxy)

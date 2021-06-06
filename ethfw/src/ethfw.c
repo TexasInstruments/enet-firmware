@@ -73,20 +73,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/* XDCtools header files */
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-#include <xdc/runtime/Error.h>
-
-/* BIOS header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/osal/SemaphoreP.h>
-#include <ti/sysbios/knl/Clock.h>
-#include <ti/sysbios/utils/Load.h>
-#include <ti/sysbios/knl/Semaphore.h>
-#include <ti/sysbios/knl/Mailbox.h>
-
 /* EthFw header files */
 #include <ethfw/ethfw.h>
 

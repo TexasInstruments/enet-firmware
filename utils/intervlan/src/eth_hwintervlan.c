@@ -74,13 +74,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <xdc/std.h>
-
-#include <xdc/runtime/Error.h>
-
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/utils/Load.h>
 
 #include <ti/osal/osal.h>
 #include <ti/drv/uart/UART_stdio.h>

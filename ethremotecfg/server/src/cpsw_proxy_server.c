@@ -66,15 +66,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/* XDCtools Header files */
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-#include <xdc/runtime/Error.h>
-
-/* BIOS Header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-
+/* OSAL */
 #include <ti/osal/osal.h>
 #include <ti/osal/SemaphoreP.h>
 #include <ti/osal/TaskP.h>
@@ -154,7 +146,7 @@ typedef struct CpswProxyServer_HandleTable_s
 
 typedef struct CpswProxyServer_EthDriverObj_s
 {
-    Task_Handle                  hAutosarEthTsk;
+    TaskP_Handle                 hAutosarEthTsk;
     RPMessage_Handle             hAutosarEthRpMsgEp;
     uint32_t                     dstProc;
     uint32_t                     localEp;
@@ -164,7 +156,7 @@ typedef struct CpswProxyServer_EthDriverObj_s
 typedef struct CpswProxyServer_NotifyServiceObj_s
 {
     Enet_Type                    notifyServiceCpswType;
-    Task_Handle                  hNotifyServiceTsk;
+    TaskP_Handle                 hNotifyServiceTsk;
     EventP_Handle                hHwPushNotifyServiceEvent;
     uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HWPUSH_COUNT_MAX];
     RPMessage_Handle             hNotifyServicRpMsgEp;
@@ -191,14 +183,14 @@ typedef struct CpswProxyServer_Obj_s
 /* ========================================================================== */
 static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hProxyServer,
                                                       CpswProxyServer_Config_t * cfg);
-static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1);
+static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1);
 
 static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyServer,
                                                       CpswProxyServer_Config_t * cfg);
 
 static void CpswProxyServer_hwPushNotifyFxn(void *arg, CpswCpts_HwPush hwPushNum);
 
-static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1);
+static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -211,6 +203,10 @@ static uint8_t g_CpswProxyServerAutosarRpmsgBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_DATA
 /**< Buffer to store received messages. 256 messages of 512 bytes +
         space for book-keeping */
 static uint8_t g_CpswProxyServerNotifyServiceRpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
+
+/**< StackBuffer for different tasks */
+static uint8_t gCpswProxyServer_autosarEthDriverTaskStackBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK] __attribute__ ((aligned(32)));
+static uint8_t gCpswProxyServer_notifyServiceTaskStackBuf[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(32)));
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -1673,8 +1669,7 @@ int32_t  CpswProxyServer_start(void)
 
 static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hProxyServer, CpswProxyServer_Config_t * cfg)
 {
-    Error_Block     eb;
-    Task_Params     taskParams;
+    TaskP_Params     taskParams;
     int32_t retVal = ENET_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
@@ -1707,16 +1702,15 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
 
     if (ENET_SOK == retVal)
     {
-        Error_init(&eb);
-
         /* Initialize the task params */
-        Task_Params_init(&taskParams);
-        taskParams.instance->name = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_NAME;
+        TaskP_Params_init(&taskParams);
+        taskParams.name         = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_NAME;
         taskParams.priority     = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_PRIORITY;
-        taskParams.arg0         = (UArg) hProxyServer;
-
-        hProxyServer->ethDrvObj.hAutosarEthTsk = Task_create(CpswProxyServer_autosarEthDriverTaskFxn, &taskParams, &eb);
-        if(Error_check(&eb))
+        taskParams.arg0         = (void*) hProxyServer;
+        taskParams.stack        = &gCpswProxyServer_autosarEthDriverTaskStackBuf[0];
+        taskParams.stacksize    = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK;
+        hProxyServer->ethDrvObj.hAutosarEthTsk = TaskP_create(CpswProxyServer_autosarEthDriverTaskFxn, &taskParams);
+        if(hProxyServer->ethDrvObj.hAutosarEthTsk == NULL)
         {
             retVal = ENET_EFAIL;
             appLogPrintf("Could not create a Task \n");
@@ -1728,8 +1722,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
 
 static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyServer, CpswProxyServer_Config_t * cfg)
 {
-    Error_Block     eb;
-    Task_Params     taskParams;
+    TaskP_Params     taskParams;
     int32_t retVal = ENET_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
@@ -1796,16 +1789,15 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
 
     if (ENET_SOK == retVal)
     {
-        Error_init(&eb);
-
         /* Initialize the task params */
-        Task_Params_init(&taskParams);
-        taskParams.instance->name = CPSW_REMOTE_NOTIFY_SERVICE_TASK_NAME;
+        TaskP_Params_init(&taskParams);
+        taskParams.name         = CPSW_REMOTE_NOTIFY_SERVICE_TASK_NAME;
         taskParams.priority     = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
-        taskParams.arg0         = (UArg) hProxyServer;
-
-        hProxyServer->notifyServiceObj.hNotifyServiceTsk = Task_create(CpswProxyServer_notifyServiceTaskFxn, &taskParams, &eb);
-        if(Error_check(&eb))
+        taskParams.arg0         = (void*) hProxyServer;
+        taskParams.stack        = &gCpswProxyServer_notifyServiceTaskStackBuf[0];
+        taskParams.stacksize    = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
+        hProxyServer->notifyServiceObj.hNotifyServiceTsk = TaskP_create(CpswProxyServer_notifyServiceTaskFxn, &taskParams);
+        if(hProxyServer->notifyServiceObj.hNotifyServiceTsk == NULL)
         {
             retVal = ENET_EFAIL;
             appLogPrintf("Could not create a Task \n");
@@ -1834,7 +1826,7 @@ static void  CpswProxyServer_initDeviceData(const struct rpmsg_kdrv_ethswitch_de
 
 
 
-static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
+static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
 {
     int32_t rtnVal = IPC_SOK;
     uint32_t remoteProcId, remoteEndPt;
@@ -1849,7 +1841,7 @@ static Void CpswProxyServer_autosarEthDriverTaskFxn(UArg arg0, UArg arg1)
                                             ETH_RPC_REMOTE_SERVICE,
                                             &remoteProcId,
                                             &remoteEndPt,
-                                            BIOS_WAIT_FOREVER))
+                                            osal_WAIT_FOREVER))
     {
         appLogPrintf("CpswProxyServer: Remote AUTOSAR Ethernet Device locate failed");
     }
@@ -2308,7 +2300,7 @@ static void CpswProxyServer_hwPushNotifyFxn(void *arg, CpswCpts_HwPush hwPushNum
     }
 }
 
-static Void CpswProxyServer_notifyServiceTaskFxn(UArg arg0, UArg arg1)
+static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
 {
     int32_t rtnVal = IPC_SOK;
     Enet_Handle hEnet;

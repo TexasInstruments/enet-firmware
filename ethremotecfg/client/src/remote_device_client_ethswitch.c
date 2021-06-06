@@ -69,10 +69,6 @@
 #include <sys/neutrino.h>
 #include <sys/netmgr.h>
 #include <sys/slogcodes.h>
-#else
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-#include <xdc/runtime/Memory.h>
 #endif
 #include <ti/osal/osal.h>
 #include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
@@ -103,6 +99,9 @@ static void slog_printf(const char *pcString, ...)
     /* End the varargs processing */
     va_end(arguments);
 }
+#else
+// TODO: Need to replace with Ipc_Trace_printf
+#define System_printf printf
 #endif
 
 typedef struct rdevEthSwitchClientMessageList_s
@@ -110,6 +109,10 @@ typedef struct rdevEthSwitchClientMessageList_s
     struct rpmsg_kdrv_device_header hdr;
     rdevEthSwitchServerMessageList_t rdevEthSwitchMsg;
 } __attribute__((packed)) rdevEthSwitchClientMessageList_t;
+
+#define MAX_RDEV_ETH_SWITCH_CLIENT_MESSAGE      32
+rdevEthSwitchClientMessageList_t g_rdevEthSwitchClientMessageList[MAX_RDEV_ETH_SWITCH_CLIENT_MESSAGE];
+uint32_t g_rdevEthSwitchClientMessageListIndex = 0;
 
 uint32_t rdevEthSwitchClient_printText(void *priv,
                                        void *data)
@@ -125,11 +128,6 @@ static int32_t rdevEthSwitchClientFreeMsg(void *priv,
                                           void *data,
                                           uint32_t len)
 {
-#ifdef QNX_OS
-    free(data);
-#else
-    Memory_free(NULL, data, sizeof(rdevEthSwitchClientMessageList_t));
-#endif
     return 0;
 }
 
@@ -140,13 +138,14 @@ int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id,
                                        uint8_t *notify_info,
                                        uint32_t notify_info_len)
 {
-#ifdef QNX_OS
-    rdevEthSwitchClientMessageList_t *clientMsg = calloc(1, sizeof(rdevEthSwitchClientMessageList_t));
-#else
-    rdevEthSwitchClientMessageList_t *clientMsg = Memory_calloc(NULL, sizeof(rdevEthSwitchClientMessageList_t), sizeof(uint64_t), NULL);
-#endif
-    struct rpmsg_kdrv_ethswitch_c2s_notify *msg = &clientMsg->rdevEthSwitchMsg.c2s_notify;
     int32_t ret;
+    rdevEthSwitchClientMessageList_t *clientMsg = &g_rdevEthSwitchClientMessageList[g_rdevEthSwitchClientMessageListIndex];
+    g_rdevEthSwitchClientMessageListIndex++;
+    if (g_rdevEthSwitchClientMessageListIndex == MAX_RDEV_ETH_SWITCH_CLIENT_MESSAGE)
+    {
+        g_rdevEthSwitchClientMessageListIndex = 0;
+    }
+    struct rpmsg_kdrv_ethswitch_c2s_notify *msg = &clientMsg->rdevEthSwitchMsg.c2s_notify;
 
     if (notify_info_len <= sizeof(msg->notify_info))
     {

@@ -75,9 +75,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* BIOS Header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
+/* OSAL */
+#include <ti/osal/osal.h>
+#include <ti/osal/TaskP.h>
 
 /* BSD support */
 #include <ti/net/bsd/netinet/in.h>
@@ -163,7 +163,7 @@ HTTPServer_Handle srv;
 /*
  * Thread to be started once the NDK has acquired an IP address.
  * This thread initializes and starts a simple HTTP server. */
-static void serverFxn(UArg a0, UArg a1)
+static void serverFxn(void* a0, void* a1)
 {
     int32_t status;
     struct sockaddr_in addr;
@@ -200,19 +200,19 @@ static void serverFxn(UArg a0, UArg a1)
 
 void AddWebFiles(void)
 {
-    Task_Handle task;
-    Task_Params taskParams;
+    TaskP_Handle task;
+    TaskP_Params taskParams;
 
-    Task_Params_init(&taskParams);
+    TaskP_Params_init(&taskParams);
     taskParams.priority = HTTP_SERVER_TASK_PRI;
     taskParams.stack = &gHttpServerStackBuf[0];
-    taskParams.stackSize = sizeof(gHttpServerStackBuf);
-    taskParams.instance->name = "EthFw HTTP server task";
+    taskParams.stacksize = sizeof(gHttpServerStackBuf);
+    taskParams.name = "EthFw HTTP server task";
 
-    task = Task_create(serverFxn, &taskParams, NULL);
+    task = TaskP_create(serverFxn, &taskParams);
     if (NULL == task)
     {
-        BIOS_exit(0);
+        OS_stop();
     }
 
 }

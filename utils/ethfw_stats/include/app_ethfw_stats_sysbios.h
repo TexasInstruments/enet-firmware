@@ -66,10 +66,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <xdc/std.h>
-#include <xdc/runtime/Error.h>
-
-#include <ti/sysbios/knl/Clock.h>
+#include <ti/osal/osal.h>
 #include <ti/osal/TaskP.h>
 #include <ti/osal/SemaphoreP.h>
 

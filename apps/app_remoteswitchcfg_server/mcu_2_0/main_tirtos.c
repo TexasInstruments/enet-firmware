@@ -73,18 +73,11 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/* XDCtools Header files */
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-#include <xdc/runtime/Error.h>
-#include <xdc/runtime/Timestamp.h>
-#include <xdc/runtime/Types.h>
-
-/* BIOS Header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/knl/Clock.h>
-#include <ti/sysbios/knl/Semaphore.h>
+/* OSAL */
+#include <ti/osal/osal.h>
+#include <ti/osal/SemaphoreP.h>
+#include <ti/osal/TaskP.h>
+#include <ti/osal/MailboxP.h>
 
 /* PDK Driver Header files */
 #include <ti/drv/ipc/ipc.h>
@@ -169,7 +162,7 @@ typedef struct
     Udma_DrvHandle hUdmaDrv;
 
     /* Semaphore for synchronizing EthFw and NDK initialization */
-    Semaphore_Handle hInitSem;
+    SemaphoreP_Handle hInitSem;
 
     /* Host MAC address */
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
@@ -193,9 +186,9 @@ typedef struct
 
 static void EthApp_waitForDebugger(void);
 
-static void EthApp_initTaskFxn(UArg arg0, UArg arg1);
+static void EthApp_initTaskFxn(void* arg0, void* arg1);
 
-static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1);
+static void EthApp_initIpcTaskFxn(void* arg0, void* arg1);
 
 static int32_t EthApp_initEthFw(void);
 
@@ -332,9 +325,9 @@ static uint32_t gEthAppRemoteProc[] =
 
 int main(void)
 {
-    Task_Handle task;
-    Task_Params taskParams;
-    Semaphore_Params semParams;
+    TaskP_Handle task;
+    TaskP_Params taskParams;
+    SemaphoreP_Params semParams;
 
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
@@ -349,27 +342,27 @@ int main(void)
      * EthFw opens the CPSW driver which is required by NDK during NIMU
      * initialization, hence EthFw init must complete first.
      * Currently, there is no control over NDK initialization time and its
-     * task runs right away after BIOS_start() hence causing a race
+     * task runs right away after OS_start() hence causing a race
      * condition with EthFw init */
-    Semaphore_Params_init(&semParams);
-    semParams.mode = Semaphore_Mode_BINARY;
-    gEthAppObj.hInitSem = Semaphore_create(0, &semParams, NULL);
+    SemaphoreP_Params_init(&semParams);
+    semParams.mode = SemaphoreP_Mode_BINARY;
+    gEthAppObj.hInitSem = SemaphoreP_create(0, &semParams);
 
     /* Create initialization task */
-    Task_Params_init(&taskParams);
+    TaskP_Params_init(&taskParams);
     taskParams.priority = 2;
     taskParams.stack = &gEthAppStackBuf[0];
-    taskParams.stackSize = sizeof(gEthAppStackBuf);
-    taskParams.instance->name = "EthFw Init Task";
+    taskParams.stacksize = sizeof(gEthAppStackBuf);
+    taskParams.name = "EthFw Init Task";
 
-    task = Task_create(EthApp_initTaskFxn, &taskParams, NULL);
+    task = TaskP_create(EthApp_initTaskFxn, &taskParams);
     if (NULL == task)
     {
-        BIOS_exit(0);
+        OS_stop();
     }
 
     /* Does not return */
-    BIOS_start();
+    OS_start();
 
     return(0);
 }
@@ -384,6 +377,12 @@ void appLogPrintf(const char *format, ...)
     va_end(args);
 }
 
+static void EthApp_ipcPrint(const char *str)
+{
+    appLogPrintf("%s", str);
+    return;
+}
+
 static void EthApp_waitForDebugger(void)
 {
     /* Set ccsHaltFlag to 1 for halting core for CCS connection */
@@ -392,9 +391,9 @@ static void EthApp_waitForDebugger(void)
     while (ccsHaltFlag);
 }
 
-static void EthApp_initTaskFxn(UArg arg0, UArg arg1)
+static void EthApp_initTaskFxn(void* arg0, void* arg1)
 {
-    Task_Params taskParams;
+    TaskP_Params taskParams;
     int32_t status = ETHAPP_OK;
 
     /* Print EthFw banner */
@@ -419,21 +418,22 @@ static void EthApp_initTaskFxn(UArg arg0, UArg arg1)
     /* Create IPC initialization task */
     if (status == ENET_SOK)
     {
-        Task_Params_init(&taskParams);
+        TaskP_Params_init(&taskParams);
         taskParams.priority = 1;
         taskParams.stack = &gEthAppIpcInitStackBuf[0];
-        taskParams.stackSize = sizeof(gEthAppIpcInitStackBuf);
-        taskParams.instance->name = "EthFw IPC init Task";
+        taskParams.stacksize = sizeof(gEthAppIpcInitStackBuf);
+        taskParams.name = "EthFw IPC init Task";
 
-        Task_create(EthApp_initIpcTaskFxn, &taskParams, NULL);
+        TaskP_create(EthApp_initIpcTaskFxn, &taskParams);
     }
 }
 
-static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
+static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
 {
     uint32_t selfProcId = IPC_MCU2_0;
     uint32_t numProc = ARRAY_SIZE(gEthAppRemoteProc);
     Ipc_VirtIoParams vqParam;
+    Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
     int32_t status;
 
@@ -442,7 +442,12 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
 
     appLogPrintf("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
 
-    status = Ipc_init(NULL);
+    /* Initialize params with defaults */
+    IpcInitPrms_init(0U, &initPrms);
+
+    initPrms.printFxn = &EthApp_ipcPrint;
+
+    status = Ipc_init(&initPrms);
 
 #if !defined(A72_QNX_OS)
     if (status == ENET_SOK)
@@ -488,7 +493,7 @@ static void EthApp_initIpcTaskFxn(UArg arg0, UArg arg1)
     {
         while (!Ipc_isRemoteReady(IPC_MPU1_0))
         {
-            Task_sleep(10);
+            TaskP_sleep(10);
         }
     }
 
@@ -582,7 +587,7 @@ static int32_t EthApp_initEthFw(void)
     }
 
     /* Post semaphore so that NDK/NIMU can continue with their initialization */
-    Semaphore_post(gEthAppObj.hInitSem);
+    SemaphoreP_post(gEthAppObj.hInitSem);
 
     return status;
 }
@@ -660,7 +665,7 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
     /* Wait for EthFw to be initialized */
-    Semaphore_pend(gEthAppObj.hInitSem, BIOS_WAIT_FOREVER);
+    SemaphoreP_pend(gEthAppObj.hInitSem, SemaphoreP_WAIT_FOREVER);
 
     EthFwCallbacks_nimuCpswGetHandle(inArgs, outArgs);
 
@@ -680,7 +685,7 @@ void NimuEnetAppCb_releaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo)
  */
 int32_t ti_net_SlNet_initConfig()
 {
-    int32_t status;
+    int32_t status = ENET_SOK;
 
     status = SlNetIf_init(0);
 
@@ -795,11 +800,7 @@ static void EthApp_startHwInterVlan(char *recvBuff,
 
 void EthApp_traceBufCacheWb(void)
 {
-    Types_Timestamp64 ts;
-    uint64_t newticks;
-
-    Timestamp_get64(&ts);
-    newticks = ((uint64_t)ts.hi << 32U) | ts.lo;
+    uint64_t newticks = TimerP_getTimeInUsecs();
 
     /* Don't keep flusing cache */
     if ((newticks - gEthAppObj.traceBufLastFlushTicks) >=

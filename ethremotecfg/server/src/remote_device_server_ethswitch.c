@@ -62,7 +62,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <xdc/runtime/System.h>
 
 #include <ti/osal/TaskP.h>
 #include <ti/osal/SemaphoreP.h>
