@@ -7,41 +7,41 @@
 MAKE_EXTRA_OPTIONS ?= -j $(HOST_NUM_CORES)
 
 ifeq ($(PROFILE), $(filter $(PROFILE),release all))
-PDK_BUILD_PROFILE_LIST_ALL+=release
+  PDK_BUILD_PROFILE_LIST_ALL+=release
 endif
 ifeq ($(PROFILE), $(filter $(PROFILE),debug all))
-PDK_BUILD_PROFILE_LIST_ALL+=debug
+  PDK_BUILD_PROFILE_LIST_ALL+=debug
 endif
 
 ifeq ($(BUILD_CPU_MPU1),yes)
-PDK_CORE_LIST_ALL+=mpu1_0
+  PDK_CORE_LIST_ALL+=mpu1_0
 endif
 ifeq ($(BUILD_CPU_MCU1_0),yes)
-PDK_CORE_LIST_ALL+=mcu1_0
+  PDK_CORE_LIST_ALL+=mcu1_0
 endif
 ifeq ($(BUILD_CPU_MCU1_1),yes)
-PDK_CORE_LIST_ALL+=mcu1_1
+  PDK_CORE_LIST_ALL+=mcu1_1
 endif
 ifeq ($(BUILD_CPU_MCU2_0),yes)
-PDK_CORE_LIST_ALL+=mcu2_0
+  PDK_CORE_LIST_ALL+=mcu2_0
 endif
 ifeq ($(BUILD_CPU_MCU2_1),yes)
-PDK_CORE_LIST_ALL+=mcu2_1
+  PDK_CORE_LIST_ALL+=mcu2_1
 endif
 ifeq ($(BUILD_CPU_MCU3_0),yes)
-PDK_CORE_LIST_ALL+=mcu3_0
+  PDK_CORE_LIST_ALL+=mcu3_0
 endif
 ifeq ($(BUILD_CPU_MCU3_1),yes)
-PDK_CORE_LIST_ALL+=mcu3_1
+  PDK_CORE_LIST_ALL+=mcu3_1
 endif
 ifeq ($(BUILD_CPU_C6x_1),yes)
-PDK_CORE_LIST_ALL+=c66xdsp_1
+  PDK_CORE_LIST_ALL+=c66xdsp_1
 endif
 ifeq ($(BUILD_CPU_C6x_2),yes)
-PDK_CORE_LIST_ALL+=c66xdsp_2
+  PDK_CORE_LIST_ALL+=c66xdsp_2
 endif
 ifeq ($(BUILD_CPU_C7x_1),yes)
-PDK_CORE_LIST_ALL+=c7x
+  PDK_CORE_LIST_ALL+=c7x
 endif
 
 pdk_build:

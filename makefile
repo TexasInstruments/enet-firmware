@@ -15,7 +15,7 @@ DIRECTORIES += ethfw
 TARGET_COMBOS :=
 
 SOC_LIST := J721E J7200 AM65XX
-OS_LIST  := SYSBIOS LINUX
+OS_LIST  := SYSBIOS LINUX FREERTOS
 ISA_LIST := R5F R5Ft A72 A53 C66 C71
 PROFILE_LIST := debug release
 CGT_LIST := TIARMCGT GCC_SYSBIOS_ARM CGT6X CGT7X GCC_LINUX_ARM
@@ -28,11 +28,11 @@ PDK_SOC_LIST  :=
 
 ifeq ($(BUILD_TARGET_MODE),yes)
   ifneq ($(PROFILE), $(filter $(PROFILE), debug all))
-	PROFILE_LIST := $(filter-out debug,$(PROFILE_LIST))
+    PROFILE_LIST := $(filter-out debug,$(PROFILE_LIST))
   endif
 
   ifneq ($(PROFILE), $(filter $(PROFILE), release all))
-	PROFILE_LIST := $(filter-out release,$(PROFILE_LIST))
+    PROFILE_LIST := $(filter-out release,$(PROFILE_LIST))
   endif
 
   ifneq ($(BUILD_ISA_R5F),yes)
@@ -61,6 +61,14 @@ ifeq ($(BUILD_TARGET_MODE),yes)
 
   ifneq ($(BUILD_LINUX_A72),yes)
     OS_LIST := $(filter-out LINUX,$(OS_LIST))
+  endif
+
+  ifneq ($(BUILD_APP_TIRTOS),yes)
+    OS_LIST := $(filter-out SYSBIOS,$(OS_LIST))
+  endif
+
+  ifneq ($(BUILD_APP_FREERTOS),yes)
+    OS_LIST := $(filter-out FREERTOS,$(OS_LIST))
   endif
 
   ifeq (,$(filter $(BUILD_SOC_LIST),J721E))

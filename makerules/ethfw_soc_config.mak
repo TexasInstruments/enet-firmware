@@ -3,21 +3,21 @@ ifndef $(ETHFW_SOC_CONFIG_MAK)
 ETHFW_SOC_CONFIG_MAK = 1
 
 get-num-cores = $(strip $(foreach core-list, $(1), \
-                    $(if $(findstring $(2):,$(core-list)), $(word 2,$(subst :, ,$(core-list))))))
+                $(if $(findstring $(2):,$(core-list)), $(word 2,$(subst :, ,$(core-list))))))
 
 is-valid-combo =  $(and $(call get-num-cores,$(5),$(1)), $(strip $(filter $(1):$(2):$(3),$(4))))
 
 expand-target-combos =  $(foreach soc,$(1),\
-				$(foreach os,$(2),\
-					$(foreach isa,$(3),\
-						$(foreach profile,$(4),\
-							$(foreach cgt,$(5),\
-								$(if $(call is-valid-combo,$(isa),$(cgt),$(os),$(6),${${soc}_ISA_CORE_COUNT}),$(soc):$(os):$(isa):$(strip $(call get-num-cores,${${soc}_ISA_CORE_COUNT},$(isa))):$(profile):$(cgt)) \
-							)\
-						)\
-					)\
-				)\
-			)
+                $(foreach os,$(2),\
+                  $(foreach isa,$(3),\
+                    $(foreach profile,$(4),\
+                      $(foreach cgt,$(5),\
+                         $(if $(call is-valid-combo,$(isa),$(cgt),$(os),$(6),${${soc}_ISA_CORE_COUNT}),$(soc):$(os):$(isa):$(strip $(call get-num-cores,${${soc}_ISA_CORE_COUNT},$(isa))):$(profile):$(cgt)) \
+                      )\
+                    )\
+                  )\
+                )\
+              )
 
 #J721E SOC Configuration
 J721E_ISA_CORE_COUNT := R5F:3 R5Ft:3
@@ -36,11 +36,13 @@ J7200_BOARD          := j7200_evm
 #AM65XX SOC Configuration
 AM65XX_ISA_CORE_COUNT := R5F:1 R5Ft:1
 AM65XX_ISA_CORE_COUNT += A53:1
-AM65XX_CORE_LIST     := mcu1_0 mpu1_0
-AM65XX_BOARD         := am65xx_evm
+AM65XX_CORE_LIST      := mcu1_0 mpu1_0
+AM65XX_BOARD          := am65xx_evm
 
 ISA_CGT_OS_VALID_TUPLE   := R5F:TIARMCGT:SYSBIOS
 ISA_CGT_OS_VALID_TUPLE   += R5Ft:TIARMCGT:SYSBIOS
+ISA_CGT_OS_VALID_TUPLE   += R5F:TIARMCGT:FREERTOS
+ISA_CGT_OS_VALID_TUPLE   += R5Ft:TIARMCGT:FREERTOS
 ISA_CGT_OS_VALID_TUPLE   += C66:CGT6X:SYSBIOS
 ISA_CGT_OS_VALID_TUPLE   += C71:CGT7X:SYSBIOS
 ISA_CGT_OS_VALID_TUPLE   += A72:GCC_SYSBIOS_ARM:SYSBIOS
