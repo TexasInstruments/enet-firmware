@@ -2315,9 +2315,9 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
     while (!exitTask)
     {
         /*Wait 1ms for hardware push event, then move on to other events*/
-        events = EventP_pend(hProxyServer->notifyServiceObj.hHwPushNotifyServiceEvent,
-                             EventP_ID_NONE,
+        events = EventP_wait(hProxyServer->notifyServiceObj.hHwPushNotifyServiceEvent,
                              CPSWPROXY_CPTS_HWPUSH_EVENTS_OR_MASK,
+                             EventP_WaitMode_ANY,
                              1U);
 
         /* Lookup for timestamp if it is a hardware push notification*/
