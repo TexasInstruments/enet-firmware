@@ -87,6 +87,7 @@
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 
+#if defined (SYSBIOS)
 /* NDK headers */
 #include <ti/ndk/inc/netmain.h>
 #include <ti/ndk/inc/stkmain.h>
@@ -94,6 +95,7 @@
 #include <ti/ndk/inc/_stack.h>
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
+#endif
 
 #include <ethremotecfg/protocol/Eth_Rpc.h>
 #include <ethremotecfg/protocol/cpsw_remote_notify_service.h>
@@ -1013,6 +1015,7 @@ static int32_t CpswProxyServer_regrdHandlerCb(uint32_t host_id,
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
+#if defined (SYSBIOS)
 static void CpswProxyServer_printLliEntry(uint32_t entryIdx,
                                           LLI_INFO *entry)
 {
@@ -1049,6 +1052,7 @@ static void CpswProxyServer_dumpLliTable(LLI_INFO *llitable,
         entryIdx++;
     }
 }
+#endif
 
 static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
                                                         uint64_t handle,
@@ -1056,11 +1060,15 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
                                                         uint8_t *mac_address,
                                                         uint8_t *ipv4_addr)
 {
-    uint32_t numEntries;
-    int32_t status;
+    int32_t status = 0;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+#if defined(SYSBIOS)
+    uint32_t numEntries;
     LLI_INFO *llitable = NULL;
+#elif defined(FREERTOS)
+    /* TODO: Need to add support */
+#endif
 
     ipaddr = htonl(ipaddr);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%d.%d.%d.%d\n",
@@ -1081,6 +1089,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
 
     CpswProxyServer_validateHandle(hEnet);
 
+#if defined(SYSBIOS)
     ConCmdRoute(1, "print", NULL, NULL, NULL);
 
     status = LLIAddStaticEntryWithFlags(ipaddr,
@@ -1111,6 +1120,9 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
+#elif defined(FREERTOS)
+    /* TODO: Need to add support */
+#endif
 
     return status;
 }
@@ -1120,11 +1132,15 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
                                                           uint32_t core_key,
                                                           uint8_t *ipv4_addr)
 {
-    uint32_t numEntries;
-    int32_t status;
+    int32_t status = 0;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+#if defined(SYSBIOS)
+    uint32_t numEntries;
     LLI_INFO *llitable = NULL;
+#elif defined(FREERTOS)
+    /* TODO: Need to add support */
+#endif
 
     ipaddr = htonl(ipaddr);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,IPv4Addr:%x:%x:%x:%x\n",
@@ -1139,6 +1155,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
 
     CpswProxyServer_validateHandle(hEnet);
 
+#if defined (SYSBIOS)
     status = LLIRemoveStaticEntry(ipaddr);
     if (status != 0)
     {
@@ -1158,7 +1175,9 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
-
+#elif defined(FREERTOS)
+    /* TODO: Need to add support */
+#endif
     return status;
 }
 
