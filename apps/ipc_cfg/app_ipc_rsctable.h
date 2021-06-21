@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2021 Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,8 +50,13 @@ extern "C" {
 #define BUILD_C7X_1
 #endif
 
-#include <xdc/runtime/System.h>
 #include <ti/drv/ipc/include/ipc_rsctypes.h>
+#if defined (SYSBIOS)
+  #include <xdc/runtime/System.h>
+#elif defined (FREERTOS)
+  #include <apps/ipc_cfg/ipc_trace.h>
+#endif
+
 #include <apps/ipc_cfg/app_mem_map.h>
 
 #define RPMSG_VRING_SIZE   (0x10000)
@@ -91,8 +96,13 @@ extern "C" {
 #define RPMSG_C66_DSP_FEATURES  1
 #define RPMSG_C7X_DSP_FEATURES  1
 
-extern xdc_Char xdc_runtime_SysMin_Module_State_0_outbuf__A[];
-#define TRACEBUFADDR ((uintptr_t)&xdc_runtime_SysMin_Module_State_0_outbuf__A)
+#if defined (SYSBIOS)
+  #define IPC_TRACE_BUFFER_MAX_SIZE     (0x80000)
+  extern xdc_Char xdc_runtime_SysMin_Module_State_0_outbuf__A[];
+  #define TRACEBUFADDR ((uintptr_t)&xdc_runtime_SysMin_Module_State_0_outbuf__A)
+#elif defined (FREERTOS)
+  #define TRACEBUFADDR ((uintptr_t)&Ipc_traceBuffer)
+#endif
 
 const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(".resource_table"), aligned(4096))) =
 {
@@ -152,9 +162,9 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(
 
     {
 #ifdef CPU_c7x_1
-        (TRACE_INTS_VER1 | TYPE_TRACE), TRACEBUFADDR,   0x80000,            0,  "trace:r5f0",
+        (TRACE_INTS_VER1 | TYPE_TRACE), TRACEBUFADDR,   IPC_TRACE_BUFFER_MAX_SIZE,            0,  "trace:r5f0",
 #else
-        (TRACE_INTS_VER0 | TYPE_TRACE), TRACEBUFADDR,   0x80000,            0,  "trace:r5f0",
+        (TRACE_INTS_VER0 | TYPE_TRACE), TRACEBUFADDR,   IPC_TRACE_BUFFER_MAX_SIZE,            0,  "trace:r5f0",
 #endif
     },
 };
