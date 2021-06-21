@@ -91,7 +91,7 @@
 /* EthFw utils header files */
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/perf_stats/include/app_perf_stats.h>
-#include <utils/ethfw_stats/include/app_ethfw_stats_sysbios.h>
+#include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
 #include <utils/console_io/include/app_log.h>
 
 /* EthFw remote configuration header files */
