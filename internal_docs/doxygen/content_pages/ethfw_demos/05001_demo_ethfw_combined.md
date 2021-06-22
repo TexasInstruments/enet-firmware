@@ -374,13 +374,21 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 -# Copy the demo application to the `ethfw` directory of Linux file system
    in SD card.
-   For J721E:
+   For J721E using SYSBIOS:
 
        cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
 
-   or for J7200:
+   For J721E using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+
+   For J7200 using SYSBIOS:
 
        cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+
+   For J7200 using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
 
 -# If needed, update the soft-link `j7-main-r5f0_0-fw` or `j7200-main-r5f0_0-fw`
    to point to the demo application copied to SD card in the previous step.
@@ -396,15 +404,27 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 -# **Optional:** Copy the remote client application to the `firmware` directory
    of Linux filesystem in SD card and update soft-link:
-   For J721E:
+   For J721E using SYSBIOS:
 
        cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7-main-r5f0_1-fw
 
-   For J7200:
+   For J721E using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf app_remoteswitchcfg_client.xer5f j7-main-r5f0_1-fw
+
+   For J7200 using SYSBIOS:
 
        cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
+
+   For J7200 using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
 
