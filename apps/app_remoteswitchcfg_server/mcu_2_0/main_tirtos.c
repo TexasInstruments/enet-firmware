@@ -95,8 +95,6 @@
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
 #include <utils/intervlan/include/eth_hwintervlan.h>
 #include <utils/intervlan/include/eth_swintervlan.h>
-#include <utils/ethfw_callbacks/include/ethfw_callbacks_nimu.h>
-#include <utils/ethfw_callbacks/include/ethfw_callbacks_ndk.h>
 #include <ethfw/ethfw.h>
 
 /* Timesync header files */
@@ -108,6 +106,10 @@
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
 
+#if defined (SYSBIOS)
+#include <utils/ethfw_callbacks/include/ethfw_callbacks_nimu.h>
+#include <utils/ethfw_callbacks/include/ethfw_callbacks_ndk.h>
+
 /* NS headers */
 #include <ti/ndk/slnetif/slnetifndk.h>
 #include <ti/net/slnet.h>
@@ -116,6 +118,12 @@
 
 /* HTTP webpage server header files */
 #include "webdata/webpage.h"
+#endif
+
+#if defined (FREERTOS)
+#define System_printf Ipc_Trace_printf
+#define System_vprintf Ipc_Trace_printf
+#endif
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -194,11 +202,13 @@ static int32_t EthApp_initEthFw(void);
 
 static int32_t EthApp_initRemoteServices(void);
 
+#if defined (SYSBIOS)
 static void EthApp_startSwInterVlan(char *recvBuff,
                                     char *sendBuff);
 
 static void EthApp_startHwInterVlan(char *recvBuff,
                                     char *sendBuff);
+#endif
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -604,6 +614,7 @@ static int32_t EthApp_initRemoteServices(void)
         appLogPrintf("Remote service init failed: %d !!!\n", status);
     }
 
+#if defined (SYSBIOS)
     if (status == ENET_SOK)
     {
         status = appPerfStatsInit();
@@ -621,6 +632,9 @@ static int32_t EthApp_initRemoteServices(void)
             appLogPrintf("Perf stats remote service init failed: %d !!!\n", status);
         }
     }
+#elif defined(FREERTOS)
+    // TODO : need to add support here for freertos
+#endif
 
     if (status == ENET_SOK)
     {
@@ -661,6 +675,7 @@ bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
     return linked;
 }
 
+#if defined (SYSBIOS)
 void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
@@ -795,6 +810,7 @@ static void EthApp_startHwInterVlan(char *recvBuff,
         EthHwInterVlan_setupRouting(gEthAppObj.enetType, pInterVlanCfg);
     }
 }
+#endif /* defined (SYSBIOS) */
 
 /* IPC trace buffer flush */
 

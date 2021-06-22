@@ -14,29 +14,43 @@ TARGET      := app_remoteswitchcfg_server
 TARGETTYPE  := exe
 
 ifeq ($(BUILD_QNX_A72), yes)
-DEFS+=A72_QNX_OS
+  DEFS+=A72_QNX_OS
 endif
 
 CSOURCES    := main_tirtos.c
-CSOURCES    += $(foreach cfile,$(call all-c-files-in,$(SDIR)/webdata),webdata/$(cfile))
-ASSEMBLY    := utilsCopyVecs2ATmc.asm
+ifeq ($(TARGET_OS),SYSBIOS)
+  CSOURCES    += $(foreach cfile,$(call all-c-files-in,$(SDIR)/webdata),webdata/$(cfile))
+  ASSEMBLY    := utilsCopyVecs2ATmc.asm
+else ifeq ($(TARGET_OS),FREERTOS)
+  CSOURCES    += ../../ipc_cfg/ipc_trace.c
+  ifeq ($(TARGET_PLATFORM),J721E)
+    CSOURCES    += ../../common/r5f_mpu_j721e_default.c
+  else ifeq ($(TARGET_PLATFORM),J7200)
+    CSOURCES    += ../../common/r5f_mpu_j7200_default.c
+  endif
+endif
 
 SOC_DIR     := $(call lowercase,$(TARGET_PLATFORM))
 
-XDC_BLD_FILE = $(SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
-XDC_CFG_FILE = $(SDIR)/mcu2_0.cfg
-XDC_INCLUDE_PACKAGES_PATH  = $(SDIR)/../../bios_cfg/
-XDC_INCLUDE_PACKAGES_PATH += $(SDIR)/../../bios_cfg/$(SOC_DIR)/
-XDC_IDIRS     = $(subst $(SPACE),;,${XDC_INCLUDE_PACKAGES_PATH})
+ifeq ($(TARGET_OS),SYSBIOS)
+  XDC_BLD_FILE = $(SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
+  XDC_CFG_FILE = $(SDIR)/mcu2_0.cfg
+  XDC_INCLUDE_PACKAGES_PATH  = $(SDIR)/../../bios_cfg/
+  XDC_INCLUDE_PACKAGES_PATH += $(SDIR)/../../bios_cfg/$(SOC_DIR)/
+  XDC_IDIRS     = $(subst $(SPACE),;,${XDC_INCLUDE_PACKAGES_PATH})
+endif
 
-LINKER_SOC_DIR = $(call lowercase,$(TARGET_PLATFORM))
-LINKER_CMD_FILES = $(SDIR)/$(LINKER_SOC_DIR)/linker_mem_map.cmd
-LINKER_CMD_FILES +=  $(SDIR)/linker.cmd
+LINKER_CMD_FILES = $(SDIR)/$(SOC_DIR)/linker_mem_map.cmd
+ifeq ($(TARGET_OS),SYSBIOS)
+  LINKER_CMD_FILES += $(SDIR)/linker.cmd
+else ifeq ($(TARGET_OS),FREERTOS)
+  LINKER_CMD_FILES += $(SDIR)/linker_freertos.cmd
+endif
 
 ifeq ($(TARGET_CPU),R5F)
-SYS_STATIC_LIBS += rtsv7R4_A_le_v3D16_eabi
+  SYS_STATIC_LIBS += rtsv7R4_A_le_v3D16_eabi
 else ifeq ($(TARGET_CPU),R5Ft)
-SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
+  SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
 endif
 
 STATIC_LIBS += ethfw
@@ -45,11 +59,21 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
 
-ifeq ($(TARGET_PLATFORM),J7200)
-    DEFS += ENABLE_QSGMII_PORTS
+ifeq ($(TARGET_OS),SYSBIOS)
+  DEFS += SYSBIOS
+else ifeq ($(TARGET_OS),FREERTOS)
+  DEFS += MAKEFILE_BUILD FREERTOS
 endif
 
-CPSW_APPUTILS_LIB = enet_example_utils_tirtos
+ifeq ($(TARGET_PLATFORM),J7200)
+  DEFS += ENABLE_QSGMII_PORTS
+endif
+
+ifeq ($(TARGET_OS),SYSBIOS)
+  CPSW_APPUTILS_LIB = enet_example_utils_tirtos
+else ifeq ($(TARGET_OS),FREERTOS)
+  CPSW_APPUTILS_LIB = enet_example_utils_freertos
+endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
@@ -74,25 +98,39 @@ TARGET      := app_remoteswitchcfg_server_ccs
 TARGETTYPE  := exe
 
 CSOURCES    := main_tirtos.c
-CSOURCES    += $(foreach cfile,$(call all-c-files-in,$(SDIR)/webdata),webdata/$(cfile))
-ASSEMBLY    := utilsCopyVecs2ATmc.asm
+ifeq ($(TARGET_OS),SYSBIOS)
+  CSOURCES    += $(foreach cfile,$(call all-c-files-in,$(SDIR)/webdata),webdata/$(cfile))
+  ASSEMBLY    := utilsCopyVecs2ATmc.asm
+else ifeq ($(TARGET_OS),FREERTOS)
+  CSOURCES    += ../../ipc_cfg/ipc_trace.c
+  ifeq ($(TARGET_PLATFORM),J721E)
+    CSOURCES    += ../../common/r5f_mpu_j721e_default.c
+  else ifeq ($(TARGET_PLATFORM),J7200)
+    CSOURCES    += ../../common/r5f_mpu_j7200_default.c
+  endif
+endif
 
 SOC_DIR     := $(call lowercase,$(TARGET_PLATFORM))
 
-XDC_BLD_FILE = $(SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
-XDC_CFG_FILE = $(SDIR)/mcu2_0.cfg
-XDC_INCLUDE_PACKAGES_PATH  = $(SDIR)/../../bios_cfg/
-XDC_INCLUDE_PACKAGES_PATH += $(SDIR)/../../bios_cfg/$(SOC_DIR)/
-XDC_IDIRS     = $(subst $(SPACE),;,${XDC_INCLUDE_PACKAGES_PATH})
+ifeq ($(TARGET_OS),SYSBIOS)
+  XDC_BLD_FILE = $(SDIR)/../../bios_cfg/config_$(call lowercase,$(TARGET_CPU)).bld
+  XDC_CFG_FILE = $(SDIR)/mcu2_0.cfg
+  XDC_INCLUDE_PACKAGES_PATH  = $(SDIR)/../../bios_cfg/
+  XDC_INCLUDE_PACKAGES_PATH += $(SDIR)/../../bios_cfg/$(SOC_DIR)/
+  XDC_IDIRS     = $(subst $(SPACE),;,${XDC_INCLUDE_PACKAGES_PATH})
+endif
 
-LINKER_SOC_DIR = $(call lowercase,$(TARGET_PLATFORM))
-LINKER_CMD_FILES = $(SDIR)/$(LINKER_SOC_DIR)/linker_mem_map.cmd
-LINKER_CMD_FILES +=  $(SDIR)/linker.cmd
+LINKER_CMD_FILES = $(SDIR)/$(SOC_DIR)/linker_mem_map.cmd
+ifeq ($(TARGET_OS),SYSBIOS)
+  LINKER_CMD_FILES += $(SDIR)/linker.cmd
+else ifeq ($(TARGET_OS),FREERTOS)
+  LINKER_CMD_FILES += $(SDIR)/linker_freertos.cmd
+endif
 
 ifeq ($(TARGET_CPU),R5F)
-SYS_STATIC_LIBS += rtsv7R4_A_le_v3D16_eabi
+  SYS_STATIC_LIBS += rtsv7R4_A_le_v3D16_eabi
 else ifeq ($(TARGET_CPU),R5Ft)
-SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
+  SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
 endif
 
 STATIC_LIBS += ethfw
@@ -101,11 +139,25 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
 
+ifeq ($(TARGET_OS),SYSBIOS)
+  DEFS += SYSBIOS
+else ifeq ($(TARGET_OS),FREERTOS)
+  DEFS += MAKEFILE_BUILD FREERTOS
+endif
+
 ifeq ($(TARGET_PLATFORM),J7200)
-    DEFS += ENABLE_QSGMII_PORTS
+  DEFS += ENABLE_QSGMII_PORTS
+  ifeq ($(TARGET_OS),SYSBIOS)
     CPSW_APPUTILS_LIB = enet_example_utils_full_tirtos
+  else ifeq ($(TARGET_OS),FREERTOS)
+    CPSW_APPUTILS_LIB = enet_example_utils_full_freertos
+  endif
 else
+  ifeq ($(TARGET_OS),SYSBIOS)
     CPSW_APPUTILS_LIB = enet_example_utils_tirtos
+  else ifeq ($(TARGET_OS),FREERTOS)
+    CPSW_APPUTILS_LIB = enet_example_utils_freertos
+  endif
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak
