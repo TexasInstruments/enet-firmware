@@ -105,20 +105,29 @@ include makerules/makefile_ndk.mak
 ethfw_server: pdk_custom_libs remotedevicefw app_remoteswitchcfg_server
 
 ethfw_all: pdk remotedevicefw all
+ifeq ($(BUILD_APP_FREERTOS),yes)
+remoteswitchcfg_all: | pdk_custom_libs remotedevicefw app_remoteswitchcfg_client app_remoteswitchcfg_server
+endif
+ifeq ($(BUILD_APP_TIRTOS),yes)
 remoteswitchcfg_all: | pdk_custom_libs remotedevicefw ndk app_remoteswitchcfg_client app_remoteswitchcfg_server
+endif
 
 ethfw_all_clean: pdk_custom_libs_clean remotedevicefw_clean clean scrub
 remoteswitchcfg_all_clean: | pdk_custom_libs_clean remotedevicefw_clean clean scrub
 
 remotedevicefw:
 	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
-	make -C ${REMOTE_DEVICE_PATH} SOC=${soc} lib_remote_device_client lib_remote_device; \
-	make -C ${REMOTE_DEVICE_PATH} SOC=${soc} cp_to_lib; \
+		$(foreach os, $(sort ${OS_LIST}),\
+			make -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} lib_remote_device_client lib_remote_device; \
+			make -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} cp_to_lib; \
+		) \
 	)
 
 remotedevicefw_clean:
 	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
-	make -C ${REMOTE_DEVICE_PATH} SOC=${soc} clean scrub; \
+		$(foreach os, $(sort ${OS_LIST}),\
+			make -C ${REMOTE_DEVICE_PATH} SOC=${soc}  RTOS=${os} clean scrub; \
+		) \
 	)
 
 .PHONY: ethfw_all remoteswitchcfg_all ethfw_all_clean remoteswitchcfg_all_clean remotedevicefw remotedevicefw_clean
