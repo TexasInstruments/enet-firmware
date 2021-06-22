@@ -86,13 +86,18 @@
 #include <ti/drv/enet/include/dma/udma/enet_udma.h>
 #include <ti/drv/enet/include/core/enet_dma.h>
 
+#if defined (SYSBIOS)
 #include <ti/drv/enet/nimuenet/nimu_ndk.h>
 #include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
+#elif defined (FREERTOS)
+#include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
+#endif
 #include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 #include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 
+#if defined (SYSBIOS)
 /* NDK headers */
 #include <ti/ndk/inc/netmain.h>
 #include <ti/ndk/inc/stkmain.h>
@@ -100,7 +105,20 @@
 #include <ti/ndk/inc/_stack.h>
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
+#endif
 
+#if defined (FREERTOS)
+#define System_printf printf
+#define System_vprintf printf
+#define NimuEnetAppIf_RxConfig LwipifEnetAppIf_RxConfig
+#define NimuEnetAppIf_RxHandleInfo LwipifEnetAppIf_RxHandleInfo
+#define NimuEnetAppIf_FreePktCbFxn LwipifEnetAppIf_FreePktCbFxn
+#define NimuEnetAppIf_TxConfig LwipifEnetAppIf_TxConfig
+#define NimuEnetAppIf_TxHandleInfo LwipifEnetAppIf_TxHandleInfo
+#define NimuEnetAppIf_GetHandleInArgs LwipifEnetAppIf_GetHandleInArgs
+#define NimuEnetAppIf_GetHandleOutArgs LwipifEnetAppIf_GetHandleOutArgs
+#define NimuEnetAppIf_ReleaseHandleInfo LwipifEnetAppIf_ReleaseHandleInfo
+#endif
 
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL  (100)
 #define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
@@ -173,6 +191,7 @@ static uint32_t gRemoteProc[] =
 #endif
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 
+#if defined (SYSBIOS)
 #define ENABLE_NDKSERVERS
 
 /*!
@@ -211,6 +230,7 @@ static HANDLE hData = 0;
 static HANDLE hNull = 0;
 static HANDLE hOob = 0;
 #endif
+#endif /* defined (SYSBIOS) */
 
 typedef struct CpswRemoteApp_SyncTimerObj_s
 {
@@ -265,8 +285,13 @@ CpswRemoteApp_Obj gRemoteAppObj =
 
 static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void);
 
+#if defined (SYSBIOS)
 char *VerStr = "NIMU CPSW Example";
+#elif defined (FREERTOS)
+char *VerStr = "LWIP CPSW Example";
+#endif
 
+#if defined (SYSBIOS)
 static void CpswRemoteApp_initSyncTimer(void);
 
 static uint64_t CpswRemoteApp_getLocalTime(void);
@@ -275,6 +300,7 @@ static uint64_t CpswRemoteApp_getSynchronizedTime(void);
 
 static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
                                              uint64_t syncTime);
+#endif
 
 // hack for release mode build fix TODO fix this
 void localAssert(bool cond)
@@ -285,10 +311,15 @@ void localAssert(bool cond)
         abort();
     }
 #else
+#if defined (SYSBIOS)
     assert(cond);
+#elif defined (FREERTOS)
+    // TODO: Need to add support
+#endif
 #endif
 }
 
+#if defined (SYSBIOS)
 void stackInitHook(void *hCfg)
 {
     int rc;
@@ -382,6 +413,7 @@ void ServiceReportHook(uint32_t Item, uint32_t Status, uint32_t Report, void * h
         localAssert(status >= 0);
     }
 }
+#endif  /*defined (SYSBIOS) */
 
 void appLogPrintf(const char *format, ...)
 {
@@ -398,6 +430,7 @@ static void CpswRemoteApp_ipcPrint(const char *str)
     return;
 }
 
+#if defined (SYSBIOS)
 static void CpswRemoteApp_initSyncTimer(void)
 {
     int32_t status;
@@ -514,6 +547,7 @@ static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum, uint64_t
         hSyncTimerObj->prevCptsTime = syncTime;
     }
 }
+#endif /* defined (SYSBIOS) */
 
 static void rpmsg_vdevMonitorFxn(void* arg0,
                                  void* arg1)
@@ -1021,7 +1055,11 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     localAssert(status == ENET_SOK);
     outArgs->coreId = coreId;
     outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
+#if defined (SYSBIOS)
     outArgs->print = (Enet_Print) & ConPrintf;
+#elif defined (FREERTOS)
+    outArgs->print = (Enet_Print) & printf;
+#endif
     outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
     outArgs->isRingMonUsed = false;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
