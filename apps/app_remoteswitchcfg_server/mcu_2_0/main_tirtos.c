@@ -124,6 +124,25 @@
 #if defined (FREERTOS)
 #define System_printf Ipc_Trace_printf
 #define System_vprintf Ipc_Trace_printf
+
+/* lwIP core includes */
+#include "lwip/opt.h"
+#include "lwip/sys.h"
+#include "lwip/tcpip.h"
+#include "lwip/netif.h"
+#include "lwip/api.h"
+
+#include "lwip/tcp.h"
+#include "lwip/udp.h"
+#include "lwip/dhcp.h"
+
+/* lwIP netif includes */
+#include "lwip/etharp.h"
+#include "netif/ethernet.h"
+
+#include <ti/drv/enet/lwipif/inc/default_netif.h>
+
+#include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
 #endif
 
 /* ========================================================================== */
@@ -145,6 +164,24 @@
 #define RPMSG_DATA_SIZE                 ((256U * 512U) + IPC_RPMESSAGE_OBJ_SIZE)
 
 #define ARRAY_SIZE(x)                   (sizeof((x)) / sizeof(x[0U]))
+
+#if defined (FREERTOS)
+#define ETHAPP_LWIP_TASK_STACKSIZE      (4U * 1024U)
+
+/* lwIP features that EthFw relies on */
+#ifndef LWIP_IPV4
+#error "LWIP_IPV4 is not enabled"
+#endif
+#ifndef LWIP_NETIF_STATUS_CALLBACK
+#error "LWIP_NETIF_STATUS_CALLBACK is not enabled"
+#endif
+#ifndef LWIP_NETIF_LINK_CALLBACK
+#error "LWIP_NETIF_LINK_CALLBACK is not enabled"
+#endif
+
+/* DHCP or static IP */
+#define ETHAPP_LWIP_USE_DHCP            (1)
+#endif
 
 /* Define A72_QNX_OS if A72 is running Qnx. Qnx doesn't load resource table. */
 /* #define A72_QNX_OS */
@@ -187,6 +224,11 @@ typedef struct
 
     /* Timestamp of last IPC trace buffer flush */
     uint64_t traceBufLastFlushTicks;
+
+#if defined(FREERTOS)
+    /* DHCP network interface */
+    struct dhcp dhcpNetif;
+#endif
 } EthAppObj;
 
 /* ========================================================================== */
@@ -203,12 +245,23 @@ static int32_t EthApp_initEthFw(void);
 
 static int32_t EthApp_initRemoteServices(void);
 
-#if defined (SYSBIOS)
 static void EthApp_startSwInterVlan(char *recvBuff,
                                     char *sendBuff);
 
 static void EthApp_startHwInterVlan(char *recvBuff,
                                     char *sendBuff);
+
+#if defined(FREERTOS)
+static void EthApp_lwipMain(void *a0,
+                            void *a1);
+
+static void EthApp_initLwip(void *arg);
+
+static void EthApp_initNetif(void);
+
+static void EthApp_netifStatusCb(struct netif *netif);
+
+static void EthApp_linkCb(struct netif *netif);
 #endif
 
 /* ========================================================================== */
@@ -306,6 +359,10 @@ static EthFw_Port gEthAppPorts[] =
 };
 
 static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
+
+#if defined(FREERTOS)
+static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(32)));
+#endif
 
 static uint8_t gEthAppIpcInitStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 
@@ -425,6 +482,20 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
     {
         status = EthApp_initEthFw();
     }
+
+#if defined(FREERTOS)
+    /* Initialize lwIP */
+    if (status == ENET_SOK)
+    {
+        TaskP_Params_init(&taskParams);
+        taskParams.priority  = DEFAULT_THREAD_PRIO;
+        taskParams.stack     = &gEthAppLwipStackBuf[0];
+        taskParams.stacksize = sizeof(gEthAppLwipStackBuf);
+        taskParams.name      = "lwIP main loop";
+
+        TaskP_create(EthApp_lwipMain, &taskParams);
+    }
+#endif
 
     /* Create IPC initialization task */
     if (status == ENET_SOK)
@@ -676,7 +747,164 @@ bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
     return linked;
 }
 
-#if defined (SYSBIOS)
+#if defined (FREERTOS)
+void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
+                               LwipifEnetAppIf_GetHandleOutArgs *outArgs)
+{
+    /* Wait for EthFw to be initialized */
+    SemaphoreP_pend(gEthAppObj.hInitSem, SemaphoreP_WAIT_FOREVER);
+
+    EthFwCallbacks_lwipifCpswGetHandle(inArgs, outArgs);
+
+    /* Save host port MAC address */
+    EnetUtils_copyMacAddr(&gEthAppObj.hostMacAddr[0U],
+                          &outArgs->rxInfo[0U].macAddr[0U]);
+}
+
+void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
+{
+    EthFwCallbacks_lwipifCpswReleaseHandle(releaseInfo);
+}
+
+static void EthApp_lwipMain(void *a0,
+                            void *a1)
+{
+    err_t err;
+    sys_sem_t initSem;
+
+    /* initialize lwIP stack and network interfaces */
+    err = sys_sem_new(&initSem, 0);
+    LWIP_ASSERT("failed to create initSem", err == ERR_OK);
+    LWIP_UNUSED_ARG(err);
+
+    tcpip_init(EthApp_initLwip, &initSem);
+
+    /* we have to wait for initialization to finish before
+     * calling update_adapter()! */
+    sys_sem_wait(&initSem);
+    sys_sem_free(&initSem);
+
+#if (LWIP_SOCKET || LWIP_NETCONN) && LWIP_NETCONN_SEM_PER_THREAD
+    netconn_thread_init();
+#endif
+}
+
+static void EthApp_initLwip(void *arg)
+{
+    sys_sem_t *initSem;
+
+    LWIP_ASSERT("arg != NULL", arg != NULL);
+    initSem = (sys_sem_t*)arg;
+
+    /* init randomizer again (seed per thread) */
+    srand((unsigned int)sys_now()/1000);
+
+    /* init network interfaces */
+    EthApp_initNetif();
+
+    sys_sem_signal(initSem);
+}
+
+static void EthApp_initNetif(void)
+{
+    ip4_addr_t ipaddr, netmask, gw;
+    err_t err;
+
+    ip4_addr_set_zero(&gw);
+    ip4_addr_set_zero(&ipaddr);
+    ip4_addr_set_zero(&netmask);
+
+#if ETHAPP_LWIP_USE_DHCP
+    appLogPrintf("Starting lwIP, local interface IP is dhcp-enabled\n");
+#else /* ETHAPP_LWIP_USE_DHCP */
+    LWIP_PORT_INIT_GW(&gw);
+    LWIP_PORT_INIT_IPADDR(&ipaddr);
+    LWIP_PORT_INIT_NETMASK(&netmask);
+    appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
+#endif /* ETHAPP_LWIP_USE_DHCP */
+
+    init_default_netif(&ipaddr, &netmask, &gw);
+
+    netif_set_status_callback(netif_default, EthApp_netifStatusCb);
+    netif_set_link_callback(netif_default, EthApp_linkCb);
+
+    dhcp_set_struct(netif_default, &gEthAppObj.dhcpNetif);
+
+    netif_set_up(netif_default);
+
+#if ETHAPP_LWIP_USE_DHCP
+    err = dhcp_start(netif_default);
+    if (err != ERR_OK)
+    {
+        appLogPrintf("Failed to start DHCP: %d\n", err);
+    }
+#endif /* ETHAPP_LWIP_USE_DHCP */
+}
+
+static void EthApp_netifStatusCb(struct netif *netif)
+{
+    Enet_MacPort macPort = ENET_MAC_PORT_1;
+    int32_t status;
+
+    if (netif_is_up(netif))
+    {
+        const ip4_addr_t *ipAddr = netif_ip4_addr(netif);
+
+        appLogPrintf("Added interface '%c%c%d', IP is %s\n",
+                     netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
+
+        if (ipAddr->addr != 0)
+        {
+            gEthAppObj.hostIpAddr = lwip_ntohl(ip_addr_get_ip4_u32(ipAddr));
+
+            /* MAC port used for PTP */
+#if defined(SOC_J721E)
+            macPort = ENET_MAC_PORT_3;
+#elif defined(SOC_J7200)
+#if defined(ENABLE_QSGMII_PORTS)
+            macPort = ENET_MAC_PORT_1;
+#else
+            macPort = ENET_MAC_PORT_2;
+#endif
+#endif
+
+            /* Initialize and enable PTP stack */
+            EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
+                                  &gEthAppObj.hostMacAddr[0U],
+                                  ENET_BIT(ENET_MACPORT_NORM(macPort)));
+
+            /* Assign functions that are to be called based on actions in GUI.
+             * These cannot be dynamically pushed to function pointer array, as the
+             * index is used in GUI as command */
+            EnetCfgServer_fxn_table[9] = &EthApp_startSwInterVlan;
+            EnetCfgServer_fxn_table[10] = &EthApp_startHwInterVlan;
+
+            /* Start Configuration server */
+            status = EnetCfgServer_init(gEthAppObj.enetType);
+            EnetAppUtils_assert(ENET_SOK == status);
+
+            /* Start the software-based interVLAN routing */
+            EthSwInterVlan_setupRouting(gEthAppObj.enetType, ETH_SWINTERVLAN_TASK_PRI);
+        }
+    }
+    else
+    {
+        appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
+    }
+}
+
+static void EthApp_linkCb(struct netif *netif)
+{
+    if (netif_is_link_up(netif))
+    {
+        appLogPrintf("Link up\n");
+    }
+    else
+    {
+        appLogPrintf("Link down\n");
+    }
+}
+#else /* !FREERTOS */
 void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
@@ -783,6 +1011,7 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
 
     AddWebFiles();
 }
+#endif /* !FREERTOS */
 
 /* Functions called from Config server library based on selection from GUI */
 
@@ -811,7 +1040,6 @@ static void EthApp_startHwInterVlan(char *recvBuff,
         EthHwInterVlan_setupRouting(gEthAppObj.enetType, pInterVlanCfg);
     }
 }
-#endif /* defined (SYSBIOS) */
 
 /* IPC trace buffer flush */
 

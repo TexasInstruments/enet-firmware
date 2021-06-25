@@ -110,14 +110,6 @@
 #if defined (FREERTOS)
 #define System_printf printf
 #define System_vprintf printf
-#define NimuEnetAppIf_RxConfig LwipifEnetAppIf_RxConfig
-#define NimuEnetAppIf_RxHandleInfo LwipifEnetAppIf_RxHandleInfo
-#define NimuEnetAppIf_FreePktCbFxn LwipifEnetAppIf_FreePktCbFxn
-#define NimuEnetAppIf_TxConfig LwipifEnetAppIf_TxConfig
-#define NimuEnetAppIf_TxHandleInfo LwipifEnetAppIf_TxHandleInfo
-#define NimuEnetAppIf_GetHandleInArgs LwipifEnetAppIf_GetHandleInArgs
-#define NimuEnetAppIf_GetHandleOutArgs LwipifEnetAppIf_GetHandleOutArgs
-#define NimuEnetAppIf_ReleaseHandleInfo LwipifEnetAppIf_ReleaseHandleInfo
 #endif
 
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL  (100)
@@ -782,6 +774,371 @@ static void CpswRemoteApp_setRxFlowPrms(EnetUdma_OpenRxFlowPrms *pRxFlowPrms,
     pRxFlowPrms->rxFlowMtu = rxFlowMtu;
 }
 
+static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
+                                    uint32_t txChNum,
+                                    Udma_DrvHandle hUdmaDrv,
+                                    uint32_t numTxPackets,
+                                    void *cbArg,
+                                    EnetDma_PktNotifyCb eventCb)
+{
+    pTxChPrms->chNum = txChNum;
+    pTxChPrms->hUdmaDrv = hUdmaDrv;
+
+    pTxChPrms->ringMemAllocFxn = &EnetMem_allocRingMem;
+    pTxChPrms->ringMemFreeFxn = &EnetMem_freeRingMem;
+
+    pTxChPrms->numTxPkts = numTxPackets;
+    pTxChPrms->disableCacheOpsFlag = false;
+
+    pTxChPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
+    pTxChPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
+
+    pTxChPrms->cbArg = cbArg;
+
+    pTxChPrms->notifyCb = eventCb;
+}
+
+static uint64_t CpswRemoteApp_virtToPhyFxn(const void *virtAddr,
+                                         void *appData)
+{
+    return((uint64_t)virtAddr);
+}
+
+static void *CpswRemoteApp_phyToVirtFxn(uint64_t phyAddr,
+                                      void *appData)
+{
+#if defined(__aarch64__)
+    uint64_t temp = phyAddr;
+#else
+    /* R5 is 32-bit machine, need to truncate to avoid void * typecast error */
+    uint32_t temp = (uint32_t)phyAddr;
+#endif
+    return((void *)temp);
+}
+
+static EnetDma_Handle CpswRemoteApp_initCpswDma(Enet_Type enetType,
+                                              Udma_DrvHandle hUdmaDrv)
+{
+    EnetDma_initCfg dmaCfg;
+     EnetDma_Handle cpswDmaHandle = NULL;
+
+    EnetUdma_initDataPathParams(&dmaCfg);
+    dmaCfg.hUdmaDrv = hUdmaDrv;
+    cpswDmaHandle = EnetUdma_initDataPath(enetType,
+                                          0 /* instId */,
+                                          &dmaCfg);
+    return cpswDmaHandle;
+}
+
+static int32_t CpswRemoteApp_deinitCpswDma(EnetDma_Handle cpswDmaHandle)
+{
+    int32_t status;
+
+    status = EnetUdma_deInitDataPath(cpswDmaHandle);
+    return status;
+}
+
+static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void)
+{
+     CpswProxy_Config proxyConfig;
+     CpswProxy_Handle hProxy;
+
+     strncpy(proxyConfig.device_name, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1, (sizeof(proxyConfig.device_name) - 1));
+     proxyConfig.device_name[(sizeof(proxyConfig.device_name) - 1)] = 0;
+     proxyConfig.deviceDataNotifyCb = &printDevInfo;
+     proxyConfig.masterCoreId = IPC_MCU2_0;
+     proxyConfig.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
+
+     hProxy = CpswProxy_init(&proxyConfig);
+     localAssert(hProxy != NULL);
+
+     return hProxy;
+}
+
+#if defined (FREERTOS)
+static void CpswRemoteApp_openLwipRxCh(CpswProxy_Handle hProxy,
+                                       Enet_Handle hEnet,
+                                       Udma_DrvHandle hUdmaDrv,
+                                       uint32_t coreKey,
+                                       bool useDefaultFlow,
+                                       uint32_t rxFlowStartIdx,
+                                       uint32_t rxFlowIdx,
+                                       uint8_t *macAddress,
+                                       LwipifEnetAppIf_RxConfig *rxConfig,
+                                       LwipifEnetAppIf_RxHandleInfo *rxHandleInfo,
+                                       uint32_t rxFlowMtu)
+{
+    EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
+
+    rxHandleInfo->rxFlowStartIdx = rxFlowStartIdx;
+    rxHandleInfo->rxFlowIdx = rxFlowIdx;
+    ENET_UTILS_ARRAY_COPY(rxHandleInfo->macAddr, macAddress);
+
+    EnetDma_initRxChParams(&cpswRxFlowCfg);
+
+    CpswRemoteApp_setRxFlowPrms(&cpswRxFlowCfg,
+                              rxHandleInfo->rxFlowStartIdx,
+                              rxHandleInfo->rxFlowIdx,
+                              hUdmaDrv,
+                              rxConfig->numPackets,
+                              rxConfig->cbArg,
+                              rxConfig->notifyCb,
+                              rxFlowMtu);
+
+    rxHandleInfo->hRxFlow = EnetDma_openRxCh(gRemoteAppObj.hDma, &cpswRxFlowCfg);
+    localAssert(rxHandleInfo->hRxFlow != NULL);
+
+    CpswProxy_addHostPortEntry(hProxy, hEnet, coreKey, rxHandleInfo->macAddr);
+    if (useDefaultFlow)
+    {
+        CpswProxy_registerDefaultRxFlow(hProxy,
+                                        hEnet,
+                                        coreKey,
+                                        rxHandleInfo->rxFlowStartIdx,
+                                        rxHandleInfo->rxFlowIdx);
+    }
+    else
+    {
+        CpswProxy_registerDstMacRxFlow(hProxy,
+                                       hEnet,
+                                       coreKey,
+                                      rxHandleInfo->rxFlowStartIdx,
+                                       rxHandleInfo->rxFlowIdx,
+                                       rxHandleInfo->macAddr);
+    }
+}
+
+static void CpswRemoteApp_closeLwipRxCh(CpswProxy_Handle hProxy,
+                                        Enet_Handle hEnet,
+                                        Udma_DrvHandle hUdmaDrv,
+                                        uint32_t coreKey,
+                                        bool useDefaultFlow,
+                                        uint8_t *ipV4Addr,
+                                        LwipifEnetAppIf_RxHandleInfo *rxHandleInfo,
+                                        void *freeFxnArg,
+                                        LwipifEnetAppIf_FreePktCbFxn freeFxn)
+{
+    EnetDma_PktQ fqPktInfoQ;
+    EnetDma_PktQ cqPktInfoQ;
+    int32_t status;
+
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+
+    EnetDma_disableRxEvent(rxHandleInfo->hRxFlow);
+
+    CpswProxy_unregisterIPV4Addr(hProxy,
+                                hEnet,
+                                coreKey,
+                                ipV4Addr);
+    if (useDefaultFlow)
+    {
+        CpswProxy_unregisterDefaultRxFlow(hProxy,
+                                      hEnet,
+                                      coreKey,
+                                      rxHandleInfo->rxFlowStartIdx,
+                                      rxHandleInfo->rxFlowIdx);
+    }
+    else
+    {
+        CpswProxy_unregisterDstMacRxFlow(hProxy,
+                                     hEnet,
+                                     coreKey,
+                                     rxHandleInfo->rxFlowStartIdx,
+                                     rxHandleInfo->rxFlowIdx,
+                                       rxHandleInfo->macAddr);
+    }
+
+    CpswProxy_delAddrEntry(hProxy, hEnet, coreKey, rxHandleInfo->macAddr);
+    status = EnetDma_closeRxCh(rxHandleInfo->hRxFlow,
+                               &fqPktInfoQ,
+                               &cqPktInfoQ);
+    localAssert(status == ENET_SOK);
+    CpswProxy_freeMac(hProxy,
+                      hEnet,
+                      coreKey,
+                      rxHandleInfo->macAddr);
+    CpswProxy_freeRxFlow(hProxy,
+                         hEnet,
+                         coreKey,
+                         rxHandleInfo->rxFlowStartIdx,
+                         rxHandleInfo->rxFlowIdx);
+    freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
+}
+
+static void CpswRemoteApp_openLwipTxCh(Udma_DrvHandle hUdmaDrv,
+                                       uint32_t coreKey,
+                                       uint32_t txPSILId,
+                                       LwipifEnetAppIf_TxConfig *txConfig,
+                                       LwipifEnetAppIf_TxHandleInfo *txHandleInfo)
+{
+    EnetUdma_OpenTxChPrms cpswTxChCfg;
+
+    txHandleInfo->txChNum = txPSILId;
+
+    /* Set configuration parameters */
+    EnetDma_initTxChParams(&cpswTxChCfg);
+
+    CpswRemoteApp_setTxChPrms(&cpswTxChCfg,
+                              txHandleInfo->txChNum,
+                              hUdmaDrv,
+                              txConfig->numPackets,
+                              txConfig->cbArg,
+                              txConfig->notifyCb);
+
+    txHandleInfo->hTxChannel = EnetDma_openTxCh(gRemoteAppObj.hDma, &cpswTxChCfg);
+    localAssert(NULL != txHandleInfo->hTxChannel);
+}
+
+static void CpswRemoteApp_closeLwipTxCh(CpswProxy_Handle hProxy,
+                                        Enet_Handle hEnet,
+                                        Udma_DrvHandle hUdmaDrv,
+                                        uint32_t coreKey,
+                                        LwipifEnetAppIf_TxHandleInfo *txHandleInfo,
+                                        void *freeFxnArg,
+                                        LwipifEnetAppIf_FreePktCbFxn freeFxn)
+{
+    EnetDma_PktQ fqPktInfoQ;
+    EnetDma_PktQ cqPktInfoQ;
+    int32_t status;
+
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+
+    EnetDma_disableTxEvent(txHandleInfo->hTxChannel);
+    status = EnetDma_closeTxCh(txHandleInfo->hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
+    localAssert(ENET_SOK == status);
+
+    CpswProxy_freeTxCh(hProxy,
+                       hEnet,
+                       coreKey,
+                       txHandleInfo->txChNum);
+    freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
+}
+
+void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
+                               LwipifEnetAppIf_GetHandleOutArgs *outArgs)
+{
+    int32_t status;
+    uint32_t coreId = EnetSoc_getCoreId();
+    EnetOsal_Cfg osalPrms;
+    EnetUtils_Cfg utilsPrms;
+#if defined(SOC_J721E)
+    Enet_Type enetType = ENET_CPSW_9G;
+#elif defined(SOC_J7200)
+    Enet_Type enetType = ENET_CPSW_5G;
+#endif
+    uint32_t txPSILId;
+    uint32_t rxStartFlowId;
+    uint32_t rxFlowIdOffset;
+
+    localAssert(gRemoteAppObj.hCpswProxy != NULL);
+
+    /* Initialize CPSW driver with default OSAL, utils */
+    utilsPrms.print = (Enet_Print)System_printf;
+    utilsPrms.physToVirt = &CpswRemoteApp_phyToVirtFxn;
+    utilsPrms.virtToPhys = &CpswRemoteApp_virtToPhyFxn;
+
+    Enet_initOsalCfg(&osalPrms);
+
+    Enet_init(&osalPrms, &utilsPrms);
+
+    status = EnetMem_init();
+    localAssert(status == ENET_SOK);
+    outArgs->coreId = coreId;
+    outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
+    outArgs->print = (Enet_Print) & printf;
+    outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
+    outArgs->rxInfo[0U].disableEvent = true;
+    outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
+    /* Let NIMU use optimized processing where TX packets are relinquished in next
+     * TX submit call */
+    outArgs->txInfo.disableEvent = true;
+
+    gRemoteAppObj.hDma = CpswRemoteApp_initCpswDma(enetType, outArgs->hUdmaDrv);
+
+    if (gRemoteAppObj.useExtAttach)
+    {
+        CpswProxy_attachExtended(gRemoteAppObj.hCpswProxy,
+                                 enetType,
+                                 &outArgs->hEnet,
+                                 &outArgs->coreKey,
+                                 &outArgs->hostPortRxMtu,
+                                 outArgs->txMtu,
+                                 &txPSILId,
+                                 &rxStartFlowId,
+                                 &rxFlowIdOffset,
+                                 gRemoteAppObj.macAddr);
+    }
+    else
+    {
+        CpswProxy_attach(gRemoteAppObj.hCpswProxy,
+                         enetType,
+                         &outArgs->hEnet,
+                         &outArgs->coreKey,
+                         &outArgs->hostPortRxMtu,
+                         outArgs->txMtu);
+        CpswProxy_allocTxCh(gRemoteAppObj.hCpswProxy,
+                            outArgs->hEnet,
+                            outArgs->coreKey,
+                            &txPSILId);
+        CpswProxy_allocRxFlow(gRemoteAppObj.hCpswProxy,
+                              outArgs->hEnet,
+                              outArgs->coreKey,
+                              &rxStartFlowId,
+                              &rxFlowIdOffset);
+        CpswProxy_allocMac(gRemoteAppObj.hCpswProxy,
+                           outArgs->hEnet,
+                           outArgs->coreKey,
+                           gRemoteAppObj.macAddr);
+    }
+
+    CpswRemoteApp_openLwipTxCh(outArgs->hUdmaDrv,
+                               outArgs->coreKey,
+                               txPSILId,
+                               &inArgs->txCfg,
+                               &outArgs->txInfo);
+
+    CpswRemoteApp_openLwipRxCh(gRemoteAppObj.hCpswProxy,
+                               outArgs->hEnet,
+                               outArgs->hUdmaDrv,
+                               outArgs->coreKey,
+                               gRemoteAppObj.useDefaultRxFlow,
+                               rxStartFlowId,
+                               rxFlowIdOffset,
+                               gRemoteAppObj.macAddr,
+                               &inArgs->rxCfg[0U],
+                               &outArgs->rxInfo[0U],
+                               outArgs->hostPortRxMtu);
+    gRemoteAppObj.coreKey = outArgs->coreKey;
+    gRemoteAppObj.hEnet = outArgs->hEnet;
+}
+
+void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
+{
+    localAssert(gRemoteAppObj.hCpswProxy != NULL);
+
+    CpswRemoteApp_closeLwipTxCh(gRemoteAppObj.hCpswProxy,
+                                releaseInfo->hEnet,
+                                releaseInfo->hUdmaDrv,
+                                releaseInfo->coreKey,
+                                &releaseInfo->txInfo,
+                                releaseInfo->txFreePkt.cbArg,
+                                releaseInfo->txFreePkt.cb);
+    CpswRemoteApp_closeLwipRxCh(gRemoteAppObj.hCpswProxy,
+                                releaseInfo->hEnet,
+                                releaseInfo->hUdmaDrv,
+                                releaseInfo->coreKey,
+                                gRemoteAppObj.useDefaultRxFlow,
+                                gRemoteAppObj.ipv4Addr,
+                                &releaseInfo->rxInfo[0U],
+                                releaseInfo->rxFreePkt[0U].cbArg,
+                                releaseInfo->rxFreePkt[0U].cb);
+
+    CpswProxy_detach(gRemoteAppObj.hCpswProxy, releaseInfo->hEnet, releaseInfo->coreKey);
+    CpswRemoteApp_deinitCpswDma(gRemoteAppObj.hDma);
+}
+#else /* !FREERTOS */
 static void CpswRemoteApp_openNDKRxCh(CpswProxy_Handle hProxy,
                                     Enet_Handle hEnet,
                                     Udma_DrvHandle hUdmaDrv,
@@ -892,30 +1249,6 @@ static void CpswRemoteApp_closeNDKRxCh(CpswProxy_Handle hProxy,
     freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
 }
 
-static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
-                                    uint32_t txChNum,
-                                    Udma_DrvHandle hUdmaDrv,
-                                    uint32_t numTxPackets,
-                                    void *cbArg,
-                                    EnetDma_PktNotifyCb eventCb)
-{
-    pTxChPrms->chNum = txChNum;
-    pTxChPrms->hUdmaDrv = hUdmaDrv;
-
-    pTxChPrms->ringMemAllocFxn = &EnetMem_allocRingMem;
-    pTxChPrms->ringMemFreeFxn = &EnetMem_freeRingMem;
-
-    pTxChPrms->numTxPkts = numTxPackets;
-    pTxChPrms->disableCacheOpsFlag = false;
-
-    pTxChPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
-    pTxChPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
-
-    pTxChPrms->cbArg = cbArg;
-
-    pTxChPrms->notifyCb = eventCb;
-}
-
 static void CpswRemoteApp_openNDKTxCh(Udma_DrvHandle hUdmaDrv,
                                     uint32_t coreKey,
                                     uint32_t txPSILId,
@@ -966,64 +1299,6 @@ static void CpswRemoteApp_closeNDKTxCh(CpswProxy_Handle hProxy,
     freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
 }
 
-static uint64_t CpswRemoteApp_virtToPhyFxn(const void *virtAddr,
-                                         void *appData)
-{
-    return((uint64_t)virtAddr);
-}
-
-static void *CpswRemoteApp_phyToVirtFxn(uint64_t phyAddr,
-                                      void *appData)
-{
-#if defined(__aarch64__)
-    uint64_t temp = phyAddr;
-#else
-    /* R5 is 32-bit machine, need to truncate to avoid void * typecast error */
-    uint32_t temp = (uint32_t)phyAddr;
-#endif
-    return((void *)temp);
-}
-
-static EnetDma_Handle CpswRemoteApp_initCpswDma(Enet_Type enetType,
-                                              Udma_DrvHandle hUdmaDrv)
-{
-    EnetDma_initCfg dmaCfg;
-     EnetDma_Handle cpswDmaHandle = NULL;
-
-    EnetUdma_initDataPathParams(&dmaCfg);
-    dmaCfg.hUdmaDrv = hUdmaDrv;
-    cpswDmaHandle = EnetUdma_initDataPath(enetType,
-                                          0 /* instId */,
-                                          &dmaCfg);
-    return cpswDmaHandle;
-}
-
-static int32_t CpswRemoteApp_deinitCpswDma(EnetDma_Handle cpswDmaHandle)
-{
-    int32_t status;
-
-    status = EnetUdma_deInitDataPath(cpswDmaHandle);
-    return status;
-}
-
-static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void)
-{
-     CpswProxy_Config proxyConfig;
-     CpswProxy_Handle hProxy;
-
-     strncpy(proxyConfig.device_name, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1, (sizeof(proxyConfig.device_name) - 1));
-     proxyConfig.device_name[(sizeof(proxyConfig.device_name) - 1)] = 0;
-     proxyConfig.deviceDataNotifyCb = &printDevInfo;
-     proxyConfig.masterCoreId = IPC_MCU2_0;
-     proxyConfig.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
-
-     hProxy = CpswProxy_init(&proxyConfig);
-     localAssert(hProxy != NULL);
-
-     return hProxy;
-}
-
-
 void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
@@ -1055,11 +1330,7 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     localAssert(status == ENET_SOK);
     outArgs->coreId = coreId;
     outArgs->hUdmaDrv = CpswRemoteApp_udmaOpen();
-#if defined (SYSBIOS)
     outArgs->print = (Enet_Print) & ConPrintf;
-#elif defined (FREERTOS)
-    outArgs->print = (Enet_Print) & printf;
-#endif
     outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
     outArgs->isRingMonUsed = false;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
@@ -1150,3 +1421,4 @@ void NimuEnetAppCb_releaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo)
     CpswProxy_detach(gRemoteAppObj.hCpswProxy, releaseInfo->hEnet, releaseInfo->coreKey);
     CpswRemoteApp_deinitCpswDma(gRemoteAppObj.hDma);
 }
+#endif /* !FREERTOS */
