@@ -120,6 +120,8 @@
 void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                         LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
+    LwipifEnetAppIf_RxHandleInfo *rxInfo;
+    LwipifEnetAppIf_RxConfig *rxCfg;
     EnetMcm_CmdIf mcmCmdIf;
     EnetMcm_HandleInfo handleInfo;
     EnetPer_AttachCoreOutArgs attachInfo;
@@ -151,7 +153,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetDma_initTxChParams(&cpswTxChCfg);
     cpswTxChCfg.hUdmaDrv            = handleInfo.hUdmaDrv;
     cpswTxChCfg.numTxPkts           = inArgs->txCfg.numPackets;
-    cpswTxChCfg.cbArg              = inArgs->txCfg.cbArg;
+    cpswTxChCfg.cbArg               = inArgs->txCfg.cbArg;
     cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
     cpswTxChCfg.useProxy            = true;
     cpswTxChCfg.disableCacheOpsFlag = false;
@@ -167,12 +169,15 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                           &outArgs->txInfo.hTxChannel,
                           &cpswTxChCfg);
 
-    /* Open RX Flow */
+    /* Open first RX channel/flow */
+    rxCfg  = &inArgs->rxCfg[0U];
+    rxInfo = &outArgs->rxInfo[0U];
+
     EnetDma_initRxChParams(&cpswRxFlowCfg);
-    cpswRxFlowCfg.notifyCb  = inArgs->rxCfg.notifyCb;
-    cpswRxFlowCfg.numRxPkts = inArgs->rxCfg.numPackets;
+    cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
+    cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
     cpswRxFlowCfg.hUdmaDrv  = handleInfo.hUdmaDrv;
-    cpswRxFlowCfg.cbArg    = inArgs->rxCfg.cbArg;
+    cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
     cpswRxFlowCfg.useProxy  = true;
 
     /* Use ring monitor for the CQ ring of RX flow */
@@ -182,12 +187,12 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     /* Ring mon low threshold */
 #if defined _DEBUG_
     /* In debug mode as CPU is processing lesser packets per event, keep threshold more */
-    pFqRingPrms->ringMonCfg.data0 = (inArgs->rxCfg.numPackets - 10U);
+    pFqRingPrms->ringMonCfg.data0 = (rxCfg->numPackets - 10U);
 #else
-    pFqRingPrms->ringMonCfg.data0 = (inArgs->rxCfg.numPackets - 20U);
+    pFqRingPrms->ringMonCfg.data0 = (rxCfg->numPackets - 20U);
 #endif
     /* Ring mon high threshold - to get only low  threshold event, setting high threshold as more than ring depth*/
-    pFqRingPrms->ringMonCfg.data1 = inArgs->rxCfg.numPackets;
+    pFqRingPrms->ringMonCfg.data1 = rxCfg->numPackets;
 
     cpswRxFlowCfg.disableCacheOpsFlag = false;
     cpswRxFlowCfg.rxFlowMtu           = attachInfo.rxMtu;
@@ -201,10 +206,10 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                             attachInfo.coreKey,
                             coreId,
                             useDefaultFlow,
-                            &outArgs->rxInfo.rxFlowStartIdx,
-                            &outArgs->rxInfo.rxFlowIdx,
-                            &outArgs->rxInfo.macAddr[0U],
-                            &outArgs->rxInfo.hRxFlow,
+                            &rxInfo->rxFlowStartIdx,
+                            &rxInfo->rxFlowIdx,
+                            &rxInfo->macAddr[0U],
+                            &rxInfo->hRxFlow,
                             &cpswRxFlowCfg);
 
     outArgs->coreId          = coreId;
@@ -222,14 +227,14 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
      * As a workaround setting isRingMonUsed to true (irrespective of ring monitor
      * is enabled or not) to ensure interrupts are used instead of polling.
      * Timer corruption needs to be root-caused and fixed. */
-    outArgs->isRingMonUsed = useRingMon;
+    rxInfo->disableEvent = !useRingMon;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
 
     /* Let LwIP interface use optimized processing where TX packets are relinquished
      * in next TX submit call */
-    outArgs->disableTxEvent = true;
+    outArgs->txInfo.disableEvent = true;
 
-    macAddr = &outArgs->rxInfo.macAddr[0U];
+    macAddr = &rxInfo->macAddr[0U];
     appLogPrintf("Host MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
                  macAddr[0] & 0xFF, macAddr[1] & 0xFF, macAddr[2] & 0xFF,
                  macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
@@ -237,6 +242,8 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
 void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
+    LwipifEnetAppIf_RxHandleInfo *rxInfo;
+    Lwip2EnetAppIf_FreePktInfo *freePktInfo;
     EnetMcm_CmdIf mcmCmdIf;
     EnetDma_PktQ fqPktInfoQ;
     EnetDma_PktQ cqPktInfoQ;
@@ -262,9 +269,12 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
                            &cqPktInfoQ,
                            releaseInfo->txInfo.hTxChannel,
                            releaseInfo->txInfo.txChNum);
-    releaseInfo->txFreePktCb(releaseInfo->freePktCbArg, &fqPktInfoQ, &cqPktInfoQ);
+    releaseInfo->txFreePkt.cb(releaseInfo->txFreePkt.cbArg, &fqPktInfoQ, &cqPktInfoQ);
 
-    /* Close RX Flow */
+    /* Close first RX channel/flow */
+    rxInfo = &releaseInfo->rxInfo[0U];
+    freePktInfo = &releaseInfo->rxFreePkt[0U];
+
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
     EnetAppUtils_closeRxFlow(enetType,
@@ -274,11 +284,11 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
                              useDefaultFlow,
                              &fqPktInfoQ,
                              &cqPktInfoQ,
-                             releaseInfo->rxInfo.rxFlowStartIdx,
-                             releaseInfo->rxInfo.rxFlowIdx,
-                             releaseInfo->rxInfo.macAddr,
-                             releaseInfo->rxInfo.hRxFlow);
-    releaseInfo->rxFreePktCb(releaseInfo->freePktCbArg, &fqPktInfoQ, &cqPktInfoQ);
+                             rxInfo->rxFlowStartIdx,
+                             rxInfo->rxFlowIdx,
+                             rxInfo->macAddr,
+                             rxInfo->hRxFlow);
+    freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
 
     EnetMcm_coreDetach(&mcmCmdIf, releaseInfo->coreId, releaseInfo->coreKey);
     EnetMcm_releaseHandleInfo(&mcmCmdIf);
