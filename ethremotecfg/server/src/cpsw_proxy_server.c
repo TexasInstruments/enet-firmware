@@ -1070,7 +1070,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     /* TODO: Need to add support */
 #endif
 
-    ipaddr = htonl(ipaddr);
+    ipaddr = Enet_htonl(ipaddr);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%d.%d.%d.%d\n",
                  __func__,
                  host_id,
@@ -1142,7 +1142,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
     /* TODO: Need to add support */
 #endif
 
-    ipaddr = htonl(ipaddr);
+    ipaddr = Enet_htonl(ipaddr);
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,IPv4Addr:%x:%x:%x:%x\n",
                  __func__,
                  host_id,

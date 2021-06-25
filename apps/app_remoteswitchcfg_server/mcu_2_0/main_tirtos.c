@@ -111,6 +111,7 @@
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_ndk.h>
 
 /* NS headers */
+#include <ti/ndk/inc/socket.h>
 #include <ti/ndk/slnetif/slnetifndk.h>
 #include <ti/net/slnet.h>
 #include <ti/net/slnetif.h>
@@ -747,7 +748,7 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     }
 
     /* Save host port IP address */
-    ipAddrHex = ntohl(IPAddr);
+    ipAddrHex = NDK_ntohl(IPAddr);
     gEthAppObj.hostIpAddr = ipAddrHex;
 
     /* MAC port used for PTP */

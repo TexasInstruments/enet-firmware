@@ -184,7 +184,7 @@ void EthFwCallbacks_ipAddrHookFxn(uint32_t IPAddr,
     volatile uint32_t ipAddrHex = 0U;
     char ipAddr[20];
 
-    ipAddrHex = ntohl(IPAddr);
+    ipAddrHex = NDK_ntohl(IPAddr);
     snprintf(ipAddr, 17, "%d.%d.%d.%d\n",
              (uint8_t)(ipAddrHex >> 24) & 0xFF,
              (uint8_t)(ipAddrHex >> 16) & 0xFF,

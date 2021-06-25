@@ -341,7 +341,7 @@ void IpAddrHookFxn(uint32_t IPAddr,
     volatile uint32_t ipAddrHex = 0U;
     char ipAddr[20];
 
-    ipAddrHex = ntohl(IPAddr);
+    ipAddrHex = NDK_ntohl(IPAddr);
     gRemoteAppObj.ipv4Addr[0] = (uint8_t)(ipAddrHex >> 24) & 0xFF;
     gRemoteAppObj.ipv4Addr[1] = (uint8_t)(ipAddrHex >> 16) & 0xFF;
     gRemoteAppObj.ipv4Addr[2] = (uint8_t)(ipAddrHex >> 8) & 0xFF;
