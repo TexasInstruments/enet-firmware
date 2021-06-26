@@ -24,9 +24,9 @@ BUILD_CPU_MCU3_1?=no
 BUILD_SOC_LIST ?= J721E J7200
 export BUILD_SOC_LIST
 # Build TI-RTOS only binaries
-BUILD_APP_TIRTOS?=yes
+BUILD_APP_TIRTOS?=no
 # Build FREERTOS only binaries
-BUILD_APP_FREERTOS?=no
+BUILD_APP_FREERTOS?=yes
 # Build TI-RTOS + Linux binaries
 BUILD_APP_TIRTOS_LINUX?=no
 #Build Profile
