@@ -100,6 +100,9 @@
 
 #include <server-rtos/remote-device.h>
 
+#if defined(FREERTOS)
+#include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
+#endif
 #include <utils/profile/include/app_profile.h>
 
 /* Timesync header files */
@@ -344,13 +347,25 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     gEthFwObj.version.sec[ETHFW_VERSION_SECLEN] = '\0';
     gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
 
-    /* Initialize MCM */
-    status = EthFw_initMcm();
-    if (status != ENET_SOK)
+#if defined(FREERTOS)
+    /* Initialize lwIP ARP helper */
+    status = EthFwArpUtils_init();
+    if (status != ETHFW_LWIP_UTILS_SOK)
     {
         appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
     }
-    EnetAppUtils_assert(status == ENET_SOK);
+#endif
+
+    /* Initialize MCM */
+    if (status == ENET_SOK)
+    {
+        status = EthFw_initMcm();
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
+        }
+        EnetAppUtils_assert(status == ENET_SOK);
+    }
 
     /* Add ALE entry for broadcast MAC address. Note this is needed as the broadcast
      * is disabled via unknownRegMcastFloodMask and other flags in ALE init config.
@@ -366,6 +381,11 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 void EthFw_deinit(EthFw_Handle hEthFw)
 {
     EnetAppUtils_assert(hEthFw != NULL);
+
+#if defined(FREERTOS)
+    /* De-initialize lwIP ARP helper */
+    EthFwArpUtils_deinit();
+#endif
 
     /* De-initialize MCM */
     EthFw_deinitMcm();

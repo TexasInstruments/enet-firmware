@@ -59,6 +59,10 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
 
+ifeq ($(TARGET_OS),FREERTOS)
+  STATIC_LIBS += ethfw_lwip
+endif
+
 ifeq ($(TARGET_OS),SYSBIOS)
   DEFS += SYSBIOS
 else ifeq ($(TARGET_OS),FREERTOS)
@@ -138,6 +142,10 @@ STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
+
+ifeq ($(TARGET_OS),FREERTOS)
+  STATIC_LIBS += ethfw_lwip
+endif
 
 ifeq ($(TARGET_OS),SYSBIOS)
   DEFS += SYSBIOS

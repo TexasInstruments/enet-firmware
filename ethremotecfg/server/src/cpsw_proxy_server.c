@@ -95,6 +95,8 @@
 #include <ti/ndk/inc/_stack.h>
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
+#else
+#include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
 #endif
 
 #include <ethremotecfg/protocol/Eth_Rpc.h>
@@ -1067,7 +1069,8 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     uint32_t numEntries;
     LLI_INFO *llitable = NULL;
 #elif defined(FREERTOS)
-    /* TODO: Need to add support */
+    ip4_addr_t ip4Addr;
+    struct eth_addr hwAddr;
 #endif
 
     ipaddr = Enet_htonl(ipaddr);
@@ -1112,6 +1115,21 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
 
     CpswProxyServer_dumpLliTable(llitable, numEntries);
     LLIFreeStaticARPTable(llitable);
+#elif defined(FREERTOS)
+    IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
+    SMEMCPY(&hwAddr, mac_address, ETH_HWADDR_LEN);
+
+    status = EthFwArpUtils_addAddr(&ip4Addr, &hwAddr);
+    if (status != ETHFW_LWIP_UTILS_SOK)
+    {
+        appLogPrintf("Failed to add ARP entry: %d\n", status);
+    }
+    else
+    {
+        EthFwArpUtils_printTable();
+    }
+#endif
+
     if (status != 0)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -1120,9 +1138,6 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
-#elif defined(FREERTOS)
-    /* TODO: Need to add support */
-#endif
 
     return status;
 }
@@ -1139,7 +1154,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
     uint32_t numEntries;
     LLI_INFO *llitable = NULL;
 #elif defined(FREERTOS)
-    /* TODO: Need to add support */
+    ip4_addr_t ip4Addr;
 #endif
 
     ipaddr = Enet_htonl(ipaddr);
@@ -1167,6 +1182,20 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
 
     CpswProxyServer_dumpLliTable(llitable, numEntries);
     LLIFreeStaticARPTable(llitable);
+#elif defined(FREERTOS)
+    IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
+
+    status = EthFwArpUtils_delAddr(&ip4Addr);
+    if (status != ETHFW_LWIP_UTILS_SOK)
+    {
+        appLogPrintf("Failed to remove ARP entry: %d\n", status);
+    }
+    else
+    {
+        EthFwArpUtils_printTable();
+    }
+#endif
+
     if (status != 0)
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
@@ -1175,9 +1204,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
     {
         status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
-#elif defined(FREERTOS)
-    /* TODO: Need to add support */
-#endif
+
     return status;
 }
 
@@ -1771,7 +1798,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
     {
         if (localEp != CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID)
         {
-            appLogPrintf("Could not create required End Point");
+            appLogPrintf("Could not create required End Point\n");
         }
         else
         {
@@ -1862,7 +1889,7 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &remoteEndPt,
                                             osal_WAIT_FOREVER))
     {
-        appLogPrintf("CpswProxyServer: Remote AUTOSAR Ethernet Device locate failed");
+        appLogPrintf("CpswProxyServer: Remote AUTOSAR Ethernet Device locate failed\n");
     }
     else
     {
