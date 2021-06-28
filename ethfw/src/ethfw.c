@@ -283,7 +283,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 {
     char *date = __DATE__;
     char *time = __TIME__;
-    int32_t status;
+    int32_t status = ENET_SOK;
 
     EnetAppUtils_assert(config != NULL);
     EnetAppUtils_assert(config->ports != NULL);
