@@ -50,6 +50,8 @@ extern "C" {
 
 int32_t Ipc_Trace_printf(const char *format, ...);
 
+int32_t Ipc_Trace_vprintf(const char *format, va_list args);
+
 extern char Ipc_traceBuffer[IPC_TRACE_BUFFER_MAX_SIZE];
 
 #ifdef __cplusplus

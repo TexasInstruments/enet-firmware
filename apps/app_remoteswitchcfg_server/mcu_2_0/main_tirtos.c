@@ -122,8 +122,8 @@
 #endif
 
 #if defined (FREERTOS)
-#define System_printf Ipc_Trace_printf
-#define System_vprintf Ipc_Trace_printf
+#define System_printf  Ipc_Trace_printf
+#define System_vprintf Ipc_Trace_vprintf
 
 /* lwIP core includes */
 #include "lwip/opt.h"

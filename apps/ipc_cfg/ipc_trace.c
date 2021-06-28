@@ -76,3 +76,21 @@ int32_t Ipc_Trace_printf(const char *format, ...)
     }
     return 0;
 }
+
+int32_t Ipc_Trace_vprintf(const char *format, va_list args)
+{
+    char buffer[IPC_TRACE_MAX_LINE_LENGTH];
+    uint8_t i = 0;
+
+    vsnprintf(buffer, sizeof(buffer), format, args);
+
+    for (i = 0; i < strlen(buffer); i++)
+    {
+        Ipc_traceBuffer[gTraceBufIndex++] = buffer[i];
+
+        if (gTraceBufIndex == IPC_TRACE_BUFFER_MAX_SIZE) {
+            gTraceBufIndex = 0;
+        }
+    }
+    return 0;
+}
