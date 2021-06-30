@@ -106,10 +106,10 @@ LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_SOC_FOLDER}/${T
 LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 
 ifeq ($(TARGET_OS),SYSBIOS)
-    STATIC_LIBS += app_utils_console_io
     STATIC_LIBS += app_utils_profile
 else ifeq ($(TARGET_OS),FREERTOS)
 endif
+STATIC_LIBS += app_utils_console_io
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_perf_stats
 STATIC_LIBS += app_ethfw_stats
