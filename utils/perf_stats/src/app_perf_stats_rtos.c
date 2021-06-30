@@ -63,9 +63,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(FREERTOS)
+#include <ti/osal/LoadP.h>
+#include <ti/osal/TaskP.h>
+#else
 #include <ti/sysbios/utils/Load.h>
-#include <ti/osal/HwiP.h>
 #include <ti/sysbios/knl/Task.h>
+#endif
+#include <ti/osal/HwiP.h>
+
 #include <ti/osal/SemaphoreP.h>
 
 #include <utils/remote_service/include/app_remote_service.h>
@@ -82,8 +88,6 @@ typedef struct {
 typedef struct {
 
     SemaphoreP_Handle lock;
-    app_perf_stats_load_t hwiLoad;
-    app_perf_stats_load_t swiLoad;
     app_perf_stats_load_t idleLoad;
     uint32_t num_tasks;
     app_perf_stats_load_t taskLoad[APP_PERF_STATS_TASK_MAX];
@@ -133,10 +137,13 @@ void appPerfStatsResetLoadCalcAll(app_perf_stats_obj_t *obj)
 
     appPerfStatsLock(obj);
 
+#if defined(FREERTOS)
+    /* LoadP_reset() currently supported only for FreeRTOS */
+    LoadP_reset();
+#else
     Load_reset();
+#endif
 
-    appPerfStatsResetLoadCalc(&obj->hwiLoad);
-    appPerfStatsResetLoadCalc(&obj->swiLoad);
     appPerfStatsResetLoadCalc(&obj->idleLoad);
     for(i=0; i<APP_PERF_STATS_TASK_MAX; i++)
     {
@@ -185,9 +192,12 @@ int32_t appPerfStatsHandler(char *service_name, uint32_t cmd, void *prm, uint32_
 
                 appPerfStatsLock(obj);
 
+#if defined(FREERTOS)
+                /* LoadP_getCPULoad() currently supported only for FreeRTOS */
+                cpu_load->cpu_load = LoadP_getCPULoad();
+#else
                 cpu_load->cpu_load = 10000u - appPerfStatsLoadCalc(&obj->idleLoad);
-                cpu_load->hwi_load = appPerfStatsLoadCalc(&obj->hwiLoad);
-                cpu_load->swi_load = appPerfStatsLoadCalc(&obj->swiLoad);
+#endif
 
                 appPerfStatsUnLock(obj);
             }
@@ -241,7 +251,7 @@ int32_t appPerfStatsInit()
     if(status==0)
     {
         appPerfStatsResetLoadCalcAll(obj);
-        /* now enable load calculation in appPerfStatsBiosLoadUpdate */
+        /* now enable load calculation in appPerfStatsRtosLoadUpdate */
         g_perf_stats_load_update_enable = 1;
     }
 
@@ -267,39 +277,30 @@ int32_t appPerfStatsDeInit()
     return 0;
 }
 
-void appPerfStatsTaskLoadUpdate(Task_Handle task, app_perf_stats_load_t *load)
+void appPerfStatsTaskLoadUpdate(TaskP_Handle task, app_perf_stats_load_t *load)
 {
-    Load_Stat bios_load_stat;
+#if defined(FREERTOS)
+    /* LoadP_getTaskLoad() currently supported only for FreeRTOS */
+    LoadP_Stats rtos_load_stat;
+    LoadP_getTaskLoad(task, &rtos_load_stat);
+#else
+    Load_Stat rtos_load_stat;
+    Load_getTaskLoad(task, &rtos_load_stat);
+#endif
 
-    Load_getTaskLoad(task, &bios_load_stat);
-
-    load->total_time = bios_load_stat.totalTime;
-    load->thread_time = bios_load_stat.threadTime;
-}
-
-void appPerfStatsHwiSwiLoadUpdate(uint32_t is_hwi, app_perf_stats_load_t *load)
-{
-    Load_Stat bios_load_stat;
-
-    bios_load_stat.totalTime = 0U;
-    bios_load_stat.threadTime = 0U;
-
-    if(is_hwi)
-    {
-        Load_getGlobalHwiLoad(&bios_load_stat);
-    }
-    else
-    {
-        Load_getGlobalSwiLoad(&bios_load_stat);
-    }
-
-    load->total_time += bios_load_stat.totalTime;
-    load->thread_time += bios_load_stat.threadTime;
+    load->total_time += rtos_load_stat.totalTime;
+    load->thread_time += rtos_load_stat.threadTime;
 }
 
 void appPerfStatsTaskLoadUpdateAll(app_perf_stats_obj_t *obj)
 {
     uint32_t i;
+#if defined(FREERTOS)
+    for(i=0; i< obj->num_tasks; i++)
+    {
+        appPerfStatsTaskLoadUpdate((TaskP_Handle)obj->task_handle[i], &obj->taskLoad[i]);
+    }
+#else
     Task_Handle task;
 
     task = Task_getIdleTaskHandle(0u);
@@ -309,9 +310,10 @@ void appPerfStatsTaskLoadUpdateAll(app_perf_stats_obj_t *obj)
     {
         appPerfStatsTaskLoadUpdate((Task_Handle)obj->task_handle[i], &obj->taskLoad[i]);
     }
+#endif
 }
 
-void appPerfStatsBiosLoadUpdate(void)
+void appPerfStatsRtosLoadUpdate(void)
 {
     app_perf_stats_obj_t *obj = &g_app_perf_stats_obj;
 
@@ -319,8 +321,6 @@ void appPerfStatsBiosLoadUpdate(void)
     {
         appPerfStatsLock(obj);
 
-        appPerfStatsHwiSwiLoadUpdate(1, &obj->hwiLoad);
-        appPerfStatsHwiSwiLoadUpdate(0, &obj->swiLoad);
         appPerfStatsTaskLoadUpdateAll(obj);
 
         appPerfStatsUnLock(obj);

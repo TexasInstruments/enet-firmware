@@ -384,11 +384,7 @@ static int32_t appRemoteServiceCreateRpmsgRxTask(app_remote_service_obj_t *obj)
     }
     else
     {
-#if defined (SYSBIOS)
         appPerfStatsRegisterTask(obj->task_handle, obj->task_name);
-#elif defined (FREERTOS)
-        // TODO: Need to add support
-#endif
     }
     return status;
 }
