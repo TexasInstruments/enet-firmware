@@ -62,10 +62,8 @@
 
 #include <string.h>
 #include <utils/mem/include/app_mem.h>
-#include <ti/sysbios/heaps/HeapMem.h>
-#include <xdc/runtime/IHeap.h>
-#include <xdc/runtime/Error.h>
-#include <xdc/runtime/Memory.h>
+#include <ti/osal/HeapP.h>
+#include <ti/osal/MemoryP.h>
 #include <ti/osal/HwiP.h>
 #include <ti/osal/CacheP.h>
 
@@ -75,8 +73,7 @@
 typedef struct
 {
     uint16_t is_valid;
-    HeapMem_Struct bios_heap_struct;
-    IHeap_Handle bios_heap_handle;
+    HeapP_Handle rtos_heap_handle;
     uint32_t alloc_offset;
     app_mem_heap_prm_t heap_prm;
 } app_mem_heap_obj_t;
@@ -121,7 +118,7 @@ int32_t appMemInit(app_mem_init_prm_t *prm)
 
         heap_obj->is_valid = 0;
         heap_obj->alloc_offset = 0;
-        heap_obj->bios_heap_handle = NULL;
+        heap_obj->rtos_heap_handle = NULL;
 
         if ((heap_prm->base == NULL) || (heap_prm->size == 0))
         {
@@ -138,28 +135,24 @@ int32_t appMemInit(app_mem_init_prm_t *prm)
 
             if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_TYPE_LINEAR_ALLOCATE))
             {
-                /* no BIOS heap, linear allocator based on offset */
+                /* no rtos heap, linear allocator based on offset */
                 heap_obj->alloc_offset = 0;
             }
             else
             {
-                /* create a BIOS heap */
-                HeapMem_Params bios_heap_prm;
+                /* create a rtos heap */
+                HeapP_Params rtos_heap_prm;
 
-                HeapMem_Params_init(&bios_heap_prm);
-                bios_heap_prm.buf = APP_MEM_ALIGNPTR(
-                                                     heap_prm->base, APP_MEM_ALIGN_MIN_BYTES);
-                bios_heap_prm.size = APP_MEM_ALIGN32(
-                                                     heap_prm->size, APP_MEM_ALIGN_MIN_BYTES);
+                HeapP_Params_init(&rtos_heap_prm);
+                rtos_heap_prm.buf = APP_MEM_ALIGNPTR(
+                    heap_prm->base, APP_MEM_ALIGN_MIN_BYTES);
+                rtos_heap_prm.size = APP_MEM_ALIGN32(
+                    heap_prm->size, APP_MEM_ALIGN_MIN_BYTES);
 
-                HeapMem_construct(&heap_obj->bios_heap_struct, &bios_heap_prm);
+                heap_obj->rtos_heap_handle = HeapP_create(&rtos_heap_prm);
 
-                heap_prm->base = bios_heap_prm.buf;
-                heap_prm->size = bios_heap_prm.size;
-
-                heap_obj->bios_heap_handle = HeapMem_Handle_upCast(
-                                                                   HeapMem_handle(&heap_obj->bios_heap_struct)
-                                                                   );
+                heap_prm->base   = rtos_heap_prm.buf;
+                heap_prm->size   = rtos_heap_prm.size;
             }
         }
     }
@@ -181,14 +174,14 @@ int32_t appMemDeInit(void)
 
         if (heap_obj->is_valid)
         {
-            if (heap_obj->bios_heap_handle != NULL)
+            if(heap_obj->rtos_heap_handle != NULL)
             {
-                HeapMem_destruct(&heap_obj->bios_heap_struct);
+                HeapP_delete(&heap_obj->rtos_heap_handle);
             }
 
             heap_obj->is_valid = 0;
             heap_obj->alloc_offset = 0;
-            heap_obj->bios_heap_handle = NULL;
+            heap_obj->rtos_heap_handle = NULL;
         }
     }
 
@@ -231,34 +224,28 @@ void *appMemAlloc(uint32_t heap_id,
             }
             else
             {
-                if (heap_obj->bios_heap_handle != NULL)
+                if(heap_obj->rtos_heap_handle!=NULL)
                 {
-                    Error_Block eb;
+                    size  = APP_MEM_ALIGN32(size, APP_MEM_ALIGN_MIN_BYTES);
 
-                    Error_init(&eb);
+                    ptr = HeapP_alloc(heap_obj->rtos_heap_handle,
+                               size);
 
-                    size = APP_MEM_ALIGN32(size, APP_MEM_ALIGN_MIN_BYTES);
-                    align = APP_MEM_ALIGN32(align, APP_MEM_ALIGN_MIN_BYTES);
-
-                    ptr = Memory_alloc(heap_obj->bios_heap_handle,
-                                       size,
-                                       align,
-                                       &eb);
-
-                    if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_DO_CLEAR_ON_ALLOC))
+                   if(ptr!=NULL)
                     {
-                        memset(ptr, 0, size);
-                    }
-
-                    if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_IS_SHARED))
-                    {
-                        CacheP_wbInv(ptr, size);
+                        if ((heap_prm->flags & APP_MEM_HEAP_FLAGS_DO_CLEAR_ON_ALLOC))
+                        {
+                            memset(ptr, 0, size);
+                        }
+                        if( (heap_prm->flags & APP_MEM_HEAP_FLAGS_IS_SHARED))
+                        {
+                            CacheP_wbInv(ptr, size);
+                        }
                     }
                 }
             }
         }
     }
-
     return ptr;
 }
 
@@ -292,7 +279,7 @@ int32_t appMemFree(uint32_t heap_id,
             }
             else
             {
-                if (heap_obj->bios_heap_handle != NULL)
+                if(heap_obj->rtos_heap_handle != NULL && ptr != NULL && size != 0)
                 {
                     size = APP_MEM_ALIGN32(size, APP_MEM_ALIGN_MIN_BYTES);
 
@@ -301,7 +288,7 @@ int32_t appMemFree(uint32_t heap_id,
                         CacheP_wbInv(ptr, size);
                     }
 
-                    Memory_free(heap_obj->bios_heap_handle,
+                    HeapP_free(heap_obj->rtos_heap_handle,
                                 ptr,
                                 size);
 
@@ -355,13 +342,13 @@ int32_t appMemStats(uint32_t heap_id,
             }
             else
             {
-                if (heap_obj->bios_heap_handle != NULL)
+                if(heap_obj->rtos_heap_handle!=NULL)
                 {
-                    Memory_Stats bios_heap_stats;
+                    HeapP_MemStats rtos_heap_stats;
 
-                    Memory_getStats(heap_obj->bios_heap_handle, &bios_heap_stats);
+                    HeapP_getHeapStats(heap_obj->rtos_heap_handle, &rtos_heap_stats);
 
-                    stats->free_size = bios_heap_stats.totalFreeSize;
+                    stats->free_size = rtos_heap_stats.totalFreeSize;
 
                     status = 0;
                 }
