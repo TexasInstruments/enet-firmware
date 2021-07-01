@@ -105,11 +105,28 @@
 #include <ti/ndk/inc/_stack.h>
 #include <ti/ndk/inc/tools/servers.h>
 #include <ti/ndk/inc/tools/console.h>
+#else /* FREERTOS */
+/* lwIP core includes */
+#include "lwip/opt.h"
+#include "lwip/sys.h"
+#include "lwip/tcpip.h"
+#include "lwip/netif.h"
+#include "lwip/api.h"
+
+#include "lwip/tcp.h"
+#include "lwip/udp.h"
+#include "lwip/dhcp.h"
+
+/* lwIP netif includes */
+#include "lwip/etharp.h"
+#include "netif/ethernet.h"
+
+#include <ti/drv/enet/lwipif/inc/default_netif.h>
 #endif
 
 #if defined (FREERTOS)
 #define System_printf printf
-#define System_vprintf printf
+#define System_vprintf vprintf
 #endif
 
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL  (100)
@@ -122,6 +139,30 @@
 #define VQ_BUF_SIZE             (2048)
 #define REMOTE_DEVICE_ENDPT     (26)
 #define RPMSG_DATA_SIZE         (256 * 512 + IPC_RPMESSAGE_OBJ_SIZE)
+
+#if defined (FREERTOS)
+#define ETHAPP_LWIP_TASK_STACKSIZE      (4U * 1024U)
+
+/* lwIP features that EthFw relies on */
+#ifndef LWIP_IPV4
+#error "LWIP_IPV4 is not enabled"
+#endif
+#ifndef LWIP_NETIF_STATUS_CALLBACK
+#error "LWIP_NETIF_STATUS_CALLBACK is not enabled"
+#endif
+#ifndef LWIP_NETIF_LINK_CALLBACK
+#error "LWIP_NETIF_LINK_CALLBACK is not enabled"
+#endif
+
+/* DHCP or static IP */
+#define ETHAPP_LWIP_USE_DHCP            (1)
+#endif
+
+#if defined(FREERTOS)
+static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE]
+__attribute__ ((section(".bss:taskStackSection")))
+__attribute__((aligned(32)));
+#endif
 
 static uint8_t g_monitorStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
@@ -247,6 +288,11 @@ typedef struct CpswRemoteApp_Obj_s
     Enet_MacPort *macPorts;
     uint32_t numMacPorts;
     CpswRemoteApp_SyncTimerObj syncTimerObj;
+
+#if defined(FREERTOS)
+    /* DHCP network interface */
+    struct dhcp dhcpNetif;
+#endif
 } CpswRemoteApp_Obj;
 
 static Enet_MacPort gRemoteAppMacPorts[] =
@@ -283,7 +329,6 @@ char *VerStr = "NIMU CPSW Example";
 char *VerStr = "LWIP CPSW Example";
 #endif
 
-#if defined (SYSBIOS)
 static void CpswRemoteApp_initSyncTimer(void);
 
 static uint64_t CpswRemoteApp_getLocalTime(void);
@@ -292,6 +337,16 @@ static uint64_t CpswRemoteApp_getSynchronizedTime(void);
 
 static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
                                              uint64_t syncTime);
+
+#if defined (FREERTOS)
+static void EthApp_lwipMain(void *a0,
+                            void *a1);
+
+static void EthApp_initLwip(void *arg);
+
+static void EthApp_initNetif(void);
+
+static void EthApp_netifStatusCb(struct netif *netif);
 #endif
 
 // hack for release mode build fix TODO fix this
@@ -422,7 +477,6 @@ static void CpswRemoteApp_ipcPrint(const char *str)
     return;
 }
 
-#if defined (SYSBIOS)
 static void CpswRemoteApp_initSyncTimer(void)
 {
     int32_t status;
@@ -539,7 +593,6 @@ static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum, uint64_t
         hSyncTimerObj->prevCptsTime = syncTime;
     }
 }
-#endif /* defined (SYSBIOS) */
 
 static void rpmsg_vdevMonitorFxn(void* arg0,
                                  void* arg1)
@@ -675,6 +728,9 @@ int main(void)
 {
     TaskP_Handle task;
     TaskP_Params ipc_taskParams;
+#if defined(FREERTOS)
+    TaskP_Params taskParams;
+#endif
 
     /* Set ccsHaltFlag to 1 for halting core for CCS connection */
     volatile uint32_t ccsHaltFlag = 0U;
@@ -683,6 +739,17 @@ int main(void)
     {
         ;
     }
+
+#if defined(FREERTOS)
+    /* Initialize lwIP */
+    TaskP_Params_init(&taskParams);
+    taskParams.priority  = DEFAULT_THREAD_PRIO;
+    taskParams.stack     = &gEthAppLwipStackBuf[0];
+    taskParams.stacksize = sizeof(gEthAppLwipStackBuf);
+    taskParams.name      = "lwIP main loop";
+
+    TaskP_create(EthApp_lwipMain, &taskParams);
+#endif
 
     TaskP_Params_init(&ipc_taskParams);
     ipc_taskParams.priority = 2;
@@ -856,6 +923,100 @@ static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void)
 }
 
 #if defined (FREERTOS)
+static void EthApp_lwipMain(void *a0,
+                            void *a1)
+{
+    err_t err;
+    sys_sem_t initSem;
+
+    /* initialize lwIP stack and network interfaces */
+    err = sys_sem_new(&initSem, 0);
+    LWIP_ASSERT("failed to create initSem", err == ERR_OK);
+    LWIP_UNUSED_ARG(err);
+
+    tcpip_init(EthApp_initLwip, &initSem);
+
+    /* we have to wait for initialization to finish before
+     * calling update_adapter()! */
+    sys_sem_wait(&initSem);
+    sys_sem_free(&initSem);
+
+#if (LWIP_SOCKET || LWIP_NETCONN) && LWIP_NETCONN_SEM_PER_THREAD
+    netconn_thread_init();
+#endif
+}
+
+static void EthApp_initLwip(void *arg)
+{
+    sys_sem_t *initSem;
+
+    LWIP_ASSERT("arg != NULL", arg != NULL);
+    initSem = (sys_sem_t*)arg;
+
+    /* init randomizer again (seed per thread) */
+    srand((unsigned int)sys_now()/1000);
+
+    /* init network interfaces */
+    EthApp_initNetif();
+
+    sys_sem_signal(initSem);
+}
+
+static void EthApp_initNetif(void)
+{
+    ip4_addr_t ipaddr, netmask, gw;
+    err_t err;
+
+    ip4_addr_set_zero(&gw);
+    ip4_addr_set_zero(&ipaddr);
+    ip4_addr_set_zero(&netmask);
+
+#if ETHAPP_LWIP_USE_DHCP
+    appLogPrintf("Starting lwIP, local interface IP is dhcp-enabled\n");
+#else /* ETHAPP_LWIP_USE_DHCP */
+    LWIP_PORT_INIT_GW(&gw);
+    LWIP_PORT_INIT_IPADDR(&ipaddr);
+    LWIP_PORT_INIT_NETMASK(&netmask);
+    appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
+#endif /* ETHAPP_LWIP_USE_DHCP */
+
+    init_default_netif(&ipaddr, &netmask, &gw);
+
+    netif_set_status_callback(netif_default, EthApp_netifStatusCb);
+
+    dhcp_set_struct(netif_default, &gRemoteAppObj.dhcpNetif);
+
+    netif_set_up(netif_default);
+
+#if ETHAPP_LWIP_USE_DHCP
+    err = dhcp_start(netif_default);
+    if (err != ERR_OK)
+    {
+        appLogPrintf("Failed to start DHCP: %d\n", err);
+    }
+#endif /* ETHAPP_LWIP_USE_DHCP */
+}
+
+static void EthApp_netifStatusCb(struct netif *netif)
+{
+    if (netif_is_up(netif))
+    {
+        const ip4_addr_t *ipAddr = netif_ip4_addr(netif);
+
+        appLogPrintf("Added interface '%c%c%d', IP is %s\n",
+                     netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
+
+        if (ipAddr->addr != 0)
+        {
+            CpswRemoteApp_initSyncTimer();
+        }
+    }
+    else
+    {
+        appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
+    }
+}
+
 static void CpswRemoteApp_openLwipRxCh(CpswProxy_Handle hProxy,
                                        Enet_Handle hEnet,
                                        Udma_DrvHandle hUdmaDrv,
