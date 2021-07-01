@@ -612,7 +612,7 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
         CpswProxy_assert(rcvid != -1);
 #else
         mbxStatus = MailboxP_pend(hMailbox, &msg, MailboxP_WAIT_FOREVER);
-        CpswProxy_assert(mbxStatus == TRUE);
+        CpswProxy_assert(mbxStatus == MailboxP_OK);
 #endif
         switch (msg.req.cmd)
         {
@@ -886,7 +886,7 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
         CpswProxy_assert(msg.req.hResponseMbx != NULL);
         mbxStatus =
             MailboxP_post(msg.req.hResponseMbx, &msg, MailboxP_WAIT_FOREVER);
-        CpswProxy_assert(mbxStatus == TRUE);
+        CpswProxy_assert(mbxStatus == MailboxP_OK);
 #endif
     }
 }
@@ -1144,9 +1144,9 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     msg->req.cmd = cmd;
     msg->req.hResponseMbx = hResponseMbx;
     mbxStatus = MailboxP_post(hCmdMbx, msg, MailboxP_WAIT_FOREVER);
-    CpswProxy_assert(mbxStatus == TRUE);
+    CpswProxy_assert(mbxStatus == MailboxP_OK);
     mbxStatus = MailboxP_pend(hResponseMbx, msg, MailboxP_WAIT_FOREVER);
-    CpswProxy_assert(mbxStatus == TRUE);
+    CpswProxy_assert(mbxStatus == MailboxP_OK);
     CpswProxy_assert(msg->res.retVal == ENET_SOK);
 #endif
 }
