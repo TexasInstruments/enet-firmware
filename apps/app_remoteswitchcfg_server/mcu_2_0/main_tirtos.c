@@ -260,8 +260,6 @@ static void EthApp_initLwip(void *arg);
 static void EthApp_initNetif(void);
 
 static void EthApp_netifStatusCb(struct netif *netif);
-
-static void EthApp_linkCb(struct netif *netif);
 #endif
 
 /* ========================================================================== */
@@ -826,7 +824,6 @@ static void EthApp_initNetif(void)
     init_default_netif(&ipaddr, &netmask, &gw);
 
     netif_set_status_callback(netif_default, EthApp_netifStatusCb);
-    netif_set_link_callback(netif_default, EthApp_linkCb);
 
     dhcp_set_struct(netif_default, &gEthAppObj.dhcpNetif);
 
@@ -890,18 +887,6 @@ static void EthApp_netifStatusCb(struct netif *netif)
     else
     {
         appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
-    }
-}
-
-static void EthApp_linkCb(struct netif *netif)
-{
-    if (netif_is_link_up(netif))
-    {
-        appLogPrintf("Link up\n");
-    }
-    else
-    {
-        appLogPrintf("Link down\n");
     }
 }
 #else /* !FREERTOS */
