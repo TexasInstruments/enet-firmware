@@ -10,7 +10,7 @@ CPU_ID=mcu2_1
 TARGET      := app_remoteswitchcfg_client
 TARGETTYPE  := exe
 
-CSOURCES    := main_tirtos.c
+CSOURCES    := main.c
 ifeq ($(TARGET_OS),SYSBIOS)
   ASSEMBLY    := utilsCopyVecs2ATmc.asm
 else ifeq ($(TARGET_OS),FREERTOS)

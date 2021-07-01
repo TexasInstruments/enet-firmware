@@ -61,9 +61,9 @@
  */
 
 /**
- *  \file main_tirtos.c
+ *  \file main.c
  *
- *  \brief Main file for TI-RTOS build
+ *  \brief Main file for Ethernet Firmware server application.
  */
 
 /* ========================================================================== */

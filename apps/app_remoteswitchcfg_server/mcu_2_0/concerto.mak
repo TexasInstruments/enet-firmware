@@ -17,7 +17,7 @@ ifeq ($(BUILD_QNX_A72), yes)
   DEFS+=A72_QNX_OS
 endif
 
-CSOURCES    := main_tirtos.c
+CSOURCES    := main.c
 ifeq ($(TARGET_OS),SYSBIOS)
   CSOURCES    += $(foreach cfile,$(call all-c-files-in,$(SDIR)/webdata),webdata/$(cfile))
   ASSEMBLY    := utilsCopyVecs2ATmc.asm
@@ -101,7 +101,7 @@ include $(PRELUDE)
 TARGET      := app_remoteswitchcfg_server_ccs
 TARGETTYPE  := exe
 
-CSOURCES    := main_tirtos.c
+CSOURCES    := main.c
 ifeq ($(TARGET_OS),SYSBIOS)
   CSOURCES    += $(foreach cfile,$(call all-c-files-in,$(SDIR)/webdata),webdata/$(cfile))
   ASSEMBLY    := utilsCopyVecs2ATmc.asm

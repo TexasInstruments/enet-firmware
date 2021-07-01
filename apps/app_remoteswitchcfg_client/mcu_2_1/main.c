@@ -645,7 +645,7 @@ static void printDevInfo(struct rpmsg_kdrv_ethswitch_device_data *ethDevData)
                   ethDevData->fw_ver.commit_hash[5],
                   ethDevData->fw_ver.commit_hash[6],
                   ethDevData->fw_ver.commit_hash[7]);
-    System_printf("ETHFW PermissionFlag:0x%x, UART Connected:%s,UART Id:%d",
+    System_printf("ETHFW PermissionFlag:0x%x, UART Connected:%s,UART Id:%d\n",
                   ethDevData->permission_flags,
                   tf[ethDevData->uart_connected],
                   ethDevData->uart_id);
