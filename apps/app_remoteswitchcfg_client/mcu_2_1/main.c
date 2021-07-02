@@ -1008,6 +1008,20 @@ static void EthApp_netifStatusCb(struct netif *netif)
 
         if (ipAddr->addr != 0)
         {
+            gRemoteAppObj.ipv4Addr[0] = ip4_addr1_val(*ipAddr);
+            gRemoteAppObj.ipv4Addr[1] = ip4_addr2_val(*ipAddr);
+            gRemoteAppObj.ipv4Addr[2] = ip4_addr3_val(*ipAddr);
+            gRemoteAppObj.ipv4Addr[3] = ip4_addr4_val(*ipAddr);
+
+            localAssert(gRemoteAppObj.hCpswProxy != NULL);
+            localAssert(gRemoteAppObj.hEnet != NULL);
+
+            CpswProxy_registerIPV4Addr(gRemoteAppObj.hCpswProxy,
+                                       gRemoteAppObj.hEnet,
+                                       gRemoteAppObj.coreKey,
+                                       gRemoteAppObj.macAddr,
+                                       gRemoteAppObj.ipv4Addr);
+
             CpswRemoteApp_initSyncTimer();
         }
     }
