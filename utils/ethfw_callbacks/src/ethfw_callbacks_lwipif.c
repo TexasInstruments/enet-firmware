@@ -388,12 +388,21 @@ int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
     CpswAle_SetPolicerEntryInArgs polInArgs;
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
     Enet_IoctlPrms prms;
-    int32_t status;
+    int32_t status = ENET_SOK;
 
-    status = EnetAppUtils_allocRxFlow(hEnet, coreKey, coreId, rxFlowStartIdx, flowIdx);
-    if (status != ENET_SOK)
+    if (hDma == NULL)
     {
-        appLogPrintf("Failed to alloc RX flow for ARP traffic: %d\n", status);
+        appLogPrintf("Failed to get Enet DMA handle\n");
+        status = ENET_EFAIL;
+    }
+
+    if (status == ENET_SOK)
+    {
+        status = EnetAppUtils_allocRxFlow(hEnet, coreKey, coreId, rxFlowStartIdx, flowIdx);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed to alloc RX flow for ARP traffic: %d\n", status);
+        }
     }
 
     /* Open RX Flow */

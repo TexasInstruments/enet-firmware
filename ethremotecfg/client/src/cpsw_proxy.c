@@ -627,6 +627,9 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                                               sizeof(msg.res.u.ping.resp));
                 if (0 == msg.res.retVal)
                 {
+                    uint32_t respLen = sizeof(msg.res.u.ping.resp);
+
+                    msg.res.u.ping.resp[respLen - 1U] = '\0';
                     System_printf("%s: respose %s\n", __func__, msg.res.u.ping.resp);
                 }
 
