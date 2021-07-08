@@ -30,8 +30,8 @@ Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN ro
 
 This demo showcases switching capabilities of the integrated Ethernet Switch
 (CPSW9G or CPSW5G) found in J721E or J7200 devices for features like VLAN,
-Multicast, etc.  It also demonstrates TI NDK (TCP/IP stack) integration into
-the EthFw, incorporating a sample HTTP server.
+Multicast, etc.  It also demonstrates lwIP (TCP/IP stack) integration into
+the EthFw.
 
 
 ## Inter-VLAN Routing Demo {#ethfw_intervlan_demo}
@@ -67,7 +67,7 @@ Feature         | Comments
 ----------------|--------------
 L2 switching    | Support for configuration of the Ethernet Switch to enable L2 switching between external ports with VLAN, multi-cast
 Inter-VLAN routing | Inter-VLAN routing configuration in hardware with software fall-back support
-NDK integration | Integration of TCP/IP stack enabling TCP, UDP, HTTP apps
+lwIP integration | Integration of TCP/IP stack enabling TCP, UDP.
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
 
@@ -185,15 +185,65 @@ Enet LLD supports other Ethernet peripherals available in TI SoCs and provides a
 unified interface to program them.
 
 
-### NDK {#ethfw_depend_ndk}
+### lwIP {#ethfw_depend_lwip}
 
-The Network Developer's Kit (NDK) is a platform for development of network
-enabled applications on TI embedded processors.
+lwIP is a free TCP/IP stack developed by Adam Dunkels at the Swedish Institute of
+Computer Science (SICS) and licensed under a modified BSD license (completely
+open-source).
 
-NDK provides the TCP/IP stack which used in EthFw for running local TCP/IP applications
-and for running switch resident protocols like telnet and EAPoL, as shown in the
-Ethernet Switch Software Architecture diagram in the @ref ethfw_c_ug_fw_architecture
-section.
+The focus of the LwIP TCP/IP implementation is to reduce RAM usage while keeping a
+full scale TCP/IP stack thus making it suitable for our requirements.
+
+LwIP supports the following features:
+
+- IPv4 and IPv6 (Internet Protocol v4 and v6)
+- ICMP (Internet Control Message Protocol) for network maintenance and debugging
+- IGMP (Internet Group Management Protocol) for multicast traffic management
+- UDP (User Datagram Protocol)
+- TCP (Transmission Control Protocol)
+- DNS (Domain Name Server)
+- SNMP (Simple Network Management Protocol)
+- DHCP (Dynamic Host Configuration Protocol)
+- PPP (Point to Point Protocol)
+- ARP (Address Resolution Protocol)
+
+Starting in SDK 8.0, Ethernet Firmware has been migrated to lwIP stack.  The actual
+integration of lwIP into J721E/J7200 devices is done through Enet LLD, which
+implements the lwIP netif driver interface.
+
+The Enet LLD lwIP driver interface implementation can be located at:
+`<pdk>/packages/ti/drv/enet/lwipif/src`.
+
+The lwIP configuration file (lwipopts.h) contains the lwIP stack features that are
+enabled by default in the Enet LLD driver implementation, such as TCP, UDP, DHCP, etc.
+It's located at `<pdk>/packages/ti/drv/enet/lwipif/ports/freertos/include/lwipopts.h`.
+User should also refer to this file if interested on enabling any of the different
+lwIP debug options.
+
+The lwIP pool configuration file (lwippools.h) contains the different pools and their
+sizes required by the Enet LLD lwIP interface implementation. This file is located at
+`<pdk>/packages/ti/drv/enet/lwipif/ports/freertos/include/lwippools.h`.
+
+#### Ethernet Firmware Proxy ARP {#ethfw_depend_lwip_proxyarp}
+
+Enet LLD lwIP interface implementation provides a hook to let application *process*
+a packet and indicate whether the packet needs additional handling (i.e. be passed to
+the lwIP stack) or if the packet can be recycled (i.e. already handled by the
+application).
+
+This feature enables Ethernet Firmware to implement Proxy ARP functionality needed to
+respond to ARP Request packets on behalf of Ethernet Firmware's remote core clients
+as broadcast packets are passed exclusively to Main R5F core 0, not to each individual
+remote core.
+
+Ethernet Firmware sets up a dedicated UDMA RX flow where packets that have ARP
+EtherType and broadcast destination MAC address are routed to.  While lwIP interface
+is processing packets from this RX flow, it will call the *packet processing* function
+registered by Ethernet Firmware.  Ethernet Firmware then checks if the packet is meant
+for any of its remote core clients, if so, it responds on its behalf and packet is
+recycled as it needs not be passed to lwIP stack.  If the packet is not meant to any
+of the remote cores, it's simply passed to the lwIP stack, ARP request packets meant
+for Ethernet Firmware itself fall into this processing category.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -285,8 +335,8 @@ makefile. The default paths in `ethfw_tools_path.mak` are defined based on the a
 that the EthFw package has been installed inside the Processor SDK main directory.
 
 Typically, the Processor SDK installation path is `~/ti` in Linux-based systems.
-So, a typical EthFw installation would be at `~/ti/ethfw_xx_yy_zz_bb`. In this case,
-no additional environment setup steps are required.
+So, a typical EthFw installation would be at `~/ti/ti-processor-sdk-rtos-j721e-evm-08_xx_yy_zz`.
+In this case, no additional environment setup steps are required.
 
 If either Processor SDK or EthFw have been installed at different locations that those
 mentioned in previous paragraph, the following variables can be passed to the make
@@ -312,23 +362,27 @@ The make commands listed below require the environment setup according to
 
 ### Build All {#ethfw_build_all}
 
-Build EthFw components as well as its dependencies, including PDK, NDK, etc.
+Build EthFw components as well as its dependencies, including PDK, lwIP, etc.
 
-    make ethfw_all
+    make ethfw_all BUILD_SOC_LIST=J721E
+
+or
+
+    make ethfw_all BUILD_SOC_LIST=J7200
 
 Verbose build can be enabled by setting the **SHOW_COMMANDS** variable as
 shown below:
 
-    make ethfw_all SHOW_COMMANDS=1
+    make ethfw_all BUILD_SOC_LIST=<SOC> SHOW_COMMANDS=1
 
 On successful compilation, the output folder would be created at
-`<ethfw_xx.yy.xx.bb>/out`.
+`<ethfw>/out`.
 
 ### QNX Build {#ethfw_qnx_build_all}
 
 Build EthFw components for QNX OS integration running on A72.
 
-    make ethfw_all BUILD_QNX_A72=yes
+    make ethfw_all BUILD_SOC_LIST=<SOC> BUILD_QNX_A72=yes
 
 For QNX integration, the **BUILD_QNX_A72** flag will make sure that EthFW would not
 load the IPC resource table, unlike in Linux.
@@ -366,11 +420,11 @@ Remove EthFw build output directory only.
 
 - **Debug**: Mostly used to development or debugging
 
-      make ethfw_all PROFILE=debug
+      make ethfw_all BUILD_SOC_LIST=<SOC> PROFILE=debug
 
 - **Release**: Recommended to be used for optimized components and production builds
 
-      make ethfw_all PROFILE=release
+      make ethfw_all BUILD_SOC_LIST=<SOC> PROFILE=release
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -445,6 +499,7 @@ Flag                       | Description
 `-D=R5F="R5F"`             | Identifies the core type as ARM R5F
 `-D=ARCH_32`               | Identifies the architecture as 32-bit
 `-D=SYSBIOS`               | Identifies as TI RTOS operating system build
+`-D=FREERTOS`              | Identifies as FreeRTOS operating system build
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -471,6 +526,7 @@ Flag                       | Description
 `-D=R5F="R5F"`             | Identifies the core type as ARM R5F
 `-D=ARCH_32`               | Identifies the architecture as 32-bit
 `-D=SYSBIOS`               | Identifies as TI RTOS operating system build
+`-D=FREERTOS`              | Identifies as FreeRTOS operating system build
 
 
 [Back To Top](@ref ethfw_c_ug_top)

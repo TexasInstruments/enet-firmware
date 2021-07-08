@@ -32,3 +32,4 @@ Revision | Date          | Author                 | Description
 0.1      | 02 Apr 2019   | Prasad J, Misael Lopez | Added as per 0.8 Docs review meeting
 0.2      | 14 Oct 2019   | Prasad J               | Updated stack diagram
 1.0      | 02 Nov 2020   | Misael Lopez           | Updated for Enet LLD migration
+1.1      | 08 Jul 2021   | Misael Lopez           | Updates for v.8.00.00

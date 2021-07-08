@@ -16,7 +16,7 @@ or DMA bandwidth as everything is completely handled by CPSW hardware.
 The intention behind this demo which encompasses multiple sub-demos is to show
 the switching capabilities of the J721E/J7200 integrated Ethernet Switch
 (CPSW9G or CPSW5G) as well as the software developed which includes Enet low-level
-driver (Enet LLD), TI NDK TCP/IP integration and Ethernet Switch Firmware
+driver (Enet LLD), lwIP TCP/IP integration and Ethernet Switch Firmware
 (EthFw) application.
 
 Below are top-level features demonstrated:
@@ -24,7 +24,6 @@ Below are top-level features demonstrated:
  - Basic L2 switching
  - Switching with VLAN
  - Multicast switching
- - HTTP server
  - Send/receive packets over TCP/UDP
  - Support for remote cores (Linux and TI RTOS)
  - Software-based interVLAN routing
@@ -38,9 +37,9 @@ The Ethernet Firmware demo application is in charge of:
 
  - Opening the CPSW modules like ALE, MAC ports, host port and UDMA
  - Opening and configuring the MAC ports along with corresponding PHYs
-   present in the GESI expansion board at RGMII/RMII 1Gbps mode
- - Initializing NDK stack
- - Configuring the HTTP and TCP/IP data servers
+   present in the GESI expansion board at RGMII/RMII 1Gbps mode in J721E EVM,
+   or the QpENet expansion board in J7200 EVM.
+ - Initializing lwIP stack
 
 This application runs on the GESI (Gateway/Ethernet Switch/Industrial Expansion
 Board) board in J721E devices and on the QPENet (Quad Port Eth Expansion Board)
@@ -53,9 +52,6 @@ The connection diagram is shown below.
 
 > **Note:** The IP addresses in above diagram can change based on your network
 > configuration.
-
-The demo application has a HTTP server hosting a web page which can be accessed
-by any external device connected to the CPSW switch.
 
 A GUI-based control interface to enable/disable/configure features like VLAN,
 multicast, rate limiting, interVLAN routing and also to show the load of the
@@ -75,7 +71,7 @@ to the switch can easily access it.
 > using and configuring it.
 
 A  Remote Client application for the Main R5F core 1 is also available as part
-of this demo.  This application runs a local NDK stack on a virtual network
+of this demo.  This application runs a local lwIP stack on a virtual network
 device which demonstrates the TI RTOS switch remote core integration.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -376,19 +372,19 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
    in SD card.
    For J721E using SYSBIOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
 
    For J721E using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
 
    For J7200 using SYSBIOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
 
    For J7200 using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
 
 -# If needed, update the soft-link `j7-main-r5f0_0-fw` or `j7200-main-r5f0_0-fw`
    to point to the demo application copied to SD card in the previous step.
@@ -406,25 +402,25 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
    of Linux filesystem in SD card and update soft-link:
    For J721E using SYSBIOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7-main-r5f0_1-fw
 
    For J721E using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7-main-r5f0_1-fw
 
    For J7200 using SYSBIOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/SYSBIOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
 
    For J7200 using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw_xx_xx_xx/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
 
@@ -480,21 +476,6 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 The IPs assigned dynamically to Main R5F cores 0 and 1 will be printed in the
 UART2 serial terminal.
-
-
-## HTTP Server {#ethfw_http_client_page}
-
-A HTTP server is also part of the demo application running in the Main R5F
-core 0. The following is a snapshot of the webpage loaded when client accesses
-the HTTP server on J721E/J7200 EVM using a web browser: `http://192.168.1.<r5f_0>`.
-
-![](tcpipdemopage.png "TCP/IP HTTP Server Landing Page")
-
-Also, if Main R5F core 1 has been loaded with the remote client application,
-then a second HTTP server running on that core can be access from either PC
-connected to the switch using a web browser: `http://192.168.1.<r5f_1>`.
-
-[Back To Top](@ref demo_ethfw_combined_top)
 
 
 ## Plex TV {#ethfw_plex_tv_usage}
@@ -555,10 +536,6 @@ the external devices, **PC 1** or **PC 2**.
    needed.
 
        iperf -c 192.168.1.<a72> -t 20 -i 1
-
--# Simultaneously, access the HTTP server at `http://192.168.1.<r5f_0>` from the
-   same PC shows traffic being steered towards different processing cores (A72
-   or R5F).
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -786,9 +763,9 @@ Below is a sample log from the execution of this demo application.
 #### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart_j721e}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+Enabling clocks!
 =======================================================
-            CPSW Ethernet Firmware                     
+            CPSW Ethernet Firmware
 =======================================================
 CPSW_9G Test on MAIN NAVSS
 EnetPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
@@ -800,55 +777,68 @@ PHY 12 is alive
 PHY 23 is alive
 
 ETHFW Version   : 0.01.01
-ETHFW Build Date: Nov  9, 2020
-ETHFW Build Time: 16:40:37
-ETHFW Commit SHA: 518142f5
+ETHFW Build Date: Jul  8, 2021
+ETHFW Build Time: 21:41:15
+ETHFW Commit SHA: c24ec9f3
 
+Starting lwIP, local interface IP is dhcp-enabled
 Host MAC address: 70:ff:76:1d:92:c2
+[LWIPIF_LWIP] Enet has been started successfully
+[LWIPIF_LWIP] NETIF INIT SUCCESS
+Added interface 'ti1', IP is 0.0.0.0
 IPC_echo_test (core : mcu2_0) .....
-[NIMU_NDK] ENET has been started successfully
 Remote demo device (core : mcu2_0) .....
+Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:6
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:179, FlowIdxOffset:7
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:12, Policer Entry:1Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
 Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
 Cpsw_handleLinkUp: Port 4: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
+Added interface 'ti1', IP is 192.168.50.55
+Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.50.58
 
-CPSW NIMU application, IP address I/F 1: 192.168.1.20
-
+ SNo.      IP Address          MAC Address
+------    -------------     -----------------
+  1       192.168.50.58     70:ff:76:1d:92:c3
 EthFw: TimeSync PTP enabled
+Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a288200c,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-0, Timer:1, PushNum:2
 Rx Flow for Software Inter-VLAN Routing is up
-Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:6
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:178, FlowIdxOffset:6
-Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:12, Policer Entry:2Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.1.22
-
-================LLI Table entries=========== 
-
-Number of Static ARP Entries: 1 
-
-SNo.      IP Address         MAC Address  
-------    -------------      --------------- 
-1         192.168.1.22       70:FF:76:1D:92:C3
-Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2bee00c,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-0, Timer:1, PushNum:2
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-#### SysMin Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j721e}
+#### CCS Console Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j721e}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Remote device (core : mpu2_1) .....
+Sciclient_ccs_init Passed.
+SCISERVER Board Configuration header population... PASSED
+[MAIN_Cortex_R5_0_1] Remote device (core : mpu2_1) .....
 IPC_echo_test (core : mcu2_1) .....
+Starting lwIP, local interface IP is dhcp-enabled
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
 Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
 Registered a device name = mcu_2_1_ethswitch-device-0, id = 0, type = 3
 ETHFW Version: 0. 1. 1
-ETHFW Build Date (YYYY/MMM/DD):2020/Nov/ 9
-ETHFW Commit SHA:518142f5
-ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:2Function:CpswProxy_cmdHandler,Handle:@a2bee00c,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
-[NIMU_NDK] Registration of the ENET Successful
-CPSW NIMU application, IP address I/F 1: 192.168.1.22
-
+ETHFW Build Date (YYYY/MMM/DD):2021/Jul/ 8
+ETHFW Commit SHA:c24ec9f3
+ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:2
+Function:CpswProxy_cmdHandler,Handle:a288200c,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
+[LWIPIF_LWIP] Enet has been started successfully
+[LWIPIF_LWIP] NETIF INIT SUCCESS
+Added interface 'ti1', IP is 0.0.0.0
+Added interface 'ti1', IP is 192.168.50.58
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Back To Top](@ref demo_ethfw_combined_top)
@@ -859,9 +849,9 @@ CPSW NIMU application, IP address I/F 1: 192.168.1.22
 #### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart_j7200}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+Enabling clocks!
 =======================================================
-            CPSW Ethernet Firmware                     
+            CPSW Ethernet Firmware
 =======================================================
 CPSW_5G Test on MAIN NAVSS
 EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
@@ -877,61 +867,70 @@ PHY 19 is alive
 PHY 23 is alive
 
 ETHFW Version   : 0.01.01
-ETHFW Build Date: Nov  9, 2020
-ETHFW Build Time: 19:10:03
-ETHFW Commit SHA: 518142f5
+ETHFW Build Date: Jul  8, 2021
+ETHFW Build Time: 22:23:33
+ETHFW Commit SHA: c24ec9f3
 
-Host MAC address: 70:ff:76:1d:a1:92
+Starting lwIP, local interface IP is dhcp-enabled
+Host MAC address: 70:ff:76:1d:92:c2
+[LWIPIF_LWIP] Enet has been started successfully
+[LWIPIF_LWIP] NETIF INIT SUCCESS
+Added interface 'ti1', IP is 0.0.0.0
 IPC_echo_test (core : mcu2_0) .....
-[NIMU_NDK] ENET has been started successfully
 Remote demo device (core : mcu2_0) .....
-CpswMacPort_checkSgmiiStatus: MAC 0: SGMII link parter config port: link up: 1-Gbps Full-Duplex
-Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:5
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3, FlowIdx:90, FlowIdxOffset:6
+Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:8, Policer Entry:1Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
 CpswMacPort_checkSgmiiStatus: MAC 1: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+CpswMacPort_checkSgmiiStatus: MAC 2: SGMII link parter config port: link up: 1-Gbps Full-Duplex
 Cpsw_handleLinkUp: Port 2: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
+Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c3 IPv4Addr:192.168.50.58
 
-CPSW NIMU application, IP address I/F 1: 192.168.1.28
-
+ SNo.      IP Address          MAC Address
+------    -------------     -----------------
+  1       192.168.50.58     70:ff:76:1d:92:c3
+Added interface 'ti1', IP is 192.168.50.55
+Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a287c00c,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-0, Timer:1, PushNum:2
 EthFw: TimeSync PTP enabled
 Rx Flow for Software Inter-VLAN Routing is up
-Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:5
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:a1:93, FlowIdx:90, FlowIdxOffset:6
-Cpsw_ioctlInternal: CPSW: Registered MAC address.ALE entry:9, Policer Entry:2Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_registerIpv4MacHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, MacAddress:70:ff:76:1d:a1:93 IPv4Addr:192.168.1.25
-
-================LLI Table entries=========== 
-
-Number of Static ARP Entries: 1 
-
-SNo.      IP Address         MAC Address  
-------    -------------      --------------- 
-1         192.168.1.25       70:FF:76:1D:A1:93
-Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2bec00c,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-0, Timer:1, PushNum:2
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-#### SysMin Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j7200}
+#### CCS Console Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j7200}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Remote device (core : mpu2_1) .....
+Sciclient_ccs_init Passed.
+SCISERVER Board Configuration header population... PASSED
+[MAIN_Cortex_R5_0_1] Remote device (core : mpu2_1) .....
 IPC_echo_test (core : mcu2_1) .....
+Starting lwIP, local interface IP is dhcp-enabled
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
 Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
 Registered a device name = mcu_2_1_ethswitch-device-0, id = 0, type = 3
 ETHFW Version: 0. 1. 1
-ETHFW Build Date (YYYY/MMM/DD):2020/Nov/ 9
-ETHFW Commit SHA:518142f5
-ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:3Function:CpswProxy_cmdHandler,Handle:@a2bec00c,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
-[NIMU_NDK] Registration of the ENET Successful
-CPSW NIMU application, IP address I/F 1: 192.168.1.25
-
-Current Synchronized time in Epoch format: ld
-
+ETHFW Build Date (YYYY/MMM/DD):2021/Jul/ 8
+ETHFW Commit SHA:c24ec9f3
+ETHFW PermissionFlag:0x7ffffff, UART Connected:true,UART Id:3
+Function:CpswProxy_cmdHandler,Handle:a287c00c,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsumEnabled:1
+[LWIPIF_LWIP] Enet has been started successfully
+[LWIPIF_LWIP] NETIF INIT SUCCESS
+Added interface 'ti1', IP is 0.0.0.0
+Added interface 'ti1', IP is 192.168.50.58
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -949,3 +948,4 @@ Revision | Date          | Author                 | Description
 0.5      | 03 Jun 2020   | Santhana Bharathi N    | Updates for v.7.00.00 (Updated logs and added instructions for TimeSync)
 1.0      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
 1.1      | 10 Nov 2020   | Misael Lopez           | Updates for v.7.01.00
+1.2      | 08 Jul 2021   | Misael Lopez           | Updates for v.8.00.00
