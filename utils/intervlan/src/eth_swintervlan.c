@@ -711,7 +711,7 @@ static void CpswApp_pktRxTx(void)
     EnetDma_Pkt *pktInfo;
     EthVlanFrame *frame;
     uint32_t rxReadyCnt;
-    bool isSemPosted;
+    SemaphoreP_Status semStatus;
     uint32_t iterationCount = 0;
     volatile bool testDone = false;
 
@@ -759,9 +759,8 @@ static void CpswApp_pktRxTx(void)
             EnetDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
 
             /* Pend on semaphore notification event from Rx Completion ISR */
-            isSemPosted = SemaphoreP_pend(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
-
-            if (false == isSemPosted)
+            semStatus = SemaphoreP_pend(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
+            if (semStatus != SemaphoreP_OK)
             {
                 iterationCount++;
                 if ((iterationCount & 0x7FF) == 0)
