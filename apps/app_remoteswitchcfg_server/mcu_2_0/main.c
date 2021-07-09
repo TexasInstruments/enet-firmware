@@ -149,24 +149,26 @@
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
-#define ETHAPP_OK                       (0)
+#define ETHAPP_OK                               (0)
 
-#define ETHAPP_ERROR                    (-1)
+#define ETHAPP_ERROR                            (-1)
 
-#define ETHAPP_TRACEBUF_FLUSH_PERIOD    (5ULL)
+#define ETHAPP_TRACEBUF_FLUSH_PERIOD_IN_MSEC    (500U)
 
-#define IPC_TRACEBUF_SIZE               (0x80000U)
+#define IPC_TRACEBUF_SIZE                       (0x80000U)
 
-#define VQ_BUF_SIZE                     (2048U)
+#define VQ_BUF_SIZE                             (2048U)
 
-#define IPC_RPMESSAGE_OBJ_SIZE          (256U)
+#define IPC_RPMESSAGE_OBJ_SIZE                  (256U)
 
-#define RPMSG_DATA_SIZE                 ((256U * 512U) + IPC_RPMESSAGE_OBJ_SIZE)
+#define RPMSG_DATA_SIZE                         ((256U * 512U) + IPC_RPMESSAGE_OBJ_SIZE)
 
-#define ARRAY_SIZE(x)                   (sizeof((x)) / sizeof(x[0U]))
+#define ARRAY_SIZE(x)                           (sizeof((x)) / sizeof(x[0U]))
 
 #if defined (FREERTOS)
-#define ETHAPP_LWIP_TASK_STACKSIZE      (4U * 1024U)
+#define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
+
+#define ETHAPP_TRACEBUF_TASK_STACKSIZE          (1U * 1024U)
 
 /* lwIP features that EthFw relies on */
 #ifndef LWIP_IPV4
@@ -228,7 +230,7 @@ typedef struct
     uint32_t traceBufSize;
 
     /* Timestamp of last IPC trace buffer flush */
-    uint64_t traceBufLastFlushTicks;
+    uint64_t traceBufLastFlushTicksInUsecs;
 
 #if defined(FREERTOS)
     /* DHCP network interface */
@@ -265,13 +267,17 @@ static void EthApp_initLwip(void *arg);
 static void EthApp_initNetif(void);
 
 static void EthApp_netifStatusCb(struct netif *netif);
+
+static void EthApp_traceBufFlush(void* arg0, void* arg1);
 #endif
+
+void EthApp_traceBufCacheWb(void);
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
 /* ========================================================================== */
 
-/* None */
+extern char Ipc_traceBuffer[IPC_TRACEBUF_SIZE];
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -365,6 +371,8 @@ static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss
 
 #if defined(FREERTOS)
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(32)));
+
+static uint8_t gEthAppTraceBufFlushBuf[ETHAPP_TRACEBUF_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(32)));
 #endif
 
 static uint8_t gEthAppIpcInitStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
@@ -521,11 +529,30 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
     int32_t status;
+#if defined(FREERTOS)
+    TaskP_Params taskParams;
+#endif
 
     /* Step 1: Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gEthAppRemoteProc[0]);
 
     appLogPrintf("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
+
+    /* Trace buffer */
+    gEthAppObj.traceBufAddr = (uint8_t *)Ipc_traceBuffer;
+    gEthAppObj.traceBufSize = IPC_TRACEBUF_SIZE;
+    gEthAppObj.traceBufLastFlushTicksInUsecs = 0ULL;
+
+#if defined(FREERTOS)
+    /* Task to flush IPC traceBuf */
+    TaskP_Params_init(&taskParams);
+    taskParams.priority  = 0;
+    taskParams.stack     = &gEthAppTraceBufFlushBuf[0];
+    taskParams.stacksize = sizeof(gEthAppTraceBufFlushBuf);
+    taskParams.name      = "IPC tracebuf flush";
+
+    TaskP_create(EthApp_traceBufFlush, &taskParams);
+#endif
 
     /* Initialize params with defaults */
     IpcInitPrms_init(0U, &initPrms);
@@ -622,10 +649,6 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
         }
     }
 
-    /* Trace buffer */
-    gEthAppObj.traceBufAddr = Ipc_getResourceTraceBufPtr();
-    gEthAppObj.traceBufSize = IPC_TRACEBUF_SIZE;
-    gEthAppObj.traceBufLastFlushTicks = 0ULL;
 }
 
 static int32_t EthApp_initEthFw(void)
@@ -896,6 +919,15 @@ static void EthApp_netifStatusCb(struct netif *netif)
         appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
     }
 }
+
+static void EthApp_traceBufFlush(void* arg0, void* arg1)
+{
+    while (1)
+    {
+        TaskP_sleepInMsecs(ETHAPP_TRACEBUF_FLUSH_PERIOD_IN_MSEC);
+        EthApp_traceBufCacheWb();
+    }
+}
 #else /* !FREERTOS */
 void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)
@@ -1034,18 +1066,17 @@ static void EthApp_startHwInterVlan(char *recvBuff,
 }
 
 /* IPC trace buffer flush */
-
 void EthApp_traceBufCacheWb(void)
 {
-    uint64_t newticks = TimerP_getTimeInUsecs();
+    uint64_t newticksInUsecs = TimerP_getTimeInUsecs();
 
     /* Don't keep flusing cache */
-    if ((newticks - gEthAppObj.traceBufLastFlushTicks) >=
-        (uint64_t)ETHAPP_TRACEBUF_FLUSH_PERIOD)
+    if ((newticksInUsecs - gEthAppObj.traceBufLastFlushTicksInUsecs) >=
+        (uint64_t)(ETHAPP_TRACEBUF_FLUSH_PERIOD_IN_MSEC * 1000))
     {
-        gEthAppObj.traceBufLastFlushTicks = newticks;
+        gEthAppObj.traceBufLastFlushTicksInUsecs = newticksInUsecs;
 
-        /* Flush the cache of the SysMin buffer only */
+        /* Flush the cache of the traceBuf buffer */
         if (gEthAppObj.traceBufAddr != NULL)
         {
             CacheP_wb((const void *)gEthAppObj.traceBufAddr,
