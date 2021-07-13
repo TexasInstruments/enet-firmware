@@ -209,17 +209,35 @@ demo.
 
 -# Set the **PC 1** IP to `192.168.1.<pc1>` and the restart the DHCP server.
 
--# **Optional** - If dynamic IP configuration is not possible, static IPs can
-   be setup as follows:
+### Static IP (Optional) {#demo_ethfw_static_ip}
 
-   * For Linux,
+If dynamic IP configuration is not possible, static IPs can be setup as follows:
 
-         sudo ifconfig <ethDeviceName> 192.168.1.x netmask 255.255.255.0 up
+-# For Ethernet Firmware server, set below flag in `ethfw/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`
+   to disable DHCP and use static IP instead:
 
-   * For Windows, refer to the following
-     [website](https://www.howtogeek.com/howto/19249/how-to-assign-a-static-ip-address-in-xp-vista-or-windows-7/)
-     for suggested instructions about static IP configuration under a Windows
-     environment.
+       #define ETHAPP_LWIP_USE_DHCP            (0)
+
+   The static IP address, gateway and netmask can be set also in the same file.
+
+       #define ETHFW_CLIENT_IPADDR(addr)       IP4_ADDR((addr), 192,168,1,201)
+       #define ETHFW_CLIENT_GW(addr)           IP4_ADDR((addr), 192,168,1,1)
+       #define ETHFW_CLIENT_NETMASK(addr)      IP4_ADDR((addr), 255,255,255,0)
+
+-# For RTOS client application, set below flag in `ethfw/apps/app_remoteswitchcfg_client/mcu_2_1/main.c`:
+
+       #define ETHAPP_LWIP_USE_DHCP            (0)
+
+   The static IP address, gateway and netmask can be set also in the same file.
+
+-# For Linux,
+
+       sudo ifconfig <ethDeviceName> 192.168.1.x netmask 255.255.255.0 up
+
+-# For Windows, refer to the following
+   [website](https://www.howtogeek.com/howto/19249/how-to-assign-a-static-ip-address-in-xp-vista-or-windows-7/)
+   for suggested instructions about static IP configuration under a Windows
+   environment.
 
     Device                                    |  IP address
     ----------------------------------------- | -------------
