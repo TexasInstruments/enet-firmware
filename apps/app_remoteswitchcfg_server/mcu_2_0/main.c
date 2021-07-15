@@ -277,7 +277,9 @@ void EthApp_traceBufCacheWb(void);
 /*                          Extern variables                                  */
 /* ========================================================================== */
 
+#if defined(FREERTOS)
 extern char Ipc_traceBuffer[IPC_TRACEBUF_SIZE];
+#endif
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -538,11 +540,6 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
 
     appLogPrintf("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
 
-    /* Trace buffer */
-    gEthAppObj.traceBufAddr = (uint8_t *)Ipc_traceBuffer;
-    gEthAppObj.traceBufSize = IPC_TRACEBUF_SIZE;
-    gEthAppObj.traceBufLastFlushTicksInUsecs = 0ULL;
-
 #if defined(FREERTOS)
     /* Task to flush IPC traceBuf */
     TaskP_Params_init(&taskParams);
@@ -569,6 +566,18 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
 #else
     appLogPrintf("Skipping Ipc_loadResourceTable for QNX (core : %s) .....\r\n", Ipc_mpGetSelfName());
 #endif
+
+    if (status == ENET_SOK)
+    {
+        /* Trace buffer */
+#if defined(FREERTOS)
+        gEthAppObj.traceBufAddr = (uint8_t *)Ipc_traceBuffer;
+#else
+        gEthAppObj.traceBufAddr = Ipc_getResourceTraceBufPtr();
+#endif
+        gEthAppObj.traceBufSize = IPC_TRACEBUF_SIZE;
+        gEthAppObj.traceBufLastFlushTicksInUsecs = 0ULL;
+    }
 
     if (status == ENET_SOK)
     {
