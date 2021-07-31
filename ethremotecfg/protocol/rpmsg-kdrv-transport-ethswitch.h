@@ -506,17 +506,17 @@ enum rpmsg_kdrv_ethswitch_client_notify_type
 /*!
  * Maximum length of ethernet switch remote device message data in rpmsg_kdrv_ethswitch_ping_request
  */
-#define RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN    (128)
+#define RPMSG_KDRV_TP_ETHSWITCH_MESSAGE_DATA_LEN    (192)
 
 /*!
  * Maximum length of input arguments for RPMSG_KDRV_TP_ETHSWITCH_IOCTL
  */
-#define RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN    (128)
+#define RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN    (192)
 
 /*!
  * Maximum length of output arguments for RPMSG_KDRV_TP_ETHSWITCH_IOCTL
  */
-#define RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN    (128)
+#define RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN    (192)
 
 
 /*!
