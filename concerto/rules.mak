@@ -30,12 +30,7 @@ all:
 .SUFFIXES:
 
 # Define our pathing and default variable values
-ifeq ($(HOST_OS),CYGWIN)
-HOST_ROOT ?= $(shell cygpath -m ${abspath .})
-else
 HOST_ROOT ?= $(abspath .)
-endif
-
 BUILD_FOLDER ?= concerto
 CONCERTO_ROOT ?= $(HOST_ROOT)/$(BUILD_FOLDER)
 BUILD_OUTPUT ?= out
@@ -51,6 +46,7 @@ TARGET_BUILD?=production
 else
 TARGET_BUILD?=release
 endif
+TREAT_WARNINGS_AS_ERROR ?= 1
 
 # Define the prelude and finale files so that SUBMAKEFILEs know what they are
 # And if the users go and make -f concerto.mak then it will not work right.
@@ -78,7 +74,7 @@ include $(CONCERTO_ROOT)/shell.mak
 TARGET_COMBOS ?= PC:$(HOST_OS):$(HOST_CPU):0:$(TARGET_BUILD):$(HOST_COMPILER)
 
 # Find all the Makfiles in the subfolders, these will be pulled in to make
-TARGET_MAKEFILES := $(filter %$(SUBMAKEFILE),$(sort $(foreach d,$(DIRECTORIES),$(strip $(call rwildcard,$(d)/,*.mak)))))
+TARGET_MAKEFILES := $(filter %/$(SUBMAKEFILE),$(sort $(foreach d,$(DIRECTORIES),$(strip $(call rwildcard,$(d)/,*.mak)))))
 
 $(info TARGET_MAKEFILES=$(TARGET_MAKEFILES))
 
@@ -237,16 +233,25 @@ help:
 	$(PRINT) "PREBUILT_LIBS - the location where prebuilt libraries are located. Defaults to 'prebuilt_libs'"
 	$(PRINT) "BUILD_PLATFORM - the location and name of the platform specializing makefile. Defaults to 'CONCERTO_ROOT'/platform.mak"
 	$(PRINT) "TARGET_BUILD - Either 'release' (default) or 'debug'."
+	$(PRINT) "TREAT_WARNINGS_AS_ERROR=1 Enables the compiler flag that treats warnings as error"
 	$(PRINT)
 
 
+ifeq ($(HOST_OS),Windows_NT)
 define RELEASE_OUT
-	-$(PRINT) Copying built libraries: $(1)   to    $(2)
+	$(PRINT) Copying built libraries: $(1)   to    $(2)
+	-$(Q)if not exist $(call PATH_CONV,$(2)) $(MKDIR) $(call PATH_CONV,$(2))  $(QUIET)
+	-$(Q)if exist $(call PATH_CONV,$(1)/*.a) $(COPY) $(call PATH_CONV,$(1)/*.a) $(call PATH_CONV,$(2)) $(QUIET)
+	-$(Q)if exist $(call PATH_CONV,$(1)/*.lib) $(COPY) $(call PATH_CONV,$(1)/*.lib) $(call PATH_CONV,$(2))  $(QUIET)
+endef
+else
+define RELEASE_OUT
+	$(PRINT) Copying built libraries: $(1)   to    $(2)
 	-$(Q)$(MKDIR) $(2) $(QUIET) || true
 	-$(Q)$(COPY) $(1)/*.a $(2) $(QUIET) || true
 	-$(Q)$(COPY) $(1)/*.lib $(2) $(QUIET) || true
-
 endef
+endif
 
 -include $(CONCERTO_ROOT)/project.mak
 

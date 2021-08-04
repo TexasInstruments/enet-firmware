@@ -1,8 +1,5 @@
 ifeq ($(OS),Windows_NT)
   HOST_OS=Windows_NT
-  ifeq ($(shell uname -o),Cygwin)
-    HOST_OS=CYGWIN
-  endif
 else
   OS=$(shell uname -s)
   ifeq ($(OS),Linux)
@@ -45,6 +42,9 @@ NDK_PATH ?= $(PSDK_PATH)/ndk_3_80_00_19
 NS_PATH  ?= $(PSDK_PATH)/ns_2_80_00_17
 CTOOLSLIB_PATH ?= $(PSDK_PATH)/ctoolslib
 REMOTE_DEVICE_PATH ?= $(PSDK_PATH)/remote_device
+
+TIARMCGT_ROOT = $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
+BIOS_PATH = $(PSDK_PATH)/bios_6_83_00_18
 
 PDK_PATH ?= $(PSDK_PATH)/pdk
 

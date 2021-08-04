@@ -16,7 +16,7 @@ ifeq ($(HOST_OS),Windows_NT) # SHELL is cmd.exe
 CLEAN    := del /Q
 CLEANDIR := rmdir /Q /S
 COPY     := copy /Y /Z /V
-COPYDIR  := copy /H/E/Q/Y/I
+COPYDIR  := xcopy /H/E/Q/Y/I
 PRINT    := @echo
 SET_RW   := attrib -R
 SET_EXEC := echo
@@ -26,6 +26,8 @@ INSTALL  := copy /Y /Z /V
 MKDIR    := mkdir
 CAT      := type
 QUIET 	 := 2>NUL
+QNULL    :=
+NOP      := VER>NUL
 else # Bash variants
 CLEAN    := rm -f
 CLEANDIR := rm -rf
@@ -41,5 +43,7 @@ MKDIR    := mkdir -p
 DOXYGEN  := doxygen
 CAT      := cat
 QUIET    := 2> /dev/null
+QNULL    := > /dev/null
+NOP      := true
 endif
 

@@ -16,10 +16,15 @@
 # @note MAKEFILE_LIST is an automatic variable!
 
 # Get all the Concerto files (can't use TARGET_MAKEFILES since we don't know the ordering)
-CONCERTO_MAKEFILES := $(filter %$(SUBMAKEFILE),$(MAKEFILE_LIST))
+CONCERTO_MAKEFILES := $(filter %/$(SUBMAKEFILE),$(MAKEFILE_LIST))
 THIS_MAKEFILE := $(lastword $(CONCERTO_MAKEFILES))
-_MODPATH := $(patsubst %/,%,$(dir $(THIS_MAKEFILE)))
-_MODDIR := $(subst /,.,$(_MODPATH))
+_MODPATH := $(subst /$(SUBMAKEFILE),,$(THIS_MAKEFILE))
+
+# These 3 lines are added to support modules from external folders on Windows
+_MODDIR := $(subst $(EXTERNAL_SOURCE_PATH_PREFIX),,$(_MODPATH))
+_MODDIR := $(subst \,/,$(_MODDIR))
+_MODDIR := $(subst :,,$(_MODDIR))
+_MODDIR := $(subst /,.,$(_MODDIR))
 
 $(if $(SHOW_MAKEDEBUG),$(info HOST_ROOT=$(HOST_ROOT)))
 $(if $(SHOW_MAKEDEBUG),$(info MAKEFILE_LIST (so far) = $(MAKEFILE_LIST)))

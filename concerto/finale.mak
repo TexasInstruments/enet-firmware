@@ -79,13 +79,6 @@ $(_MODULE)_LINKER_CMD_FILES += $($(_MODULE)_ODIR)/configuro/linker.cmd
 endif
 $(_MODULE)_LINKER_CMD_FILES += $(LINKER_CMD_FILES)
 
-# Eclipse executable name
-ifeq ($(HOST_OS),Windows_NT)
-	ECLIPSE_EXE := $(CCS_PATH)/eclipse/eclipsec
-else
-	ECLIPSE_EXE := $(CCS_PATH)/eclipse/eclipse
-endif
-
 ifneq ($(SKIPBUILD),1)
 
 NEEDS_COMPILER:=
@@ -121,6 +114,8 @@ else ifeq ($(HOST_COMPILER),GCC_LINUX_ARM)
 	include $(CONCERTO_ROOT)/compilers/gcc_linux_arm.mak
 else ifeq ($(HOST_COMPILER),GCC)
 	include $(CONCERTO_ROOT)/compilers/gcc.mak
+else ifeq ($(HOST_COMPILER),CL)
+	include $(CONCERTO_ROOT)/compilers/cl.mak
 else ifeq ($(HOST_COMPILER),GCC_WINDOWS)
 	include $(CONCERTO_ROOT)/compilers/gcc_windows.mak
 else ifeq ($(HOST_COMPILER),GCC_LINUX)
@@ -141,6 +136,8 @@ else ifeq ($(HOST_COMPILER),TIARMCGT)
 	include $(CONCERTO_ROOT)/compilers/tiarmcgt.mak
 else ifeq ($(HOST_COMPILER),ARP32CGT)
 	include $(CONCERTO_ROOT)/compilers/arp32.mak
+else ifeq ($(HOST_COMPILER),GCC_QNX_ARM)
+	include $(CONCERTO_ROOT)/compilers/qnx_arm.mak
 else
 $(error Undefined compiler $(HOST_COMPILER))
 endif
@@ -180,27 +177,12 @@ $(_MODULE)_test: $($(_MODULE)_TDIR)/$($(_MODULE)_TEST) install
 	$(Q)$($(_MODULE)_TESTOPTS)
 endif
 
-eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
-map-target-build-to-ccs-config = $(if $(call eq,$(1),debug),Debug,$(if $(call eq,$(1),release),Release))
-
 ifeq ($($(_MODULE)_TYPE),library)
 
 define $(_MODULE)_BUILD_LIB
 $($(_MODULE)_BIN): $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS)
-ifeq ($($(_MODULE)_CCS_PJT_PATH),$(EMPTY))
 	$(PRINT) Linking $$@
-	$(Q)$(call $(_MODULE)_LINK_LIB) $(LOGGING)
-else
-	$(PRINT) Building CCS project $(_MODULE_NAME)
-ifeq ("$(wildcard $($(_MODULE)_ODIR)/ccs_workspace)","")
-	$(foreach ccsPjtPath,$($(_MODULE)_CCS_PJT_PATH),\
-	$(ECLIPSE_EXE) -noSplash -data  $($(_MODULE)_ODIR)/ccs_workspace -application com.ti.ccstudio.apps.projectImport -ccs.location $(ccsPjtPath) \
-	)
-endif
-	$(foreach ccsPjtName,$($(_MODULE)_CCS_PJT_NAME),\
-	$(ECLIPSE_EXE) -noSplash -data  $($(_MODULE)_ODIR)/ccs_workspace -application com.ti.ccstudio.apps.projectBuild -ccs.projects $(ccsPjtName) -ccs.configuration $(call map-target-build-to-ccs-config,$(TARGET_BUILD));\
-	)
-endif
+	-$(Q)$(call $(_MODULE)_LINK_LIB) $(LOGGING)
 endef
 
 $(eval $(call $(_MODULE)_BUILD_LIB))
@@ -215,13 +197,14 @@ define $(_MODULE)_BUILD_EXE
 xdc_configuro_$(_MODULE):
 ifneq ($($(_MODULE)_XDC_CFG_FILE),)
 	$(PRINT) Running xdc configuro for $(_MODULE_NAME)
-	-$(Q)$(XDCTOOLS_PATH)/xs --xdcpath="$($(_MODULE)_XDC_IDIRS)" xdc.tools.configuro  -o $($(_MODULE)_ODIR)/configuro -t $($(_MODULE)_XDC_TARGET) -p $($(_MODULE)_XDC_PLATFORM) -r $(TARGET_BUILD) -c $($(_MODULE)_CGT_ROOT) -b $($(_MODULE)_XDC_BLD_FILE) $($(_MODULE)_XDC_CFG_FILE)
+	-$(Q)$(call PATH_CONV,$(XDCTOOLS_PATH)/xs) --xdcpath="$($(_MODULE)_XDC_IDIRS)" xdc.tools.configuro  -o $($(_MODULE)_ODIR)/configuro -t $($(_MODULE)_XDC_TARGET) -p $($(_MODULE)_XDC_PLATFORM) -r $(TARGET_BUILD) -c $($(_MODULE)_CGT_ROOT) -b $($(_MODULE)_XDC_BLD_FILE) $($(_MODULE)_XDC_CFG_FILE)
 endif
 
 $($(_MODULE)_BIN): $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS) $($(_MODULE)_SHARED_LIBS) $($(_MODULE)_DEPS) xdc_configuro_$(_MODULE)
 	$(PRINT) Linking $$@
-	-$(Q)$(call $(_MODULE)_LINK_EXE) $(LOGGING) > /dev/null
-	-$(Q)$(call $(_MODULE)_STRIP_EXE) $(LOGGING) > /dev/null
+	-$(Q)$(call $(_MODULE)_LINK_EXE) $(LOGGING) $(QNULL)
+	-$(Q)$(call $(_MODULE)_STRIP_EXE_CLEAN) $(LOGGING) $(QNULL)
+	-$(Q)$(call $(_MODULE)_STRIP_EXE) $(LOGGING) $(QNULL)
 endef
 
 $(eval $(call $(_MODULE)_BUILD_EXE))
@@ -310,8 +293,8 @@ endif
 
 $(_MODULE)_clean:: $(_MODULE)_clean_target
 	$(PRINT) Cleaning $($(_MODULE)_ODIR)
+	-$(Q)$(CLEAN) $(foreach obj,$($(_MODULE)_OBJS),$(call PATH_CONV, $(obj))) $(QUIET)
 	-$(Q)$(CLEANDIR) $(call PATH_CONV,$($(_MODULE)_ODIR)) $(QUIET)
-
 endef
 
 # Include compiler generated dependency rules

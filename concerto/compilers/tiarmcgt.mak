@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifndef TIARMCGT_ROOT_$(TARGET_PLATFORM)
+ifndef TIARMCGT_ROOT
 $(error You must define TIARMCGT_ROOT!)
 endif
 
@@ -26,12 +26,12 @@ ifeq ($(filter $(TARGET_OS),SYSBIOS NO_OS FREERTOS),)
 $(error TARGET_OS $(TARGET_OS) is not supported by this compiler)
 endif
 
-CC=$(TIARMCGT_ROOT_$(TARGET_PLATFORM))/bin/armcl
-CP=$(TIARMCGT_ROOT_$(TARGET_PLATFORM))/bin/armcl
-AS=$(TIARMCGT_ROOT_$(TARGET_PLATFORM))/bin/armcl
-AR=$(TIARMCGT_ROOT_$(TARGET_PLATFORM))/bin/armar
-LD=$(TIARMCGT_ROOT_$(TARGET_PLATFORM))/bin/armcl
-STRIP=$(TIARMCGT_ROOT_$(TARGET_PLATFORM))/bin/armstrip
+CC=$(TIARMCGT_ROOT)/bin/armcl
+CP=$(TIARMCGT_ROOT)/bin/armcl
+AS=$(TIARMCGT_ROOT)/bin/armcl
+AR=$(TIARMCGT_ROOT)/bin/armar
+LD=$(TIARMCGT_ROOT)/bin/armcl
+STRIP=$(TIARMCGT_ROOT)/bin/armstrip
 
 ifdef LOGFILE
 LOGGING:=&>$(LOGFILE)
@@ -49,17 +49,11 @@ endif
 ifeq ($(strip $($(_MODULE)_TYPE)),library)
 	BIN_PRE=
 	BIN_EXT=.$(LIB_EXT)
-else
-	ifeq ($(strip $($(_MODULE)_TYPE)),exe)
-		BIN_PRE=
-		ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
-			# Retain the R5F extension for backward compatibility
-			BIN_EXT=.xer5f
-		else
-			ifneq (,$(filter ${TARGET_CPU},A72 A53))
-				BIN_EXT=.xa$(strip $(call lowercase,$(TARGET_CPU)f$(if $(filter $(TARGET_BUILD),debug),g,)))
-			endif
-		endif
+else ifeq ($(strip $($(_MODULE)_TYPE)),exe)
+	BIN_PRE=
+	ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
+		# Retain the R5F extension for backward compatibility
+		BIN_EXT=.xer5f
 	endif
 endif
 
@@ -75,8 +69,8 @@ $(_MODULE)_OBJS := $(ASSEMBLY:%.asm=$(ODIR)/%.$(OBJ_EXT)) $(CPPSOURCES:%.cpp=$(O
 # Redefine the local static libs and shared libs with REAL paths and pre/post-fixes
 $(_MODULE)_STATIC_LIBS := $(foreach lib,$(STATIC_LIBS),$(TDIR)/$(LIB_PRE)$(lib).$(LIB_EXT))
 $(_MODULE)_SHARED_LIBS := $(foreach lib,$(SHARED_LIBS),$(TDIR)/$(LIB_PRE)$(lib).$(LIB_EXT))
-$(_MODULE)_IDIRS += $(TIARMCGT_ROOT_$(TARGET_PLATFORM))/include
-$(_MODULE)_LDIRS += $(TIARMCGT_ROOT_$(TARGET_PLATFORM))/lib
+$(_MODULE)_IDIRS += $(TIARMCGT_ROOT)/include
+$(_MODULE)_LDIRS += $(TIARMCGT_ROOT)/lib
 
 ifeq ($(TARGET_OS),SYSBIOS)
 	ifeq ($(TARGET_CPU),R5F)
@@ -134,13 +128,17 @@ ifeq ($(TARGET_OS),SYSBIOS)
 	$(_MODULE)_DEFS += xdc_target_types__=ti/targets/arm/elf/std.h
 endif
 
-$(_MODULE)_CGT_ROOT = $(TIARMCGT_ROOT_$(TARGET_PLATFORM))
+ifeq ($(TREAT_WARNINGS_AS_ERROR),1)
+$(_MODULE)_COPT += --emit_warnings_as_errors
+endif
+
+$(_MODULE)_CGT_ROOT = $(TIARMCGT_ROOT)
 
 $(_MODULE)_MAP      := $($(_MODULE)_BIN).map
 $(_MODULE)_INCLUDES := $(foreach inc,$($(_MODULE)_IDIRS),-I="$(basename $(inc))") $(foreach inc,$($(_MODULE)_SYSIDIRS),-I="$(basename $(inc))")
 $(_MODULE)_DEFINES  := $(foreach def,$($(_MODULE)_DEFS),-D=$(def))
 $(_MODULE)_LIBRARIES:= $(foreach ldir,$($(_MODULE)_LDIRS),--search_path="$(ldir)") $(foreach ldir,$($(_MODULE)_SYSLDIRS),--search_path="$(ldir)") $(foreach lib,$(STATIC_LIBS),--library=$(LIB_PRE)$(lib).$(LIB_EXT)) $(foreach lib,$(SYS_STATIC_LIBS),--library=$(LIB_PRE)$(lib).$(LIB_EXT)) $(foreach lib,$(ADDITIONAL_STATIC_LIBS),--library=$(lib)) $(foreach linkerf,$(LINKER_FILES),--library=$(linkerf))
-$(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES) $($(_MODULE)_COPT)
+$(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS)
 $(_MODULE)_CFLAGS   := $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS) --gen_func_subsections
 ifeq ($(TARGET_OS),SYSBIOS)
 	$(_MODULE)_LDFLAGS  := $($(_MODULE)_CFLAGS) -z --warn_sections --reread_libs --zero_init=on $($(_MODULE)_LINKER_CMD_FILES) --rom_model
@@ -149,22 +147,24 @@ ifeq ($(TARGET_OS),FREERTOS)
 	$(_MODULE)_LDFLAGS  := $($(_MODULE)_CFLAGS) -z --warn_sections --reread_libs --zero_init=on $($(_MODULE)_LINKER_CMD_FILES) --rom_model -mv7R5 --diag_suppress=10063
 endif
 
-ifeq ($(TREAT_WARNINGS_AS_ERROR), yes)
-	$(_MODULE)_CFLAGS  += --emit_warnings_as_errors
-	$(_MODULE)_LDFLAGS += --emit_warnings_as_errors
-endif
-
 ###################################################
 # COMMANDS
 ###################################################
 
+#Hack to fix ARMCL search path issue.ARMCL requires "--search-path" in Linux format (forward slash) so we don't do PATH_CONV on search paths. 
+PATH_CONV_ARMCL=$(subst /,/,$(1))
 $(_MODULE)_LINK_LIB   := $(call PATH_CONV,$(AR) ru2 $($(_MODULE)_BIN) $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS))
-$(_MODULE)_LINK_EXE   := $(call PATH_CONV,$(LD) $($(_MODULE)_LDFLAGS) $($(_MODULE)_OBJS) $($(_MODULE)_LIBRARIES) --output_file=$($(_MODULE)_BIN) --map_file=$($(_MODULE)_MAP))
-$(_MODULE)_STRIP_EXE  := $(call PATH_CONV,$(STRIP) -p $($(_MODULE)_BIN) -o $($(_MODULE)_STRIP))
+$(_MODULE)_LINK_EXE   := $(call PATH_CONV_ARMCL,$(LD) $($(_MODULE)_LDFLAGS) $($(_MODULE)_OBJS) $($(_MODULE)_LIBRARIES) --output_file=$($(_MODULE)_BIN) --map_file=$($(_MODULE)_MAP))
+$(_MODULE)_STRIP_EXE_CLEAN  := $(call PATH_CONV,$(CLEAN) "$($(_MODULE)_STRIP)")
+$(_MODULE)_STRIP_EXE  := $(call PATH_CONV,"$(STRIP)" -p "$($(_MODULE)_BIN)" -o "$($(_MODULE)_STRIP)")
 
 ###################################################
 # MACROS FOR COMPILING
 ###################################################
+
+define $(_MODULE)_BUILD
+build:: $($(_MODULE)_BIN)
+endef
 
 define $(_MODULE)_COMPILE_TOOLS
 $(call PATH_CONV,$(ODIR)$(PATH_SEP)%.$(OBJ_EXT)): $(SDIR)/%.c
@@ -180,32 +180,3 @@ $(call PATH_CONV,$(ODIR)$(PATH_SEP)%.$(OBJ_EXT)): $(SDIR)/%.asm
 	$(Q)$(AS) $($(_MODULE)_AFLAGS) --preproc_dependency=$(ODIR)/$$*.dep --preproc_with_compile -fr=$$(dir $$@) -ft=$$(dir $$@) -eo=.$(OBJ_EXT) -fa=$$< $(LOGGING)
 
 endef
-
-ifeq ($(strip $($(_MODULE)_TYPE)),library)
-
-define $(_MODULE)_BUILD
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as static library
-endef
-
-else ifeq ($(strip $($(_MODULE)_TYPE)),dsmo)
-
-define $(_MODULE)_BUILD
-
-$($(_MODULE)_BIN): $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS) $($(_MODULE)_SHARED_LIBS)
-	@echo Linking $$@
-	-$(Q)$(call $(_MODULE)_LINK_LIB) $(LOGGING)
-
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as dynamic library
-endef
-
-else ifeq ($(strip $($(_MODULE)_TYPE)),exe)
-
-define $(_MODULE)_BUILD
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as executable
-endef
-
-endif
-

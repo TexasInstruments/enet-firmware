@@ -13,21 +13,22 @@
 # limitations under the License.
 
 ifeq ($(TARGET_CPU),$(HOST_CPU))
-	CROSS_COMPILE_LINARO:=
+  $(error $(TARGET_CPU) same as $(HOST_CPU) not supported for QNX)
 else ifeq ($(TARGET_CPU),X86)
-	CROSS_COMPILE_LINARO:=
+  $(error $(TARGET_CPU) not supported for QNX)
 else ifeq ($(TARGET_CPU),A72)
-	CROSS_COMPILE_LINARO:=aarch64-none-linux-gnu-
+  CROSS_COMPILE_QNX:=$(QNX_CROSS_COMPILER_TOOL)
 else ifeq ($(TARGET_CPU),A15)
-	CROSS_COMPILE_LINARO:=arm-linux-gnueabihf-
+  CROSS_COMPILE_QNX:=ntoarmv7-
 endif
 
 ifneq ($(HOST_FAMILY),$(TARGET_FAMILY))
-#$(if $(CROSS_COMPILE_LINARO),,$(error Cross Compiling is not enabled! TARGET_FAMILY != HOST_FAMILY))
+$(if $(CROSS_COMPILE_QNX),,$(error Cross Compiling is not enabled! TARGET_FAMILY != HOST_FAMILY))
 endif
 
 ifeq ($(HOST_OS),Windows_NT)
-$(if $(GCC_LINUX_ARM_ROOT),,$(error GCC_LINUX_ARM_ROOT must be defined!))
+#$(if $(GCC_LINUX_ARM_ROOT),,$(error GCC_LINUX_ARM_ROOT must be defined!))
+$(error HOST_OS $(HOST_OS) is not supported)
 endif
 
 # check for the supported CPU types for this compiler
@@ -36,22 +37,22 @@ $(error TARGET_FAMILY $(TARGET_FAMILY) is not supported by this compiler)
 endif
 
 # check for the support OS types for this compiler
-ifeq ($(filter $(TARGET_OS),LINUX CYGWIN DARWIN NO_OS SYSBIOS),)
+ifeq ($(filter $(TARGET_OS), QNX LINUX CYGWIN DARWIN NO_OS SYSBIOS),)
 $(error TARGET_OS $(TARGET_OS) is not supported by this compiler)
 endif
 
-ifneq ($(GCC_LINUX_ARM_ROOT),)
-CC = $(GCC_LINUX_ARM_ROOT)/bin/$(CROSS_COMPILE_LINARO)gcc
-CP = $(GCC_LINUX_ARM_ROOT)/bin/$(CROSS_COMPILE_LINARO)g++
-AS = $(GCC_LINUX_ARM_ROOT)/bin/$(CROSS_COMPILE_LINARO)as
-AR = $(GCC_LINUX_ARM_ROOT)/bin/$(CROSS_COMPILE_LINARO)ar
-LD = $(GCC_LINUX_ARM_ROOT)/bin/$(CROSS_COMPILE_LINARO)g++
+ifneq ($(GCC_QNX_ARM_ROOT),)
+CC = $(GCC_QNX_ARM_ROOT)/$(CROSS_COMPILE_QNX)gcc
+CP = $(GCC_QNX_ARM_ROOT)/$(CROSS_COMPILE_QNX)g++
+AS = $(GCC_QNX_ARM_ROOT)/$(CROSS_COMPILE_QNX)as
+AR = $(GCC_QNX_ARM_ROOT)/$(CROSS_COMPILE_QNX)ar
+LD = $(GCC_QNX_ARM_ROOT)/$(CROSS_COMPILE_QNX)g++
 else
-CC = $(CROSS_COMPILE_LINARO)gcc
-CP = $(CROSS_COMPILE_LINARO)g++
-AS = $(CROSS_COMPILE_LINARO)as
-AR = $(CROSS_COMPILE_LINARO)ar
-LD = $(CROSS_COMPILE_LINARO)g++
+CC = $(CROSS_COMPILE_QNX)gcc
+CP = $(CROSS_COMPILE_QNX)g++
+AS = $(CROSS_COMPILE_QNX)as
+AR = $(CROSS_COMPILE_QNX)ar
+LD = $(CROSS_COMPILE_QNX)g++
 endif
 
 ifdef LOGFILE
@@ -103,7 +104,7 @@ ifeq ($(TARGET_OS),SYSBIOS)
 ifeq ($(TARGET_CPU),A72)
 $(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A72F -DCGT_GCC -c -mcpu=cortex-a72 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
 else ifeq ($(TARGET_CPU),A15)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections 
 endif
 $(_MODULE)_COPT += -Wno-unknown-pragmas -Wno-missing-braces -Wno-format -Wno-unused-variable
 endif

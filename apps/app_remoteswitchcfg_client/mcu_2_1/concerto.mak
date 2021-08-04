@@ -60,9 +60,9 @@ else ifeq ($(TARGET_OS),FREERTOS)
 endif
 
 ifeq ($(TARGET_OS),SYSBIOS)
-  CPSW_APPUTILS_LIB = enet_example_utils_tirtos
+  ENET_APPUTILS_LIB = enet_example_utils_tirtos
 else ifeq ($(TARGET_OS),FREERTOS)
-  CPSW_APPUTILS_LIB = enet_example_utils_freertos
+  ENET_APPUTILS_LIB = enet_example_utils_freertos
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

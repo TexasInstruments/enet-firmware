@@ -23,7 +23,9 @@ CGT_LIST := TIARMCGT GCC_SYSBIOS_ARM CGT6X CGT7X GCC_LINUX_ARM
 
 #Clear PDK libs and PDK SoC to build.Will get updated by executables
 PDK_LIB_RULES :=
+PDK_BUILD_PROFILE :=
 PDK_SOC_LIST  :=
+PDK_CORE  :=
 
 
 ifeq ($(BUILD_TARGET_MODE),yes)
@@ -102,32 +104,32 @@ include makerules/makefile_ndk.mak
 #DIsabling NDK build for now
 #Add ndk and ndk_clean dependent rules for ethfw_all/ethfw_all_clean once NDK bug is fixed
 .NOTPARALLEL:
-ethfw_server: pdk_custom_libs remotedevicefw app_remoteswitchcfg_server
+ethfw_server: pdk remotedevicefw app_remoteswitchcfg_server
 
 ethfw_all: pdk remotedevicefw all
 ifeq ($(BUILD_APP_FREERTOS),yes)
-remoteswitchcfg_all: | pdk_custom_libs remotedevicefw app_remoteswitchcfg_client app_remoteswitchcfg_server
+remoteswitchcfg_all: | pdk remotedevicefw app_remoteswitchcfg_client app_remoteswitchcfg_server
 endif
 ifeq ($(BUILD_APP_TIRTOS),yes)
-remoteswitchcfg_all: | pdk_custom_libs remotedevicefw ndk app_remoteswitchcfg_client app_remoteswitchcfg_server
+remoteswitchcfg_all: | pdk remotedevicefw ndk app_remoteswitchcfg_client app_remoteswitchcfg_server
 endif
 
-ethfw_all_clean: pdk_custom_libs_clean remotedevicefw_clean clean scrub
-remoteswitchcfg_all_clean: | pdk_custom_libs_clean remotedevicefw_clean clean scrub
+ethfw_all_clean: pdk_clean remotedevicefw_clean clean scrub
+remoteswitchcfg_all_clean: | pdk_clean remotedevicefw_clean clean scrub
 
 remotedevicefw:
 	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
 		$(foreach os, $(sort ${OS_LIST}),\
-			make -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} lib_remote_device_client lib_remote_device; \
-			make -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} cp_to_lib; \
+			$(MAKE) -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} lib_remote_device_client lib_remote_device \
+										cp_to_lib &&\
 		) \
-	)
+	)$(NOP)
 
 remotedevicefw_clean:
 	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
 		$(foreach os, $(sort ${OS_LIST}),\
-			make -C ${REMOTE_DEVICE_PATH} SOC=${soc}  RTOS=${os} clean scrub; \
+			$(MAKE) -C ${REMOTE_DEVICE_PATH} SOC=${soc}  RTOS=${os} clean scrub &&\
 		) \
-	)
+	)$(NOP)
 
 .PHONY: ethfw_all remoteswitchcfg_all ethfw_all_clean remoteswitchcfg_all_clean remotedevicefw remotedevicefw_clean

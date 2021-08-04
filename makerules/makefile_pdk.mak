@@ -45,17 +45,17 @@ ifeq ($(BUILD_CPU_C7x_1),yes)
 endif
 
 pdk_build:
-	make -C $(PDK_PATH)/packages/ti/build BOARD=${PDK_BOARD} custom_target BUILD_PROFILE_LIST_ALL="$(sort ${PDK_BUILD_PROFILE_LIST_ALL})" CORE_LIST_ALL="$(sort ${PDK_CORE_LIST_ALL})" BUILD_TARGET_LIST_ALL="$(sort ${PDK_BUILD_TARGET_LIST_ALL})" -s $(MAKE_EXTRA_OPTIONS) PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH);
+	$(MAKE) -C $(PDK_PATH)/packages/ti/build BOARD=${PDK_BOARD} custom_target BUILD_PROFILE_LIST_ALL="$(sort ${PDK_BUILD_PROFILE_LIST_ALL})" CORE_LIST_ALL="$(sort ${PDK_CORE_LIST_ALL})" BUILD_TARGET_LIST_ALL="$(sort ${PDK_BUILD_TARGET_LIST_ALL})" -s $(MAKE_EXTRA_OPTIONS) PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH)
 
 pdk:
 	$(foreach soc, $(sort ${SOC_LIST}),\
-	make pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs"; \
-	)
+	$(MAKE) pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs" &&\
+	) $(NOP)
 
 pdk_clean:
 	$(foreach soc, $(sort ${SOC_LIST}),\
-	make pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs_clean"; \
-	)
+	$(MAKE) pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs_clean" &&\
+	) $(NOP)
 
 .SILENT:pdk_custom_libs pdk_custom_libs_clean
 
@@ -64,21 +64,21 @@ pdk_custom_libs:
 	$(foreach soc, $(sort ${PDK_SOC_LIST}),\
 	$(foreach rule, $(sort ${PDK_LIB_RULES}),\
 	$(foreach core, $(filter ${$(soc)_CORE_LIST},$(sort ${PDK_CORE_LIST_ALL})), \
-	make -C $(PDK_PATH)/packages/ti/build  ${rule} CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD} PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH);\
+	$(MAKE) -C $(PDK_PATH)/packages/ti/build  ${rule} CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD} PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH) &&\
 	) \
 	) \
 	) \
-	)
+	) $(NOP)
 
 pdk_custom_libs_clean:
 	$(foreach profile, $(sort ${PDK_BUILD_PROFILE_LIST_ALL}),\
 	$(foreach soc, $(sort ${PDK_SOC_LIST}),\
 	$(foreach rule, $(sort ${PDK_LIB_RULES}),\
 	$(foreach core, $(filter ${$(soc)_CORE_LIST},$(sort ${PDK_CORE_LIST_ALL})), \
-	make -C $(PDK_PATH)/packages/ti/build  $(patsubst %,%_clean,${rule}) CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD} PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH);\
+	$(MAKE) -C $(PDK_PATH)/packages/ti/build  $(patsubst %,%_clean,${rule}) CORE=${core} BUILD_PROFILE=${profile} BOARD=${$(soc)_BOARD} PDK_INSTALL_PATH:=${PDK_PATH}/packages SDK_INSTALL_PATH:=$(PSDK_PATH) &&\
 	) \
 	) \
 	) \
-	)
+	) $(NOP)
 
 .PHONY: pdk pdk_build pdk_clean pdk_custom_libs pdk_custom_libs_clean

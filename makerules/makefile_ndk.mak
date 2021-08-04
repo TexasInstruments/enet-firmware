@@ -57,9 +57,9 @@ NDK_ENV_SETTINGS += XDC_INSTALL_DIR=${XDCTOOLS_PATH} \
 
 
 ndk:
-	make -C $(NDK_PATH) -f ndk.mak all $(sort ${NDK_ENV_SETTINGS}) 
+	$(MAKE) -C $(NDK_PATH) -f ndk.mak all $(sort ${NDK_ENV_SETTINGS}) 
 
 ndk_clean:
-	make -C $(NDK_PATH) -f ndk.mak clean $(sort ${NDK_ENV_SETTINGS})
+	$(MAKE) -C $(NDK_PATH) -f ndk.mak clean $(sort ${NDK_ENV_SETTINGS})
 
 .PHONY: ndk ndk_clean

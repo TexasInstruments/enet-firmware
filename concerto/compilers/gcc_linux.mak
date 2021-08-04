@@ -14,12 +14,10 @@
 
 ifeq ($(TARGET_CPU),$(HOST_CPU))
 	CROSS_COMPILE:=
-else ifeq $(filter $(TARGET_CPU), X86 x86_64))
+endif
+
+ifeq ($(TARGET_CPU), $(filter $(TARGET_CPU), X86 x86_64))
 	CROSS_COMPILE:=
-else ifeq ($(TARGET_CPU),A72)
-	CROSS_COMPILE:=aarch64-linux-gnu-
-else ifeq ($(TARGET_CPU),A15)
-	CROSS_COMPILE:=arm-linux-gnueabihf-
 endif
 
 ifneq ($(HOST_FAMILY),$(TARGET_FAMILY))
@@ -77,7 +75,7 @@ else ifeq ($(strip $($(_MODULE)_TYPE)),dsmo)
 	BIN_EXT=$(DSO_EXT)
 else
 	BIN_PRE=
-	BIN_EXT=.out
+	BIN_EXT=
 endif
 
 $(_MODULE)_OUT  := $(BIN_PRE)$($(_MODULE)_TARGET)$(BIN_EXT)
@@ -101,23 +99,11 @@ endif
 $(_MODULE)_COPT += -Wall -fms-extensions -Wno-write-strings -Wno-format-security
 
 ifeq ($(TARGET_OS),SYSBIOS)
-ifeq ($(TARGET_CPU),A72)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a72 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
-else ifeq ($(TARGET_CPU),A53)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a53 -g -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
-else ifeq ($(TARGET_CPU),A15)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections 
-endif
-endif
-
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections
 $(_MODULE)_COPT += -Wno-unknown-pragmas -Wno-missing-braces -Wno-format -Wno-unused-variable
+endif
 
-ifeq ($(TARGET_OS),LINUX)
-$(_MODULE)_COPT += -fno-short-enums
-ifeq ($(TARGET_CPU),A15)
-$(_MODULE)_COPT += -mfpu=neon -mfloat-abi=hard
-endif
-endif
+$(_MODULE)_COPT += -Wno-unknown-pragmas
 
 ifeq ($(TARGET_BUILD),debug)
 $(_MODULE)_COPT += -ggdb -ggdb3 -gdwarf-2 -D_DEBUG_=1
@@ -159,8 +145,6 @@ else ifneq ($(filter $(TARGET_CPU),A9 A9F),)
 $(_MODULE)_COPT += -mcpu=cortex-a9
 else ifneq ($(filter $(TARGET_CPU),A15 A15F),)
 $(_MODULE)_COPT += -mcpu=cortex-a15
-else ifneq ($(filter $(TARGET_CPU),A72 A72F),)
-$(_MODULE)_COPT += -mcpu=cortex-a72+fp+simd
 endif
 
 ifeq ($(TARGET_ARCH),32)
@@ -223,7 +207,7 @@ ifeq ($(HOST_OS),DARWIN)
 $(_MODULE)_LINK_DSO   := $(LD) -shared $($(_MODULE)_LDFLAGS) -all_load $($(_MODULE)_LIBRARIES) -lm -o $($(_MODULE)_BIN).$($(_MODULE)_VERSION) $($(_MODULE)_OBJS)
 $(_MODULE)_LINK_EXE   := $(LD) -rdynamic $($(_MODULE)_CPLDFLAGS) $($(_MODULE)_OBJS) $($(_MODULE)_LIBRARIES) -o $($(_MODULE)_BIN)
 else
-$(_MODULE)_LINK_DSO   := $(LD) $($(_MODULE)_LDFLAGS) -shared -Wl,$(EXPORT_FLAG) -Wl,-soname,$(notdir $($(_MODULE)_BIN)).$($(_MODULE)_VERSION) $($(_MODULE)_OBJS) -Wl,--whole-archive $($(_MODULE)_LIBRARIES) -lm -Wl,--no-whole-archive -o $($(_MODULE)_BIN).$($(_MODULE)_VERSION) -Wl,-Map=$($(_MODULE)_MAP)
+$(_MODULE)_LINK_DSO   := $(LD) $($(_MODULE)_CPLDFLAGS) -shared -Wl,$(EXPORT_FLAG) -Wl,-soname,$(notdir $($(_MODULE)_BIN)).$($(_MODULE)_VERSION) $($(_MODULE)_OBJS) $($(_MODULE)_LIBRARIES) -lm -Wl,--no-whole-archive -o $($(_MODULE)_BIN).$($(_MODULE)_VERSION) -Wl,-Map=$($(_MODULE)_MAP)
 $(_MODULE)_LINK_EXE   := $(LD) $(EXPORTER) -Wl,--cref $($(_MODULE)_CPLDFLAGS) $($(_MODULE)_OBJS) $($(_MODULE)_LIBRARIES) -o $($(_MODULE)_BIN) -Wl,-Map=$($(_MODULE)_MAP)
 endif
 

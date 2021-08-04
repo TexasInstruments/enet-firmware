@@ -12,14 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifeq ($(TARGET_CPU),$(HOST_CPU))
-	CROSS_COMPILE:=
-else ifeq ($(TARGET_CPU),X86)
-	CROSS_COMPILE:=
-else ifneq (,$(filter $(TARGET_CPU),A72 A53))
-	CROSS_COMPILE:=aarch64-elf-
-else ifeq ($(TARGET_CPU),A15)
-	CROSS_COMPILE:=arm-none-eabi-
+ifeq ($(TARGET_CPU),A72)
+	CROSS_COMPILE:=aarch64-none-elf-
 endif
 
 $(if $(GCC_SYSBIOS_ARM_ROOT),,$(error GCC_SYSBIOS_ARM_ROOT must be defined!))
@@ -39,7 +33,6 @@ else
 $(error GCC_SYSBIOS_ARM_ROOT is not defined)
 endif
 
-
 ifdef LOGFILE
 LOGGING:=&>$(LOGFILE)
 else
@@ -47,17 +40,11 @@ LOGGING:=
 endif
 
 ifeq ($(strip $($(_MODULE)_TYPE)),library)
-    BIN_PRE=lib
-    BIN_EXT=.a
+	BIN_PRE=lib
+	BIN_EXT=.a
 else
-    BIN_PRE=
-    ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
-    BIN_EXT=.xe$(strip $(call lowercase,$(TARGET_CPU)))
-    else
-        ifneq (,$(filter ${TARGET_CPU},A72 A53))
-        BIN_EXT=.xa$(strip $(call lowercase,$(TARGET_CPU)f$(if $(filter $(TARGET_BUILD),debug),g,)))
-        endif
-    endif
+	BIN_PRE=
+	BIN_EXT=.out
 endif
 
 
@@ -72,23 +59,13 @@ endif
 $(_MODULE)_DEP_HEADERS := $(foreach inc,$($(_MODULE)_HEADERS),$($(_MODULE)_SDIR)/$(inc).h)
 
 $(_MODULE)_COPT += -Wall -fms-extensions -Wno-write-strings -Wno-format-security
-ifeq ($(TARGET_CPU),A72)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a72+fp+simd -g -mabi=lp64  -ffunction-sections -fdata-sections -mcmodel=large -mstrict-align
-else 
-ifeq ($(TARGET_CPU),A53)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -c -mcpu=cortex-a53 -g -mabi=lp64  -ffunction-sections -fdata-sections -mcmodel=large -mstrict-align
-else ifeq ($(TARGET_CPU),A15)
-$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A15F -DCGT_GCC -c -mcpu=cortex-a15 -g -mfpu=neon -mfloat-abi=hard -mabi=aapcs -mapcs-frame  -ffunction-sections -fdata-sections 
-endif
-endif
+$(_MODULE)_COPT += -Dxdc_target_types__=gnu/targets/arm/std.h -Dxdc_target_name__=A53F -DCGT_GCC -mcpu=cortex-a53 -g -ffunction-sections -fdata-sections
 $(_MODULE)_COPT += -Wno-unknown-pragmas -Wno-missing-braces -Wno-format -Wno-unused-variable
 
 ifeq ($(TARGET_BUILD),debug)
 $(_MODULE)_COPT += -ggdb -ggdb3 -gdwarf-2 -D_DEBUG_=1
-else 
-ifneq ($(filter $(TARGET_BUILD),release production),)
+else ifneq ($(filter $(TARGET_BUILD),release production),)
 $(_MODULE)_COPT += -O3 -DNDEBUG
-endif
 endif
 
 ifeq ($(TARGET_BUILD),production)
@@ -99,18 +76,11 @@ endif
 $(_MODULE)_COPT += -mlittle-endian
 
 
-ifneq ($(filter $(TARGET_CPU),A53 A53F),)
-    $(_MODULE)_COPT += -mcpu=cortex-a53
-else 
-    ifneq ($(filter $(TARGET_CPU),A72 A72F),)
-        $(_MODULE)_COPT += -mcpu=cortex-a72+fp+simd
-    else 
-        ifneq ($(filter $(TARGET_CPU),A15 A15F),)
-            $(_MODULE)_COPT += -mcpu=cortex-a15
-        endif
-    endif
+ifneq ($(filter $(TARGET_CPU),A53 A72 A53F A72F),)
+$(_MODULE)_COPT += -mcpu=cortex-a53
+else ifneq ($(filter $(TARGET_CPU),A15 A15F),)
+$(_MODULE)_COPT += -mcpu=cortex-a15
 endif
-
 
 ifeq ($(BUILD_IGNORE_LIB_ORDER),yes)
 LINK_START_GROUP=-Wl,--start-group
@@ -124,26 +94,25 @@ $(_MODULE)_MAP      := $($(_MODULE)_BIN).map
 $(_MODULE)_INCLUDES := $(foreach inc,$($(_MODULE)_IDIRS),-I$(inc))
 $(_MODULE)_DEFINES  := $(foreach def,$($(_MODULE)_DEFS),-D$(def))
 $(_MODULE)_LIBRARIES:= $(foreach ldir,$($(_MODULE)_LDIRS),-L$(ldir)) \
-                       -Wl,-Bstatic \
-                       $(LINK_START_GROUP) \
-                       $(foreach lib,$(STATIC_LIBS),-l$(lib)) \
-                       $(foreach lib,$(ADDITIONAL_STATIC_LIBS),-l:$(lib)) \
-                       $(foreach lib,$(SYS_STATIC_LIBS),-l$(lib)) \
-                       $(LINK_END_GROUP)
+					   -Wl,-Bstatic \
+					   $(LINK_START_GROUP) \
+					   $(foreach lib,$(STATIC_LIBS),-l$(lib)) \
+					   $(foreach lib,$(ADDITIONAL_STATIC_LIBS),-l:$(lib)) \
+					   $(foreach lib,$(SYS_STATIC_LIBS),-l$(lib)) \
+					   $(LINK_END_GROUP)
 $(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES)
 $(_MODULE)_LDFLAGS  += $($(_MODULE)_LOPT)
 $(_MODULE)_CPLDFLAGS  = $(foreach ldf,$($(_MODULE)_LDFLAGS),-Wl,$(ldf))
-$(_MODULE)_CPLDFLAGS += -Wl,-static -Wl,--gc-sections -nostartfiles -Wl,--build-id=none
+$(_MODULE)_CPLDFLAGS += -Werror -Wl,-static -Wl,--gc-sections -nostartfiles -Wl,--build-id=none
 $(_MODULE)_CFLAGS   := -c $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS)
 $(_MODULE)_XDC_TARGET := gnu.targets.arm.A53F
 $(_MODULE)_CGT_ROOT = $(GCC_SYSBIOS_ARM_ROOT)
 
-ifeq ($(TREAT_WARNINGS_AS_ERROR), yes)
-  $(_MODULE)_CPLDFLAGS += -Werror
-endif
-
 $(_MODULE)_LINKER_CMD_FILES_OPTS:= $(foreach lcmd,$($(_MODULE)_LINKER_CMD_FILES),-Wl,-T $(lcmd))
 
+ifeq ($(TREAT_WARNINGS_AS_ERROR),1)
+$(_MODULE)_CFLAGS += -Werror
+endif
 
 ifdef DEBUG
 $(_MODULE)_AFLAGS += --gdwarf-2
@@ -178,7 +147,7 @@ $(ODIR)/%.o: $(SDIR)/%.c $($(_MODULE)_DEP_HEADERS)
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C++ $$(notdir $$<)
-	$(Q)$(CP) $($(_MODULE)_CFLAGS) $($(_MODULE)_CPPFLAGS) $(call $(_MODULE)_GCC_DEPS,$$*) $$< -o $$@ $(LOGGING)
+	$(Q)$(CP) $($(_MODULE)_CFLAGS) $(call $(_MODULE)_GCC_DEPS,$$*) $$< -o $$@ $(LOGGING)
 
 $(ODIR)/%.o: $(SDIR)/%.S
 	@echo [GCC] Assembling $$(notdir $$<)
@@ -190,11 +159,11 @@ else
 define $(_MODULE)_COMPILE_TOOLS
 $(ODIR)/%.o: $(SDIR)/%.c $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C99 $$(notdir $$<)
-	$(Q)$(CC) -std=c99 $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
+	$(Q)$(CC) -std=gnu99 $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $($(_MODULE)_DEP_HEADERS)
 	@echo [GCC] Compiling C++ $$(notdir $$<)
-	$(Q)$(CP) $($(_MODULE)_CFLAGS) $($(_MODULE)_CPPFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
+	$(Q)$(CP) $($(_MODULE)_CFLAGS) -MMD -MF $(ODIR)/$$*.dep -MT '$(ODIR)/$$*.o' $$< -o $$@ $(LOGGING)
 
 $(ODIR)/%.o: $(SDIR)/%.S
 	@echo [GCC] Assembling $$(notdir $$<)

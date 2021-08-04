@@ -110,6 +110,10 @@ $(_MODULE)_LINK_EXE   = $(call PATH_CONV,$(LD) $($(_MODULE)_LDFLAGS) $($(_MODULE
 # MACROS FOR COMPILING
 ###################################################
 
+define $(_MODULE)_BUILD
+build:: $($(_MODULE)_BIN)
+endef
+
 define $(_MODULE)_COMPILE_TOOLS
 $(call PATH_CONV,$(ODIR)$(PATH_SEP)%.$(OBJ_EXT)): $(SDIR)/%.c $(GENHEADERS)
 	@echo [ARP32] Compiling C $$(notdir $$<)
@@ -135,31 +139,3 @@ $(ODIR)$(PATH_SEP)%.h: $(ODIR)$(PATH_SEPD)%.$(OBJ_EXT) ;
 .PRECIOUS: $(ODIR)$(PATH_SEPD)%.h
 
 endef
-
-ifeq ($(strip $($(_MODULE)_TYPE)),library)
-
-define $(_MODULE)_BUILD
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as static library
-endef
-
-else ifeq ($(strip $($(_MODULE)_TYPE)),dsmo)
-
-define $(_MODULE)_BUILD
-$($(_MODULE)_BIN): $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS) $($(_MODULE)_SHARED_LIBS)
-	@echo Linking $$@
-	-$(Q)$(call $(_MODULE)_LINK_LIB) $(LOGGING)
-
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as dynamic library
-endef
-
-else ifeq ($(strip $($(_MODULE)_TYPE)),exe)
-
-define $(_MODULE)_BUILD
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as executable
-endef
-
-endif
-

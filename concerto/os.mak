@@ -15,9 +15,8 @@
 ifeq ($(OS),Windows_NT)
     HOST_OS=Windows_NT
 	HOST_NUM_CORES := $(NUMBER_OF_PROCESSORS)
-	ifeq ($(shell uname -o),Cygwin)
+	ifeq ($(TERM),cygwin)
         HOST_OS=CYGWIN
-        HOST_NUM_CORES := $(shell cat /proc/cpuinfo | grep processor | wc -l)
 	endif
 else
     OS=$(shell uname -s)

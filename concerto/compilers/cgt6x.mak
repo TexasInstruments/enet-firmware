@@ -102,6 +102,10 @@ ifeq ($(KEEP_ASM),1)
 $(_MODULE)_COPT += --keep_asm
 endif
 
+ifeq ($(TREAT_WARNINGS_AS_ERROR),1)
+$(_MODULE)_COPT += --emit_warnings_as_errors
+endif
+
 ifeq ($(DEBUG_PIPELINE),1)
 $(_MODULE)_COPT += --debug_software_pipeline
 endif
@@ -154,32 +158,3 @@ $(call PATH_CONV,$(ODIR)$(PATH_SEP)%.$(OBJ_EXT)): $(SDIR)/%.asm
 	$(Q)$$(call PATH_CONV,$(AS) $($(_MODULE)_AFLAGS) --preproc_dependency=$(ODIR)/$$*.dep --preproc_with_compile -fr=$$(dir $$@) -ft=$$(dir $$@) -eo=.$(OBJ_EXT) -fa=$$< $(LOGGING))
 
 endef
-
-ifeq ($(strip $($(_MODULE)_TYPE)),library)
-
-define $(_MODULE)_BUILD
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as static library
-endef
-
-else ifeq ($(strip $($(_MODULE)_TYPE)),dsmo)
-
-define $(_MODULE)_BUILD
-
-$($(_MODULE)_BIN): $($(_MODULE)_OBJS) $($(_MODULE)_STATIC_LIBS) $($(_MODULE)_SHARED_LIBS)
-	@echo Linking $$@
-	-$(Q)$(call $(_MODULE)_LINK_LIB) $(LOGGING)
-
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as dynamic library
-endef
-
-else ifeq ($(strip $($(_MODULE)_TYPE)),exe)
-
-define $(_MODULE)_BUILD
-build:: $($(_MODULE)_BIN)
-	@echo Building $$(notdir $$<) as executable
-endef
-
-endif
-
