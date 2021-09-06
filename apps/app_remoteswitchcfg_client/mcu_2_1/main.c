@@ -179,7 +179,7 @@ __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
 ;
 
-static uint8_t g_ipcStackBuf[IPC_TASK_STACKSIZE]
+static uint8_t g_initTaskStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(8192)))
 ;
@@ -332,6 +332,11 @@ typedef struct CpswRemoteApp_Obj_s
 #if defined(FREERTOS)
     /* DHCP network interface */
     struct dhcp dhcpNetif;
+#endif
+
+#if defined(SYSBIOS)
+    /* Semaphore for synchronizing EthFw and NDK initialization */
+    SemaphoreP_Handle hInitSem;
 #endif
 } CpswRemoteApp_Obj;
 
@@ -709,8 +714,8 @@ static void printDevInfo(struct rpmsg_kdrv_ethswitch_device_data *ethDevData)
                   ethDevData->uart_id);
 }
 
-static void CpswRemoteApp_initIpc(void* a0,
-                     void* a1)
+static void CpswRemoteApp_initTask(void* a0,
+                                   void* a1)
 {
     TaskP_Params params;
     uint32_t numProc = gNumRemoteProc;
@@ -777,16 +782,31 @@ static void CpswRemoteApp_initIpc(void* a0,
     TaskP_create(rpmsg_vdevMonitorFxn, &params);
 
     /* Step 5: Start Cpsw Proxy */
+    gRemoteAppObj.hCpswProxy = CpswRemoteApp_initCpswProxy();
     localAssert(gRemoteAppObj.hCpswProxy != NULL);
     CpswProxy_start(gRemoteAppObj.hCpswProxy);
+
+#if defined(FREERTOS)
+    /* Step 6: Initialize lwIP */
+    TaskP_Params_init(&params);
+    params.priority  = DEFAULT_THREAD_PRIO;
+    params.stack     = &gEthAppLwipStackBuf[0];
+    params.stacksize = sizeof(gEthAppLwipStackBuf);
+    params.name      = "lwIP main loop";
+
+    TaskP_create(EthApp_lwipMain, &params);
+#else
+    /* Step 6: Post semaphore so that NDK/NIMU can continue with their initialization */
+    SemaphoreP_post(gRemoteAppObj.hInitSem);
+#endif
 }
 
 int main(void)
 {
     TaskP_Handle task;
-    TaskP_Params ipc_taskParams;
-#if defined(FREERTOS)
     TaskP_Params taskParams;
+#if defined (SYSBIOS)
+    SemaphoreP_Params semParams;
 #endif
     int32_t status;
 
@@ -797,6 +817,18 @@ int main(void)
     {
         ;
     }
+
+#if defined(SYSBIOS)
+    /* Currently, there is no control over NDK initialization time and its
+     * task runs right away after OS_start() which can cause a race condition
+     * if NDK/NIMU is started before connection with EthFw is complete.
+     * A semaphore is created to synchronize connection with EthFw and NDK
+     * initialization.  Essentially, NIMU's getHandle() would block until
+     * we signal that the CpswProxy initialization is done. */
+    SemaphoreP_Params_init(&semParams);
+    semParams.mode = SemaphoreP_Mode_BINARY;
+    gRemoteAppObj.hInitSem = SemaphoreP_create(0, &semParams);
+#endif
 
     /* Init UDMA LLD based on NAVSS instance */
     status = CpswRemoteApp_openUdma();
@@ -814,29 +846,17 @@ int main(void)
         localAssert(status == ENET_SOK);
     }
 
-#if defined(FREERTOS)
-    /* Initialize lwIP */
     TaskP_Params_init(&taskParams);
-    taskParams.priority  = DEFAULT_THREAD_PRIO;
-    taskParams.stack     = &gEthAppLwipStackBuf[0];
-    taskParams.stacksize = sizeof(gEthAppLwipStackBuf);
-    taskParams.name      = "lwIP main loop";
-
-    TaskP_create(EthApp_lwipMain, &taskParams);
-#endif
-
-    TaskP_Params_init(&ipc_taskParams);
-    ipc_taskParams.priority = 2;
-    ipc_taskParams.stack = &g_ipcStackBuf[0];
-    ipc_taskParams.stacksize = sizeof(g_ipcStackBuf);
-    task = TaskP_create(CpswRemoteApp_initIpc, &ipc_taskParams);
+    taskParams.priority = 2;
+    taskParams.stack = &g_initTaskStackBuf[0];
+    taskParams.stacksize = sizeof(g_initTaskStackBuf);
+    task = TaskP_create(CpswRemoteApp_initTask, &taskParams);
 
     if (NULL == task)
     {
         OS_stop();
     }
 
-    gRemoteAppObj.hCpswProxy = CpswRemoteApp_initCpswProxy();
     OS_start();    /* does not return */
 
     return(0);
@@ -1561,6 +1581,9 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     uint32_t txPSILId;
     uint32_t rxStartFlowId;
     uint32_t rxFlowIdOffset;
+
+    /* Wait for EthFw connection to be established */
+    SemaphoreP_pend(gRemoteAppObj.hInitSem, SemaphoreP_WAIT_FOREVER);
 
     localAssert(gRemoteAppObj.hCpswProxy != NULL);
 
