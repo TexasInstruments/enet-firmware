@@ -129,6 +129,9 @@
 #define System_vprintf vprintf
 #endif
 
+#define CPSW_REMOTE_APP_MASTER_CORE_ID        (IPC_MCU2_0)
+#define CPSW_REMOTE_APP_MASTER_ENDPT          (26)
+
 #define CPSW_REMOTE_APP_PHY_POLLING_INTERVAL  (100)
 #define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
 #define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL   (30U)
@@ -137,7 +140,6 @@
 #define IPC_RPMESSAGE_OBJ_SIZE  (256)
 #define VQ_TIMEOUT              (100)
 #define VQ_BUF_SIZE             (2048)
-#define REMOTE_DEVICE_ENDPT     (26)
 #define RPMSG_DATA_SIZE         (256 * 512 + IPC_RPMESSAGE_OBJ_SIZE)
 
 #if defined (FREERTOS)
@@ -384,7 +386,7 @@ static int32_t CpswRemoteApp_openUdma(void);
 
 static int32_t CpswRemoteApp_openEnet(void);
 
-static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void);
+static CpswProxy_Handle CpswRemoteApp_openCpswProxy(void);
 
 #if defined (SYSBIOS)
 char *VerStr = "NIMU CPSW Example";
@@ -786,9 +788,11 @@ static void CpswRemoteApp_initTask(void* a0,
     TaskP_create(rpmsg_vdevMonitorFxn, &params);
 
     /* Step 5: Start Cpsw Proxy */
-    gRemoteAppObj.hCpswProxy = CpswRemoteApp_initCpswProxy();
+    CpswProxy_init(CPSW_REMOTE_APP_MASTER_CORE_ID,
+                   CPSW_REMOTE_APP_MASTER_ENDPT);
+
+    gRemoteAppObj.hCpswProxy = CpswRemoteApp_openCpswProxy();
     localAssert(gRemoteAppObj.hCpswProxy != NULL);
-    CpswProxy_start(gRemoteAppObj.hCpswProxy);
 
 #if defined(FREERTOS)
     /* Step 6: Initialize lwIP */
@@ -1033,17 +1037,15 @@ static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
     pTxChPrms->notifyCb = eventCb;
 }
 
-static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void)
+static CpswProxy_Handle CpswRemoteApp_openCpswProxy(void)
 {
      CpswProxy_Config proxyConfig;
      CpswProxy_Handle hProxy;
 
      proxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
      proxyConfig.deviceDataNotifyCb = &printDevInfo;
-     proxyConfig.masterCoreId = IPC_MCU2_0;
-     proxyConfig.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
 
-     hProxy = CpswProxy_init(&proxyConfig);
+     hProxy = CpswProxy_open(&proxyConfig);
      localAssert(hProxy != NULL);
 
      return hProxy;

@@ -108,12 +108,6 @@ typedef void (*CpswProxy_deviceDataNotifyCbFxn)(struct rpmsg_kdrv_ethswitch_devi
  */
 typedef struct CpswProxy_Config_s
 {
-    /*! Local IPC RpMsg endpoint id */
-    uint32_t rpmsgEndPointId;
-
-    /*! Master Core Id on which the Cpsw Remote Device Server exists */
-    uint32_t masterCoreId;
-
     /*! Virtual port id */
     EthRemoteCfg_VirtPort virtPort;
 
@@ -126,10 +120,33 @@ typedef struct CpswProxy_Config_s
  *
  * CPSW Proxy opaque handle.
  */
-typedef struct CpswProxy_Obj_s *CpswProxy_Handle;
+typedef struct CpswProxy_ClientObj_s *CpswProxy_Handle;
 
 /*!
- * \brief Initialize CPSW proxy client with the given configuration
+ * \brief Initialize CPSW Proxy on a given core
+ *
+ * Performs one-time initialization of the CPSW Proxy layer. It needs to be called
+ * only once per core and it must be the very first CpswProxy API to be called.
+ *
+ * This API will initialize the underlying client-side EthSwitch remote device and
+ * will block until server-side EthSwitch remote device is initialized.
+ *
+ * \param masterCoreId  Master core id on which the Cpsw Remote Device Server exists
+ * \param masterEndpt   Master core's Cpsw Remote Device endpoint
+ */
+void CpswProxy_init(uint32_t masterCoreId,
+                    uint32_t masterEndpt);
+
+/*!
+ * \brief Deinitialize CPSW Proxy on a given core
+ *
+ * Performs one-time deinitialization of the CPSW Proxy layer. It needs to be called
+ * only once per core and it must be the very last CpswProxy API to be called.
+ */
+void CpswProxy_deinit(void);
+
+/*!
+ * \brief Open CPSW proxy client instance with the given configuration
  *
  * Application will get a handle to Cpsw Proxy which will be used in all CPSW
  * Proxy APIs. Only a single proxy instance per remote core is supported
@@ -138,27 +155,18 @@ typedef struct CpswProxy_Obj_s *CpswProxy_Handle;
  * \param cfg    Configuration of the CPSW Proxy client
  *
  * \return       Cpsw Proxy Handle which will be used in all Cpsw Proxy APIs.
- *               NULL value indicates CpswProxy_init() failed
+ *               NULL value indicates CpswProxy_open() failed
  */
-CpswProxy_Handle CpswProxy_init(const CpswProxy_Config *cfg);
+CpswProxy_Handle CpswProxy_open(const CpswProxy_Config *cfg);
 
 /*!
- * \brief Deinit CPSW proxy client
+ * \brief Close CPSW proxy client.
  *
- * Deletes the CPW proxy client instance.
+ * Close and free the CPSW proxy client instance.
  *
  * \param hProxy   Cpsw Proxy Handle
  */
-void CpswProxy_deInit(CpswProxy_Handle hProxy);
-
-/*!
- * \brief Start CPSW proxy client. 
- *
- * Application can invoke Cpsw_proxy RPC APIs only after the client is started
- *
- * \param hProxy    Handle to Cpsw Proxy
- */
-void CpswProxy_start(CpswProxy_Handle hProxy);
+void CpswProxy_close(CpswProxy_Handle hProxy);
 
 /*!
  * \brief Attach to Ethernet Switch Remote Device

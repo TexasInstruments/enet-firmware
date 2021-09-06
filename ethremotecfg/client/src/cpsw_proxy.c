@@ -81,6 +81,7 @@
 
 /* OSAL */
 #include <ti/osal/osal.h>
+#include <ti/osal/MutexP.h>
 #include <ti/osal/SemaphoreP.h>
 #include <ti/osal/TaskP.h>
 #include <ti/osal/MailboxP.h>
@@ -436,29 +437,61 @@ typedef struct CpswProxy_rdevCmdMsg_s
 
 typedef struct CpswProxy_notifyServiceObj_s
 {
-    TaskP_Params notifyServiceTskPrm;
     TaskP_Handle hNotifyServiceTsk;
     RPMessage_Handle hNotifyServicRpMsgEp;
     uint32_t localEp;
     CpswRemoteNotifyService_CallbackHandlers cb;
+
+    /* Buffer to store received messages for remote notify service */
+    uint8_t rpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
+
+    /* Notify service task stack buffer */
+    uint8_t taskStack[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(32)));
 } CpswProxy_notifyServiceObj;
 
-typedef struct CpswProxy_Obj_s
+typedef struct CpswProxy_ClientObj_s
 {
     CpswProxy_Config cfg;
 
+    /* Whether client object is already in used by an app */
+    bool inUse;
+
     TaskP_Handle      hRdevCmdTsk;
-    TaskP_Params      rdevCmdTaskParams;
 #ifdef QNX_OS
     int chid;
     int coid;
 #else
     MailboxP_Handle    hCmdMbx;
     MailboxP_Handle    hResponseMbx;
+    uint8_t cmdMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
+    uint8_t responseMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
 #endif
-    SemaphoreP_Handle hRdevStartSem;
-    SemaphoreP_Handle hRdevCmdTskStartSem;
+
+    /* remote_device command handler task stack buffer */
+    uint8_t rdevCmdTaskStack[CPSWPROXY_RDEVCMD_TSK_STACKSIZE] __attribute__ ((aligned(32)));
+
+    /* Timestamp event notify service */
     CpswProxy_notifyServiceObj notifyServiceObj;
+} CpswProxy_ClientObj;
+
+typedef struct CpswProxy_Obj_s
+{
+    /* Mutex object used to protect get/free CpswProxy_ClientObjs */
+    MutexP_Object mutexObj;
+
+    /* Handle to mutexObj */
+    MutexP_Handle hMutex;
+
+    /* Client object */
+    CpswProxy_ClientObj clientObj;
+
+    /* Master core id where Cpsw Proxy Server runs */
+    uint32_t masterCoreId;
+
+    /* Endpoint associated with the underlying remote_device used by CpswProxyServer */
+    uint32_t masterEndpt;
+
+    SemaphoreP_Handle hRdevStartSem;
 } CpswProxy_Obj;
 
 /* ========================================================================== */
@@ -485,20 +518,7 @@ static void slog_printf(const char *pcString, ...);
 /*                            Global Variables                                */
 /* ========================================================================== */
 
-/**< Buffer to store received messages for remote notify service */
-static uint8_t gCpswProxyNotifyServiceRpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
-
-/**< Global structure that stores the  CpswProxy_Obj */
-static CpswProxy_Obj gCpswProxy_Obj;
-
-/**< Task Stack memory */
-static uint8_t gCpswProxy_rdevCmdTskStackBuf[CPSWPROXY_RDEVCMD_TSK_STACKSIZE] __attribute__ ((aligned(32)));
-static uint8_t gCpswProxy_notifyServiceTskStackBuf[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(32)));
-
-#ifndef QNX_OS
-static uint8_t gCmdMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
-static uint8_t gResponseMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
-#endif
+static CpswProxy_Obj gCpswProxy;
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -551,7 +571,9 @@ static void slog_printf(const char *pcString, ...)
 #endif
 
 #ifndef QNX_OS
-static void  CpswProxy_createMbx(MailboxP_Handle *pMailboxHandle, bool IsCMD)
+static void  CpswProxy_createMbx(CpswProxy_Handle hProxy,
+                                 MailboxP_Handle *pMailboxHandle,
+                                 bool IsCMD)
 {
     MailboxP_Params mboxParams;
 
@@ -559,12 +581,12 @@ static void  CpswProxy_createMbx(MailboxP_Handle *pMailboxHandle, bool IsCMD)
     if (IsCMD == true)
     {
         mboxParams.name = (uint8_t *)"CmdMbx";
-        mboxParams.buf = (void *)gCmdMbxBuf;
+        mboxParams.buf = (void *)hProxy->cmdMbxBuf;
     }
     else
     {
         mboxParams.name = (uint8_t *)"ResponseMbx";
-        mboxParams.buf = (void *)gResponseMbxBuf;
+        mboxParams.buf = (void *)hProxy->responseMbxBuf;
     }
     mboxParams.size =  sizeof(CpswProxy_rdevCmd_t);
     mboxParams.count = CPSWPROXY_RDEV_MSGCOUNT;
@@ -924,9 +946,6 @@ static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
     rdevEthSwitchClientInitPrms_t prm;
     CpswProxy_Handle hProxy = (CpswProxy_Handle) a0;
 
-    SemaphoreP_pend(hProxy->hRdevCmdTskStartSem, SemaphoreP_WAIT_FOREVER);
-    SemaphoreP_post(hProxy->hRdevStartSem);
-
     CpswProxy_setRemoteParams(hProxy->cfg.virtPort, &prm);
     prm.cbHandler = rdevEthSwitchClient_printText;
 
@@ -982,8 +1001,8 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
     /* Create RPMsg */
     RPMessageParams_init(&rpmsgPrm);
     rpmsgPrm.requestedEndpt = CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID;
-    rpmsgPrm.buf = gCpswProxyNotifyServiceRpmsgBuf;
-    rpmsgPrm.bufSize = sizeof(gCpswProxyNotifyServiceRpmsgBuf);
+    rpmsgPrm.buf = hProxy->notifyServiceObj.rpmsgBuf;
+    rpmsgPrm.bufSize = sizeof(hProxy->notifyServiceObj.rpmsgBuf);
     rpmsgPrm.numBufs = CPSW_REMOTE_NOTIFY_SERVICE_NUM_RPMSG_BUFS;
 
     hProxy->notifyServiceObj.hNotifyServicRpMsgEp = RPMessage_create(&rpmsgPrm, &localEp);
@@ -1007,7 +1026,7 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
     }
 
     /* Wait for Remote EP to active */
-    ret = RPMessage_getRemoteEndPt(hProxy->cfg.masterCoreId,
+    ret = RPMessage_getRemoteEndPt(gCpswProxy.masterCoreId,
                                   CPSW_REMOTE_NOTIFY_SERVICE,
                                   &remoteProcId,
                                   &remoteEndPt,
@@ -1059,53 +1078,130 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
     }
 }
 
-static void CpswProxy_remoteDeviceInit(SemaphoreP_Handle rdevStartSem, const CpswProxy_Config * cfg )
+static void CpswProxy_remoteDeviceInit(uint32_t masterCoreId,
+                                       uint32_t remoteEp,
+                                       SemaphoreP_Handle rdevStartSem)
 {
     app_remote_device_init_prm_t remote_dev_init_prm;
 
     appRemoteDeviceInitParamsInit(&remote_dev_init_prm);
 
     remote_dev_init_prm.rpmsg_buf_size = CPSWPROXY_RDEV_MSGSIZE;
-    remote_dev_init_prm.remote_endpt = cfg->rpmsgEndPointId;
-    remote_dev_init_prm.wait_sem = rdevStartSem;
-    remote_dev_init_prm.num_cores = 1;
-    remote_dev_init_prm.cores[0] = cfg->masterCoreId;
+    remote_dev_init_prm.remote_endpt = remoteEp;
+    remote_dev_init_prm.wait_sem     = rdevStartSem;
+    remote_dev_init_prm.num_cores    = 1;
+    remote_dev_init_prm.cores[0]     = masterCoreId;
 
     appRemoteDeviceInit(&remote_dev_init_prm);
+
 #ifdef QNX_OS
     System_printf("Remote device (core : mcu1_0) .....\r\n");
 #else
-    System_printf("Remote device (core : mpu2_1) .....\r\n");
+    System_printf("Remote device (core : mcu2_1) .....\r\n");
 #endif
 }
 
-static void  CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
+static void CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
 {
-    TaskP_Params_init(&hProxy->rdevCmdTaskParams);
-    hProxy->rdevCmdTaskParams.priority = CPSWPROXY_RDEVCMD_TSK_PRI;
-    hProxy->rdevCmdTaskParams.arg0 = (void *) hProxy;
-    hProxy->rdevCmdTaskParams.stack = &gCpswProxy_rdevCmdTskStackBuf[0];
-    hProxy->rdevCmdTaskParams.stacksize = CPSWPROXY_RDEVCMD_TSK_STACKSIZE;
-    hProxy->hRdevCmdTsk = TaskP_create(CpswProxy_rdevCmdTskFxn, &hProxy->rdevCmdTaskParams);
+    TaskP_Params taskParams;
+
+    TaskP_Params_init(&taskParams);
+    taskParams.priority  = CPSWPROXY_RDEVCMD_TSK_PRI;
+    taskParams.arg0      = (void *)hProxy;
+    taskParams.stack     = &hProxy->rdevCmdTaskStack[0];
+    taskParams.stacksize = sizeof(hProxy->rdevCmdTaskStack);
+
+    hProxy->hRdevCmdTsk = TaskP_create(CpswProxy_rdevCmdTskFxn, &taskParams);
     CpswProxy_assert(hProxy->hRdevCmdTsk != NULL);
 }
 
-static void  CpswProxy_createNotifyServiceTask(CpswProxy_Handle hProxy)
+static void CpswProxy_createNotifyServiceTask(CpswProxy_Handle hProxy)
 {
-    TaskP_Params *pTaskParams;
+    CpswProxy_notifyServiceObj *notifyObj = &hProxy->notifyServiceObj;
+    TaskP_Params taskParams;
 
-    memset(&hProxy->notifyServiceObj, 0, sizeof(CpswProxy_notifyServiceObj));
-    pTaskParams = &hProxy->notifyServiceObj.notifyServiceTskPrm;
-    TaskP_Params_init(pTaskParams);
-    pTaskParams->priority = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
-    pTaskParams->arg0 = (void*) hProxy;
-    pTaskParams->stack = &gCpswProxy_notifyServiceTskStackBuf[0];
-    pTaskParams->stacksize = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
-    hProxy->notifyServiceObj.hNotifyServiceTsk = TaskP_create(CpswProxy_notifyServiceTskFxn, pTaskParams);
-    CpswProxy_assert(hProxy->notifyServiceObj.hNotifyServiceTsk != NULL);
+    memset(notifyObj, 0, sizeof(*notifyObj));
+
+    TaskP_Params_init(&taskParams);
+    taskParams.priority  = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
+    taskParams.arg0      = (void*)hProxy;
+    taskParams.stack     = &notifyObj->taskStack[0];
+    taskParams.stacksize = sizeof(notifyObj->taskStack);
+
+    notifyObj->hNotifyServiceTsk = TaskP_create(CpswProxy_notifyServiceTskFxn, &taskParams);
+    CpswProxy_assert(notifyObj->hNotifyServiceTsk != NULL);
 }
 
-static void  CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Config *cfg)
+void CpswProxy_init(uint32_t masterCoreId,
+                    uint32_t masterEndpt)
+{
+    uint32_t remoteCoreId;
+    uint32_t remoteEndPt;
+    int32_t status;
+
+    memset(&gCpswProxy, 0, sizeof(gCpswProxy));
+
+    gCpswProxy.hMutex = MutexP_create(&gCpswProxy.mutexObj);
+
+    CpswProxy_createSem(&gCpswProxy.hRdevStartSem);
+
+    /* Initialize remote_device on the client side */
+    CpswProxy_remoteDeviceInit(masterCoreId, masterEndpt, gCpswProxy.hRdevStartSem);
+    gCpswProxy.masterCoreId = masterCoreId;
+    gCpswProxy.masterEndpt  = masterEndpt;
+
+    /* Wait for remote_device to be initialized on the server side */
+    do {
+        status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY,
+                                          ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE,
+                                          &remoteCoreId,
+                                          &remoteEndPt,
+                                          CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT);
+        if (status != IPC_SOK)
+        {
+            System_printf("Remote Device Framework Endpoint locate failed. Retrying !!!\n");
+        }
+    } while (status != IPC_SOK);
+
+    System_printf("Remote Device Framework Endpoint located. Remote Core Id:%u, Remote End Point:%u\n",
+                  remoteCoreId, remoteEndPt);
+
+    /* Unblock client side's remote device that it can proceed */
+    SemaphoreP_post(gCpswProxy.hRdevStartSem);
+}
+
+void CpswProxy_deinit(void)
+{
+    SemaphoreP_delete(gCpswProxy.hRdevStartSem);
+    MutexP_delete(gCpswProxy.hMutex);
+}
+
+static CpswProxy_Handle CpswProxy_getHandle(void)
+{
+    CpswProxy_Handle hProxy = NULL;
+
+    MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
+
+    if (!gCpswProxy.clientObj.inUse)
+    {
+        hProxy = &gCpswProxy.clientObj;
+        hProxy->inUse = true;
+    }
+
+    MutexP_unlock(gCpswProxy.hMutex);
+
+    return hProxy;
+}
+
+static void CpswProxy_freeHandle(CpswProxy_Handle hProxy)
+{
+    MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
+    memset(hProxy, 0, sizeof(*hProxy));
+    hProxy->inUse = false;
+    MutexP_unlock(gCpswProxy.hMutex);
+}
+
+static void CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Config *cfg)
 {
     hProxy->cfg = *cfg;
 #ifdef QNX_OS
@@ -1114,24 +1210,19 @@ static void  CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Con
     hProxy->coid = ConnectAttach(ND_LOCAL_NODE, 0, hProxy->chid, _NTO_SIDE_CHANNEL, 0);
     CpswProxy_assert(hProxy->coid != -1);
 #else
-    CpswProxy_createMbx(&hProxy->hCmdMbx, true);
-    CpswProxy_createMbx(&hProxy->hResponseMbx, false);
+    CpswProxy_createMbx(hProxy, &hProxy->hCmdMbx, true);
+    CpswProxy_createMbx(hProxy, &hProxy->hResponseMbx, false);
 #endif
 
-    CpswProxy_createSem(&hProxy->hRdevStartSem);
-    CpswProxy_createSem(&hProxy->hRdevCmdTskStartSem);
-    CpswProxy_remoteDeviceInit(hProxy->hRdevStartSem, cfg);
     CpswProxy_createRDevCmdTask(hProxy);
     CpswProxy_createNotifyServiceTask(hProxy);
 }
 
-static void  CpswProxy_instanceDeInit(CpswProxy_Handle hProxy)
+static void CpswProxy_instanceDeinit(CpswProxy_Handle hProxy)
 {
     CpswProxy_rdevCmd_t msg;
 
-    CpswProxy_sendCmd(hProxy,
-                      CPSWPROXY_RDEVCMD_EXIT,
-                      &msg);
+    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_EXIT, &msg);
 
 #ifdef QNX_OS
     ConnectDetach(hProxy->coid);
@@ -1140,9 +1231,34 @@ static void  CpswProxy_instanceDeInit(CpswProxy_Handle hProxy)
     CpswProxy_deleteMbx(&hProxy->hCmdMbx);
     CpswProxy_deleteMbx(&hProxy->hResponseMbx);
 #endif
+}
 
-    SemaphoreP_delete(hProxy->hRdevStartSem);
-    SemaphoreP_delete(hProxy->hRdevCmdTskStartSem);
+CpswProxy_Handle CpswProxy_open(const CpswProxy_Config *cfg)
+{
+    CpswProxy_Handle hProxy;
+
+    /* Get a handle to a free CpswProxy object, if any */
+    hProxy = CpswProxy_getHandle();
+    if (hProxy == NULL)
+    {
+        System_printf("All CpswProxy instances for this core are already in use\n");
+    }
+    else
+    {
+        /* Create CpswProxy's mailboxes, init cmd and notify tasks */
+        CpswProxy_instanceInit(hProxy, cfg);
+    }
+
+    return hProxy;
+}
+
+void CpswProxy_close(CpswProxy_Handle hProxy)
+{
+    /* Delete CpswProxy's mailboxes, close tasks */
+    CpswProxy_instanceDeinit(hProxy);
+
+    /* Release handle to CpswProxy object */
+    CpswProxy_freeHandle(hProxy);
 }
 
 static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
@@ -1181,46 +1297,6 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     CpswProxy_assert(msg->res.retVal == ENET_SOK);
 #endif
 }
-
-CpswProxy_Handle CpswProxy_init(const CpswProxy_Config *cfg)
-{
-    CpswProxy_Handle hProxy;
-
-    memset(&gCpswProxy_Obj, 0, sizeof(gCpswProxy_Obj));
-    hProxy = &gCpswProxy_Obj;
-
-    CpswProxy_instanceInit(hProxy, cfg);
-    return hProxy;
-}
-
-void CpswProxy_deInit(CpswProxy_Handle hProxy)
-{
-    CpswProxy_instanceDeInit(hProxy);
-}
-
-void CpswProxy_start(CpswProxy_Handle hProxy)
-{
-    uint32_t remoteCoreId, remoteEndPt;
-    int32_t status;
-
-    CpswProxy_assert(hProxy != NULL);
-    do {
-        status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY,
-                                          ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE,
-                                          &remoteCoreId,
-                                          &remoteEndPt,
-                                          CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT);
-        if (status != IPC_SOK)
-        {
-            System_printf("Remote Device Framework Endpoint locate failed. Retrying !!!\n");
-        }
-    } while (status != IPC_SOK);
-    System_printf("Remote Device Framework Endpoint located. Remote Core Id:%u, Remote End Point:%u\n",
-                  remoteCoreId, remoteEndPt);
-    SemaphoreP_post(hProxy->hRdevCmdTskStartSem);
-
-}
-
 
 void CpswProxy_addHostPortEntry(CpswProxy_Handle hProxy,
                                 Enet_Handle hEnet,
