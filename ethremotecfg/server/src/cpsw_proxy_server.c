@@ -1610,6 +1610,36 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(uint32_t host_id,
     return status;
 }
 
+static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *virtPortCfg,
+                                            rdevEthSwitchServerInstPrm_t *prm)
+{
+    const char *coreName[] = {
+        [IPC_MPU1_0] = "mpu_1_0",
+        [IPC_MCU1_0] = "mcu_1_0",
+        [IPC_MCU1_1] = "mcu_1_1",
+        [IPC_MCU2_0] = "mcu_2_0",
+        [IPC_MCU2_1] = "mcu_2_1",
+#if defined (SOC_J721E)
+        [IPC_MCU3_0] = "mcu_3_0",
+        [IPC_MCU3_1] = "mcu_3_1",
+#endif
+    };
+    uint32_t portNum = EthRemoteCfg_getPortNum(virtPortCfg->portId);
+
+    prm->host_id = virtPortCfg->remoteCoreId;
+
+    snprintf((char *)&prm->name[0],
+             ETHREMOTECFG_SERVER_MAX_NAME_LEN,
+             "%s_ethswitch-device-%u",
+             coreName[virtPortCfg->remoteCoreId],
+             portNum);
+
+    appLogPrintf("%s <-> Switch port %u: %s\n",
+                 coreName[virtPortCfg->remoteCoreId],
+                 portNum,
+                 prm->name);
+}
+
 static rdevEthSwitchServerCbFxn_t CpswProxyRdevEthSwitchServerCbFxnTbl =
 {
     .attach_handler                 = CpswProxyServer_attachHandlerCb,
@@ -1676,18 +1706,19 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     rdevEthSwitchServerInitPrmSetDefault(&remote_ethswitch_init_prm);
 
     remote_ethswitch_init_prm.rpmsg_buf_size = CPSWPROXY_RDEV_MSGSIZE;
-    remote_ethswitch_init_prm.num_instances = cfg->numRemoteCores;
+    remote_ethswitch_init_prm.num_instances = cfg->numVirtPorts;
     remote_ethswitch_init_prm.cb = CpswProxyRdevEthSwitchServerCbFxnTbl;
 
-    EnetAppUtils_assert(cfg->numRemoteCores <= ENET_ARRAYSIZE(remote_ethswitch_init_prm.inst_prm));
-    EnetAppUtils_assert(cfg->numRemoteCores <= ENET_ARRAYSIZE(cfg->remoteCoreCfg));
+    EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(remote_ethswitch_init_prm.inst_prm));
+    EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(cfg->virtPortCfg));
 
-    for ( i = 0 ; i < cfg->numRemoteCores; i++)
+    for (i = 0U; i < cfg->numVirtPorts; i++)
     {
         inst = &remote_ethswitch_init_prm.inst_prm[i];
-        inst->host_id = cfg->remoteCoreCfg[i].remoteCoreId;
-        strncpy((char *)&inst->name[0], cfg->remoteCoreCfg[i].serverName, ETHREMOTECFG_SERVER_MAX_NAME_LEN);
+
+        CpswProxyServer_setRemoteParams(&cfg->virtPortCfg[i], inst);
     }
+
     status = rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
     EnetAppUtils_assert(status == 0);
 
@@ -1776,8 +1807,8 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
     uint8_t i = 0;
 
     hProxyServer->notifyServiceObj.notifyServiceCpswType = cfg->notifyServiceCpswType;
-    hProxyServer->notifyServiceObj.numRemoteCores = cfg->numRemoteCores;
-    for (i = 0U; i< cfg->numRemoteCores; i++)
+    hProxyServer->notifyServiceObj.numRemoteCores = cfg->numVirtPorts;
+    for (i = 0U; i< cfg->numVirtPorts; i++)
     {
         hProxyServer->notifyServiceObj.dstProc[i] = cfg->notifyServiceRemoteCoreId[i];
     }

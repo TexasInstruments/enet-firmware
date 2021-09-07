@@ -409,11 +409,11 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
 
     /* Remote cores: mcu2_1, mpu1_0 */
-    cfg.numRemoteCores = 2;
-    cfg.remoteCoreCfg[0].remoteCoreId = IPC_MCU2_1;
-    snprintf(cfg.remoteCoreCfg[0].serverName, ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1);
-    cfg.remoteCoreCfg[1].remoteCoreId = IPC_MPU1_0;
-    snprintf(cfg.remoteCoreCfg[1].serverName, ETHREMOTECFG_SERVER_MAX_NAME_LEN, ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0);
+    cfg.numVirtPorts = 2;
+    cfg.virtPortCfg[0].remoteCoreId = IPC_MPU1_0;
+    cfg.virtPortCfg[0].portId       = ETHREMOTECFG_SWITCH_PORT_0;
+    cfg.virtPortCfg[1].remoteCoreId = IPC_MCU2_1;
+    cfg.virtPortCfg[1].portId       = ETHREMOTECFG_SWITCH_PORT_1;
 
     /* AUTOSAR core: mcu2_1 */
     cfg.autosarEthDriverRemoteCoreId = IPC_MCU2_1;

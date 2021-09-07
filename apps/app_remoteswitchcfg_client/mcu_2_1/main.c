@@ -871,7 +871,6 @@ static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
     pTxChPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
 
     pTxChPrms->cbArg = cbArg;
-
     pTxChPrms->notifyCb = eventCb;
 }
 
@@ -920,8 +919,7 @@ static CpswProxy_Handle CpswRemoteApp_initCpswProxy(void)
      CpswProxy_Config proxyConfig;
      CpswProxy_Handle hProxy;
 
-     strncpy(proxyConfig.device_name, ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1, (sizeof(proxyConfig.device_name) - 1));
-     proxyConfig.device_name[(sizeof(proxyConfig.device_name) - 1)] = 0;
+     proxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
      proxyConfig.deviceDataNotifyCb = &printDevInfo;
      proxyConfig.masterCoreId = IPC_MCU2_0;
      proxyConfig.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;

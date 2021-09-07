@@ -894,6 +894,30 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
     }
 }
 
+static void CpswProxy_setRemoteParams(EthRemoteCfg_VirtPort portId,
+                                      rdevEthSwitchClientInitPrms_t *prm)
+{
+    const char *coreName[] = {
+        [IPC_MPU1_0] = "mpu_1_0",
+        [IPC_MCU1_0] = "mcu_1_0",
+        [IPC_MCU1_1] = "mcu_1_1",
+        [IPC_MCU2_0] = "mcu_2_0",
+        [IPC_MCU2_1] = "mcu_2_1",
+#if defined (SOC_J721E)
+        [IPC_MCU3_0] = "mcu_3_0",
+        [IPC_MCU3_1] = "mcu_3_1",
+#endif
+    };
+    uint32_t coreId = EnetSoc_getCoreId();
+    uint32_t portNum = EthRemoteCfg_getPortNum(portId);
+
+    snprintf((char *)&prm->device_name[0],
+             ETHREMOTECFG_SERVER_MAX_NAME_LEN,
+             "%s_ethswitch-device-%u",
+             coreName[coreId],
+             portNum);
+}
+
 static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
 {
     int32_t ret = 0;
@@ -903,8 +927,11 @@ static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
     SemaphoreP_pend(hProxy->hRdevCmdTskStartSem, SemaphoreP_WAIT_FOREVER);
     SemaphoreP_post(hProxy->hRdevStartSem);
 
-    memcpy(prm.device_name, hProxy->cfg.device_name, sizeof(prm.device_name));
+    CpswProxy_setRemoteParams(hProxy->cfg.virtPort, &prm);
     prm.cbHandler = rdevEthSwitchClient_printText;
+
+    System_printf("Connecting to '%s'\n", prm.device_name);
+
     while (TRUE)
     {
         ret = rdevEthSwitchClient_connect(&prm);
@@ -927,7 +954,7 @@ static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
     if (ret == 0)
     {
         System_printf("Registered a device name = %s, id = %u, type = %u\n",
-                      hProxy->cfg.device_name,
+                      prm.device_name,
                       prm.device_id,
                       prm.device_type);
         hProxy->cfg.deviceDataNotifyCb(&prm.eth_device_data);

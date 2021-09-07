@@ -149,18 +149,17 @@ typedef void  (*CpswProxyServer_NotifyCb)(uint32_t host_id,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len);
 
-
 /*!
- * \brief Cpsw Proxy Server Remote Core Configuration structure
+ * \brief Cpsw Proxy Server Virtual Port Configuration structure
  */
-typedef struct CpswProxyServer_RemoteCoreConfig_s
+typedef struct CpswProxyServer_VirtPortCfg_s
 {
     /*! Remote Core Id that can attach */
     uint32_t remoteCoreId;
 
-    /*! Name advertised to remote core */
-    char     serverName[ETHREMOTECFG_SERVER_MAX_NAME_LEN];
-} CpswProxyServer_RemoteCoreConfig;
+    /*! Virtual port id */
+    EthRemoteCfg_VirtPort portId;
+} CpswProxyServer_VirtPortCfg;
 
 /*!
  * \brief Cpsw Proxy Server Remote Configuration structure
@@ -185,9 +184,6 @@ typedef struct CpswProxyServer_Config_s
     /*! AUTOSAR Ethernet Device RpMsg endpoint id */
     uint32_t autosarEthDeviceEndPointId;
 
-    /*! Number of remote cores that can attach to remote device */
-    uint32_t numRemoteCores;
-
     /*! Remote Core Id for AUTOSAR core */
     uint32_t autosarEthDriverRemoteCoreId;
 
@@ -197,8 +193,11 @@ typedef struct CpswProxyServer_Config_s
     /*! Remote Core Id for Notification service */
     uint32_t notifyServiceRemoteCoreId[ETHREMOTECFG_SERVER_MAX_INSTANCES];
 
-    /*! Remote Core configuration */
-    CpswProxyServer_RemoteCoreConfig remoteCoreCfg[ETHREMOTECFG_SERVER_MAX_INSTANCES];
+    /*! Virtual port configuration */
+    CpswProxyServer_VirtPortCfg virtPortCfg[ETHREMOTECFG_SERVER_MAX_INSTANCES];
+
+    /*! Number of remote virtual ports that remotes cores can attach to */
+    uint32_t numVirtPorts;
 } CpswProxyServer_Config_t;
 
 /*!

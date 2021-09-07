@@ -66,6 +66,7 @@
 #include <stdint.h>
 #include <ethremotecfg/client/include/ethremotecfg_client.h>
 #include <ethremotecfg/protocol/cpsw_remote_notify_service.h>
+#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 #include <ti/drv/enet/enet.h>
 
 #ifdef __cplusplus
@@ -113,8 +114,8 @@ typedef struct CpswProxy_Config_s
     /*! Master Core Id on which the Cpsw Remote Device Server exists */
     uint32_t masterCoreId;
 
-    /*! Remote Device Client Name */
-    char device_name[ETHREMOTECFG_SERVER_MAX_NAME_LEN];
+    /*! Virtual port id */
+    EthRemoteCfg_VirtPort virtPort;
 
     /*! Application provided callback function to notify ethernet remote device data */
     CpswProxy_deviceDataNotifyCbFxn deviceDataNotifyCb;

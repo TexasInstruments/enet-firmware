@@ -67,6 +67,7 @@
 #include <string.h>
 
 #include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
+#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 /**
  * \defgroup ETHSWITCH_REMOTE_DEVICE_SERVER_API Ethernet Switch Remote Device Server APIs
@@ -93,12 +94,6 @@
 
 /*! Max number of remote clients supported by ethernet switch remote device server */
 #define ETHREMOTECFG_SERVER_MAX_INSTANCES        (4)
-
-/*! Ethernet Switch Remote Device Name Advertised on MCU_2_1 core.Client on MCU_2_1 core should connect with this name */
-#define ETHREMOTEDEVICE_DEVICE_NAME_MCU_2_1 "mcu_2_1_ethswitch-device-0"
-
-/*! Ethernet Switch Remote Device Name Advertised on MPU_1_0 core.Client on MPU_1_0 core should connect with this name */
-#define ETHREMOTEDEVICE_DEVICE_NAME_MPU_1_0 "mpu_1_0_ethswitch-device-0"
 
 /*! Service name of the remote device framework */
 #define ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE "rpmsg-kdrv"
