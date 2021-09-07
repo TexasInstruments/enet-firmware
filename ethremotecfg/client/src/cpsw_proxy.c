@@ -482,8 +482,9 @@ typedef struct CpswProxy_Obj_s
     /* Handle to mutexObj */
     MutexP_Handle hMutex;
 
-    /* Client object */
-    CpswProxy_ClientObj clientObj;
+    /* Array of client objects. Size of this array determines the number of virtual ports
+     * that can be used by this core */
+    CpswProxy_ClientObj clientObj[CPSWPROXY_CLIENT_MAX];
 
     /* Master core id where Cpsw Proxy Server runs */
     uint32_t masterCoreId;
@@ -1179,13 +1180,18 @@ void CpswProxy_deinit(void)
 static CpswProxy_Handle CpswProxy_getHandle(void)
 {
     CpswProxy_Handle hProxy = NULL;
+    uint32_t i;
 
     MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
 
-    if (!gCpswProxy.clientObj.inUse)
+    for (i = 0U; i < ENET_ARRAYSIZE(gCpswProxy.clientObj); i++)
     {
-        hProxy = &gCpswProxy.clientObj;
-        hProxy->inUse = true;
+        if (!gCpswProxy.clientObj[i].inUse)
+        {
+            hProxy = &gCpswProxy.clientObj[i];
+            hProxy->inUse = true;
+            break;
+        }
     }
 
     MutexP_unlock(gCpswProxy.hMutex);

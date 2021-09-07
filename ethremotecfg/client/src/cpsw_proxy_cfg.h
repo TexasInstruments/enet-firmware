@@ -68,7 +68,13 @@
 #define CPSWPROXY_RDEVCMD_TSK_PRI                (2U)
 #define CPSWPROXY_RDEVCMD_TSK_STACKSIZE          (8U * 1024U)
 
-
-                                           
+#if defined(FREERTOS)
+/*! Maximum number of supported CpswProxy clients */
+#define CPSWPROXY_CLIENT_MAX                     (2U)
+#else
+/*! Maximum number of supported CpswProxy clients. Enet-LLD implementation of NIMU
+ *  layer only supports single stack instance */
+#define CPSWPROXY_CLIENT_MAX                     (1U)
+#endif
 
 #endif /* #ifndef __CPSWPROXYCFG_H__ */
