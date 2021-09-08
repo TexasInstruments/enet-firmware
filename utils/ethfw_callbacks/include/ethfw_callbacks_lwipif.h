@@ -102,7 +102,8 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-extern bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet);
+extern bool EthFwCallbacks_isPortLinked(struct netif *netif,
+                                        Enet_Handle hEnet);
 
 void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                         LwipifEnetAppIf_GetHandleOutArgs *outArgs);

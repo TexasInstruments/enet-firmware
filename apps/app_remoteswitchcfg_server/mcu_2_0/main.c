@@ -766,7 +766,12 @@ static int32_t EthApp_initRemoteServices(void)
 
 /* NIMU callbacks (exact name required) */
 
+#if defined (FREERTOS)
+bool EthFwCallbacks_isPortLinked(struct netif *netif,
+                                 Enet_Handle hEnet)
+#else
 bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
+#endif
 {
     bool linked = false;
     uint32_t i;

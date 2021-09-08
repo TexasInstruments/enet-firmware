@@ -773,7 +773,12 @@ int main(void)
     return(0);
 }
 
+#if defined (FREERTOS)
+static bool CpswRemoteApp_isAllPortLinked(struct netif *netif,
+                                          Enet_Handle hEnet)
+#else
 static bool CpswRemoteApp_isAllPortLinked(Enet_Handle hEnet)
+#endif
 {
     uint32_t i;
     static bool isPhyLinked = false;
