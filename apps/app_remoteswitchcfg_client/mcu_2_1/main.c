@@ -91,6 +91,7 @@
 #include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
 #elif defined (FREERTOS)
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
+#include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
 #endif
 #include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 #include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
@@ -128,6 +129,8 @@
 #define System_printf printf
 #define System_vprintf vprintf
 #endif
+
+#define CPSW_REMOTE_APP_REMOTE_NETIF_MAX      (1U)
 
 #define CPSW_REMOTE_APP_MASTER_CORE_ID        (IPC_MCU2_0)
 #define CPSW_REMOTE_APP_MASTER_ENDPT          (26)
@@ -282,10 +285,43 @@ typedef struct CpswRemoteApp_SyncTimerObj_s
     double offset;
 } CpswRemoteApp_SyncTimerObj;
 
-typedef struct CpswRemoteApp_Obj_s
+typedef struct CpswRemoteApp_VirtNetif_s
 {
+    /* CpswProxy handle used to communicate with EthFw */
     CpswProxy_Handle hCpswProxy;
 
+    /* Virtual port id */
+    EthRemoteCfg_VirtPort virtPort;
+
+    /* MAC ports used by this client app */
+    Enet_MacPort *macPorts;
+
+    /* Number of MAC ports */
+    uint32_t numMacPorts;
+
+    /* MAC address */
+    uint8_t macAddr[ENET_MAC_ADDR_LEN];
+
+    /* IPv4 address */
+    uint8_t ipv4Addr[ENET_IPv4_ADDR_LEN];
+
+#if defined(FREERTOS)
+    /* lwIP network interface */
+    struct netif netif;
+
+    /* DHCP network interface */
+    struct dhcp dhcpNetif;
+
+    /* Whether this netif should be set as the default netif */
+    bool isDfltNetif;
+#endif
+
+    /* Time synchronization object */
+    CpswRemoteApp_SyncTimerObj syncTimerObj;
+} CpswRemoteApp_VirtNetif;
+
+typedef struct CpswRemoteApp_Obj_s
+{
     /* UDMA LLD object */
     struct Udma_DrvObj udmaDrvObj;
 
@@ -316,25 +352,8 @@ typedef struct CpswRemoteApp_Obj_s
     /* Whether to use extended attach remote command or not */
     bool useExtAttach;
 
-    /* MAC ports used by this client app */
-    Enet_MacPort *macPorts;
-
-    /* Number of MAC ports */
-    uint32_t numMacPorts;
-
-    /* MAC address */
-    uint8_t macAddr[ENET_MAC_ADDR_LEN];
-
-    /* IPv4 address */
-    uint8_t ipv4Addr[ENET_IPv4_ADDR_LEN];
-
-    /* Time synchronization object */
-    CpswRemoteApp_SyncTimerObj syncTimerObj;
-
-#if defined(FREERTOS)
-    /* DHCP network interface */
-    struct dhcp dhcpNetif;
-#endif
+    /* Virtual network interface data */
+    CpswRemoteApp_VirtNetif virtNetif[CPSW_REMOTE_APP_REMOTE_NETIF_MAX];
 
 #if defined(SYSBIOS)
     /* Semaphore for synchronizing EthFw and NDK initialization */
@@ -358,7 +377,6 @@ static Enet_MacPort gRemoteAppMacPorts[] =
 
 CpswRemoteApp_Obj gRemoteAppObj =
 {
-    .hCpswProxy       = NULL,
     .hUdmaDrv         = NULL,
 #if defined(SOC_J721E)
     .enetType         = ENET_CPSW_9G,
@@ -372,8 +390,18 @@ CpswRemoteApp_Obj gRemoteAppObj =
     .coreKey          = ENET_RM_INVALIDCORE,
     .useDefaultRxFlow = false,
     .useExtAttach     = true,
-    .numMacPorts      = ENET_ARRAYSIZE(gRemoteAppMacPorts),
-    .macPorts         = gRemoteAppMacPorts,
+    .virtNetif        =
+    {
+        {
+            .hCpswProxy  = NULL,
+            .virtPort    = ETHREMOTECFG_SWITCH_PORT_1,
+            .macPorts    = gRemoteAppMacPorts,
+            .numMacPorts = ENET_ARRAYSIZE(gRemoteAppMacPorts),
+#if defined (FREERTOS)
+            .isDfltNetif = true,
+#endif
+        },
+    },
 };
 
 static uint64_t CpswRemoteApp_virtToPhysFxn(const void *virtAddr,
@@ -386,7 +414,7 @@ static int32_t CpswRemoteApp_openUdma(void);
 
 static int32_t CpswRemoteApp_openEnet(void);
 
-static CpswProxy_Handle CpswRemoteApp_openCpswProxy(void);
+static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif);
 
 #if defined (SYSBIOS)
 char *VerStr = "NIMU CPSW Example";
@@ -394,11 +422,11 @@ char *VerStr = "NIMU CPSW Example";
 char *VerStr = "LWIP CPSW Example";
 #endif
 
-static void CpswRemoteApp_initSyncTimer(void);
+static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif);
 
 static uint64_t CpswRemoteApp_getLocalTime(void);
 
-static uint64_t CpswRemoteApp_getSynchronizedTime(void);
+static uint64_t CpswRemoteApp_getSynchronizedTime(CpswRemoteApp_SyncTimerObj *hSyncTimerObj);
 
 static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
                                              uint64_t syncTime,
@@ -410,7 +438,7 @@ static void EthApp_lwipMain(void *a0,
 
 static void EthApp_initLwip(void *arg);
 
-static void EthApp_initNetif(void);
+static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif);
 
 static void EthApp_netifStatusCb(struct netif *netif);
 #endif
@@ -451,30 +479,31 @@ void IpAddrHookFxn(uint32_t IPAddr,
                    uint32_t IfIdx,
                    uint32_t fAdd)
 {
+    CpswRemoteApp_VirtNetif *virtNetif = &gRemoteAppObj.virtNetif[0];
     volatile uint32_t ipAddrHex = 0U;
     char ipAddr[20];
 
     ipAddrHex = NDK_ntohl(IPAddr);
-    gRemoteAppObj.ipv4Addr[0] = (uint8_t)(ipAddrHex >> 24) & 0xFF;
-    gRemoteAppObj.ipv4Addr[1] = (uint8_t)(ipAddrHex >> 16) & 0xFF;
-    gRemoteAppObj.ipv4Addr[2] = (uint8_t)(ipAddrHex >> 8) & 0xFF;
-    gRemoteAppObj.ipv4Addr[3] = (uint8_t)(ipAddrHex & 0xFF);
+    virtNetif->ipv4Addr[0] = (uint8_t)(ipAddrHex >> 24) & 0xFF;
+    virtNetif->ipv4Addr[1] = (uint8_t)(ipAddrHex >> 16) & 0xFF;
+    virtNetif->ipv4Addr[2] = (uint8_t)(ipAddrHex >> 8) & 0xFF;
+    virtNetif->ipv4Addr[3] = (uint8_t)(ipAddrHex & 0xFF);
     snprintf(ipAddr, 17, "%d.%d.%d.%d\n",
-             gRemoteAppObj.ipv4Addr[0],
-             gRemoteAppObj.ipv4Addr[1],
-             gRemoteAppObj.ipv4Addr[2],
-             gRemoteAppObj.ipv4Addr[3]);
+             virtNetif->ipv4Addr[0],
+             virtNetif->ipv4Addr[1],
+             virtNetif->ipv4Addr[2],
+             virtNetif->ipv4Addr[3]);
 
-    localAssert((gRemoteAppObj.hCpswProxy != NULL) && (gRemoteAppObj.hEnet != NULL));
+    localAssert((virtNetif->hCpswProxy != NULL) && (gRemoteAppObj.hEnet != NULL));
 
-    CpswProxy_registerIPV4Addr(gRemoteAppObj.hCpswProxy,
+    CpswProxy_registerIPV4Addr(virtNetif->hCpswProxy,
                                gRemoteAppObj.hEnet,
                                gRemoteAppObj.coreKey,
-                               gRemoteAppObj.macAddr,
-                               gRemoteAppObj.ipv4Addr);
+                               virtNetif->macAddr,
+                               virtNetif->ipv4Addr);
 
     System_printf("\nCPSW NIMU application, IP address I/F 1: %s\n\r", ipAddr);
-    CpswRemoteApp_initSyncTimer();
+    CpswRemoteApp_initSyncTimer(virtNetif);
 }
 
 void netOpenHook(void)
@@ -543,19 +572,19 @@ static void CpswRemoteApp_ipcPrint(const char *str)
     return;
 }
 
-static void CpswRemoteApp_initSyncTimer(void)
+static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
 {
     int32_t status;
 
-    memset(&gRemoteAppObj.syncTimerObj, 0, sizeof(CpswRemoteApp_SyncTimerObj));
+    memset(&virtNetif->syncTimerObj, 0, sizeof(CpswRemoteApp_SyncTimerObj));
 
     /* Make sure GTC is disabled before configuring timesync router*/
     CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x0U);
 
     /* Register callback */
-    status = CpswProxy_registerHwPushNotifyCb(gRemoteAppObj.hCpswProxy,
+    status = CpswProxy_registerHwPushNotifyCb(virtNetif->hCpswProxy,
                                               CpswRemoteApp_calcSyncTimeParams,
-                                              NULL);
+                                              (void *)virtNetif);
     if (status == ENET_EALREADYOPEN)
     {
         System_printf("CpswProxy_registerHwPushNotifyCb(): Callback is registered already\n");
@@ -566,7 +595,7 @@ static void CpswRemoteApp_initSyncTimer(void)
                  CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL);
 
     /* Send request to Ethfw to configure TSR */
-    CpswProxy_registerRemoteTimer(gRemoteAppObj.hCpswProxy,
+    CpswProxy_registerRemoteTimer(virtNetif->hCpswProxy,
                                   gRemoteAppObj.hEnet,
                                   gRemoteAppObj.coreKey,
                                   CSLR_TIMESYNC_INTRTR0_IN_GTC0_GTC_PUSH_EVENT_0,
@@ -589,10 +618,9 @@ static uint64_t CpswRemoteApp_getLocalTime(void)
     return gtcTime;
 }
 
-static uint64_t CpswRemoteApp_getSynchronizedTime(void)
+static uint64_t CpswRemoteApp_getSynchronizedTime(CpswRemoteApp_SyncTimerObj *hSyncTimerObj)
 {
     uint64_t gtcTime = 0U, synchronizedTime = 0U;
-    CpswRemoteApp_SyncTimerObj *hSyncTimerObj = (CpswRemoteApp_SyncTimerObj*)&gRemoteAppObj.syncTimerObj;
 
     /* Get GTC time */
     gtcTime = CpswRemoteApp_getLocalTime();
@@ -607,11 +635,13 @@ static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
                                              uint64_t syncTime,
                                              void *cbArg)
 {
+    CpswRemoteApp_VirtNetif *virtNetif = (CpswRemoteApp_VirtNetif *)cbArg;
+
     if (hwPushNum == CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM)
     {
         uint64_t gtcTime = 0U;
         uint64_t synchronizedTime = 0U;
-        CpswRemoteApp_SyncTimerObj *hSyncTimerObj = (CpswRemoteApp_SyncTimerObj*)&gRemoteAppObj.syncTimerObj;
+        CpswRemoteApp_SyncTimerObj *hSyncTimerObj = &virtNetif->syncTimerObj;
         double temp1, temp2;
 
         if(hSyncTimerObj->prevLocalTime == 0U)
@@ -654,7 +684,7 @@ static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
                                           (double)(gtcTime - hSyncTimerObj->prevLocalTime));
             hSyncTimerObj->offset = temp1 - temp2;
 
-            synchronizedTime = CpswRemoteApp_getSynchronizedTime();
+            synchronizedTime = CpswRemoteApp_getSynchronizedTime(hSyncTimerObj);
             System_printf("Current Synchronized time in Epoch format: %lld\n",synchronizedTime);
         }
 
@@ -729,6 +759,7 @@ static void CpswRemoteApp_initTask(void* a0,
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
     int32_t status;
+    uint32_t i;
 
     /* Step1 : Initialize the multiproc */
     status = Ipc_mpSetConfig(selfProcId, numProc, &gRemoteProc[0]);
@@ -791,8 +822,10 @@ static void CpswRemoteApp_initTask(void* a0,
     CpswProxy_init(CPSW_REMOTE_APP_MASTER_CORE_ID,
                    CPSW_REMOTE_APP_MASTER_ENDPT);
 
-    gRemoteAppObj.hCpswProxy = CpswRemoteApp_openCpswProxy();
-    localAssert(gRemoteAppObj.hCpswProxy != NULL);
+    for (i = 0U; i < ENET_ARRAYSIZE(gRemoteAppObj.virtNetif); i++)
+    {
+        CpswRemoteApp_openCpswProxy(&gRemoteAppObj.virtNetif[i]);
+    }
 
 #if defined(FREERTOS)
     /* Step 6: Initialize lwIP */
@@ -868,30 +901,6 @@ int main(void)
     OS_start();    /* does not return */
 
     return(0);
-}
-
-#if defined (FREERTOS)
-static bool CpswRemoteApp_isAllPortLinked(struct netif *netif,
-                                          Enet_Handle hEnet)
-#else
-static bool CpswRemoteApp_isAllPortLinked(Enet_Handle hEnet)
-#endif
-{
-    uint32_t i;
-    static bool isPhyLinked = false;
-    static uint32_t pollingInterVal = 0;
-
-    if ((isPhyLinked == false) || ((pollingInterVal % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
-    {
-        for (i = 0; i < gRemoteAppObj.numMacPorts; i++)
-        {
-            isPhyLinked = (isPhyLinked ||
-                            CpswProxy_isPhyLinked(gRemoteAppObj.hCpswProxy, hEnet, gRemoteAppObj.coreKey, gRemoteAppObj.macPorts[i]));
-        }
-    }
-
-    pollingInterVal = (pollingInterVal + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
-    return isPhyLinked;
 }
 
 static int32_t CpswRemoteApp_openUdma(void)
@@ -1010,6 +1019,7 @@ static void CpswRemoteApp_setRxFlowPrms(EnetUdma_OpenRxFlowPrms *pRxFlowPrms,
     pRxFlowPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
     pRxFlowPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
     pRxFlowPrms->cbArg = cbArg;
+    pRxFlowPrms->useGlobalEvt = true;
     pRxFlowPrms->useProxy = false;
     pRxFlowPrms->rxFlowMtu = rxFlowMtu;
 }
@@ -1035,20 +1045,27 @@ static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
 
     pTxChPrms->cbArg = cbArg;
     pTxChPrms->notifyCb = eventCb;
+    pTxChPrms->useGlobalEvt = true;
 }
 
-static CpswProxy_Handle CpswRemoteApp_openCpswProxy(void)
+static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
 {
      CpswProxy_Config proxyConfig;
      CpswProxy_Handle hProxy;
 
-     proxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+     proxyConfig.virtPort = virtNetif->virtPort;
      proxyConfig.deviceDataNotifyCb = &printDevInfo;
 
      hProxy = CpswProxy_open(&proxyConfig);
-     localAssert(hProxy != NULL);
-
-     return hProxy;
+     if (hProxy != NULL)
+     {
+         virtNetif->hCpswProxy = hProxy;
+     }
+     else
+     {
+         System_printf("Failed to open CpswProxy for virtPortId %u\n", virtNetif->virtPort);
+         localAssert(hProxy != NULL);
+     }
 }
 
 #if defined (FREERTOS)
@@ -1078,6 +1095,7 @@ static void EthApp_lwipMain(void *a0,
 static void EthApp_initLwip(void *arg)
 {
     sys_sem_t *initSem;
+    uint32_t i;
 
     LWIP_ASSERT("arg != NULL", arg != NULL);
     initSem = (sys_sem_t*)arg;
@@ -1086,13 +1104,17 @@ static void EthApp_initLwip(void *arg)
     srand((unsigned int)sys_now()/1000);
 
     /* init network interfaces */
-    EthApp_initNetif();
+    for (i = 0U; i < ENET_ARRAYSIZE(gRemoteAppObj.virtNetif); i++)
+    {
+        EthApp_initNetif(&gRemoteAppObj.virtNetif[i]);
+    }
 
     sys_sem_signal(initSem);
 }
 
-static void EthApp_initNetif(void)
+static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 {
+    struct netif *netif = &virtNetif->netif;
     ip4_addr_t ipaddr, netmask, gw;
 #if ETHAPP_LWIP_USE_DHCP
     err_t err;
@@ -1111,16 +1133,21 @@ static void EthApp_initNetif(void)
     appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
-    init_default_netif(&ipaddr, &netmask, &gw);
+    netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
 
-    netif_set_status_callback(netif_default, EthApp_netifStatusCb);
+    if (virtNetif->isDfltNetif)
+    {
+        netif_set_default(netif);
+    }
 
-    dhcp_set_struct(netif_default, &gRemoteAppObj.dhcpNetif);
+    netif_set_status_callback(netif, EthApp_netifStatusCb);
 
-    netif_set_up(netif_default);
+    dhcp_set_struct(netif, &virtNetif->dhcpNetif);
+
+    netif_set_up(netif);
 
 #if ETHAPP_LWIP_USE_DHCP
-    err = dhcp_start(netif_default);
+    err = dhcp_start(netif);
     if (err != ERR_OK)
     {
         appLogPrintf("Failed to start DHCP: %d\n", err);
@@ -1130,6 +1157,10 @@ static void EthApp_initNetif(void)
 
 static void EthApp_netifStatusCb(struct netif *netif)
 {
+    CpswRemoteApp_VirtNetif *virtNetif;
+
+    virtNetif = container_of(netif, CpswRemoteApp_VirtNetif, netif);
+
     if (netif_is_up(netif))
     {
         const ip4_addr_t *ipAddr = netif_ip4_addr(netif);
@@ -1139,21 +1170,21 @@ static void EthApp_netifStatusCb(struct netif *netif)
 
         if (ipAddr->addr != 0)
         {
-            gRemoteAppObj.ipv4Addr[0] = ip4_addr1_val(*ipAddr);
-            gRemoteAppObj.ipv4Addr[1] = ip4_addr2_val(*ipAddr);
-            gRemoteAppObj.ipv4Addr[2] = ip4_addr3_val(*ipAddr);
-            gRemoteAppObj.ipv4Addr[3] = ip4_addr4_val(*ipAddr);
+            virtNetif->ipv4Addr[0] = ip4_addr1_val(*ipAddr);
+            virtNetif->ipv4Addr[1] = ip4_addr2_val(*ipAddr);
+            virtNetif->ipv4Addr[2] = ip4_addr3_val(*ipAddr);
+            virtNetif->ipv4Addr[3] = ip4_addr4_val(*ipAddr);
 
-            localAssert(gRemoteAppObj.hCpswProxy != NULL);
+            localAssert(virtNetif->hCpswProxy != NULL);
             localAssert(gRemoteAppObj.hEnet != NULL);
 
-            CpswProxy_registerIPV4Addr(gRemoteAppObj.hCpswProxy,
+            CpswProxy_registerIPV4Addr(virtNetif->hCpswProxy,
                                        gRemoteAppObj.hEnet,
                                        gRemoteAppObj.coreKey,
-                                       gRemoteAppObj.macAddr,
-                                       gRemoteAppObj.ipv4Addr);
+                                       virtNetif->macAddr,
+                                       virtNetif->ipv4Addr);
 
-            CpswRemoteApp_initSyncTimer();
+            CpswRemoteApp_initSyncTimer(virtNetif);
         }
     }
     else
@@ -1322,19 +1353,49 @@ static void CpswRemoteApp_closeLwipTxCh(CpswProxy_Handle hProxy,
     freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
 }
 
+static bool LwipifEnetAppCb_isPortLinked(struct netif *netif,
+                                         Enet_Handle hEnet)
+{
+    CpswRemoteApp_VirtNetif *virtNetif;
+    static bool isPhyLinked = false;
+    static uint32_t pollingInterVal = 0;
+    uint32_t i;
+
+    virtNetif = container_of(netif, CpswRemoteApp_VirtNetif, netif);
+    localAssert(virtNetif->hCpswProxy != NULL);
+
+    if ((isPhyLinked == false) || ((pollingInterVal % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
+    {
+        for (i = 0U; i < virtNetif->numMacPorts; i++)
+        {
+            isPhyLinked = (isPhyLinked ||
+                           CpswProxy_isPhyLinked(virtNetif->hCpswProxy,
+                                                 hEnet,
+                                                 gRemoteAppObj.coreKey,
+                                                 virtNetif->macPorts[i]));
+        }
+    }
+
+    pollingInterVal = (pollingInterVal + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
+
+    return isPhyLinked;
+}
+
 void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
+    CpswRemoteApp_VirtNetif *virtNetif;
     uint32_t txPSILId;
     uint32_t rxStartFlowId;
     uint32_t rxFlowIdOffset;
 
-    localAssert(gRemoteAppObj.hCpswProxy != NULL);
+    virtNetif = container_of(inArgs->netif, CpswRemoteApp_VirtNetif, netif);
+    localAssert(virtNetif->hCpswProxy != NULL);
 
     outArgs->coreId = gRemoteAppObj.coreId;
     outArgs->hUdmaDrv = gRemoteAppObj.hUdmaDrv;
     outArgs->print = (Enet_Print) & printf;
-    outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
+    outArgs->isPortLinkedFxn = &LwipifEnetAppCb_isPortLinked;
     outArgs->rxInfo[0U].disableEvent = true;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
     outArgs->txInfo.disableEvent = true;
@@ -1342,7 +1403,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
     if (gRemoteAppObj.useExtAttach)
     {
-        CpswProxy_attachExtended(gRemoteAppObj.hCpswProxy,
+        CpswProxy_attachExtended(virtNetif->hCpswProxy,
                                  gRemoteAppObj.enetType,
                                  &outArgs->hEnet,
                                  &outArgs->coreKey,
@@ -1351,29 +1412,29 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                  &txPSILId,
                                  &rxStartFlowId,
                                  &rxFlowIdOffset,
-                                 gRemoteAppObj.macAddr);
+                                 virtNetif->macAddr);
     }
     else
     {
-        CpswProxy_attach(gRemoteAppObj.hCpswProxy,
+        CpswProxy_attach(virtNetif->hCpswProxy,
                          gRemoteAppObj.enetType,
                          &outArgs->hEnet,
                          &outArgs->coreKey,
                          &outArgs->hostPortRxMtu,
                          outArgs->txMtu);
-        CpswProxy_allocTxCh(gRemoteAppObj.hCpswProxy,
+        CpswProxy_allocTxCh(virtNetif->hCpswProxy,
                             outArgs->hEnet,
                             outArgs->coreKey,
                             &txPSILId);
-        CpswProxy_allocRxFlow(gRemoteAppObj.hCpswProxy,
+        CpswProxy_allocRxFlow(virtNetif->hCpswProxy,
                               outArgs->hEnet,
                               outArgs->coreKey,
                               &rxStartFlowId,
                               &rxFlowIdOffset);
-        CpswProxy_allocMac(gRemoteAppObj.hCpswProxy,
+        CpswProxy_allocMac(virtNetif->hCpswProxy,
                            outArgs->hEnet,
                            outArgs->coreKey,
-                           gRemoteAppObj.macAddr);
+                           virtNetif->macAddr);
     }
 
     CpswRemoteApp_openLwipTxCh(outArgs->hUdmaDrv,
@@ -1382,14 +1443,14 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                &inArgs->txCfg,
                                &outArgs->txInfo);
 
-    CpswRemoteApp_openLwipRxCh(gRemoteAppObj.hCpswProxy,
+    CpswRemoteApp_openLwipRxCh(virtNetif->hCpswProxy,
                                outArgs->hEnet,
                                outArgs->hUdmaDrv,
                                outArgs->coreKey,
                                gRemoteAppObj.useDefaultRxFlow,
                                rxStartFlowId,
                                rxFlowIdOffset,
-                               gRemoteAppObj.macAddr,
+                               virtNetif->macAddr,
                                &inArgs->rxCfg[0U],
                                &outArgs->rxInfo[0U],
                                outArgs->hostPortRxMtu);
@@ -1399,26 +1460,29 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
 void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
-    localAssert(gRemoteAppObj.hCpswProxy != NULL);
+    CpswRemoteApp_VirtNetif *virtNetif;
 
-    CpswRemoteApp_closeLwipTxCh(gRemoteAppObj.hCpswProxy,
+    virtNetif = container_of(releaseInfo->netif, CpswRemoteApp_VirtNetif, netif);
+    localAssert(virtNetif->hCpswProxy != NULL);
+
+    CpswRemoteApp_closeLwipTxCh(virtNetif->hCpswProxy,
                                 releaseInfo->hEnet,
                                 releaseInfo->hUdmaDrv,
                                 releaseInfo->coreKey,
                                 &releaseInfo->txInfo,
                                 releaseInfo->txFreePkt.cbArg,
                                 releaseInfo->txFreePkt.cb);
-    CpswRemoteApp_closeLwipRxCh(gRemoteAppObj.hCpswProxy,
+    CpswRemoteApp_closeLwipRxCh(virtNetif->hCpswProxy,
                                 releaseInfo->hEnet,
                                 releaseInfo->hUdmaDrv,
                                 releaseInfo->coreKey,
                                 gRemoteAppObj.useDefaultRxFlow,
-                                gRemoteAppObj.ipv4Addr,
+                                virtNetif->ipv4Addr,
                                 &releaseInfo->rxInfo[0U],
                                 releaseInfo->rxFreePkt[0U].cbArg,
                                 releaseInfo->rxFreePkt[0U].cb);
 
-    CpswProxy_detach(gRemoteAppObj.hCpswProxy, releaseInfo->hEnet, releaseInfo->coreKey);
+    CpswProxy_detach(virtNetif->hCpswProxy, releaseInfo->hEnet, releaseInfo->coreKey);
 }
 #else /* !FREERTOS */
 static void CpswRemoteApp_openNDKRxCh(CpswProxy_Handle hProxy,
@@ -1581,9 +1645,35 @@ static void CpswRemoteApp_closeNDKTxCh(CpswProxy_Handle hProxy,
     freeFxn(freeFxnArg, &fqPktInfoQ, &cqPktInfoQ);
 }
 
+static bool NimuEnetAppCb_isPortLinked(Enet_Handle hEnet)
+{
+    CpswRemoteApp_VirtNetif *virtNetif = &gRemoteAppObj.virtNetif[0];
+    static bool isPhyLinked = false;
+    static uint32_t pollingInterVal = 0;
+    uint32_t i;
+
+    localAssert(virtNetif->hCpswProxy != NULL);
+
+    if ((isPhyLinked == false) || ((pollingInterVal % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
+    {
+        for (i = 0; i < virtNetif->numMacPorts; i++)
+        {
+            isPhyLinked = (isPhyLinked ||
+                            CpswProxy_isPhyLinked(virtNetif->hCpswProxy,
+                                                  hEnet,
+                                                  gRemoteAppObj.coreKey,
+                                                  virtNetif->macPorts[i]));
+        }
+    }
+
+    pollingInterVal = (pollingInterVal + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
+    return isPhyLinked;
+}
+
 void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)
 {
+    CpswRemoteApp_VirtNetif *virtNetif = &gRemoteAppObj.virtNetif[0];
     uint32_t txPSILId;
     uint32_t rxStartFlowId;
     uint32_t rxFlowIdOffset;
@@ -1591,12 +1681,12 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     /* Wait for EthFw connection to be established */
     SemaphoreP_pend(gRemoteAppObj.hInitSem, SemaphoreP_WAIT_FOREVER);
 
-    localAssert(gRemoteAppObj.hCpswProxy != NULL);
+    localAssert(virtNetif->hCpswProxy != NULL);
 
     outArgs->coreId = gRemoteAppObj.coreId;
     outArgs->hUdmaDrv = gRemoteAppObj.hUdmaDrv;
     outArgs->print = (Enet_Print) & ConPrintf;
-    outArgs->isPortLinkedFxn = &CpswRemoteApp_isAllPortLinked;
+    outArgs->isPortLinkedFxn = &NimuEnetAppCb_isPortLinked;
     outArgs->isRingMonUsed = false;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
     /* Let NIMU use optimized processing where TX packets are relinquished in next
@@ -1605,7 +1695,7 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
 
     if (gRemoteAppObj.useExtAttach)
     {
-        CpswProxy_attachExtended(gRemoteAppObj.hCpswProxy,
+        CpswProxy_attachExtended(virtNetif->hCpswProxy,
                                  gRemoteAppObj.enetType,
                                  &outArgs->hEnet,
                                  &outArgs->coreKey,
@@ -1614,29 +1704,29 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                                  &txPSILId,
                                  &rxStartFlowId,
                                  &rxFlowIdOffset,
-                                 gRemoteAppObj.macAddr);
+                                 virtNetif->macAddr);
     }
     else
     {
-        CpswProxy_attach(gRemoteAppObj.hCpswProxy,
+        CpswProxy_attach(virtNetif->hCpswProxy,
                          gRemoteAppObj.enetType,
                          &outArgs->hEnet,
                          &outArgs->coreKey,
                          &outArgs->hostPortRxMtu,
                          outArgs->txMtu);
-        CpswProxy_allocTxCh(gRemoteAppObj.hCpswProxy,
+        CpswProxy_allocTxCh(virtNetif->hCpswProxy,
                             outArgs->hEnet,
                             outArgs->coreKey,
                             &txPSILId);
-        CpswProxy_allocRxFlow(gRemoteAppObj.hCpswProxy,
+        CpswProxy_allocRxFlow(virtNetif->hCpswProxy,
                               outArgs->hEnet,
                               outArgs->coreKey,
                               &rxStartFlowId,
                               &rxFlowIdOffset);
-        CpswProxy_allocMac(gRemoteAppObj.hCpswProxy,
+        CpswProxy_allocMac(virtNetif->hCpswProxy,
                            outArgs->hEnet,
                            outArgs->coreKey,
-                           gRemoteAppObj.macAddr);
+                           virtNetif->macAddr);
     }
 
     CpswRemoteApp_openNDKTxCh(outArgs->hUdmaDrv,
@@ -1645,14 +1735,14 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              &inArgs->txCfg,
                              &outArgs->txInfo);
 
-    CpswRemoteApp_openNDKRxCh(gRemoteAppObj.hCpswProxy,
+    CpswRemoteApp_openNDKRxCh(virtNetif->hCpswProxy,
                              outArgs->hEnet,
                              outArgs->hUdmaDrv,
                              outArgs->coreKey,
                              gRemoteAppObj.useDefaultRxFlow,
                              rxStartFlowId,
                              rxFlowIdOffset,
-                             gRemoteAppObj.macAddr,
+                             virtNetif->macAddr,
                              &inArgs->rxCfg,
                              &outArgs->rxInfo,
                              outArgs->hostPortRxMtu);
@@ -1662,25 +1752,28 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
 
 void NimuEnetAppCb_releaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
-    localAssert(gRemoteAppObj.hCpswProxy != NULL);
+    CpswRemoteApp_VirtNetif *virtNetif = &gRemoteAppObj.virtNetif[0];
 
-    CpswRemoteApp_closeNDKTxCh(gRemoteAppObj.hCpswProxy,
+    localAssert(virtNetif->hCpswProxy != NULL);
+
+    CpswRemoteApp_closeNDKTxCh(virtNetif->hCpswProxy,
                                releaseInfo->hEnet,
                                releaseInfo->hUdmaDrv,
                                releaseInfo->coreKey,
                                &releaseInfo->txInfo,
                                releaseInfo->freePktCbArg,
                                releaseInfo->txFreePktCb);
-    CpswRemoteApp_closeNDKRxCh(gRemoteAppObj.hCpswProxy,
+
+    CpswRemoteApp_closeNDKRxCh(virtNetif->hCpswProxy,
                                releaseInfo->hEnet,
                                releaseInfo->hUdmaDrv,
                                releaseInfo->coreKey,
                                gRemoteAppObj.useDefaultRxFlow,
-                               gRemoteAppObj.ipv4Addr,
+                               virtNetif->ipv4Addr,
                                &releaseInfo->rxInfo,
                                releaseInfo->freePktCbArg,
                                releaseInfo->rxFreePktCb);
 
-    CpswProxy_detach(gRemoteAppObj.hCpswProxy, releaseInfo->hEnet, releaseInfo->coreKey);
+    CpswProxy_detach(virtNetif->hCpswProxy, releaseInfo->hEnet, releaseInfo->coreKey);
 }
 #endif /* !FREERTOS */
