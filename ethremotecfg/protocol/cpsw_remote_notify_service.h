@@ -102,7 +102,7 @@ extern "C" {
 #define CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID             (30U)
 
 /*! Remote notify service max msg size */
-#define CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE         (512U)
+#define CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE         (496U + 32U)
 
 /*! Remote notify service max number of rpmsg buffers */
 #define CPSW_REMOTE_NOTIFY_SERVICE_NUM_RPMSG_BUFS       (256U)
