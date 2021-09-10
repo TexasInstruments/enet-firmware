@@ -275,6 +275,8 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
      * in next TX submit call */
     outArgs->txInfo.disableEvent = true;
 
+    outArgs->txInfo.txPortNum = ENET_MAC_PORT_INV;
+
     macAddr = &rxInfo->macAddr[0U];
     appLogPrintf("Host MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
                  macAddr[0] & 0xFF, macAddr[1] & 0xFF, macAddr[2] & 0xFF,

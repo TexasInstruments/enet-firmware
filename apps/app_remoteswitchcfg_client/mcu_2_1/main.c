@@ -1241,6 +1241,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     /* Let NIMU use optimized processing where TX packets are relinquished in next
      * TX submit call */
     outArgs->txInfo.disableEvent = true;
+    outArgs->txInfo.txPortNum = ENET_MAC_PORT_INV;
 
     gRemoteAppObj.hDma = CpswRemoteApp_initCpswDma(enetType, outArgs->hUdmaDrv);
 
