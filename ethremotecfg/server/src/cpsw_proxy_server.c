@@ -155,6 +155,7 @@ typedef struct CpswProxyServer_EthDriverObj_s
     uint32_t                     dstProc;
     uint32_t                     localEp;
     uint32_t                     remoteEp;
+    EthRemoteCfg_VirtPort        virtPort;
 } CpswProxyServer_EthDriverObj;
 
 typedef struct CpswProxyServer_NotifyServiceObj_s
@@ -404,8 +405,8 @@ static void CpswProxyServer_addHandleEntry(CpswProxyServer_HandleTable *tbl, Ene
     }
 }
 
-
-static int32_t CpswProxyServer_attachHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_attachHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                               uint32_t host_id,
                                                uint8_t cpsw_type,
                                                uint64_t *pId,
                                                uint32_t *pCoreKey,
@@ -496,7 +497,8 @@ static void CpswProxyServer_validateHandle(Enet_Handle hEnet)
 
 }
 
-static int32_t CpswProxyServer_allocTxHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_allocTxHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                uint32_t host_id,
                                                 uint64_t handle,
                                                 uint32_t core_key,
                                                 uint32_t *pTxCpswPsilDstId)
@@ -534,7 +536,8 @@ static void CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
     EnetAppUtils_assert(rxFlowStartId == p0FlowIdOffset);
 }
 
-static int32_t CpswProxyServer_allocRxHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_allocRxHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                uint32_t host_id,
                                                 uint64_t handle,
                                                 uint32_t core_key,
                                                 uint32_t *pAllocFlowIdx)
@@ -562,7 +565,8 @@ static int32_t CpswProxyServer_allocRxHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_allocMacHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_allocMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                 uint32_t host_id,
                                                  uint64_t handle,
                                                  uint32_t core_key,
                                                  u8 *mac_address)
@@ -586,7 +590,8 @@ static int32_t CpswProxyServer_allocMacHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_registerMacHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                    uint32_t host_id,
                                                     uint64_t handle,
                                                     uint32_t core_key,
                                                     u8 *mac_address,
@@ -626,7 +631,8 @@ static int32_t CpswProxyServer_registerMacHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_unregisterMacHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_unregisterMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                      uint32_t host_id,
                                                       uint64_t handle,
                                                       uint32_t core_key,
                                                       u8 *mac_address,
@@ -666,7 +672,8 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_registerRxDefaultHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_registerRxDefaultHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                          uint32_t host_id,
                                                           uint64_t handle,
                                                           uint32_t core_key,
                                                           uint32_t flow_idx)
@@ -694,7 +701,8 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                            uint32_t host_id,
                                                             uint64_t handle,
                                                             uint32_t core_key,
                                                             uint32_t flow_idx)
@@ -722,7 +730,8 @@ static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_freeTxHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_freeTxHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                               uint32_t host_id,
                                                uint64_t handle,
                                                uint32_t core_key,
                                                uint32_t tx_cpsw_psil_dst_id)
@@ -749,10 +758,11 @@ static int32_t CpswProxyServer_freeTxHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_freeRxHandlerCb(uint32_t host_id,
-                                                  uint64_t handle,
-                                                  uint32_t core_key,
-                                                  uint32_t alloc_flow_idx)
+static int32_t CpswProxyServer_freeRxHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                               uint32_t host_id,
+                                               uint64_t handle,
+                                               uint32_t core_key,
+                                               uint32_t alloc_flow_idx)
 {
     int32_t status;
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
@@ -782,7 +792,8 @@ static int32_t CpswProxyServer_freeRxHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_freeMacHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_freeMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                uint32_t host_id,
                                                 uint64_t handle,
                                                 uint32_t core_key,
                                                 u8 *mac_address)
@@ -812,13 +823,14 @@ static int32_t CpswProxyServer_freeMacHandlerCb(uint32_t host_id,
     }
     else
     {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
+       status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
     return status;
 }
 
-static int32_t CpswProxyServer_detachHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_detachHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                               uint32_t host_id,
                                                uint64_t handle,
                                                uint32_t core_key)
 {
@@ -937,7 +949,8 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
     }
 }
 
-static int32_t CpswProxyServer_ioctlHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_ioctlHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                              uint32_t host_id,
                                               uint64_t handle,
                                               uint32_t core_key,
                                               u32 cmd,
@@ -992,7 +1005,8 @@ static int32_t CpswProxyServer_ioctlHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_regwrHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_regwrHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                              uint32_t host_id,
                                               uint32_t regaddr,
                                               uint32_t regval,
                                               uint32_t *pRegval)
@@ -1006,7 +1020,8 @@ static int32_t CpswProxyServer_regwrHandlerCb(uint32_t host_id,
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
-static int32_t CpswProxyServer_regrdHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_regrdHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                              uint32_t host_id,
                                               uint32_t regaddr,
                                               uint32_t *pRegval)
 {
@@ -1056,7 +1071,8 @@ static void CpswProxyServer_dumpLliTable(LLI_INFO *llitable,
 }
 #endif
 
-static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                        uint32_t host_id,
                                                         uint64_t handle,
                                                         uint32_t core_key,
                                                         uint8_t *mac_address,
@@ -1142,7 +1158,8 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                          uint32_t host_id,
                                                           uint64_t handle,
                                                           uint32_t core_key,
                                                           uint8_t *ipv4_addr)
@@ -1208,7 +1225,8 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_registerIpv6MacHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_registerIpv6MacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                        uint32_t host_id,
                                                         uint64_t handle,
                                                         uint32_t core_key,
                                                         uint8_t *mac_address,
@@ -1245,7 +1263,8 @@ static int32_t CpswProxyServer_registerIpv6MacHandlerCb(uint32_t host_id,
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
-static int32_t CpswProxyServer_attachExtHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_attachExtHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                  uint32_t host_id,
                                                   uint8_t cpsw_type,
                                                   uint64_t *pId,
                                                   uint32_t *pCoreKey,
@@ -1357,7 +1376,8 @@ static int32_t CpswProxyServer_attachExtHandlerCb(uint32_t host_id,
     return status;
 }
 
-static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
+static void CpswProxyServer_clientNotifyHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                  uint32_t host_id,
                                                   uint64_t handle,
                                                   uint32_t core_key,
                                                   enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
@@ -1420,7 +1440,8 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t host_id,
     }
 }
 
-static void  CpswProxyServer_initDeviceDataHandlerCb(uint32_t host_id,
+static void  CpswProxyServer_initDeviceDataHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                     uint32_t host_id,
                                                      struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data)
 {
     CpswProxyServer_Obj *hProxyServer;
@@ -1431,7 +1452,8 @@ static void  CpswProxyServer_initDeviceDataHandlerCb(uint32_t host_id,
     hProxyServer->initEthfwDeviceDataCb(host_id, eth_dev_data);
 }
 
-static int32_t CpswProxyServer_registerEthertypeHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_registerEthertypeHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                          uint32_t host_id,
                                                           uint64_t handle,
                                                           uint32_t core_key,
                                                           u16 ether_type,
@@ -1479,7 +1501,8 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                            uint32_t host_id,
                                                             uint64_t handle,
                                                             uint32_t core_key,
                                                             u16 ether_type,
@@ -1523,7 +1546,8 @@ static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                            uint32_t host_id,
                                                             uint8_t *name,
                                                             uint64_t handle,
                                                             uint32_t core_key,
@@ -1576,7 +1600,8 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(uint32_t host_id,
     return status;
 }
 
-static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(uint32_t host_id,
+static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                              uint32_t host_id,
                                                               uint8_t *name,
                                                               uint64_t handle,
                                                               uint32_t core_key,
@@ -1626,7 +1651,8 @@ static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *v
     };
     uint32_t portNum = EthRemoteCfg_getPortNum(virtPortCfg->portId);
 
-    prm->host_id = virtPortCfg->remoteCoreId;
+    prm->host_id  = virtPortCfg->remoteCoreId;
+    prm->virtPort = virtPortCfg->portId;
 
     snprintf((char *)&prm->name[0],
              ETHREMOTECFG_SERVER_MAX_NAME_LEN,
@@ -1752,6 +1778,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
     uint32_t  localEp;
 
     hProxyServer->ethDrvObj.dstProc = cfg->autosarEthDriverRemoteCoreId;
+    hProxyServer->ethDrvObj.virtPort = cfg->autosarEthDriverVirtPort;
     RPMessageParams_init(&comChParam);
     comChParam.numBufs = CPSWPROXY_AUTOSAR_ETHDRIVER_NUM_RPMSG_BUFS;
     comChParam.buf = g_CpswProxyServerAutosarRpmsgBuf;
@@ -1908,6 +1935,7 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
     int32_t rtnVal = IPC_SOK;
     uint32_t remoteProcId, remoteEndPt;
     CpswProxyServer_Obj * hProxyServer = (CpswProxyServer_Obj *)arg0;
+    EthRemoteCfg_VirtPort virtPort = hProxyServer->ethDrvObj.virtPort;
     uint32_t remoteProc, remoteEp;
     uint16_t len;
     uint64_t msgBuffer[(CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE / sizeof(uint64_t))];
@@ -1978,7 +2006,8 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                         status = CpswProxy_mapEthRpc2RdevCpswType((Eth_RpcCpswType)attachReq->enetType, &rdevCpswType);
                         if (ENET_SOK == status)
                         {
-                            status =  CpswProxyServer_attachExtHandlerCb(remoteProc,
+                            status =  CpswProxyServer_attachExtHandlerCb(virtPort,
+                                                                         remoteProc,
                                                                          rdevCpswType,
                                                                          &attachRes.id,
                                                                          &attachRes.coreKey,
@@ -2027,7 +2056,8 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &&
                                             (detachReq->header.messageLen == sizeof(*detachReq)));
 
-                        status =  CpswProxyServer_detachHandlerCb(remoteProcId,
+                        status =  CpswProxyServer_detachHandlerCb(virtPort,
+                                                                  remoteProcId,
                                                                   detachReq->info.id,
                                                                   detachReq->info.coreKey);
 
@@ -2061,10 +2091,11 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &&
                                             (registerDefaultReq->header.messageLen == sizeof(*registerDefaultReq)));
 
-                        status =  CpswProxyServer_registerRxDefaultHandlerCb(remoteProcId,
-                                                                  registerDefaultReq->info.id,
-                                                                  registerDefaultReq->info.coreKey,
-                                                                  registerDefaultReq->defaultFlowIdx);
+                        status =  CpswProxyServer_registerRxDefaultHandlerCb(virtPort,
+                                                                             remoteProcId,
+                                                                             registerDefaultReq->info.id,
+                                                                             registerDefaultReq->info.coreKey,
+                                                                             registerDefaultReq->defaultFlowIdx);
 
                         if (ENET_SOK == status)
                         {
@@ -2097,11 +2128,12 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &&
                                             (registerMacReq->header.messageLen == sizeof(*registerMacReq)));
 
-                        status =  CpswProxyServer_registerMacHandlerCb(remoteProcId,
-                                                                  registerMacReq->info.id,
-                                                                  registerMacReq->info.coreKey,
-                                                                  registerMacReq->macAddress,
-                                                                  registerMacReq->flowIdx);
+                        status =  CpswProxyServer_registerMacHandlerCb(virtPort,
+                                                                       remoteProcId,
+                                                                       registerMacReq->info.id,
+                                                                       registerMacReq->info.coreKey,
+                                                                       registerMacReq->macAddress,
+                                                                       registerMacReq->flowIdx);
 
                         if (ENET_SOK == status)
                         {
@@ -2134,11 +2166,12 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &&
                                             (unregisterMacReq->header.messageLen == sizeof(*unregisterMacReq)));
 
-                        status =  CpswProxyServer_unregisterMacHandlerCb(remoteProcId,
-                                                                  unregisterMacReq->info.id,
-                                                                  unregisterMacReq->info.coreKey,
-                                                                  unregisterMacReq->macAddress,
-                                                                  unregisterMacReq->flowIdx);
+                        status =  CpswProxyServer_unregisterMacHandlerCb(virtPort,
+                                                                         remoteProcId,
+                                                                         unregisterMacReq->info.id,
+                                                                         unregisterMacReq->info.coreKey,
+                                                                         unregisterMacReq->macAddress,
+                                                                         unregisterMacReq->flowIdx);
 
                         if (ENET_SOK == status)
                         {
@@ -2171,10 +2204,11 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &&
                                             (unregisterDefaultReq->header.messageLen == sizeof(*unregisterDefaultReq)));
 
-                        status =  CpswProxyServer_unregisterRxDefaultHandlerCb(remoteProcId,
-                                                                  unregisterDefaultReq->info.id,
-                                                                  unregisterDefaultReq->info.coreKey,
-                                                                  unregisterDefaultReq->defaultFlowIdx);
+                        status =  CpswProxyServer_unregisterRxDefaultHandlerCb(virtPort,
+                                                                               remoteProcId,
+                                                                               unregisterDefaultReq->info.id,
+                                                                               unregisterDefaultReq->info.coreKey,
+                                                                               unregisterDefaultReq->defaultFlowIdx);
 
                         if (ENET_SOK == status)
                         {
@@ -2207,7 +2241,8 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                              &&
                                              (ioctlReq->header.messageLen == sizeof(*ioctlReq)));
 
-                        status =  CpswProxyServer_ioctlHandlerCb(remoteProcId,
+                        status =  CpswProxyServer_ioctlHandlerCb(virtPort,
+                                                                 remoteProcId,
                                                                  ioctlReq->info.id,
                                                                  ioctlReq->info.coreKey,
                                                                  ioctlReq->cmd,
@@ -2253,11 +2288,12 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &&
                                             (registerIpv4Req->header.messageLen == sizeof(*registerIpv4Req)));
 
-                        status =  CpswProxyServer_registerIpv4MacHandlerCb(remoteProcId,
-                                                                 registerIpv4Req->info.id,
-                                                                 registerIpv4Req->info.coreKey,
-                                                                 registerIpv4Req->macAddress,
-                                                                 registerIpv4Req->ipv4Addr);
+                        status =  CpswProxyServer_registerIpv4MacHandlerCb(virtPort,
+                                                                           remoteProcId,
+                                                                           registerIpv4Req->info.id,
+                                                                           registerIpv4Req->info.coreKey,
+                                                                           registerIpv4Req->macAddress,
+                                                                           registerIpv4Req->ipv4Addr);
 
                         if (ENET_SOK == status)
                         {
@@ -2290,10 +2326,11 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                             &&
                                             (unregisterIpv4Req->header.messageLen == sizeof(*unregisterIpv4Req)));
 
-                        status =  CpswProxyServer_unregisterIpv4MacHandlerCb(remoteProcId,
-                                                                 unregisterIpv4Req->info.id,
-                                                                 unregisterIpv4Req->info.coreKey,
-                                                                 unregisterIpv4Req->ipv4Addr);
+                        status =  CpswProxyServer_unregisterIpv4MacHandlerCb(virtPort,
+                                                                             remoteProcId,
+                                                                             unregisterIpv4Req->info.id,
+                                                                             unregisterIpv4Req->info.coreKey,
+                                                                             unregisterIpv4Req->ipv4Addr);
 
                         if (ENET_SOK == status)
                         {
@@ -2329,7 +2366,8 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                         status = CpswProxy_mapEthRpcClientNotify2RdevClientNotifyType((Eth_RpcClientNotifyType)c2sNotify->notifyid, &rdevNotifyType);
                         if (ENET_SOK == status)
                         {
-                            CpswProxyServer_clientNotifyHandlerCb(remoteProcId,
+                            CpswProxyServer_clientNotifyHandlerCb(virtPort,
+                                                                  remoteProcId,
                                                                   c2sNotify->info.id,
                                                                   c2sNotify->info.coreKey,
                                                                   rdevNotifyType,

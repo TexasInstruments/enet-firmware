@@ -261,7 +261,15 @@ static int32_t rdevEthSwitchServerHandleAttachRequest(rdevEthSwitchServerInstanc
         uint32_t features;
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->attach_handler(inst->inst_prm.host_id, req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, ENET_ARRAYSIZE(txMtu), &features);
+        resp->info.status = cb->attach_handler(inst->inst_prm.virtPort,
+                                               inst->inst_prm.host_id,
+                                               req->cpsw_type,
+                                               &id,
+                                               &coreKey,
+                                               &rxMtu,
+                                               txMtu,
+                                               ENET_ARRAYSIZE(txMtu),
+                                               &features);
         resp->id = id;
         resp->core_key = coreKey;
         resp->rx_mtu = rxMtu;
@@ -290,7 +298,11 @@ static int32_t rdevEthSwitchServerHandleAllocTxRequest(rdevEthSwitchServerInstan
         uint32_t tx_cpsw_psil_dst_id;
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->alloc_tx_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, &tx_cpsw_psil_dst_id);
+        resp->info.status = cb->alloc_tx_handler(inst->inst_prm.virtPort,
+                                                 inst->inst_prm.host_id,
+                                                 req->info.id,
+                                                 req->info.core_key,
+                                                 &tx_cpsw_psil_dst_id);
         resp->tx_cpsw_psil_dst_id = tx_cpsw_psil_dst_id;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
@@ -313,7 +325,11 @@ static int32_t rdevEthSwitchServerHandleRegisterDefaultFlow(rdevEthSwitchServerI
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->register_rx_default_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->default_flow_idx);
+        resp->info.status = cb->register_rx_default_handler(inst->inst_prm.virtPort,
+                                                            inst->inst_prm.host_id,
+                                                            req->info.id,
+                                                            req->info.core_key,
+                                                            req->default_flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -336,7 +352,11 @@ static int32_t rdevEthSwitchServerHandleAllocRxRequest(rdevEthSwitchServerInstan
     {
         uint32_t alloc_flow_idx;
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->alloc_rx_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, &alloc_flow_idx);
+        resp->info.status = cb->alloc_rx_handler(inst->inst_prm.virtPort,
+                                                 inst->inst_prm.host_id,
+                                                 req->info.id,
+                                                 req->info.core_key,
+                                                 &alloc_flow_idx);
         resp->alloc_flow_idx = alloc_flow_idx;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
@@ -359,7 +379,11 @@ static int32_t rdevEthSwitchServerHandleAllocMacRequest(rdevEthSwitchServerInsta
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->alloc_mac_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, resp->mac_address);
+        resp->info.status = cb->alloc_mac_handler(inst->inst_prm.virtPort,
+                                                  inst->inst_prm.host_id,
+                                                  req->info.id,
+                                                  req->info.core_key,
+                                                  resp->mac_address);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -381,7 +405,12 @@ static int32_t rdevEthSwitchServerHandleRegisterMac(rdevEthSwitchServerInstanceS
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->register_mac_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->mac_address, req->flow_idx);
+        resp->info.status = cb->register_mac_handler(inst->inst_prm.virtPort,
+                                                     inst->inst_prm.host_id,
+                                                     req->info.id,
+                                                     req->info.core_key,
+                                                     req->mac_address,
+                                                     req->flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -403,7 +432,12 @@ static int32_t rdevEthSwitchServerHandleUnRegisterMac(rdevEthSwitchServerInstanc
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->unregister_mac_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->mac_address, req->flow_idx);
+        resp->info.status = cb->unregister_mac_handler(inst->inst_prm.virtPort,
+                                                       inst->inst_prm.host_id,
+                                                       req->info.id,
+                                                       req->info.core_key,
+                                                       req->mac_address,
+                                                       req->flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -425,7 +459,12 @@ static int32_t rdevEthSwitchServerHandleRegisterEthertype(rdevEthSwitchServerIns
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->register_ethertype_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->ether_type, req->flow_idx);
+        resp->info.status = cb->register_ethertype_handler(inst->inst_prm.virtPort,
+                                                           inst->inst_prm.host_id,
+                                                           req->info.id,
+                                                           req->info.core_key,
+                                                           req->ether_type,
+                                                           req->flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -447,7 +486,12 @@ static int32_t rdevEthSwitchServerHandleUnRegisterEthertype(rdevEthSwitchServerI
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->unregister_ethertype_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->ether_type, req->flow_idx);
+        resp->info.status = cb->unregister_ethertype_handler(inst->inst_prm.virtPort,
+                                                             inst->inst_prm.host_id,
+                                                             req->info.id,
+                                                             req->info.core_key,
+                                                             req->ether_type,
+                                                             req->flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -469,7 +513,13 @@ static int32_t rdevEthSwitchServerHandleRegisterRemoteTimer(rdevEthSwitchServerI
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->register_remotetimer_handler(inst->inst_prm.host_id, inst->inst_prm.name, req->info.id, req->info.core_key, req->timer_id, req->hwPushNum);
+        resp->info.status = cb->register_remotetimer_handler(inst->inst_prm.virtPort,
+                                                             inst->inst_prm.host_id,
+                                                             inst->inst_prm.name,
+                                                             req->info.id,
+                                                             req->info.core_key,
+                                                             req->timer_id,
+                                                             req->hwPushNum);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -491,7 +541,12 @@ static int32_t rdevEthSwitchServerHandleUnRegisterRemoteTimer(rdevEthSwitchServe
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->unregister_remotetimer_handler(inst->inst_prm.host_id, inst->inst_prm.name, req->info.id, req->info.core_key, req->hwPushNum);
+        resp->info.status = cb->unregister_remotetimer_handler(inst->inst_prm.virtPort,
+                                                               inst->inst_prm.host_id,
+                                                               inst->inst_prm.name,
+                                                               req->info.id,
+                                                               req->info.core_key,
+                                                               req->hwPushNum);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -513,7 +568,11 @@ static int32_t rdevEthSwitchServerHandleUnRegisterDefaultFlow(rdevEthSwitchServe
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->unregister_rx_default_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->default_flow_idx);
+        resp->info.status = cb->unregister_rx_default_handler(inst->inst_prm.virtPort,
+                                                              inst->inst_prm.host_id,
+                                                              req->info.id,
+                                                              req->info.core_key,
+                                                              req->default_flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -535,7 +594,11 @@ static int32_t rdevEthSwitchServerHandleFreeTx(rdevEthSwitchServerInstanceState_
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->free_tx_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->tx_cpsw_psil_dst_id);
+        resp->info.status = cb->free_tx_handler(inst->inst_prm.virtPort,
+                                                inst->inst_prm.host_id,
+                                                req->info.id,
+                                                req->info.core_key,
+                                                req->tx_cpsw_psil_dst_id);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -557,7 +620,11 @@ static int32_t rdevEthSwitchServerHandleFreeMac(rdevEthSwitchServerInstanceState
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->free_mac_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->mac_address);
+        resp->info.status = cb->free_mac_handler(inst->inst_prm.virtPort,
+                                                 inst->inst_prm.host_id,
+                                                 req->info.id,
+                                                 req->info.core_key,
+                                                 req->mac_address);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -579,7 +646,11 @@ static int32_t rdevEthSwitchServerHandleFreeRx(rdevEthSwitchServerInstanceState_
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->free_rx_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->alloc_flow_idx);
+        resp->info.status = cb->free_rx_handler(inst->inst_prm.virtPort,
+                                                inst->inst_prm.host_id,
+                                                req->info.id,
+                                                req->info.core_key,
+                                                req->alloc_flow_idx);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -601,7 +672,10 @@ static int32_t rdevEthSwitchServerHandleDetach(rdevEthSwitchServerInstanceState_
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->detach_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key);
+        resp->info.status = cb->detach_handler(inst->inst_prm.virtPort,
+                                               inst->inst_prm.host_id,
+                                               req->info.id,
+                                               req->info.core_key);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -625,7 +699,9 @@ static int32_t rdevEthSwitchServerHandleRegRd(rdevEthSwitchServerInstanceState_t
         uint32_t regval;
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->regrd_handler(inst->inst_prm.host_id, req->regaddr, &regval);
+        resp->info.status = cb->regrd_handler(inst->inst_prm.virtPort,
+                                              inst->inst_prm.host_id,
+                                              req->regaddr, &regval);
         resp->regval = regval;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
@@ -650,7 +726,11 @@ static int32_t rdevEthSwitchServerHandleRegWr(rdevEthSwitchServerInstanceState_t
         uint32_t regval;
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->regwr_handler(inst->inst_prm.host_id, req->regaddr, req->regval, &regval);
+        resp->info.status = cb->regwr_handler(inst->inst_prm.virtPort,
+                                              inst->inst_prm.host_id,
+                                              req->regaddr,
+                                              req->regval,
+                                              &regval);
         resp->regval = regval;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
@@ -675,7 +755,15 @@ static int32_t rdevEthSwitchServerHandleIoctl(rdevEthSwitchServerInstanceState_t
         resp = rdevEthSwitchServerMsg2Resp(msg);
         if (req->outargs_len <= sizeof(resp->outargs))
         {
-            resp->info.status = cb->ioctl_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->cmd, req->inargs, req->inargs_len, resp->outargs, req->outargs_len);
+            resp->info.status = cb->ioctl_handler(inst->inst_prm.virtPort,
+                                                  inst->inst_prm.host_id,
+                                                  req->info.id,
+                                                  req->info.core_key,
+                                                  req->cmd,
+                                                  req->inargs,
+                                                  req->inargs_len,
+                                                  resp->outargs,
+                                                  req->outargs_len);
         }
         else
         {
@@ -705,7 +793,12 @@ static int32_t rdevEthSwitchServerHandleIPV4MacRegisterRequest(rdevEthSwitchServ
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->ipv4_register_mac_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->mac_address, req->ipv4_addr);
+        resp->info.status = cb->ipv4_register_mac_handler(inst->inst_prm.virtPort,
+                                                          inst->inst_prm.host_id,
+                                                          req->info.id,
+                                                          req->info.core_key,
+                                                          req->mac_address,
+                                                          req->ipv4_addr);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -727,7 +820,12 @@ static int32_t rdevEthSwitchServerHandleIPV6MacRegisterRequest(rdevEthSwitchServ
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->ipv6_register_mac_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->mac_address, req->ipv6_addr);
+        resp->info.status = cb->ipv6_register_mac_handler(inst->inst_prm.virtPort,
+                                                          inst->inst_prm.host_id,
+                                                          req->info.id,
+                                                          req->info.core_key,
+                                                          req->mac_address,
+                                                          req->ipv6_addr);
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -749,7 +847,11 @@ static int32_t rdevEthSwitchServerHandleUnRegisterIPv4Mac(rdevEthSwitchServerIns
     if (ret == 0)
     {
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->ipv4_unregister_mac_handler(inst->inst_prm.host_id, req->info.id, req->info.core_key, req->ipv4_addr);
+        resp->info.status = cb->ipv4_unregister_mac_handler(inst->inst_prm.virtPort,
+                                                            inst->inst_prm.host_id,
+                                                            req->info.id,
+                                                            req->info.core_key,
+                                                            req->ipv4_addr);
 
         ret = rdevEthSwitchServerSendMsg(msg);
     }
@@ -782,8 +884,17 @@ static int32_t rdevEthSwitchServerHandleExtAttachRequest(rdevEthSwitchServerInst
         uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
-        resp->info.status = cb->attach_ext_handler(inst->inst_prm.host_id, req->cpsw_type, &id, &coreKey, &rxMtu, txMtu, ENET_ARRAYSIZE(
-                                                                                                                                              txMtu), &features, &alloc_flow_idx, &tx_cpsw_psil_dst_id,
+        resp->info.status = cb->attach_ext_handler(inst->inst_prm.virtPort,
+                                                   inst->inst_prm.host_id,
+                                                   req->cpsw_type,
+                                                   &id,
+                                                   &coreKey,
+                                                   &rxMtu,
+                                                   txMtu,
+                                                   ENET_ARRAYSIZE(txMtu),
+                                                   &features,
+                                                   &alloc_flow_idx,
+                                                   &tx_cpsw_psil_dst_id,
                                                    mac_address);
         resp->id = id;
         resp->core_key = coreKey;
@@ -898,7 +1009,8 @@ static void rdevEthSwitchServerHandleC2SNotify(rdevEthSwitchServerInstanceState_
 {
     struct rpmsg_kdrv_ethswitch_c2s_notify *notifymsg = &notifyMsg->c2s_notify;
 
-    cb->client_notify_handler(inst->inst_prm.host_id,
+    cb->client_notify_handler(inst->inst_prm.virtPort,
+                              inst->inst_prm.host_id,
                               notifymsg->info.id,
                               notifymsg->info.core_key,
                               (enum rpmsg_kdrv_ethswitch_client_notify_type)notifymsg->notifyid,
@@ -1056,7 +1168,9 @@ static uint32_t rdevEthSwitchServerFillPrivData(uint32_t device_id,
 
     if (ret == 0)
     {
-        gRdevEthSwitchServerState.prm.cb.init_device_data_handler(inst->inst_prm.host_id, eth_dev_data);
+        gRdevEthSwitchServerState.prm.cb.init_device_data_handler(inst->inst_prm.virtPort,
+                                                                  inst->inst_prm.host_id,
+                                                                  eth_dev_data);
     }
 
     SemaphoreP_post(gRdevEthSwitchServerState.lock_sem);

@@ -106,6 +106,7 @@
  */
 typedef struct rdevEthSwitchServerInstPrm_s
 {
+    EthRemoteCfg_VirtPort virtPort;                 /**< Virtual port id */
     uint32_t host_id;                               /**< Host Id that should connect to this device */
     uint8_t name[ETHREMOTECFG_SERVER_MAX_NAME_LEN]; /**< Exported name */
 } rdevEthSwitchServerInstPrm_t;
@@ -118,6 +119,7 @@ typedef struct rdevEthSwitchServerInstPrm_s
  *  @{
  */
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_ATTACH 
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param cpsw type CPSW TYPE of type enum rpmsg_kdrv_ethswitch_cpsw_type
  *  \param pId Pointer to Unique Opaque Handle populated by callback handler 
@@ -127,10 +129,18 @@ typedef struct rdevEthSwitchServerInstPrm_s
  *  \param txMtuArraySize Number of priority supported
  *  \param pFeatures Pointer to feature bitmap. Bitmask of type RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx
 */
-typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(uint32_t host_id, uint8_t cpsw_type, uint64_t *pId, uint32_t *pCoreKey, uint32_t *pRxMtu, uint32_t *pTxMtu, uint32_t txMtuArraySize,
+typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                   uint32_t host_id,
+                                                   uint8_t cpsw_type,
+                                                   uint64_t *pId,
+                                                   uint32_t *pCoreKey,
+                                                   uint32_t *pRxMtu,
+                                                   uint32_t *pTxMtu,
+                                                   uint32_t txMtuArraySize,
                                                    uint32_t *pFeatures);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param cpsw type CPSW TYPE of type enum rpmsg_kdrv_ethswitch_cpsw_type
  *  \param pId Pointer to Unique Opaque Handle populated by callback handler 
@@ -143,99 +153,167 @@ typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(uint32_t host_id, uint8_t cps
  *  \param pTxCpswPsilDstId Pointer to allocated Tx Channel CPSW PSIL destination thread id populated by callback handler
  *  \param macAddress  Pointer to allocated destination mac address allocated to remote core populated by callback handler
 */
-typedef int32_t (*ethrdev_srv_cb_attach_ext_handler_t)(uint32_t host_id, uint8_t cpsw_type, uint64_t *pId, uint32_t *pCoreKey, uint32_t *pRxMtu, uint32_t *pTxMtu, uint32_t txMtuArraySize,
-                                                       uint32_t *pFeatures, uint32_t *pAllocFlowIdx, uint32_t *pTxCpswPsilDstId, uint8_t *macAddress);
+typedef int32_t (*ethrdev_srv_cb_attach_ext_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                       uint32_t host_id,
+                                                       uint8_t cpsw_type,
+                                                       uint64_t *pId,
+                                                       uint32_t *pCoreKey,
+                                                       uint32_t *pRxMtu,
+                                                       uint32_t *pTxMtu,
+                                                       uint32_t txMtuArraySize,
+                                                       uint32_t *pFeatures,
+                                                       uint32_t *pAllocFlowIdx,
+                                                       uint32_t *pTxCpswPsilDstId,
+                                                       uint8_t *macAddress);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param pTxCpswPsilDstId Pointer to allocated Tx Channel CPSW PSIL destination thread id populated by callback handler
 */
-typedef int32_t (*ethrdev_srv_cb_alloc_tx_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint32_t *pTxCpswPsilDstId);
+typedef int32_t (*ethrdev_srv_cb_alloc_tx_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                     uint32_t host_id,
+                                                     uint64_t handle,
+                                                     uint32_t core_key,
+                                                     uint32_t *pTxCpswPsilDstId);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_ALLOC_RX
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param pAllocFlowIdx Pointer to allocated Rx Flow Index populated by callback handler
 */
-typedef int32_t (*ethrdev_srv_cb_alloc_rx_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint32_t *pAllocFlowIdx);
+typedef int32_t (*ethrdev_srv_cb_alloc_rx_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                     uint32_t host_id,
+                                                     uint64_t handle,
+                                                     uint32_t core_key,
+                                                     uint32_t *pAllocFlowIdx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_ALLOC_MAC
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param macAddress  Pointer to allocated destination mac address allocated to remote core populated by callback handler
 */
-typedef int32_t (*ethrdev_srv_cb_alloc_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint8_t *mac_address);
+typedef int32_t (*ethrdev_srv_cb_alloc_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                      uint32_t host_id,
+                                                      uint64_t handle,
+                                                      uint32_t core_key,
+                                                      uint8_t *mac_address);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_MAC
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param macAddress  Destination mac address to be registered
  *  \param flow_idx  Rx Flow Index to eb associated with the destination MAC address
 */
-typedef int32_t (*ethrdev_srv_cb_register_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint8_t *mac_address, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_register_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                         uint32_t host_id,
+                                                         uint64_t handle,
+                                                         uint32_t core_key,
+                                                         uint8_t *mac_address,
+                                                         uint32_t flow_idx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_MAC
+ *  \param virtPort  Virtual port id.
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param macAddress  Destination mac address to be unregistered
  *  \param flow_idx  Rx Flow Index to eb disassociated with the destination MAC address
 */
-typedef int32_t (*ethrdev_srv_cb_unregister_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint8_t *mac_address, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_unregister_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                           uint32_t host_id,
+                                                           uint64_t handle,
+                                                           uint32_t core_key,
+                                                           uint8_t *mac_address,
+                                                           uint32_t flow_idx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_DEFAULTFLOW
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param flow_idx  Rx Flow Index to which default flow traffic will be routed
 */
-typedef int32_t (*ethrdev_srv_cb_register_rx_default_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_register_rx_default_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                                uint32_t host_id,
+                                                                uint64_t handle,
+                                                                uint32_t core_key,
+                                                                uint32_t flow_idx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_DEFAULTFLOW
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param flow_idx  Rx Flow Index to which default flow mapping is to be removed.
 */
-typedef int32_t (*ethrdev_srv_cb_unregister_rx_default_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_unregister_rx_default_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                                  uint32_t host_id,
+                                                                  uint64_t handle,
+                                                                  uint32_t core_key,
+                                                                  uint32_t flow_idx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_FREE_TX
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param tx_cpsw_psil_dst_id Allocated Tx Channel CPSW PSIL destination thread id to be freed
 */
-typedef int32_t (*ethrdev_srv_cb_free_tx_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint32_t tx_cpsw_psil_dst_id);
+typedef int32_t (*ethrdev_srv_cb_free_tx_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                    uint32_t host_id,
+                                                    uint64_t handle,
+                                                    uint32_t core_key,
+                                                    uint32_t tx_cpsw_psil_dst_id);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_FREE_RX
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param alloc_flow_idx Allocated Rx Flow Index to be freed
 */
-typedef int32_t (*ethrdev_srv_cb_free_rx_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint32_t alloc_flow_idx);
+typedef int32_t (*ethrdev_srv_cb_free_rx_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                    uint32_t host_id,
+                                                    uint64_t handle,
+                                                    uint32_t core_key,
+                                                    uint32_t alloc_flow_idx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_FREE_MAC
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param mac_address Destination mac address to be freed
 */
-typedef int32_t (*ethrdev_srv_cb_free_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, u8 *mac_address);
+typedef int32_t (*ethrdev_srv_cb_free_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                     uint32_t host_id,
+                                                     uint64_t handle,
+                                                     uint32_t core_key,
+                                                     u8 *mac_address);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_DETACH
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  */
-typedef int32_t (*ethrdev_srv_cb_detach_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key);
+typedef int32_t (*ethrdev_srv_cb_detach_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                   uint32_t host_id,
+                                                   uint64_t handle,
+                                                   uint32_t core_key);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_IOCTL
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
@@ -245,58 +323,98 @@ typedef int32_t (*ethrdev_srv_cb_detach_handler_t)(uint32_t host_id, uint64_t ha
  *  \param outargs CPSW IOCTL CMD output arguments .Byte array is typecast to the outArgs structure associated with the IOCTL. Populated by callback handler
  *  \param outargs_len CPSW IOCTL CMD output arguments length
  */
-typedef int32_t (*ethrdev_srv_cb_ioctl_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, u32 cmd, const u8 *inargs, u32 inargs_len, u8 *outargs, uint32_t outargs_len);
+typedef int32_t (*ethrdev_srv_cb_ioctl_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                  uint32_t host_id,
+                                                  uint64_t handle,
+                                                  uint32_t core_key,
+                                                  u32 cmd,
+                                                  const u8 *inargs,
+                                                  u32 inargs_len,
+                                                  u8 *outargs,
+                                                  uint32_t outargs_len);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGWR
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param regaddr Register address to be written to
  *  \param regval Register value to be written
  *  \param pRegval Pointer to register value after register write. Populated by callback handler
  */
-typedef int32_t (*ethrdev_srv_cb_regwr_handler_t)(uint32_t host_id, uint32_t regaddr, uint32_t regval, uint32_t *pRegval);
+typedef int32_t (*ethrdev_srv_cb_regwr_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                  uint32_t host_id,
+                                                  uint32_t regaddr,
+                                                  uint32_t regval,
+                                                  uint32_t *pRegval);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGRD
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param regaddr Register address to be read from
  *  \param pRegval Pointer to register value read from regaddr. Populated by callback handler
  */
-typedef int32_t (*ethrdev_srv_cb_regrd_handler_t)(uint32_t host_id, uint32_t regaddr, uint32_t *pRegval);
+typedef int32_t (*ethrdev_srv_cb_regrd_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                  uint32_t host_id,
+                                                  uint32_t regaddr,
+                                                  uint32_t *pRegval);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_REGISTER
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param mac_address  Destination mac address with which the IPv4 address will be associated in the ARP database
  *  \param ipv4_addr  IPv4 address to be added  in the ARP database with associated MAC address
  */
-typedef int32_t (*ethrdev_srv_cb_register_ipv4_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv4_addr);
+typedef int32_t (*ethrdev_srv_cb_register_ipv4_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                              uint32_t host_id,
+                                                              uint64_t handle,
+                                                              uint32_t core_key,
+                                                              uint8_t *mac_address,
+                                                              uint8_t *ipv4_addr);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_REGISTER
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param mac_address  Destination mac address with which the IPv6 address will be associated in the ARP database
  *  \param ipv6_addr  IPv6 address to be added  in the ARP database with associated MAC address
  */
-typedef int32_t (*ethrdev_srv_cb_register_ipv6_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint8_t *mac_address, uint8_t *ipv6_addr);
+typedef int32_t (*ethrdev_srv_cb_register_ipv6_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                              uint32_t host_id,
+                                                              uint64_t handle,
+                                                              uint32_t core_key,
+                                                              uint8_t *mac_address,
+                                                              uint8_t *ipv6_addr);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_IPV4_MAC_UNREGISTER
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ipv4_addr  IPv4 address to be removed from  the ARP database
  */
-typedef int32_t (*ethrdev_srv_cb_unregister_ipv4_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint8_t *ipv4_addr);
+typedef int32_t (*ethrdev_srv_cb_unregister_ipv4_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                                uint32_t host_id,
+                                                                uint64_t handle,
+                                                                uint32_t core_key,
+                                                                uint8_t *ipv4_addr);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_IPV6_MAC_UNREGISTER
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ipv6_addr  IPv6 address to be removed from  the ARP database
  */
-typedef int32_t (*ethrdev_srv_cb_unregister_ipv6_mac_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint8_t *ipv6_addr);
+typedef int32_t (*ethrdev_srv_cb_unregister_ipv6_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                                uint32_t host_id,
+                                                                uint64_t handle,
+                                                                uint32_t core_key,
+                                                                uint8_t *ipv6_addr);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_C2S_NOTIFY
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
@@ -304,34 +422,55 @@ typedef int32_t (*ethrdev_srv_cb_unregister_ipv6_mac_handler_t)(uint32_t host_id
  *  \param notify_info Notify info associated with the notify id
  *  \param notify_info_len Notify info length
  */
-typedef void (*ethrdev_srv_cb_client_notify_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, enum rpmsg_kdrv_ethswitch_client_notify_type notifyid, uint8_t *notify_info,
+typedef void (*ethrdev_srv_cb_client_notify_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                       uint32_t host_id,
+                                                       uint64_t handle,
+                                                       uint32_t core_key,
+                                                       enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
+                                                       uint8_t *notify_info,
                                                        uint32_t notify_info_len);
 
 /*! Server Callback Handler for Remote Device Framework Device attach
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param eth_dev_data Ethernet Switch Remote Device Data to be populated by the callback handler
  */
-typedef void (*ethrdev_srv_cb_init_device_data_t)(uint32_t host_id, struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
+typedef void (*ethrdev_srv_cb_init_device_data_t)(EthRemoteCfg_VirtPort virtPort,
+                                                  uint32_t host_id,
+                                                  struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_ETHTYPE
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ether_type  Ethertype to be registered
  *  \param flow_idx  Rx Flow Index to eb associated with the destination MAC address
 */
-typedef int32_t (*ethrdev_srv_cb_register_ethertype_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint16_t ether_type, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_register_ethertype_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                               uint32_t host_id,
+                                                               uint64_t handle,
+                                                               uint32_t core_key,
+                                                               uint16_t ether_type,
+                                                               uint32_t flow_idx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ether_type  Ethertype to be unregistered
  *  \param flow_idx  Rx Flow Index to eb disassociated with the destination MAC address
 */
-typedef int32_t (*ethrdev_srv_cb_unregister_ethertype_handler_t)(uint32_t host_id, uint64_t handle, uint32_t core_key, uint16_t ether_type, uint32_t flow_idx);
+typedef int32_t (*ethrdev_srv_cb_unregister_ethertype_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                                 uint32_t host_id,
+                                                                 uint64_t handle,
+                                                                 uint32_t core_key,
+                                                                 uint16_t ether_type,
+                                                                 uint32_t flow_idx);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param name Remote Core name
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
@@ -339,16 +478,28 @@ typedef int32_t (*ethrdev_srv_cb_unregister_ethertype_handler_t)(uint32_t host_i
  *  \param timer_id  Timer to be registered with CPTS for time synchronization
  *  \param hwPushNum CPTS hardware push number used for time synchronization
 */
-typedef int32_t (*ethrdev_srv_cb_register_remotetimer_handler_t)(uint32_t host_id, uint8_t *name, uint64_t handle, uint32_t core_key, uint8_t timer_id, uint8_t hwPushNum);
+typedef int32_t (*ethrdev_srv_cb_register_remotetimer_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                                 uint32_t host_id,
+                                                                 uint8_t *name,
+                                                                 uint64_t handle,
+                                                                 uint32_t core_key,
+                                                                 uint8_t timer_id,
+                                                                 uint8_t hwPushNum);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER
+ *  \param virtPort  Virtual port id.
  *  \param host_id Remote Core Id
  *  \param name Remote Core name
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param hwPushNum CPTS hardware push number used for time synchronization
 */
-typedef int32_t (*ethrdev_srv_cb_unregister_remotetimer_handler_t)(uint32_t host_id, uint8_t *name, uint64_t handle, uint32_t core_key, uint8_t hwPushNum);
+typedef int32_t (*ethrdev_srv_cb_unregister_remotetimer_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                                   uint32_t host_id,
+                                                                   uint8_t *name,
+                                                                   uint64_t handle,
+                                                                   uint32_t core_key,
+                                                                   uint8_t hwPushNum);
 
 /*  @} */
 

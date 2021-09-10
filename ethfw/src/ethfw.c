@@ -417,7 +417,8 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 
     /* AUTOSAR core: mcu2_1 */
     cfg.autosarEthDriverRemoteCoreId = IPC_MCU2_1;
-    cfg.autosarEthDeviceEndPointId = AUTOSAR_ETHDRIVER_DEVICE_ENDPT;
+    cfg.autosarEthDriverVirtPort     = ETHREMOTECFG_SWITCH_PORT_1;
+    cfg.autosarEthDeviceEndPointId   = AUTOSAR_ETHDRIVER_DEVICE_ENDPT;
 
     /* Enable server-to-client notify service */
     cfg.notifyServiceCpswType = gEthFwObj.enetType;

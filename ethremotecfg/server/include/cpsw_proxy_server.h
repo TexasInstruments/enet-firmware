@@ -187,6 +187,9 @@ typedef struct CpswProxyServer_Config_s
     /*! Remote Core Id for AUTOSAR core */
     uint32_t autosarEthDriverRemoteCoreId;
 
+    /*! Virtual port configuration */
+    EthRemoteCfg_VirtPort autosarEthDriverVirtPort;
+
     /*! CPSW type for which notify service is enabled */
     Enet_Type notifyServiceCpswType;
 
