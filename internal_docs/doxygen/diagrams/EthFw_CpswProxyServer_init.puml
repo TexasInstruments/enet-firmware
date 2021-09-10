@@ -1,0 +1,93 @@
+@startuml
+'EthFw CpswProxyServer_init
+
+'skinparam sequenceParticipantPadding  60
+
+skinparam note {
+    BackgroundColor #FFFDD0
+}
+
+hide footbox
+
+participant SrvApp     as "Server \nApp"             order 1
+participant EthFwLib   as "EthFw \nlibrary"          order 2
+participant ProxyS     as "CpswProxy\nServer"        order 3
+participant rdev_s     as "remote_device \nserver"   order 4
+participant ethrdev_s  as "Eth Switch \nServer rdev" order 5
+participant IPC_s      as "IPC"                      order 6
+
+SrvApp -> EthFwLib         : <b>EthFw_initRemoteConfig()</b>
+activate EthFwLib
+
+note right of EthFwLib     : rdev config: endpt=26
+note right of EthFwLib     : remote cores: mcu2_1, mpu1_0
+note right of EthFwLib     : AUTOSAR: mcu2_1, endpt=28
+note right of EthFwLib     : NotifyService: mpu1_0, mcu2_1
+
+EthFwLib -> ProxyS           : <b>CpswProxyServer_init()</b>
+activate ProxyS
+
+ProxyS -> rdev_s           : <b>appRemoteDeviceInit()</b>
+activate rdev_s
+rdev_s -> IPC_s            : <b>RPMessage_create()</b>
+note left of IPC_s         : endpt=26
+activate IPC_s
+IPC_s --> rdev_s
+deactivate IPC_s
+rdev_s -> IPC_s            : <b>RPMessage_announce()</b>
+note left of IPC_s         : Service="rpmsg-kdrv"
+activate IPC_s
+IPC_s --> rdev_s
+deactivate IPC_s
+rdev_s --> ProxyS
+deactivate rdev_s
+
+group EthSwitch rdev
+ProxyS -> ethrdev_s        : <b>rdevEthSwitchServerInit()</b>
+activate ethrdev_s
+note right of ethrdev_s    : Init sendQ,\nsender task
+ethrdev_s --> ProxyS
+deactivate ethrdev_s
+end group
+
+group AUTOSAR
+ProxyS -> ProxyS           : <b>CpswProxyServer_initAutosarEthDeviceEp()</b>
+activate ProxyS
+ProxyS -> IPC_s            : <b>RPMessage_create()</b>
+note left of IPC_s         : endpt=28
+activate IPC_s
+IPC_s --> ProxyS
+deactivate IPC_s
+ProxyS -> IPC_s            : <b>RPMessage_getRemoteEndPt()</b>
+note left of IPC_s         : Service="ti.autosar.ethdevice"
+activate IPC_s
+IPC_s --> ProxyS
+deactivate IPC_s
+ProxyS --> ProxyS
+deactivate ProxyS
+end group
+
+group NotifyService
+ProxyS -> ProxyS           : <b>CpswProxyServer_initAutosarEthDeviceEp()</b>
+activate ProxyS
+ProxyS -> IPC_s            : <b>RPMessage_create()</b>
+note left of IPC_s         : endpt=30
+activate IPC_s
+IPC_s --> ProxyS
+deactivate IPC_s
+ProxyS -> IPC_s            : <b>RPMessage_announce()</b>
+note left of IPC_s         : Service="ti.ethfw.notifyservice"
+activate IPC_s
+IPC_s --> ProxyS
+deactivate IPC_s
+ProxyS --> ProxyS
+deactivate ProxyS
+end group
+
+ProxyS -->EthFwLib         : status
+deactivate ProxyS
+
+EthFwLib --> SrvApp
+deactivate EthFwLib
+
+@enduml

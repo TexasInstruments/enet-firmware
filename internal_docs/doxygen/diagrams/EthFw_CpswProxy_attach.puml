@@ -1,0 +1,111 @@
+@startuml
+'EthFw Cpsw_Proxy attach
+
+'skinparam sequenceParticipantPadding  60
+
+skinparam note {
+    BackgroundColor #FFFDD0
+}
+
+hide footbox
+
+participant RemApp     as "Remote \nApp"             order 1
+participant Proxy      as "CpswProxy \n(Client)"     order 2
+participant ethrdev_c  as "Eth Switch \nClient rdev" order 3
+participant rdev_c     as "remote_device \nclient"   order 4
+participant IPC_c      as "IPC \n(Remote)"           order 5
+participant IPC_s      as "IPC \n(EthFw)"            order 6
+participant rdev_s     as "remote_device \nserver"   order 7
+participant ethrdev_s  as "Eth Switch \nServer rdev" order 8
+participant ProxyS     as "CpswProxy\nServer"        order 9
+'participant SrvApp    as "Server \nApp"             order 10
+
+RemApp -> Proxy            : <b>CpswProxy_attachExt()</b>
+activate Proxy
+
+note right of Proxy        : Marshall params to \nCpswProxy_rdevCmd
+Proxy -> Proxy             : <b>CpsProxy_sendCmd()</b>
+activate Proxy
+
+note right of Proxy        : Enqueue cmd to CpswProxy \ncmd handler task
+Proxy -> ethrdev_c         : <b>rdevEthSwitchClient_attachext()</b>
+activate ethrdev_c
+
+note right of ethrdev_c    : Marshall params to \nrdevEthSwitchClientMessageList cmd
+ethrdev_c -> rdev_c        : <b>appRemoteDeviceServiceRequest()</b>
+note right of rdev_c       : Enqueue msg to sendQ \nIPC from TX task
+activate rdev_c
+
+rdev_c -> IPC_c            : <b>RPMessage_send()</b>
+activate IPC_c
+IPC_c --> rdev_c
+deactivate IPC_c
+
+note right of rdev_c       : Wait for response
+
+' EthFw side
+activate rdev_s
+note right of rdev_s       : RX task waiting \nfor new msg
+
+rdev_s -> IPC_s            : <b>RPMessage_recv()</b>
+activate IPC_s
+IPC_s --> rdev_s
+deactivate IPC_s
+
+rdev_s -> ethrdev_s        : <b>rdevEthSwitchServerRequest()</b>
+activate ethrdev_s
+ethrdev_s -> ethrdev_s     : <b>rdevEthSwitchServerHandleExtAttachRequest()</b>
+activate ethrdev_s
+
+note right of ethrdev_s    : Demarshall params from \nrdevEthSwitchServerMessage
+
+ethrdev_s -> ProxyS        : <b>CpswProxyServer_attachExtHandlerCb()</b>
+activate ProxyS
+note right of ProxyS       : Allocate RX flow,\nTX channel, MAC addr
+ProxyS --> ethrdev_s       : status
+deactivate ProxyS
+note right of ethrdev_s    : Marshall response params \nintordevEthSwitchServerMessage
+
+note left of ethrdev_s     : Enqueue msg to sendQ,\nmsg sent from sender task
+ethrdev_s -> rdev_s        : <b>appRemoteDeviceSendMessage()</b>
+activate rdev_s
+
+note left of rdev_s        : Enqueue msg to sendQ,\nIPC from TX task
+rdev_s -> IPC_s            : <b>RPMessage_send()</b>
+activate IPC_s
+IPC_s --> rdev_s
+deactivate IPC_s
+
+rdev_s --> ethrdev_s
+deactivate rdev_s
+
+ethrdev_s --> ethrdev_s    : status
+deactivate ethrdev_s
+
+ethrdev_s --> rdev_s
+deactivate ethrdev_s
+
+deactivate rdev_s
+
+'Remote client
+rdev_c -> IPC_c            : <b>RPMessage_recv()</b>
+activate IPC_c
+IPC_c --> rdev_c
+deactivate IPC_c
+
+note right of rdev_c       : IPC from RX task
+rdev_c --> ethrdev_c       : rdevEthSwitchClientMessageList response
+deactivate rdev_c
+
+note right of ethrdev_c    : Unmarshall coreId, MTU, RX flow
+ethrdev_c --> Proxy        : status
+deactivate ethrdev_c
+
+Proxy --> Proxy            : CpswProxy_rdevCmd response msg
+deactivate Proxy
+
+note right of Proxy        : Unmarshall coreId, MTU, RX flow
+Proxy --> RemApp
+deactivate Proxy
+
+@enduml

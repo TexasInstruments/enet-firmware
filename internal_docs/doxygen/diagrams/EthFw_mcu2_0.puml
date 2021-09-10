@@ -1,0 +1,125 @@
+@startuml
+'EthFw Cpsw_Proxy attach
+
+'skinparam sequenceParticipantPadding  60
+
+skinparam note {
+    BackgroundColor #FFFDD0
+}
+
+hide footbox
+
+participant main         as "main"               order 1
+participant initTask     as "initTask"           order 2
+participant lwipTask     as "lwipTask"           order 3
+participant ipcTask      as "ipcTask"            order 4
+participant EnetUtils    as "Enet LLD\nutils"    order 5
+participant Enet         as "Enet LLD"           order 6
+participant IPC          as "IPC LLD"            order 7
+participant lwip         as "lwIP"               order 8
+participant EthFwLib     as "EthFw \nlibrary"    order 9
+participant ethremotecfg as "EthFw \nRemote Cfg" order 10
+
+main -> EnetUtils             : <b>EnetBoard_initEthFw()</b>
+activate EnetUtils
+note right of EnetUtils       : Board_init(), pinmux,\nSerDes clocks,\nboard gpios/muxes
+EnetUtils --> main
+deactivate EnetUtils
+
+main -> EnetUtils             : <b>EnetAppUtils_enableClocks()</b>
+activate EnetUtils
+note right of EnetUtils       : Enable CPSW clocks\nCPPI, RGMII),\nCPTS clock
+EnetUtils --> main
+deactivate EnetUtils
+
+'initTask
+create initTask
+main -> initTask              : <b>TaskP_create()</b>
+
+initTask -> EnetUtils         : <b>EnetAppUtils_udmaOpen()</b>
+activate EnetUtils
+note right of EnetUtils       : Open UDMA LLD,\nget handle
+EnetUtils --> initTask        : hUdmaDrv
+deactivate EnetUtils
+
+note right of initTask        : Get CPSW params\nfor interVLAN demos
+
+initTask -> EthFwLib          : <b>EthFw_init()</b>
+activate EthFwLib
+
+EthFwLib -> EnetUtils         : <b>EnetMcm_init()</b>
+activate EnetUtils
+note right of EnetUtils       : Init multiclient infrastructure
+EnetUtils --> EthFwLib
+deactivate EnetUtils
+
+EthFwLib -> EnetUtils         : <b>EnetMcm_acquireHandleInfo()</b>
+activate EnetUtils
+EnetUtils -> Enet             : <b>Enet_open()</b>
+activate Enet
+note right of Enet            : Init CPSW, MDIO, MAC ports,\nhost port, stats, etc.
+Enet --> EnetUtils
+deactivate Enet
+EnetUtils --> EthFwLib
+deactivate EnetUtils
+
+EthFwLib --> initTask         : hEthFw
+deactivate EthFwLib
+
+'lwipTask
+create lwipTask
+initTask -> lwipTask          : <b>TaskP_create()</b>
+
+lwipTask -> lwip              : <b>tcpip_init()</b>
+activate lwip
+note right of lwip            : init_default_netif(),\nnetif_set_up(),\ndhcp_start()
+lwip --> lwipTask
+deactivate lwip
+
+'ipcTask
+create ipcTask
+initTask -> ipcTask           : <b>TaskP_create()</b>
+
+ipcTask -> IPC                : <b>Ipc_mpSetConfig()</b>
+note left                     : Init multiproc\n(self id, participating cores)
+activate IPC
+IPC --> ipcTask
+deactivate IPC
+
+ipcTask -> IPC                : <b>Ipc_init()</b>
+note left                     : Init IPC LLD, utils
+activate IPC
+IPC --> ipcTask
+deactivate IPC
+
+ipcTask -> IPC                : <b>Ipc_initVirtIO()</b>
+note left                     : Init VirtIO\n(shared memory)
+activate IPC
+IPC --> ipcTask
+deactivate IPC
+
+ipcTask -> EthFwLib           : <b>EthFw_initRemoteConfig()</b>
+activate EthFwLib
+
+note right of EthFwLib        : Set ProxyServer's ep cfg
+note right of EthFwLib        : Set mpu1_0 (Linux/QNX)\nand mcu2_1 (RTOS) ep cfg
+note right of EthFwLib        : Set mcu2_1 (AUTOSAR) ep cfg
+
+EthFwLib -> ethremotecfg      : <b>CpswProxyServer_init()</b>
+activate ethremotecfg
+note right of ethremotecfg    : Init remote_device,\ncreate AUTOSAR RPMessage
+ethremotecfg --> EthFwLib     : status
+deactivate ethremotecfg
+
+EthFwLib -> ethremotecfg      : <b>CpswProxyServer_start()</b>
+activate ethremotecfg
+note right of ethremotecfg    : Start remote_device's tasks
+ethremotecfg --> EthFwLib     : status
+deactivate ethremotecfg
+
+EthFwLib --> ipcTask
+deactivate EthFwLib
+
+note right of ipcTask         : Init remote services:\nCPU/task/network stats
+
+@enduml

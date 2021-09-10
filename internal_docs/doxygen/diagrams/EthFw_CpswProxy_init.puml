@@ -1,0 +1,62 @@
+@startuml
+'EthFw CpswProxy_init
+
+'skinparam sequenceParticipantPadding  60
+
+skinparam note {
+    BackgroundColor #FFFDD0
+}
+
+hide footbox
+
+participant RemApp     as "Remote \nApp"             order 1
+participant Proxy      as "CpswProxy \n(Client)"     order 2
+participant ethrdev_c  as "Eth Switch \nClient rdev" order 3
+participant rdev_c     as "remote_device \nclient"   order 4
+participant IPC_c      as "IPC"                      order 5
+
+RemApp -> Proxy            : <b>CpswProxy_init()</b>
+activate Proxy
+
+group remote_device
+Proxy -> rdev_c            : <b>appRemoteDeviceInit()</b>
+activate rdev_c
+
+rdev_c -> IPC_c            : <b>RPMessage_create()</b>
+activate IPC_c
+note left of IPC_c         : endpt=any
+IPC_c --> rdev_c
+deactivate IPC_c
+
+note right of rdev_c       : Create RX and TX tasks
+rdev_c --> Proxy
+deactivate rdev_c
+end group
+
+group EthSwitch rdev
+Proxy -> ethrdev_c         : <b>rdevEthSwitchClient_connect</b>
+activate ethrdev_c
+note right of ethrdev_c    : Init EthSwitch rdev params,\nneeded to call rdev APIs
+ethrdev_c --> Proxy
+deactivate ethrdev_c
+
+note right of Proxy        : Create cmd handler task
+end group
+
+group NotifyService
+Proxy -> IPC_c             : <b>RPMessage_create()</b>
+activate IPC_c
+note left of IPC_c         : endpt=30
+IPC_c --> Proxy
+deactivate IPC_c
+Proxy -> IPC_c             : <b>RPMessage_getRtemoteEndPt()</b>
+note left of IPC_c         : Service "ti.ethfw.notifyservice"
+activate IPC_c
+IPC_c --> Proxy
+deactivate IPC_c
+end group
+
+Proxy --> RemApp
+deactivate Proxy
+
+@enduml
