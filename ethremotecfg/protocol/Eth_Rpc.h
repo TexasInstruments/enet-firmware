@@ -214,6 +214,11 @@ typedef enum
  */
 /*! Feature: Tx Checksum Offload Enabled  */
 #define ETH_RPC_FEATURE_TXCSUM      (1 << 0)
+
+/* Note: Feature bit 1 is intentionally not used, Linux already using it */
+
+/*! Feature: MAC-only mode enabled */
+#define ETH_RPC_FEATURE_MAC_ONLY    (1 << 2)
 /*  @} */
 
 /*!
@@ -308,6 +313,8 @@ typedef struct Eth_RpcAttachExtendedResponse_s
     uint32_t txCpswPsilDstId;
     /*! Mac address allocated */
     uint8_t macAddress[ETH_RPC_MACADDRLEN];
+    /*! 1-relative MAC-only port number. 0 for non MAC-only ports */
+    uint32_t macOnlyPort;
 } Eth_RpcAttachExtendedResponse;
 
 /*!

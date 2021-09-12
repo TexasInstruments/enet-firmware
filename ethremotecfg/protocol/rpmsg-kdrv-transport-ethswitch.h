@@ -546,6 +546,11 @@ enum rpmsg_kdrv_ethswitch_client_notify_type
  */
 /*! Feature: Tx Checksum Offload Enabled  */
 #define RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM      (1 << 0)
+
+/* Note: Feature bit 1 is intentionally not used, Linux already using it */
+
+/*! Feature: MAC-only mode enabled */
+#define RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY    (1 << 2)
 /*  @} */
 
 /*!
@@ -629,6 +634,8 @@ struct rpmsg_kdrv_ethswitch_attach_response
     u32 tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
     /*! Feature bitmask based on defines RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx */
     u32 features;
+    /*! 1-relative MAC-only port number. 0 for non MAC-only ports */
+    u32 mac_only_port;
 } __attribute__((packed));
 
 /*!
@@ -668,6 +675,8 @@ struct rpmsg_kdrv_ethswitch_attach_extended_response
     u32 tx_cpsw_psil_dst_id;
     /*! Mac address allocated */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /*! 1-relative MAC-only port number. 0 for non MAC-only ports */
+    u32 mac_only_port;
 } __attribute__((packed));
 
 /*!

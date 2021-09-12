@@ -398,6 +398,7 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id,
  * \param tx_mtu   Array of Maximum transmit packet length per priority supported by ethernet switch
  * \param tx_mtu_array_size Size of tx_mtu array.Must be sufficient to store MTU size for all priorities supported by the CPSW
  * \param features Pointer to feature bitmap. Bitmask of type RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx
+ * \param mac_only_port Pointer to MAC-only port. 1-relative MAC-only port number, 0 for non MAC-only ports
  */
 int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint8_t enetType,
@@ -406,7 +407,8 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint32_t *rx_mtu,
                                    uint32_t tx_mtu[],
                                    uint32_t tx_mtu_array_size,
-                                   uint32_t *features);
+                                   uint32_t *features,
+                                   uint32_t *mac_only_port);
 
 /*!
  * \brief Attach to Ethernet Switch Remote Device with extended response
@@ -430,6 +432,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
  * \param rx_flow_allocidx Pointer to allocated Rx Flow Index populated by this function
  * \param mac_address  Pointer to allocated destination mac address allocated to remote core populated by this function
  * \param mac_address_len Destination mac address buffer length
+ * \param mac_only_port Pointer to MAC-only port. 1-relative MAC-only port number, 0 for non MAC-only ports
  */
 int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
                                       uint8_t enetType,
@@ -442,7 +445,8 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
                                       uint32_t *tx_cpsw_psil_dst_id,
                                       uint32_t *rx_flow_allocidx,
                                       uint8_t *mac_address,
-                                      uint32_t mac_address_len);
+                                      uint32_t mac_address_len,
+                                      uint32_t *mac_only_port);
 
 /*!
  * \brief Send Notify From Client to server

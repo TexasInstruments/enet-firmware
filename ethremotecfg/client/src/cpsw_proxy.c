@@ -168,6 +168,7 @@ typedef struct CpswProxy_rdevCmdAttachRes_s
     uint32_t rx_mtu;
     uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
     uint32_t features;
+    uint32_t mac_only_port;
 } CpswProxy_rdevCmdAttachRes_t;
 
 typedef struct CpswProxy_rdevCmdAttachExtRes_s
@@ -180,6 +181,7 @@ typedef struct CpswProxy_rdevCmdAttachExtRes_s
     uint32_t tx_id;
     uint32_t rx_flow_allocidx;
     uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    uint32_t mac_only_port;
 } CpswProxy_rdevCmdAttachExtRes_t;
 
 typedef struct CpswProxy_rdevCmdAllocReq_s
@@ -668,11 +670,12 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                                             &msg.res.u.attach.rx_mtu,
                                                             msg.res.u.attach.tx_mtu,
                                                             ENET_ARRAYSIZE(msg.res.u.attach.tx_mtu),
-                                                            &msg.res.u.attach.features);
+                                                            &msg.res.u.attach.features,
+                                                            &msg.res.u.attach.mac_only_port);
                 if (0 == msg.res.retVal)
                 {
                     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
-                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",
+                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsum:%s, MacOnly:%u\n",
                                   __func__,
                                   hEnet,
                                   msg.res.u.attach.core_key,
@@ -685,7 +688,8 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                   msg.res.u.attach.tx_mtu[5],
                                   msg.res.u.attach.tx_mtu[6],
                                   msg.res.u.attach.tx_mtu[7],
-                                  ((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
+                                  (((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0)?"enabled":"disabled"),
+                                  msg.res.u.attach.mac_only_port);
                 }
 
                 break;
@@ -704,11 +708,12 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                                                &msg.res.u.attachext.tx_id,
                                                                &msg.res.u.attachext.rx_flow_allocidx,
                                                                msg.res.u.attachext.mac_address,
-                                                               ENET_ARRAYSIZE(msg.res.u.attachext.mac_address));
+                                                               ENET_ARRAYSIZE(msg.res.u.attachext.mac_address),
+                                                               &msg.res.u.attachext.mac_only_port);
                 if (0 == msg.res.retVal)
                 {
                     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
-                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",
+                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsum:%s, MacOnly:%u\n",
                                   __func__,
                                   hEnet,
                                   msg.res.u.attachext.core_key,
@@ -721,7 +726,8 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                   msg.res.u.attachext.tx_mtu[5],
                                   msg.res.u.attachext.tx_mtu[6],
                                   msg.res.u.attachext.tx_mtu[7],
-                                  ((msg.res.u.attachext.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
+                                  (((msg.res.u.attachext.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0)?"enabled":"disabled"),
+                                  msg.res.u.attachext.mac_only_port);
                 }
 
                 break;
@@ -933,11 +939,13 @@ static void CpswProxy_setRemoteParams(EthRemoteCfg_VirtPort portId,
     };
     uint32_t coreId = EnetSoc_getCoreId();
     uint32_t portNum = EthRemoteCfg_getPortNum(portId);
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(portId);
 
     snprintf((char *)&prm->device_name[0],
              ETHREMOTECFG_SERVER_MAX_NAME_LEN,
-             "%s_ethswitch-device-%u",
+             "%s_eth%s-device-%u",
              coreName[coreId],
+             isSwitchPort ? "switch" : "mac",
              portNum);
 }
 
@@ -1560,7 +1568,8 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
                       Enet_Handle *pCpswHandle,
                       uint32_t *coreKey,
                       uint32_t *rxMtu,
-                      uint32_t *txMtu)
+                      uint32_t *txMtu,
+                      Enet_MacPort *macPort)
 {
     CpswProxy_rdevCmd_t msg;
     uint32_t i;
@@ -1576,6 +1585,15 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
     {
         txMtu[i] = msg.res.u.attach.tx_mtu[i];
     }
+
+    if ((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY) != 0U)
+    {
+        *macPort = ENET_MACPORT_DENORM(msg.res.u.attach.mac_only_port - 1U);
+    }
+    else
+    {
+        *macPort = ENET_MAC_PORT_INV;
+    }
 }
 
 void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
@@ -1587,7 +1605,8 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                               uint32_t *txPSILThreadId,
                               uint32_t *rxFlowStartIdx,
                               uint32_t *rxFlowIdx,
-                              uint8_t *macAddress)
+                              uint8_t *macAddress,
+                              Enet_MacPort *macPort)
 {
     CpswProxy_rdevCmd_t msg;
     uint32_t i;
@@ -1614,6 +1633,15 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
     CpswProxy_assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + ENET_CFG_RM_RX_CH_MAX)));
     *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
     memcpy(macAddress, msg.res.u.attachext.mac_address, sizeof(msg.res.u.attachext.mac_address));
+
+    if ((msg.res.u.attachext.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY) != 0U)
+    {
+        *macPort = ENET_MACPORT_DENORM(msg.res.u.attachext.mac_only_port - 1U);
+    }
+    else
+    {
+        *macPort = ENET_MAC_PORT_INV;
+    }
 }
 
 void CpswProxy_detach(CpswProxy_Handle hProxy,

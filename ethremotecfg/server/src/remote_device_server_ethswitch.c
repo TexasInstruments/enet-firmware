@@ -259,6 +259,7 @@ static int32_t rdevEthSwitchServerHandleAttachRequest(rdevEthSwitchServerInstanc
         uint32_t rxMtu;
         uint32_t txMtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
         uint32_t features;
+        uint32_t macOnlyPort;
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
         resp->info.status = cb->attach_handler(inst->inst_prm.virtPort,
@@ -269,12 +270,14 @@ static int32_t rdevEthSwitchServerHandleAttachRequest(rdevEthSwitchServerInstanc
                                                &rxMtu,
                                                txMtu,
                                                ENET_ARRAYSIZE(txMtu),
-                                               &features);
+                                               &features,
+                                               &macOnlyPort);
         resp->id = id;
         resp->core_key = coreKey;
         resp->rx_mtu = rxMtu;
         ENET_UTILS_ARRAY_COPY(resp->tx_mtu, txMtu);
         resp->features = features;
+        resp->mac_only_port = macOnlyPort;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 
@@ -882,6 +885,7 @@ static int32_t rdevEthSwitchServerHandleExtAttachRequest(rdevEthSwitchServerInst
         uint32_t alloc_flow_idx;
         uint32_t tx_cpsw_psil_dst_id;
         uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+        uint32_t macOnlyPort;
 
         resp = rdevEthSwitchServerMsg2Resp(msg);
         resp->info.status = cb->attach_ext_handler(inst->inst_prm.virtPort,
@@ -895,7 +899,8 @@ static int32_t rdevEthSwitchServerHandleExtAttachRequest(rdevEthSwitchServerInst
                                                    &features,
                                                    &alloc_flow_idx,
                                                    &tx_cpsw_psil_dst_id,
-                                                   mac_address);
+                                                   mac_address,
+                                                   &macOnlyPort);
         resp->id = id;
         resp->core_key = coreKey;
         resp->rx_mtu = rxMtu;
@@ -904,6 +909,7 @@ static int32_t rdevEthSwitchServerHandleExtAttachRequest(rdevEthSwitchServerInst
         resp->alloc_flow_idx = alloc_flow_idx;
         resp->tx_cpsw_psil_dst_id = tx_cpsw_psil_dst_id;
         ENET_UTILS_ARRAY_COPY(resp->mac_address, mac_address);
+        resp->mac_only_port = macOnlyPort;
         ret = rdevEthSwitchServerSendMsg(msg);
     }
 

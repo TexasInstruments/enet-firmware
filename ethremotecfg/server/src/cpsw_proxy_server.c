@@ -417,7 +417,8 @@ static int32_t CpswProxyServer_attachHandlerCb(EthRemoteCfg_VirtPort virtPort,
                                                uint32_t *pRxMtu,
                                                uint32_t *pTxMtu,
                                                uint32_t txMtuArraySize,
-                                               uint32_t *pFeatures)
+                                               uint32_t *pFeatures,
+                                               uint32_t *pMacOnlyPort)
 {
     int32_t status;
     EnetMcm_HandleInfo handleInfo;
@@ -428,6 +429,7 @@ static int32_t CpswProxyServer_attachHandlerCb(EthRemoteCfg_VirtPort virtPort,
     CpswProxyServer_Obj * hProxyServer;
     EnetMcm_CmdIf *hMcmCmdIf;
     enum rpmsg_kdrv_ethswitch_cpsw_type  rdevCpswType = (enum rpmsg_kdrv_ethswitch_cpsw_type)cpsw_type;
+    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
 
     status = CpswProxy_mapRdev2CpswType(rdevCpswType, &enetType);
     if (ENET_SOK == status)
@@ -473,6 +475,17 @@ static int32_t CpswProxyServer_attachHandlerCb(EthRemoteCfg_VirtPort virtPort,
         {
             *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM;
         }
+
+        if (isMacPort)
+        {
+            *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY;
+            *pMacOnlyPort = EthRemoteCfg_getPortNum(virtPort);
+        }
+        else
+        {
+            *pMacOnlyPort = 0U;
+        }
+
         CpswProxyServer_addHandleEntry(&hProxyServer->handleTbl, handleInfo.hEnet, enetType, hMcmCmdIf);
     }
 
@@ -563,6 +576,127 @@ static int32_t CpswProxyServer_allocMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
+static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
+                                              uint32_t remoteCoreId,
+                                              uint32_t coreKey,
+                                              Enet_MacPort macPort,
+                                              u8 *macAddr,
+                                              uint32_t flowStartIdx,
+                                              uint32_t flowIdx)
+{
+    Cpsw_PortRxFlowInfo portRxFlow;
+    CpswAle_SetUcastEntryInArgs ucastInArgs;
+    Enet_IoctlPrms prms;
+    uint32_t entryIdx;
+    int32_t status = ENET_SOK;
+
+    if (EnetUtils_isMcastAddr(macAddr))
+    {
+        EnetAppUtils_print("regMacPortFlow() port %u: mcast not supported\n",
+                           ENET_MACPORT_ID(macPort));
+        status = ENET_ENOTSUPPORTED;
+    }
+
+    /* Add unicast address */
+    if (status == ENET_SOK)
+    {
+        ucastInArgs.addr.vlanId  = 0U;
+        ucastInArgs.info.portNum = CPSW_ALE_HOST_PORT_NUM;
+        ucastInArgs.info.blocked = false;
+        ucastInArgs.info.secure  = true;
+        ucastInArgs.info.super   = false;
+        ucastInArgs.info.ageable = false;
+        ucastInArgs.info.trunk   = false;
+        EnetUtils_copyMacAddr(&ucastInArgs.addr.addr[0U], macAddr);
+
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &ucastInArgs, &entryIdx);
+
+        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_ADD_UCAST, &prms);
+        if (status != ENET_SOK)
+        {
+            EnetAppUtils_print("regMacPortFlow() port %u: failed to add ucast entry: %d\n",
+                               ENET_MACPORT_ID(macPort), status);
+        }
+    }
+
+    /* Setup policer with "port" as match criteria */
+    if (status == ENET_SOK)
+    {
+        portRxFlow.coreKey  = coreKey;
+        portRxFlow.startIdx = flowStartIdx;
+        portRxFlow.flowIdx  = flowIdx;
+        portRxFlow.macPort  = macPort;
+
+        ENET_IOCTL_SET_IN_ARGS(&prms, &portRxFlow);
+
+        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_IOCTL_REGISTER_PORT_RX_FLOW, &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("regMacPortFlow() port %u: failed to register RX flow: %s\n",
+                         ENET_MACPORT_ID(macPort), status);
+        }
+    }
+
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
+}
+
+static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
+                                                uint32_t remoteCoreId,
+                                                uint32_t coreKey,
+                                                Enet_MacPort macPort,
+                                                u8 *macAddr,
+                                                uint32_t flowStartIdx,
+                                                uint32_t flowIdx)
+{
+    Cpsw_PortRxFlowInfo portRxFlow;
+    CpswAle_MacAddrInfo macAddrInfo;
+    Enet_IoctlPrms prms;
+    int32_t status = ENET_SOK;
+
+    if (EnetUtils_isMcastAddr(macAddr))
+    {
+        EnetAppUtils_print("unregMacPortFlow() port %u: mcast not supported\n",
+                           ENET_MACPORT_ID(macPort));
+        status = ENET_ENOTSUPPORTED;
+    }
+
+    /* Remove policer with "port" match criteria */
+    if (status == ENET_SOK)
+    {
+        portRxFlow.coreKey  = coreKey;
+        portRxFlow.startIdx = flowStartIdx;
+        portRxFlow.flowIdx  = flowIdx;
+        portRxFlow.macPort  = macPort;
+
+        ENET_IOCTL_SET_IN_ARGS(&prms, &portRxFlow);
+
+        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_IOCTL_UNREGISTER_PORT_RX_FLOW, &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("unregMacPortFlow() port %u: failed to unregister RX flow: %s\n",
+                         ENET_MACPORT_ID(macPort), status);
+        }
+    }
+
+    /* Remove unicast address */
+    if (status == ENET_SOK)
+    {
+        macAddrInfo.vlanId = 0U;
+        EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], macAddr);
+
+        ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
+
+        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+        if (status != ENET_SOK)
+        {
+            EnetAppUtils_print("unregMacPortFlow() port %u: failed to remove ucast entry: %d\n",
+                               ENET_MACPORT_ID(macPort), status);
+        }
+    }
+
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
+}
+
 static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
                                                     uint32_t host_id,
                                                     uint64_t handle,
@@ -570,9 +704,15 @@ static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPo
                                                     u8 *mac_address,
                                                     uint32_t flow_idx)
 {
-    int32_t status;
+    CpswProxyServer_Obj *hProxyServer;
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
     uint32_t start_flow_idx, flow_idx_offset;
+    int32_t status;
+
+    hProxyServer = CpswProxyServer_getHandle();
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
 
     CpswProxyServer_validateHandle(hEnet);
     EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
@@ -590,10 +730,23 @@ static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPo
                  flow_idx,
                  flow_idx_offset);
 
-    status = EnetAppUtils_regDstMacRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
-    if (status != ENET_SOK)
+    if (isSwitchPort)
     {
-        appLogPrintf("EnetAppUtils_regDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
+        status = EnetAppUtils_regDstMacRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("EnetAppUtils_regDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
+        }
+    }
+    else
+    {
+        status = CpswProxyServer_regMacPortFlow(hEnet,
+                                                host_id,
+                                                core_key,
+                                                macPort,
+                                                mac_address,
+                                                start_flow_idx,
+                                                flow_idx_offset);
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -606,9 +759,11 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(EthRemoteCfg_VirtPort virt
                                                       u8 *mac_address,
                                                       uint32_t flow_idx)
 {
-    int32_t status;
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
     uint32_t start_flow_idx, flow_idx_offset;
+    int32_t status;
 
     CpswProxyServer_validateHandle(hEnet);
     EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
@@ -626,10 +781,23 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(EthRemoteCfg_VirtPort virt
                  flow_idx,
                  flow_idx_offset);
 
-    status = EnetAppUtils_unregDstMacRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
-    if (status != ENET_SOK)
+    if (isSwitchPort)
     {
-        appLogPrintf("Failed EnetAppUtils_unregDstMacRxFlow: %d\n", status);
+        status = EnetAppUtils_unregDstMacRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset, mac_address);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed EnetAppUtils_unregDstMacRxFlow: %d\n", status);
+        }
+    }
+    else
+    {
+        status = CpswProxyServer_unregMacPortFlow(hEnet,
+                                                  host_id,
+                                                  core_key,
+                                                  macPort,
+                                                  mac_address,
+                                                  start_flow_idx,
+                                                  flow_idx_offset);
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -641,17 +809,26 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(EthRemoteCfg_VirtPort 
                                                           uint32_t core_key,
                                                           uint32_t flow_idx)
 {
-    int32_t status = ENET_SOK;
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
     uint32_t start_flow_idx, flow_idx_offset;
+    int32_t status = ENET_SOK;
 
-    CpswProxyServer_validateHandle(hEnet);
-    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    if (isSwitchPort)
+    {
+        CpswProxyServer_validateHandle(hEnet);
+        EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
 
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x, FlowIdOffset:%x\n",
-                 __func__, host_id, hEnet, core_key, flow_idx, flow_idx_offset);
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x, FlowIdOffset:%x\n",
+                     __func__, host_id, hEnet, core_key, flow_idx, flow_idx_offset);
 
-    status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
+        status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
+    }
+    else
+    {
+        appLogPrintf("registerRxDefaultFlow is not supported on virtual MAC ports\n");
+        status = ENET_ENOTSUPPORTED;
+    }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
@@ -662,17 +839,26 @@ static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(EthRemoteCfg_VirtPor
                                                             uint32_t core_key,
                                                             uint32_t flow_idx)
 {
-    int32_t status = ENET_SOK;
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
     uint32_t start_flow_idx, flow_idx_offset;
+    int32_t status = ENET_SOK;
 
-    CpswProxyServer_validateHandle(hEnet);
-    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    if (isSwitchPort)
+    {
+        CpswProxyServer_validateHandle(hEnet);
+        EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
 
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x\n",
-                 __func__, host_id, hEnet, core_key, flow_idx);
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, FlowId:%x\n",
+                     __func__, host_id, hEnet, core_key, flow_idx);
 
-    status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
+        status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
+    }
+    else
+    {
+        appLogPrintf("unregisterRxDefaultFlow is not supported on virtual MAC ports\n");
+        status = ENET_ENOTSUPPORTED;
+    }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
@@ -1003,63 +1189,72 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
     ip4_addr_t ip4Addr;
     struct eth_addr hwAddr;
 #endif
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
-    ipaddr = Enet_htonl(ipaddr);
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%d.%d.%d.%d\n",
-                 __func__,
-                 host_id,
-                 hEnet,
-                 core_key,
-                 mac_address[0],
-                 mac_address[1],
-                 mac_address[2],
-                 mac_address[3],
-                 mac_address[4],
-                 mac_address[5],
-                 ipv4_addr[0],
-                 ipv4_addr[1],
-                 ipv4_addr[2],
-                 ipv4_addr[3]);
+    if (isSwitchPort)
+    {
+        ipaddr = Enet_htonl(ipaddr);
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x IPv4Addr:%d.%d.%d.%d\n",
+                     __func__,
+                     host_id,
+                     hEnet,
+                     core_key,
+                     mac_address[0],
+                     mac_address[1],
+                     mac_address[2],
+                     mac_address[3],
+                     mac_address[4],
+                     mac_address[5],
+                     ipv4_addr[0],
+                     ipv4_addr[1],
+                     ipv4_addr[2],
+                     ipv4_addr[3]);
 
-    CpswProxyServer_validateHandle(hEnet);
+        CpswProxyServer_validateHandle(hEnet);
 
 #if defined(SYSBIOS)
-    ConCmdRoute(1, "print", NULL, NULL, NULL);
+        ConCmdRoute(1, "print", NULL, NULL, NULL);
 
-    status = LLIAddStaticEntryWithFlags(ipaddr,
-                                        mac_address,
-                                        (FLG_RTE_HOST|FLG_RTE_STATIC|FLG_RTE_PROXYPUB));
-    if (status != 0)
-    {
         status = LLIAddStaticEntryWithFlags(ipaddr,
                                             mac_address,
                                             (FLG_RTE_HOST|FLG_RTE_STATIC|FLG_RTE_PROXYPUB));
-    }
+        if (status != 0)
+        {
+            status = LLIAddStaticEntryWithFlags(ipaddr,
+                                                mac_address,
+                                                (FLG_RTE_HOST|FLG_RTE_STATIC|FLG_RTE_PROXYPUB));
+        }
 
-    if (status != 0)
-    {
-        appLogPrintf("Failed to add Static ARP Entry \n");
-    }
+        if (status != 0)
+        {
+            appLogPrintf("Failed to add Static ARP Entry \n");
+        }
 
-    LLIGetStaticARPTable(&numEntries,
-                         &llitable);
+        LLIGetStaticARPTable(&numEntries,
+                             &llitable);
 
-    CpswProxyServer_dumpLliTable(llitable, numEntries);
-    LLIFreeStaticARPTable(llitable);
+        CpswProxyServer_dumpLliTable(llitable, numEntries);
+        LLIFreeStaticARPTable(llitable);
 #elif defined(FREERTOS)
-    IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
-    SMEMCPY(&hwAddr, mac_address, ETH_HWADDR_LEN);
+        IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
+        SMEMCPY(&hwAddr, mac_address, ETH_HWADDR_LEN);
 
-    status = EthFwArpUtils_addAddr(&ip4Addr, &hwAddr);
-    if (status != ETHFW_LWIP_UTILS_SOK)
-    {
-        appLogPrintf("Failed to add ARP entry: %d\n", status);
+        status = EthFwArpUtils_addAddr(&ip4Addr, &hwAddr);
+        if (status != ETHFW_LWIP_UTILS_SOK)
+        {
+            appLogPrintf("Failed to add ARP entry: %d\n", status);
+        }
+        else
+        {
+            EthFwArpUtils_printTable();
+        }
+#endif
     }
     else
     {
-        EthFwArpUtils_printTable();
+        appLogPrintf("registerIPv4Mac is not supported on virtual MAC ports\n");
+        status = ENET_ENOTSUPPORTED;
     }
-#endif
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
@@ -1079,45 +1274,54 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
 #elif defined(FREERTOS)
     ip4_addr_t ip4Addr;
 #endif
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
-    ipaddr = Enet_htonl(ipaddr);
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,IPv4Addr:%x:%x:%x:%x\n",
-                 __func__,
-                 host_id,
-                 hEnet,
-                 core_key,
-                 ipv4_addr[0],
-                 ipv4_addr[1],
-                 ipv4_addr[2],
-                 ipv4_addr[3]);
+    if (isSwitchPort)
+    {
+        ipaddr = Enet_htonl(ipaddr);
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,IPv4Addr:%x:%x:%x:%x\n",
+                     __func__,
+                     host_id,
+                     hEnet,
+                     core_key,
+                     ipv4_addr[0],
+                     ipv4_addr[1],
+                     ipv4_addr[2],
+                     ipv4_addr[3]);
 
-    CpswProxyServer_validateHandle(hEnet);
+        CpswProxyServer_validateHandle(hEnet);
 
 #if defined (SYSBIOS)
-    status = LLIRemoveStaticEntry(ipaddr);
-    if (status != 0)
-    {
-        appLogPrintf("Failed to add Static ARP Entry \n");
-    }
+        status = LLIRemoveStaticEntry(ipaddr);
+        if (status != 0)
+        {
+            appLogPrintf("Failed to add Static ARP Entry \n");
+        }
 
-    LLIGetStaticARPTable(&numEntries,
-                         &llitable);
+        LLIGetStaticARPTable(&numEntries,
+                             &llitable);
 
-    CpswProxyServer_dumpLliTable(llitable, numEntries);
-    LLIFreeStaticARPTable(llitable);
+        CpswProxyServer_dumpLliTable(llitable, numEntries);
+        LLIFreeStaticARPTable(llitable);
 #elif defined(FREERTOS)
-    IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
+        IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
 
-    status = EthFwArpUtils_delAddr(&ip4Addr);
-    if (status != ETHFW_LWIP_UTILS_SOK)
-    {
-        appLogPrintf("Failed to remove ARP entry: %d\n", status);
+        status = EthFwArpUtils_delAddr(&ip4Addr);
+        if (status != ETHFW_LWIP_UTILS_SOK)
+        {
+            appLogPrintf("Failed to remove ARP entry: %d\n", status);
+        }
+        else
+        {
+            EthFwArpUtils_printTable();
+        }
+#endif
     }
     else
     {
-        EthFwArpUtils_printTable();
+        appLogPrintf("unregisterIPv4Mac is not supported on virtual MAC ports\n");
+        status = ENET_ENOTSUPPORTED;
     }
-#endif
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
@@ -1171,7 +1375,8 @@ static int32_t CpswProxyServer_attachExtHandlerCb(EthRemoteCfg_VirtPort virtPort
                                                   uint32_t *pFeatures,
                                                   uint32_t *pAllocFlowIdx,
                                                   uint32_t *pTxCpswPsilDstId,
-                                                  uint8_t *macAddress)
+                                                  uint8_t *macAddress,
+                                                  uint32_t *pMacOnlyPort)
 {
     int32_t status = ENET_SOK;
     EnetMcm_HandleInfo handleInfo;
@@ -1183,6 +1388,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(EthRemoteCfg_VirtPort virtPort
     CpswProxyServer_Obj * hProxyServer;
     EnetMcm_CmdIf *hMcmCmdIf;
     enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType = (enum rpmsg_kdrv_ethswitch_cpsw_type) cpsw_type;
+    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
 
     status = CpswProxy_mapRdev2CpswType(rdevCpswType, &enetType);
     if (ENET_SOK == status)
@@ -1227,6 +1433,16 @@ static int32_t CpswProxyServer_attachExtHandlerCb(EthRemoteCfg_VirtPort virtPort
         if (csumOffloadFlag)
         {
             *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM;
+        }
+
+        if (isMacPort)
+        {
+            *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY;
+            *pMacOnlyPort = EthRemoteCfg_getPortNum(virtPort);
+        }
+        else
+        {
+            *pMacOnlyPort = 0U;
         }
     }
 
@@ -1357,32 +1573,41 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(EthRemoteCfg_VirtPort 
     Enet_IoctlPrms prms;
     CpswAle_SetPolicerEntryOutArgs setPolicerOutArgs;
     CpswAle_SetPolicerEntryInArgs setPolicerInArgs;
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
-    CpswProxyServer_validateHandle(hEnet);
-    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
-                 __func__,
-                 host_id,
-                 hEnet,
-                 core_key,
-                 ether_type,
-                 flow_idx,
-                 flow_idx_offset);
-
-    memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
-    setPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
-    setPolicerInArgs.policerMatch.etherType = ether_type;
-    setPolicerInArgs.threadIdEn                   = TRUE;
-    setPolicerInArgs.threadId                         = flow_idx_offset;
-    setPolicerInArgs.peakRateInBitsPerSec             = 0;
-    setPolicerInArgs.commitRateInBitsPerSec           = 0;
-
-    ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
-
-    status = Enet_ioctl(hEnet,host_id, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-    if (status != ENET_SOK)
+    if (isSwitchPort)
     {
-        appLogPrintf("Enet_ioctl() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
+        CpswProxyServer_validateHandle(hEnet);
+        EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdxOffset:%u\n",
+                     __func__,
+                     host_id,
+                     hEnet,
+                     core_key,
+                     ether_type,
+                     flow_idx,
+                     flow_idx_offset);
+
+        memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
+        setPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+        setPolicerInArgs.policerMatch.etherType = ether_type;
+        setPolicerInArgs.threadIdEn = TRUE;
+        setPolicerInArgs.threadId   = flow_idx_offset;
+        setPolicerInArgs.peakRateInBitsPerSec   = 0;
+        setPolicerInArgs.commitRateInBitsPerSec = 0;
+
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
+
+        status = Enet_ioctl(hEnet,host_id, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Enet_ioctl() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
+        }
+    }
+    else
+    {
+        appLogPrintf("registerEtherType is not supported on virtual MAC ports\n");
+        status = ENET_ENOTSUPPORTED;
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1400,29 +1625,38 @@ static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(EthRemoteCfg_VirtPor
     uint32_t start_flow_idx, flow_idx_offset;
     Enet_IoctlPrms prms;
     CpswAle_DelPolicerEntryInArgs delPolicerInArgs;
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
-    CpswProxyServer_validateHandle(hEnet);
-    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdOffset:%u\n",
-                 __func__,
-                 host_id,
-                 hEnet,
-                 core_key,
-                 ether_type,
-                 flow_idx,
-                 flow_idx_offset);
-
-    memset(&delPolicerInArgs, 0, sizeof(delPolicerInArgs));
-    delPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
-    delPolicerInArgs.policerMatch.etherType = ether_type;
-    delPolicerInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ETHERTYPE;
-
-    ENET_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
-
-    status = Enet_ioctl(hEnet,host_id, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
-    if (status != ENET_SOK)
+    if (isSwitchPort)
     {
-        appLogPrintf("Failed Enet_ioctl CPSW_ALE_IOCTL_DEL_POLICER : %d\n", status);
+        CpswProxyServer_validateHandle(hEnet);
+        EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Ethertype:%x, FlowIdx:%u, FlowIdOffset:%u\n",
+                     __func__,
+                     host_id,
+                     hEnet,
+                     core_key,
+                     ether_type,
+                     flow_idx,
+                     flow_idx_offset);
+
+        memset(&delPolicerInArgs, 0, sizeof(delPolicerInArgs));
+        delPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+        delPolicerInArgs.policerMatch.etherType = ether_type;
+        delPolicerInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ETHERTYPE;
+
+        ENET_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
+
+        status = Enet_ioctl(hEnet,host_id, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed Enet_ioctl CPSW_ALE_IOCTL_DEL_POLICER : %d\n", status);
+        }
+    }
+    else
+    {
+        appLogPrintf("unregisterEtherType is not supported on virtual MAC ports\n");
+        status = ENET_ENOTSUPPORTED;
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1534,18 +1768,21 @@ static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *v
 #endif
     };
     uint32_t portNum = EthRemoteCfg_getPortNum(virtPortCfg->portId);
+    bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPortCfg->portId);
 
     prm->host_id  = virtPortCfg->remoteCoreId;
     prm->virtPort = virtPortCfg->portId;
 
     snprintf((char *)&prm->name[0],
              ETHREMOTECFG_SERVER_MAX_NAME_LEN,
-             "%s_ethswitch-device-%u",
+             "%s_eth%s-device-%u",
              coreName[virtPortCfg->remoteCoreId],
+             isSwitchPort ? "switch" : "mac",
              portNum);
 
-    appLogPrintf("%s <-> Switch port %u: %s\n",
+    appLogPrintf("%s <-> %s port %u: %s\n",
                  coreName[virtPortCfg->remoteCoreId],
+                 isSwitchPort ? "Switch" : "MAC",
                  portNum,
                  prm->name);
 }
@@ -1901,7 +2138,8 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                                                          &attachRes.features,
                                                                          &allocFlowIdx,
                                                                          &attachRes.txCpswPsilDstId,
-                                                                         attachRes.macAddress);
+                                                                         attachRes.macAddress,
+                                                                         &attachRes.macOnlyPort);
 
                             if (ENET_SOK == status)
                             {

@@ -369,6 +369,26 @@ static EthFw_Port gEthAppPorts[] =
 #endif
 };
 
+static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
+{
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_0,
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+};
+
+static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
+{
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+};
+
 static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 
 #if defined(FREERTOS)
@@ -666,16 +686,28 @@ static int32_t EthApp_initEthFw(void)
     EthFw_Config ethFwCfg;
     EnetUdma_Cfg dmaCfg;
     int32_t status = ETHAPP_OK;
+    uint32_t i;
 
-    /* Set EthFw config params */
+    /* Init EthFw config params */
     EthFw_initConfigParams(gEthAppObj.enetType, &ethFwCfg);
-    dmaCfg.hUdmaDrv                 = gEthAppObj.hUdmaDrv;
+
+    /* Set UDMA handle to Enet LLD config */
+    dmaCfg.hUdmaDrv = gEthAppObj.hUdmaDrv;
     dmaCfg.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
-    ethFwCfg.cpswCfg.dmaCfg         = (void *)&dmaCfg;
-    ethFwCfg.ports                  = &gEthAppPorts[0];
+    ethFwCfg.cpswCfg.dmaCfg = (void *)&dmaCfg;
+
+    /* Set hardware port configuration parameters */
+    ethFwCfg.ports    = &gEthAppPorts[0];
     ethFwCfg.numPorts = ARRAY_SIZE(gEthAppPorts);
 
-    uint32_t i;
+    /* Set virtual port configuration parameters */
+    ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
+    ethFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
+
+    /* Set AUTOSAR virtual port configuration parameters */
+    ethFwCfg.autosarVirtPortCfg  = &gEthApp_autosarVirtPortCfg[0];
+    ethFwCfg.numAutosarVirtPorts = ARRAY_SIZE(gEthApp_autosarVirtPortCfg);
+
     /* Overwrite config params with those for hardware interVLAN */
     EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswCfg);
 

@@ -1399,7 +1399,6 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->rxInfo[0U].disableEvent = true;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
     outArgs->txInfo.disableEvent = true;
-    outArgs->txInfo.txPortNum = ENET_MAC_PORT_INV;
 
     if (gRemoteAppObj.useExtAttach)
     {
@@ -1412,7 +1411,8 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                  &txPSILId,
                                  &rxStartFlowId,
                                  &rxFlowIdOffset,
-                                 virtNetif->macAddr);
+                                 virtNetif->macAddr,
+                                 &outArgs->txInfo.txPortNum);
     }
     else
     {
@@ -1421,7 +1421,8 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                          &outArgs->hEnet,
                          &outArgs->coreKey,
                          &outArgs->hostPortRxMtu,
-                         outArgs->txMtu);
+                         outArgs->txMtu,
+                         &outArgs->txInfo.txPortNum);
         CpswProxy_allocTxCh(virtNetif->hCpswProxy,
                             outArgs->hEnet,
                             outArgs->coreKey,
@@ -1677,6 +1678,7 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
     uint32_t txPSILId;
     uint32_t rxStartFlowId;
     uint32_t rxFlowIdOffset;
+    Enet_MacPort macPort;
 
     /* Wait for EthFw connection to be established */
     SemaphoreP_pend(gRemoteAppObj.hInitSem, SemaphoreP_WAIT_FOREVER);
@@ -1704,7 +1706,8 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                                  &txPSILId,
                                  &rxStartFlowId,
                                  &rxFlowIdOffset,
-                                 virtNetif->macAddr);
+                                 virtNetif->macAddr,
+                                 &macPort);
     }
     else
     {
@@ -1713,7 +1716,8 @@ void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                          &outArgs->hEnet,
                          &outArgs->coreKey,
                          &outArgs->hostPortRxMtu,
-                         outArgs->txMtu);
+                         outArgs->txMtu,
+                         &macPort);
         CpswProxy_allocTxCh(virtNetif->hCpswProxy,
                             outArgs->hEnet,
                             outArgs->coreKey,

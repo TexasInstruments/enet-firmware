@@ -152,17 +152,29 @@ typedef struct EthFw_Obj_s
     /* Enet instance id */
     uint32_t instId;
 
-    /*! CPSW configuration */
+    /* CPSW configuration */
     Cpsw_Cfg cpswCfg;
 
-    /*! Firmware version */
+    /* Firmware version */
     EthFw_Version version;
 
-    /*! MAC ports owned by EthFw */
+    /* MAC ports owned by EthFw */
     EthFw_Port ports[ENET_MAC_PORT_NUM];
 
-    /*! Number of MAC ports owned by EthFw */
+    /* Number of MAC ports owned by EthFw */
     uint32_t numPorts;
+
+    /* Virtual port configuration */
+    EthFw_VirtPortCfg virtPortCfg[ETHFW_REMOTE_CLIENT_MAX];
+
+    /* Number of valid virtual port configuration entries */
+    uint32_t numVirtPorts;
+
+    /* AUTOSAR virtual port configuration */
+    EthFw_VirtPortCfg autosarVirtPortCfg[ETHFW_AUTOSAR_REMOTE_CLIENT_MAX];
+
+    /* Number of valid AUTOSAR virtual port configuration entries */
+    uint32_t numAutosarVirtPorts;
 
     /* Multiclient Manager (MCM) handle */
     EnetMcm_CmdIf mcmCmdIf;
@@ -246,12 +258,114 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 }
 
+static int32_t EthFw_getVirtPortConfig(const EthFw_Config *config)
+{
+    uint32_t i;
+    int32_t status = ENET_SOK;
+
+    if (config->numVirtPorts > ETHFW_REMOTE_CLIENT_MAX)
+    {
+        appLogPrintf("ETHFW: Too many virtual ports requested (%u), max is %u\n",
+                     config->numVirtPorts, ETHFW_REMOTE_CLIENT_MAX);
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if (config->numAutosarVirtPorts > ETHFW_AUTOSAR_REMOTE_CLIENT_MAX)
+    {
+        appLogPrintf("ETHFW: Too many AUTOSAR virtual ports requested (%u), max is %u\n",
+                     config->numAutosarVirtPorts, ETHFW_AUTOSAR_REMOTE_CLIENT_MAX);
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if (status == ENET_SOK)
+    {
+        gEthFwObj.numVirtPorts = config->numVirtPorts;
+
+        for (i = 0U; i < config->numVirtPorts; i++)
+        {
+            gEthFwObj.virtPortCfg[i] = config->virtPortCfg[i];
+        }
+
+        gEthFwObj.numAutosarVirtPorts = config->numAutosarVirtPorts;
+
+        for (i = 0U; i < config->numAutosarVirtPorts; i++)
+        {
+            gEthFwObj.autosarVirtPortCfg[i] = config->autosarVirtPortCfg[i];
+        }
+    }
+
+    return status;
+}
+
+static void EthFw_setPortMode(void)
+{
+    EthRemoteCfg_VirtPort virtPort;
+    Enet_MacPort macPort;
+    CpswAle_Cfg *aleCfg = &gEthFwObj.cpswCfg.aleCfg;
+    CpswAle_PortMacModeCfg *macModeCfg;
+    CpswAle_PortLearningSecurityCfg *learningCfg;
+    uint32_t alePort;
+    uint32_t i;
+
+    /* Reset MAC-only and learning config for all enabled ports. It will be
+     * overwritten as needed right after */
+    for (i = 0U; i < gEthFwObj.numPorts; i++)
+    {
+        macPort = gEthFwObj.ports[i].portNum;
+        alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
+
+        macModeCfg = &aleCfg->portCfg[alePort].macModeCfg;
+        macModeCfg->macOnlyCafEn = false;
+        macModeCfg->macOnlyEn = false;
+
+        learningCfg = &aleCfg->portCfg[alePort].learningCfg;
+        learningCfg->noLearn = false;
+    }
+
+    /* Set CPSW ports in MAC-only mode for remote_device-based virtual MAC ports */
+    for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
+    {
+        virtPort = gEthFwObj.virtPortCfg[i].portId;
+
+        if (EthRemoteCfg_isMacPort(virtPort))
+        {
+            macPort = EthRemoteCfg_getMacPort(virtPort);
+            alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
+
+            macModeCfg = &aleCfg->portCfg[alePort].macModeCfg;
+            macModeCfg->macOnlyCafEn = false;
+            macModeCfg->macOnlyEn = true;
+
+            learningCfg = &aleCfg->portCfg[alePort].learningCfg;
+            learningCfg->noLearn = true;
+        }
+    }
+
+    /* Set CPSW ports in MAC-only mode for AUTOSAR virtual MAC ports */
+    for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
+    {
+        virtPort = gEthFwObj.autosarVirtPortCfg[i].portId;
+
+        if (EthRemoteCfg_isMacPort(virtPort))
+        {
+            macPort = EthRemoteCfg_getMacPort(virtPort);
+            alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
+
+            macModeCfg = &aleCfg->portCfg[alePort].macModeCfg;
+            macModeCfg->macOnlyCafEn = false;
+            macModeCfg->macOnlyEn = true;
+
+            learningCfg = &aleCfg->portCfg[alePort].learningCfg;
+            learningCfg->noLearn = true;
+        }
+    }
+}
+
 void EthFw_initConfigParams(Enet_Type enetType,
                             EthFw_Config *config)
 {
     Cpsw_Cfg *cpswCfg = &config->cpswCfg;
     CpswAle_Cfg *aleCfg = &cpswCfg->aleCfg;
-    cpswCfg->dmaCfg = NULL;
     Cpsw_VlanCfg *vlanCfg = &cpswCfg->vlanCfg;
     CpswHostPort_Cfg *hostPortCfg = &cpswCfg->hostPortCfg;
     EnetRm_ResCfg *resCfg = &cpswCfg->resCfg;
@@ -260,9 +374,17 @@ void EthFw_initConfigParams(Enet_Type enetType,
     config->ports = NULL;
     config->numPorts = 0U;
 
+    /* Virtual ports (remote_device based) */
+    config->virtPortCfg = NULL;
+    config->numVirtPorts = 0U;
+
+    /* Virtual ports (bare IPC, AUTOSAR) */
+    config->autosarVirtPortCfg = NULL;
+    config->numAutosarVirtPorts = 0U;
+
     /* Start with CPSW LLD's default configuration */
-    // FIXME
     Enet_initCfg(enetType, 0U, cpswCfg, sizeof (*cpswCfg));
+    cpswCfg->dmaCfg = NULL;
     EnetAppUtils_initResourceConfig(enetType, EnetSoc_getCoreId(), resCfg);
 
     /* VLAN configuration */
@@ -281,6 +403,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
 EthFw_Handle EthFw_init(Enet_Type enetType,
                         const EthFw_Config *config)
 {
+    EnetUdma_Cfg *udmaCfg = (EnetUdma_Cfg *)config->cpswCfg.dmaCfg;
     char *date = __DATE__;
     char *time = __TIME__;
     int32_t status = ENET_SOK;
@@ -288,7 +411,6 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     EnetAppUtils_assert(config != NULL);
     EnetAppUtils_assert(config->ports != NULL);
     EnetAppUtils_assert(config->numPorts <= ENET_MAC_PORT_NUM);
-    EnetUdma_Cfg *udmaCfg = (EnetUdma_Cfg *)config->cpswCfg.dmaCfg;
     EnetAppUtils_assert(udmaCfg != NULL);
     EnetAppUtils_assert(udmaCfg->hUdmaDrv != NULL);
 
@@ -301,58 +423,74 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
            config->ports,
            gEthFwObj.numPorts * sizeof(EthFw_Port));
 
-    gEthFwObj.coreId = EnetSoc_getCoreId();
-    gEthFwObj.enetType = enetType;
-    gEthFwObj.instId = 0U;
+    /* Save virtual port configuration */
+    status = EthFw_getVirtPortConfig(config);
+    if (status != ENET_SOK)
+    {
+        appLogPrintf("ETHFW: incorrect virtual port configuration: %d\n", status);
+    }
 
-    /* Populate EthFw version */
-    gEthFwObj.version.major = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR;
-    gEthFwObj.version.minor = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR;
-    gEthFwObj.version.rev = RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION;
+    if (status == ENET_SOK)
+    {
+        /* Set EthFw port mode: switch or MAC-only */
+        EthFw_setPortMode();
 
-    /* __DATE__ is a string constant that contains eleven characters and
-     * looks like "Feb 12 1996". If the day of the month is less than
-     * 10, it is padded with a space on the left */
-    memcpy(&gEthFwObj.version.month[0U],
-           &date[ETHFW_VERSION_OFFSET_MONTH],
-           ETHFW_VERSION_MONTHLEN);
-    memcpy(&gEthFwObj.version.date[0U],
-           &date[ETHFW_VERSION_OFFSET_DATE],
-           ETHFW_VERSION_DATELEN);
-    memcpy(&gEthFwObj.version.year[0U],
-           &date[ETHFW_VERSION_OFFSET_YEAR],
-           ETHFW_VERSION_YEARLEN);
+        gEthFwObj.coreId = EnetSoc_getCoreId();
+        gEthFwObj.enetType = enetType;
+        gEthFwObj.instId = 0U;
 
-    /* __TIME__ is a string in 24 hour time format */
-    memcpy(&gEthFwObj.version.hour[0U],
-           &time[ETHFW_VERSION_OFFSET_HOUR],
-           ETHFW_VERSION_HOURLEN);
-    memcpy(&gEthFwObj.version.min[0U],
-           &time[ETHFW_VERSION_OFFSET_MIN],
-           ETHFW_VERSION_MINLEN);
-    memcpy(&gEthFwObj.version.sec[0U],
-           &time[ETHFW_VERSION_OFFSET_SEC],
-           ETHFW_VERSION_SECLEN);
+        /* Populate EthFw version */
+        gEthFwObj.version.major = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR;
+        gEthFwObj.version.minor = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR;
+        gEthFwObj.version.rev = RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION;
 
-    /* RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT is defined by the build system */
-    memcpy(&gEthFwObj.version.commitHash[0U],
-           RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT,
-           ETHFW_VERSION_COMMITSHALEN);
+        /* __DATE__ is a string constant that contains eleven characters and
+         * looks like "Feb 12 1996". If the day of the month is less than
+         * 10, it is padded with a space on the left */
+        memcpy(&gEthFwObj.version.month[0U],
+               &date[ETHFW_VERSION_OFFSET_MONTH],
+               ETHFW_VERSION_MONTHLEN);
+        memcpy(&gEthFwObj.version.date[0U],
+               &date[ETHFW_VERSION_OFFSET_DATE],
+               ETHFW_VERSION_DATELEN);
+        memcpy(&gEthFwObj.version.year[0U],
+               &date[ETHFW_VERSION_OFFSET_YEAR],
+               ETHFW_VERSION_YEARLEN);
 
-    gEthFwObj.version.month[ETHFW_VERSION_MONTHLEN] = '\0';
-    gEthFwObj.version.date[ETHFW_VERSION_DATELEN] = '\0';
-    gEthFwObj.version.year[ETHFW_VERSION_YEARLEN] = '\0';
-    gEthFwObj.version.hour[ETHFW_VERSION_HOURLEN] = '\0';
-    gEthFwObj.version.min[ETHFW_VERSION_MINLEN] = '\0';
-    gEthFwObj.version.sec[ETHFW_VERSION_SECLEN] = '\0';
-    gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
+        /* __TIME__ is a string in 24 hour time format */
+        memcpy(&gEthFwObj.version.hour[0U],
+               &time[ETHFW_VERSION_OFFSET_HOUR],
+               ETHFW_VERSION_HOURLEN);
+        memcpy(&gEthFwObj.version.min[0U],
+               &time[ETHFW_VERSION_OFFSET_MIN],
+               ETHFW_VERSION_MINLEN);
+        memcpy(&gEthFwObj.version.sec[0U],
+               &time[ETHFW_VERSION_OFFSET_SEC],
+               ETHFW_VERSION_SECLEN);
+
+        /* RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT is defined by the build system */
+        memcpy(&gEthFwObj.version.commitHash[0U],
+               RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT,
+               ETHFW_VERSION_COMMITSHALEN);
+
+        gEthFwObj.version.month[ETHFW_VERSION_MONTHLEN] = '\0';
+        gEthFwObj.version.date[ETHFW_VERSION_DATELEN] = '\0';
+        gEthFwObj.version.year[ETHFW_VERSION_YEARLEN] = '\0';
+        gEthFwObj.version.hour[ETHFW_VERSION_HOURLEN] = '\0';
+        gEthFwObj.version.min[ETHFW_VERSION_MINLEN] = '\0';
+        gEthFwObj.version.sec[ETHFW_VERSION_SECLEN] = '\0';
+        gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
+    }
 
 #if defined(FREERTOS)
     /* Initialize lwIP ARP helper */
-    status = EthFwArpUtils_init();
-    if (status != ETHFW_LWIP_UTILS_SOK)
+    if (status == ENET_SOK)
     {
-        appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
+        status = EthFwArpUtils_init();
+        if (status != ETHFW_LWIP_UTILS_SOK)
+        {
+            appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
+        }
     }
 #endif
 
@@ -398,6 +536,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 {
     CpswProxyServer_Config_t cfg;
     int32_t status;
+    uint32_t i;
 
     EnetAppUtils_assert(hEthFw != NULL);
 
@@ -408,16 +547,18 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.notifyCb = &EthFw_handleProfileInfoNotify;
     cfg.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
 
-    /* Remote cores: mcu2_1, mpu1_0 */
-    cfg.numVirtPorts = 2;
-    cfg.virtPortCfg[0].remoteCoreId = IPC_MPU1_0;
-    cfg.virtPortCfg[0].portId       = ETHREMOTECFG_SWITCH_PORT_0;
-    cfg.virtPortCfg[1].remoteCoreId = IPC_MCU2_1;
-    cfg.virtPortCfg[1].portId       = ETHREMOTECFG_SWITCH_PORT_1;
+    /* Remote cores which use remote_device framework */
+    cfg.numVirtPorts = gEthFwObj.numVirtPorts;
+    for (i = 0U; i < cfg.numVirtPorts; i++)
+    {
+        cfg.virtPortCfg[i].remoteCoreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
+        cfg.virtPortCfg[i].portId       = gEthFwObj.virtPortCfg[i].portId;
+    }
 
-    /* AUTOSAR core: mcu2_1 */
-    cfg.autosarEthDriverRemoteCoreId = IPC_MCU2_1;
-    cfg.autosarEthDriverVirtPort     = ETHREMOTECFG_SWITCH_PORT_1;
+    /* AUTOSAR core */
+    EnetAppUtils_assert(gEthFwObj.numAutosarVirtPorts == 1);
+    cfg.autosarEthDriverRemoteCoreId = gEthFwObj.autosarVirtPortCfg[0].remoteCoreId;
+    cfg.autosarEthDriverVirtPort     = gEthFwObj.autosarVirtPortCfg[0].portId;
     cfg.autosarEthDeviceEndPointId   = AUTOSAR_ETHDRIVER_DEVICE_ENDPT;
 
     /* Enable server-to-client notify service */

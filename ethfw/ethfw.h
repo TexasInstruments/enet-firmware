@@ -75,6 +75,7 @@
 
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
+#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -121,6 +122,12 @@ extern "C" {
 
 /*! GIT Commit SHA length in octets */
 #define ETHFW_VERSION_COMMITSHALEN        (8)
+
+/*! Max number of remote_device based client cores (Linux, QNX, RTOS) */
+#define ETHFW_REMOTE_CLIENT_MAX           (ETHREMOTECFG_SERVER_MAX_INSTANCES)
+
+/*! Max number of AUTOSAR client cores */
+#define ETHFW_AUTOSAR_REMOTE_CLIENT_MAX   (1U)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -169,7 +176,7 @@ typedef struct EthFw_Version_s
  *
  * Ethernet Firmware port configuration parameters.
  */
-typedef struct EthFw_PortConfig_s
+typedef struct EthFw_Port_s
 {
     /*! MAC port number */
     Enet_MacPort portNum;
@@ -177,6 +184,20 @@ typedef struct EthFw_PortConfig_s
     /*! Port VLAN config */
     EnetPort_VlanCfg vlanCfg;
 } EthFw_Port;
+
+/*!
+ * \brief Ethernet Firmware virtual port configuration.
+ *
+ * Ethernet Firmware configuration parameters for virtual ports on remote cores.
+ */
+typedef struct EthFw_VirtPortCfg_s
+{
+    /*! Virtual port id */
+    EthRemoteCfg_VirtPort portId;
+
+    /*! Remote core id */
+    uint32_t remoteCoreId;
+} EthFw_VirtPortCfg;
 
 /*!
  * \brief Ethernet Firmware configuration
@@ -195,6 +216,20 @@ typedef struct EthFw_Config_s
     /*! Number of MAC ports owned by EthFw, that is, the size of
      *  EthFw_Config::ports array */
     uint32_t numPorts;
+
+    /*! Virtual ports accessed via remote_device framework (A72 Linux,
+     *  A72 QNX, RTOS cores) */
+    EthFw_VirtPortCfg *virtPortCfg;
+
+    /*! Number of virtual ports accessed via remote_device framework */
+    uint32_t numVirtPorts;
+
+    /*! Virtual ports used by remote AUTOSAR cores */
+    EthFw_VirtPortCfg *autosarVirtPortCfg;
+
+    /*! Number of virtual ports accessed by AUTOSAR cores.
+     *  Note: Single virtual port is supported for AUTOSAR core */
+    uint32_t numAutosarVirtPorts;
 } EthFw_Config;
 
 /*!

@@ -188,13 +188,18 @@ void CpswProxy_close(CpswProxy_Handle hProxy);
  *                    this function
  * \param txMtu       Array of maximum transmit packet length per priority
  *                    supported by ethernet switch
+ * \param macPort     Underlying MAC port.  `ENET_MAC_PORT_INV` for <em>virtual
+ *                    switch ports</em>, or a valid MAC port id for <em>virtual
+ *                    MAC ports</em>.  This MAC port number can be used as is
+ *                    in Enet DMA APIs for directed or non-directed packets.
  */
 void CpswProxy_attach(CpswProxy_Handle hProxy,
                       Enet_Type enetType,
                       Enet_Handle *pCpswHandle,
                       uint32_t *coreKey,
                       uint32_t *rxMtu,
-                      uint32_t *txMtu);
+                      uint32_t *txMtu,
+                      Enet_MacPort *macPort);
 
 /*!
  * \brief Attach to Ethernet Switch Remote Device with extended response
@@ -229,6 +234,10 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
  *                       value populated by this function
  * \param macAddress     Pointer to allocated destination MAC address allocated
  *                       to remote core populated by this function
+ * \param macPort     Underlying MAC port.  `ENET_MAC_PORT_INV` for <em>virtual
+ *                    switch ports</em>, or a valid MAC port id for <em>virtual
+ *                    MAC ports</em>.  This MAC port number can be used as is
+ *                    in Enet DMA APIs for directed or non-directed packets.
  */
 void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                               Enet_Type enetType,
@@ -239,7 +248,8 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                               uint32_t *txPSILThreadId,
                               uint32_t *rxFlowStartIdx,
                               uint32_t *rxFlowIdx,
-                              uint8_t *macAddress);
+                              uint8_t *macAddress,
+                              Enet_MacPort *macPort);
 
 /*!
  * \brief Detach from Ethernet Switch Remote Device

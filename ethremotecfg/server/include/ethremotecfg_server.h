@@ -128,6 +128,7 @@ typedef struct rdevEthSwitchServerInstPrm_s
  *  \param pTxMtu   Array of Maximum transmit packet length per priority supported by ethernet switch
  *  \param txMtuArraySize Number of priority supported
  *  \param pFeatures Pointer to feature bitmap. Bitmask of type RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx
+ *  \param pMacOnlyPort  MAC-only port number (1-based). 0 for non MAC only ports.
 */
 typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                    uint32_t host_id,
@@ -137,7 +138,8 @@ typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(EthRemoteCfg_VirtPort virtPor
                                                    uint32_t *pRxMtu,
                                                    uint32_t *pTxMtu,
                                                    uint32_t txMtuArraySize,
-                                                   uint32_t *pFeatures);
+                                                   uint32_t *pFeatures,
+                                                   uint32_t *pMacOnlyPort);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_ATTACH_EXT
  *  \param virtPort  Virtual port id.
@@ -152,6 +154,7 @@ typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(EthRemoteCfg_VirtPort virtPor
  *  \param pAllocFlowIdx Pointer to allocated Rx Flow Index populated by callback handler
  *  \param pTxCpswPsilDstId Pointer to allocated Tx Channel CPSW PSIL destination thread id populated by callback handler
  *  \param macAddress  Pointer to allocated destination mac address allocated to remote core populated by callback handler
+ *  \param pMacOnlyPort  MAC-only port number (1-based). 0 for non MAC only ports.
 */
 typedef int32_t (*ethrdev_srv_cb_attach_ext_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                        uint32_t host_id,
@@ -164,7 +167,8 @@ typedef int32_t (*ethrdev_srv_cb_attach_ext_handler_t)(EthRemoteCfg_VirtPort vir
                                                        uint32_t *pFeatures,
                                                        uint32_t *pAllocFlowIdx,
                                                        uint32_t *pTxCpswPsilDstId,
-                                                       uint8_t *macAddress);
+                                                       uint8_t *macAddress,
+                                                       uint32_t *pMacOnlyPort);
 
 /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_ALLOC_TX
  *  \param virtPort  Virtual port id.

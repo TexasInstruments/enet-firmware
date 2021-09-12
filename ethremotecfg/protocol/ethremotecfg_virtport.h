@@ -110,6 +110,33 @@ typedef enum EthRemoteCfg_VirtPort_e
 
     /*! Last virtual switch port id. */
     ETHREMOTECFG_SWITCH_PORT_LAST = ETHREMOTECFG_SWITCH_PORT_3,
+
+    /*! Virtual MAC port 1. */
+    ETHREMOTECFG_MAC_PORT_1,
+
+    /*! Virtual MAC port 2. */
+    ETHREMOTECFG_MAC_PORT_2,
+
+    /*! Virtual MAC port 3. */
+    ETHREMOTECFG_MAC_PORT_3,
+
+    /*! Virtual MAC port 4. */
+    ETHREMOTECFG_MAC_PORT_4,
+
+    /*! Virtual MAC port 5. */
+    ETHREMOTECFG_MAC_PORT_5,
+
+    /*! Virtual MAC port 6. */
+    ETHREMOTECFG_MAC_PORT_6,
+
+    /*! Virtual MAC port 7. */
+    ETHREMOTECFG_MAC_PORT_7,
+
+    /*! Virtual MAC port 8. */
+    ETHREMOTECFG_MAC_PORT_8,
+
+    /*! Last virtual MAC port id. */
+    ETHREMOTECFG_MAC_PORT_LAST = ETHREMOTECFG_MAC_PORT_8,
 } EthRemoteCfg_VirtPort;
 
 /* ========================================================================== */
@@ -147,9 +174,22 @@ static bool EthRemoteCfg_isSwitchPort(EthRemoteCfg_VirtPort portId)
 }
 
 /*!
+ * \brief Check whether port is a virtual MAC port or not.
+ *
+ * \param portId [in]   Virtual port id.
+ *
+ * \return true if virtual MAC port, false otherwise.
+ */
+static bool EthRemoteCfg_isMacPort(EthRemoteCfg_VirtPort portId)
+{
+    return (portId >= ETHREMOTECFG_MAC_PORT_1);
+}
+
+/*!
  * \brief Get virtual port number.
  *
- * Gets the port number of a virtual port.
+ * Gets the port number of a virtual port. Virtual switch ports numbers are
+ * 0-relative and virtual MAC ports are 1-relative.
  *
  * \param portId [in]   Virtual port id.
  *
@@ -159,9 +199,42 @@ static uint32_t EthRemoteCfg_getPortNum(EthRemoteCfg_VirtPort portId)
 {
     uint32_t portNum;
 
-    portNum = (uint32_t)portId;
+    if (EthRemoteCfg_isSwitchPort(portId))
+    {
+        portNum = (uint32_t)portId;
+    }
+    else
+    {
+        portNum = (uint32_t)(portId - ETHREMOTECFG_MAC_PORT_1) + 1U;
+    }
 
     return portNum;
+}
+
+/*!
+ * \brief Get Enet MAC port number corresponding to a virtual port id.
+ *
+ * Gets the Enet MAC port number corresponding to a virtual MAC port.  It will return
+ * \ref ENET_MAC_PORT_INV for virtual switch ports.
+ *
+ * The returned value of this function could be used as is to populate the port
+ * number used for TX directed packets.
+ *
+ * \param portId    Virtual port id.
+ *
+ * \return Enet MAC port number for virtual MAC ports, \ref ENET_MAC_PORT_INV for
+ *         virtual switch ports.
+ */
+static Enet_MacPort EthRemoteCfg_getMacPort(EthRemoteCfg_VirtPort portId)
+{
+    Enet_MacPort macPort = ENET_MAC_PORT_INV;
+
+    if (EthRemoteCfg_isMacPort(portId))
+    {
+        macPort = ENET_MACPORT_DENORM(portId - ETHREMOTECFG_MAC_PORT_1);
+    }
+
+    return macPort;
 }
 
 #ifdef __cplusplus

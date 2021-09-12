@@ -218,7 +218,8 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint32_t *rx_mtu,
                                    uint32_t tx_mtu[],
                                    uint32_t tx_mtu_array_size,
-                                   uint32_t *pFeatures)
+                                   uint32_t *pFeatures,
+                                   uint32_t *mac_only_port)
 {
     rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_attach_request *msg = &clientMsg.rdevEthSwitchMsg.attach_req;
@@ -240,6 +241,7 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
             *core_key = attach_reponse.rdevEthSwitchMsg.attach_res.core_key;
             *rx_mtu = attach_reponse.rdevEthSwitchMsg.attach_res.rx_mtu;
             *pFeatures = attach_reponse.rdevEthSwitchMsg.attach_res.features;
+            *mac_only_port = attach_reponse.rdevEthSwitchMsg.attach_res.mac_only_port;
             if (tx_mtu_array_size >= ENET_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_res.tx_mtu))
             {
                 uint32_t i;
@@ -274,7 +276,8 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
                                       uint32_t *tx_cpsw_psil_dst_id,
                                       uint32_t *rx_flow_allocidx,
                                       uint8_t *mac_address,
-                                      uint32_t mac_address_len)
+                                      uint32_t mac_address_len,
+                                      uint32_t *mac_only_port)
 {
     rdevEthSwitchClientMessageList_t clientMsg;
     struct rpmsg_kdrv_ethswitch_attach_request *msg = &clientMsg.rdevEthSwitchMsg.attach_req;
@@ -298,6 +301,7 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
             *pFeatures = attach_reponse.rdevEthSwitchMsg.attach_ext_res.features;
             *tx_cpsw_psil_dst_id = attach_reponse.rdevEthSwitchMsg.attach_ext_res.tx_cpsw_psil_dst_id;
             *rx_flow_allocidx = attach_reponse.rdevEthSwitchMsg.attach_ext_res.alloc_flow_idx;
+            *mac_only_port = attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_only_port;
             if (mac_address_len >= ENET_ARRAYSIZE(attach_reponse.rdevEthSwitchMsg.attach_ext_res.mac_address))
             {
                 memcpy(mac_address,
