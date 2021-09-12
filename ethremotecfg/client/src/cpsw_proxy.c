@@ -1043,7 +1043,8 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
                     if(hProxy->notifyServiceObj.cb.hwPushCb != NULL)
                     {
                         hProxy->notifyServiceObj.cb.hwPushCb((CpswCpts_HwPush)hwPushMsg->hwPushNum,
-                                                             hwPushMsg->timeStamp);
+                                                             hwPushMsg->timeStamp,
+                                                             hProxy->notifyServiceObj.cb.hwPushCbArg);
                     }
 
                     break;
@@ -1690,7 +1691,8 @@ void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
 }
 
 int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
-                                         CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn)
+                                         CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
+                                         void *cbArg)
 {
     int status = ENET_SOK;
 
@@ -1699,6 +1701,7 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
         if (hProxy->notifyServiceObj.cb.hwPushCb == NULL)
         {
             hProxy->notifyServiceObj.cb.hwPushCb = cbFxn;
+            hProxy->notifyServiceObj.cb.hwPushCbArg = cbArg;
         }
         else
         {
@@ -1720,6 +1723,7 @@ int32_t CpswProxy_unregisterHwPushNotifyCb(CpswProxy_Handle hProxy)
     if (NULL != hProxy)
     {
         hProxy->notifyServiceObj.cb.hwPushCb = NULL;
+        hProxy->notifyServiceObj.cb.hwPushCbArg = NULL;
     }
     else
     {

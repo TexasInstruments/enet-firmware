@@ -399,7 +399,8 @@ static uint64_t CpswRemoteApp_getLocalTime(void);
 static uint64_t CpswRemoteApp_getSynchronizedTime(void);
 
 static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
-                                             uint64_t syncTime);
+                                             uint64_t syncTime,
+                                             void *cbArg);
 
 #if defined (FREERTOS)
 static void EthApp_lwipMain(void *a0,
@@ -551,7 +552,8 @@ static void CpswRemoteApp_initSyncTimer(void)
 
     /* Register callback */
     status = CpswProxy_registerHwPushNotifyCb(gRemoteAppObj.hCpswProxy,
-                                              CpswRemoteApp_calcSyncTimeParams);
+                                              CpswRemoteApp_calcSyncTimeParams,
+                                              NULL);
     if (status == ENET_EALREADYOPEN)
     {
         System_printf("CpswProxy_registerHwPushNotifyCb(): Callback is registered already\n");
@@ -599,7 +601,9 @@ static uint64_t CpswRemoteApp_getSynchronizedTime(void)
     return synchronizedTime;
 }
 
-static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum, uint64_t syncTime)
+static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
+                                             uint64_t syncTime,
+                                             void *cbArg)
 {
     if (hwPushNum == CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM)
     {

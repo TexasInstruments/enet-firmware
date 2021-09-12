@@ -178,9 +178,12 @@ typedef struct CpswRemoteNotifyService_HwPushMsg_s
  *
  * \param hwPushNum Enum value of hardware psuh that triggered the event
  * \param syncTime  Timestamp value when hardware push event was triggered
+ * \param cbArg     Callback argument
  *
  */
-typedef void (*CpswRemoteNotifyService_hwPushNotifyCbFxn)(CpswCpts_HwPush hwPushNum, uint64_t syncTime);
+typedef void (*CpswRemoteNotifyService_hwPushNotifyCbFxn)(CpswCpts_HwPush hwPushNum,
+                                                          uint64_t syncTime,
+                                                          void *cbArg);
 
 /*!
  * \brief CPSW Remote notify service callback handlers
@@ -189,6 +192,9 @@ typedef struct CpswRemoteNotifyService_CallbackHandlers_s
 {
     /*! Hardware push notify handler */
     CpswRemoteNotifyService_hwPushNotifyCbFxn hwPushCb;
+
+    /*! Hardware push notify arguments */
+    void *hwPushCbArg;
 } CpswRemoteNotifyService_CallbackHandlers;
 
 
