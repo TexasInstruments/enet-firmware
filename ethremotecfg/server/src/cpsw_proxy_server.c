@@ -132,6 +132,10 @@
                                                          CPSWPROXY_AUTOSAR_ETHDRIVER_NUM_RPMSG_BUFS + \
                                                          CPSWPROXY_AUTOSAR_ETHDRIVER_RPMSG_OBJ_SIZE)
 
+#define CPSWPROXY_ENET2RPMSG_ERR(x)                     ((status == ENET_SOK) ? \
+                                                         RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK : \
+                                                         RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -416,7 +420,6 @@ static int32_t CpswProxyServer_attachHandlerCb(EthRemoteCfg_VirtPort virtPort,
                                                uint32_t *pFeatures)
 {
     int32_t status;
-    int32_t retVal;
     EnetMcm_HandleInfo handleInfo;
     EnetPer_AttachCoreOutArgs attachInfo;
     Enet_IoctlPrms prms;
@@ -472,15 +475,8 @@ static int32_t CpswProxyServer_attachHandlerCb(EthRemoteCfg_VirtPort virtPort,
         }
         CpswProxyServer_addHandleEntry(&hProxyServer->handleTbl, handleInfo.hEnet, enetType, hMcmCmdIf);
     }
-    if (ENET_SOK == status)
-    {
-        retVal = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-    else
-    {
-        retVal = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    return retVal;
+
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static void CpswProxyServer_validateHandle(Enet_Handle hEnet)
@@ -514,16 +510,7 @@ static int32_t CpswProxyServer_allocTxHandlerCb(EthRemoteCfg_VirtPort virtPort,
                                     host_id,
                                     pTxCpswPsilDstId);
 
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static void CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
@@ -550,19 +537,13 @@ static int32_t CpswProxyServer_allocRxHandlerCb(EthRemoteCfg_VirtPort virtPort,
     CpswProxyServer_validateHandle(hEnet);
 
     status = EnetAppUtils_allocRxFlow(hEnet, core_key, host_id, &start_flow_idx, &flow_idx_offset);
-
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
+    if (status == ENET_SOK)
     {
         CpswProxyServer_validateStartIdx(hEnet, host_id, start_flow_idx);
         *pAllocFlowIdx = start_flow_idx + flow_idx_offset;
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_allocMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -578,16 +559,8 @@ static int32_t CpswProxyServer_allocMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
     CpswProxyServer_validateHandle(hEnet);
 
     status = EnetAppUtils_allocMac(hEnet, core_key, host_id, mac_address);
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -621,14 +594,9 @@ static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPo
     if (status != ENET_SOK)
     {
         appLogPrintf("EnetAppUtils_regDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_unregisterMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -662,14 +630,9 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(EthRemoteCfg_VirtPort virt
     if (status != ENET_SOK)
     {
         appLogPrintf("Failed EnetAppUtils_unregDstMacRxFlow: %d\n", status);
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_registerRxDefaultHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -689,16 +652,8 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(EthRemoteCfg_VirtPort 
                  __func__, host_id, hEnet, core_key, flow_idx, flow_idx_offset);
 
     status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -718,16 +673,8 @@ static int32_t CpswProxyServer_unregisterRxDefaultHandlerCb(EthRemoteCfg_VirtPor
                  __func__, host_id, hEnet, core_key, flow_idx);
 
     status = EnetAppUtils_unregDfltRxFlow(hEnet, core_key, host_id, start_flow_idx, flow_idx_offset);
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_freeTxHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -746,16 +693,7 @@ static int32_t CpswProxyServer_freeTxHandlerCb(EthRemoteCfg_VirtPort virtPort,
 
     status = EnetAppUtils_freeTxCh(hEnet, core_key, host_id, tx_cpsw_psil_dst_id);
 
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_freeRxHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -780,16 +718,7 @@ static int32_t CpswProxyServer_freeRxHandlerCb(EthRemoteCfg_VirtPort virtPort,
                                      host_id,
                                      flow_idx_offset);
 
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_freeMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -817,16 +746,7 @@ static int32_t CpswProxyServer_freeMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
 
     status = EnetAppUtils_freeMac(hEnet, core_key, host_id, mac_address);
 
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-       status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_detachHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -991,18 +911,13 @@ static int32_t CpswProxyServer_ioctlHandlerCb(EthRemoteCfg_VirtPort virtPort,
 
     status = Enet_ioctl(hEnet, host_id, cmd, &prms);
 
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
+    if (status == ENET_SOK)
     {
         /* Copy the outArgs from temporary aligned buffer back to msg buffer */
         memcpy(outargs, outArgsBuf, outargs_len);
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_regwrHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -1146,16 +1061,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
     }
 #endif
 
-    if (status != 0)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -1213,16 +1119,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
     }
 #endif
 
-    if (status != 0)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-    }
-
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_registerIpv6MacHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -1363,17 +1260,12 @@ static int32_t CpswProxyServer_attachExtHandlerCb(EthRemoteCfg_VirtPort virtPort
                                        macAddress);
     }
 
-    if (status != ENET_SOK)
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
+    if (status == ENET_SOK)
     {
         CpswProxyServer_addHandleEntry(&hProxyServer->handleTbl, handleInfo.hEnet, enetType, hMcmCmdIf);
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static void CpswProxyServer_clientNotifyHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -1491,14 +1383,9 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(EthRemoteCfg_VirtPort 
     if (status != ENET_SOK)
     {
         appLogPrintf("Enet_ioctl() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -1536,14 +1423,9 @@ static int32_t CpswProxyServer_unregisterEthertypeHandlerCb(EthRemoteCfg_VirtPor
     if (status != ENET_SOK)
     {
         appLogPrintf("Failed Enet_ioctl CPSW_ALE_IOCTL_DEL_POLICER : %d\n", status);
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
-    }
-    else
-    {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -1585,19 +1467,18 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(EthRemoteCfg_VirtPor
     if (status != ENET_SOK)
     {
         appLogPrintf("Failed Enet_ioctl CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK : %d\n", status);
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
     }
-    else
+
+    /* Configure timesync router */
+    if (status == ENET_SOK)
     {
-        status = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
-        /* Configure timesync router */
         status = EnetAppUtils_setTimeSyncRouter(enetType,
                                                 timer_id,
                                                 CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum) +
                                                 CPSWPROXY_CPSW9G_HWPUSH_BASE);
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -1627,12 +1508,15 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtP
 
     /* Clear timesync router configuration for hardware push,
      * Note: This assumes input signal is stopped */
-    status = EnetAppUtils_setTimeSyncRouter(enetType,
-                                            0U,
-                                            CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum) +
-                                            CPSWPROXY_CPSW9G_HWPUSH_BASE);
+    if (status == ENET_SOK)
+    {
+        status = EnetAppUtils_setTimeSyncRouter(enetType,
+                                                0U,
+                                                CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum) +
+                                                CPSWPROXY_CPSW9G_HWPUSH_BASE);
+    }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *virtPortCfg,
