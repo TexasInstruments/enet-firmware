@@ -224,6 +224,67 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
 /*! Ethernet Firmware object */
 EthFw_Obj gEthFwObj;
 
+/* EthFw RM: TX channel, RX flow and MAC address partitioning */
+static EnetRm_ResPrms gEthFw_rmResPrms =
+{
+    .coreDmaResInfo =
+    {
+        [0] =
+        {
+            .coreId        = IPC_MPU1_0,
+            .numTxCh       = 0U,
+            .numRxFlows    = 0U,
+            .numMacAddress = 0U,
+        },
+        [1] =
+        {
+            .coreId        = IPC_MCU1_0,
+            .numTxCh       = 0U,
+            .numRxFlows    = 0U,
+            .numMacAddress = 0U,
+        },
+        [2] =
+        {
+            /* EthFw's RM usage:
+             * TX chans: lwIP + PTP + SW interVLAN
+             * RX flows: lwIP + proxy ARP + PTP + SW interVLAN + default flow
+             * MAC addr: lwIP */
+            .coreId        = IPC_MCU2_0,
+            .numTxCh       = 3U,
+            .numRxFlows    = 5U,
+            .numMacAddress = 1U,
+        },
+        [3] =
+        {
+            .coreId        = IPC_MCU2_1,
+            .numTxCh       = 0U,
+            .numRxFlows    = 0U,
+            .numMacAddress = 0U,
+        },
+#if defined(SOC_J721E)
+        [4] =
+        {
+            .coreId        = IPC_MCU3_0,
+            .numTxCh       = 0U,
+            .numRxFlows    = 0U,
+            .numMacAddress = 0U,
+        },
+        [5] =
+        {
+            .coreId        = IPC_MCU3_1,
+            .numTxCh       = 0U,
+            .numRxFlows    = 0U,
+            .numMacAddress = 0U,
+        },
+#endif
+    },
+#if defined(SOC_J721E)
+    .numCores = 6U,
+#else
+    .numCores = 4U,
+#endif
+};
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -361,6 +422,62 @@ static void EthFw_setPortMode(void)
     }
 }
 
+static EnetRm_ResourceInfo *EthFw_getRmInfo(uint32_t coreId)
+{
+    EnetRm_ResourceInfo *rmInfo = NULL;
+    uint32_t i;
+
+    for (i = 0U; i < gEthFw_rmResPrms.numCores; i++)
+    {
+        if (gEthFw_rmResPrms.coreDmaResInfo[i].coreId == coreId)
+        {
+            rmInfo = &gEthFw_rmResPrms.coreDmaResInfo[i];
+            break;
+        }
+    }
+
+    return rmInfo;
+}
+
+static void EthFw_updateEnetRm(void)
+{
+    EnetRm_ResCfg *resCfg = &gEthFwObj.cpswCfg.resCfg;
+    EnetRm_ResourceInfo *rmInfo;
+    uint32_t coreId;
+    uint32_t i;
+
+    /* Add RM needed by remote_device-based virtual MAC ports */
+    for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
+    {
+        coreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
+
+        rmInfo = EthFw_getRmInfo(coreId);
+        if (rmInfo != NULL)
+        {
+            rmInfo->numTxCh++;
+            rmInfo->numRxFlows++;
+            rmInfo->numMacAddress++;
+        }
+    }
+
+    /* Add RM needed by AUTOSAR virtual MAC ports */
+    for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
+    {
+        coreId = gEthFwObj.autosarVirtPortCfg[i].remoteCoreId;
+
+        rmInfo = EthFw_getRmInfo(coreId);
+        if (rmInfo != NULL)
+        {
+            rmInfo->numTxCh++;
+            rmInfo->numRxFlows++;
+            rmInfo->numMacAddress++;
+        }
+    }
+
+    /* Overwriting RM with our own */
+    resCfg->resPartInfo = gEthFw_rmResPrms;
+}
+
 void EthFw_initConfigParams(Enet_Type enetType,
                             EthFw_Config *config)
 {
@@ -434,6 +551,9 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     {
         /* Set EthFw port mode: switch or MAC-only */
         EthFw_setPortMode();
+
+        /* Update Enet RM according to the virtual port configuration */
+        EthFw_updateEnetRm();
 
         gEthFwObj.coreId = EnetSoc_getCoreId();
         gEthFwObj.enetType = enetType;
