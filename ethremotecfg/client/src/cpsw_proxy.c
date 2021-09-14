@@ -711,17 +711,17 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                     System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsumEnabled:%u\n",
                                   __func__,
                                   hEnet,
-                                  msg.res.u.attach.core_key,
-                                  msg.res.u.attach.rx_mtu,
-                                  msg.res.u.attach.tx_mtu[0],
-                                  msg.res.u.attach.tx_mtu[1],
-                                  msg.res.u.attach.tx_mtu[2],
-                                  msg.res.u.attach.tx_mtu[3],
-                                  msg.res.u.attach.tx_mtu[4],
-                                  msg.res.u.attach.tx_mtu[5],
-                                  msg.res.u.attach.tx_mtu[6],
-                                  msg.res.u.attach.tx_mtu[7],
-                                  ((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
+                                  msg.res.u.attachext.core_key,
+                                  msg.res.u.attachext.rx_mtu,
+                                  msg.res.u.attachext.tx_mtu[0],
+                                  msg.res.u.attachext.tx_mtu[1],
+                                  msg.res.u.attachext.tx_mtu[2],
+                                  msg.res.u.attachext.tx_mtu[3],
+                                  msg.res.u.attachext.tx_mtu[4],
+                                  msg.res.u.attachext.tx_mtu[5],
+                                  msg.res.u.attachext.tx_mtu[6],
+                                  msg.res.u.attachext.tx_mtu[7],
+                                  ((msg.res.u.attachext.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0));
                 }
 
                 break;
