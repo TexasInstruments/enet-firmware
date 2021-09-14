@@ -539,6 +539,20 @@ int32_t rdevEthSwitchClient_unregisterremotetimer(uint32_t device_id,
                                                   uint64_t id,
                                                   uint32_t core_key,
                                                   uint8_t hwPushNum);
+
+/*!
+ * \brief Set promiscuous mode
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ * \param enable    Promiscuous mode (enable or disable)
+ */
+int32_t rdevEthSwitchClient_setPromiscMode(uint32_t device_id,
+                                           uint64_t id,
+                                           uint32_t core_key,
+                                           uint32_t enable);
+
 /* @} */
 
 #endif

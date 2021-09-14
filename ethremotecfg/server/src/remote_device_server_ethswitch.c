@@ -916,6 +916,32 @@ static int32_t rdevEthSwitchServerHandleExtAttachRequest(rdevEthSwitchServerInst
     return ret;
 }
 
+static int32_t rdevEthSwitchServerHandleSetPromiscMode(rdevEthSwitchServerInstanceState_t *inst,
+                                                       app_remote_device_channel_t *channel,
+                                                       uint32_t request_id,
+                                                       union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                       rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_set_promisc_mode_response *resp;
+    struct rpmsg_kdrv_ethswitch_set_promisc_mode_request *req = &reqMsg->set_promisc_mode_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst, sizeof(*resp), request_id, &msg);
+    if (ret == 0)
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status = cb->set_promisc_mode_handler(inst->inst_prm.virtPort,
+                                                         inst->inst_prm.host_id,
+                                                         req->info.id,
+                                                         req->info.core_key,
+                                                         req->enable);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+
+    return ret;
+}
+
 typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInstanceState_t *inst,
                                                          app_remote_device_channel_t *channel,
                                                          uint32_t request_id,
@@ -951,6 +977,7 @@ rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_ETHTYPE)] = &rdevEthSwitchServerHandleUnRegisterEthertype,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER)] = &rdevEthSwitchServerHandleRegisterRemoteTimer,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER)] = &rdevEthSwitchServerHandleUnRegisterRemoteTimer,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE)] = &rdevEthSwitchServerHandleSetPromiscMode,
 };
 
 static int32_t rdevEthSwitchServerRequest(uint32_t device_id,

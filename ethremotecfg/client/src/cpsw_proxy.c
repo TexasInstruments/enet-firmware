@@ -142,6 +142,7 @@ typedef enum CpswProxy_RdevCmd_tag
     CPSWPROXY_RDEVCMD_UNREGETHTYPE,
     CPSWPROXY_RDEVCMD_REGREMOTETIMER,
     CPSWPROXY_RDEVCMD_UNREGREMOTETIMER,
+    CPSWPROXY_RDEVCMD_SETPROMISCMODE,
     CPSWPROXY_RDEVCMD_NOTIFY,
     CPSWPROXY_RDEVCMD_PING,
     CPSWPROXY_RDEVCMD_EXIT,
@@ -370,6 +371,13 @@ typedef struct CpswProxy_rdevCmdUnRegRemoteTimerReq_s
     uint8_t hwPushNum;
 } CpswProxy_rdevCmdUnRegRemoteTimerReq_t;
 
+typedef struct CpswProxy_rdevCmdSetPromiscMode_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t enable;
+} CpswProxy_rdevCmdSetPromiscMode_t;
+
 typedef struct CpswProxy_rdevCmdNotifyReq_s
 {
     uint64_t id;
@@ -409,6 +417,7 @@ typedef struct CpswProxy_rdevCmdReqMsg_s
         CpswProxy_rdevCmdUnRegEthertypeReq_t unregethtype;
         CpswProxy_rdevCmdRegRemoteTimerReq_t regremotetimer;
         CpswProxy_rdevCmdUnRegRemoteTimerReq_t unregremotetimer;
+        CpswProxy_rdevCmdSetPromiscMode_t setpromiscmode;
         CpswProxy_rdevCmdNotifyReq_t notify;
         rdecEthSwitchAppPingReq_t ping;
     } u;
@@ -895,6 +904,14 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                                                            msg.req.u.unregremotetimer.id,
                                                                            msg.req.u.unregremotetimer.core_key,
                                                                            msg.req.u.unregremotetimer.hwPushNum);
+                break;
+            }
+            case CPSWPROXY_RDEVCMD_SETPROMISCMODE:
+            {
+                msg.res.retVal = rdevEthSwitchClient_setPromiscMode(deviceId,
+                                                                    msg.req.u.setpromiscmode.id,
+                                                                    msg.req.u.setpromiscmode.core_key,
+                                                                    msg.req.u.setpromiscmode.enable);
                 break;
             }
             case CPSWPROXY_RDEVCMD_NOTIFY:
@@ -1783,6 +1800,19 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
     msg.req.u.unregremotetimer.core_key = coreKey;
     msg.req.u.unregremotetimer.hwPushNum = hwPushNum;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGREMOTETIMER, &msg);
+}
+
+void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
+                              Enet_Handle hEnet,
+                              uint32_t coreKey,
+                              bool enable)
+{
+    CpswProxy_rdevCmd_t msg;
+
+    msg.req.u.setpromiscmode.id = (uint64_t)hEnet;
+    msg.req.u.setpromiscmode.core_key = coreKey;
+    msg.req.u.setpromiscmode.enable = enable ? 1U : 0U;
+    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_SETPROMISCMODE, &msg);
 }
 
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,

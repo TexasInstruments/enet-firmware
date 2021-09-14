@@ -444,10 +444,22 @@ enum rpmsg_kdrv_ethswitch_message_type
      *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response
      */
     RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER       = 0x1A,
+
+    /*!
+     * \brief CMD to set promiscuous mode
+     *
+     *  Commands allows remote core client to set promiscuous mode
+     *
+     *  Command parameters:
+     *   Request Message (Sent from client to server): struct rpmsg_kdrv_ethswitch_set_promisc_mode_request
+     *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_set_promisc_mode_response
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE            = 0x1B,
+
     /*!
      * \brief Max value of Ethernet Switch Remote Device. For internal use only
      */
-    RPMSG_KDRV_TP_ETHSWITCH_MAX                         = 0x1B,
+    RPMSG_KDRV_TP_ETHSWITCH_MAX                         = 0x1C,
 };
 
 /*!
@@ -1176,6 +1188,28 @@ struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request
  * \brief UnRegister Remote timer CMD response params
  */
 struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response
+{
+    /*! common response info */
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+} __attribute__((packed));
+
+/*!
+ * \brief Set promiscuous mode CMD request params
+ */
+struct rpmsg_kdrv_ethswitch_set_promisc_mode_request
+{
+    /*! Common CMD header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Promiscuous mode: enable or disable */
+    u32 enable;
+} __attribute__((packed));
+
+/*!
+ * \brief Set promiscuous mode CMD response params
+ */
+struct rpmsg_kdrv_ethswitch_set_promisc_mode_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;

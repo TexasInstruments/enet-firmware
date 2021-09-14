@@ -807,6 +807,21 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
  */
 int32_t CpswProxy_unregisterHwPushNotifyCb(CpswProxy_Handle hProxy);
 
+/*!
+ * \brief Set promiscuous mode.
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param coreKey   Unique core_key returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param enable    Promiscuous mode (enable or disable)
+ */
+void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
+                              Enet_Handle hEnet,
+                              uint32_t coreKey,
+                              bool enable);
+
 /* @} */
 
 #ifdef __cplusplus

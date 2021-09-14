@@ -1753,6 +1753,50 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtP
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
+static int32_t CpswProxyServer_setPromiscModeHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                       uint32_t host_id,
+                                                       uint64_t handle,
+                                                       uint32_t core_key,
+                                                       uint32_t enable)
+{
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    Enet_MacPort macPort;
+    Enet_IoctlPrms prms;
+    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
+    uint32_t cmd;
+    int32_t status = ENET_SOK;
+
+    if (isMacPort)
+    {
+        CpswProxyServer_validateHandle(hEnet);
+
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x,mode:%s\n",
+                     __func__,
+                     host_id,
+                     hEnet,
+                     core_key,
+                     enable ? "enable":"disable");
+
+        macPort = EthRemoteCfg_getMacPort(virtPort);
+        ENET_IOCTL_SET_IN_ARGS(&prms, &macPort);
+
+        cmd = (enable != 0U) ? CPSW_ALE_IOCTL_ENABLE_PROMISC_MODE : CPSW_ALE_IOCTL_DISABLE_PROMISC_MODE;
+        status = Enet_ioctl(hEnet, host_id, cmd, &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("setPromiscModeHandleCb() virt MAC port %u: failed to set promisc mode: %d\n",
+                         ENET_MACPORT_ID(macPort), status);
+        }
+    }
+    else
+    {
+        appLogPrintf("setPromiscMode is not supported on virtual switch ports\n");
+        status = ENET_ENOTSUPPORTED;
+    }
+
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
+}
+
 static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *virtPortCfg,
                                             rdevEthSwitchServerInstPrm_t *prm)
 {
@@ -1814,6 +1858,7 @@ static rdevEthSwitchServerCbFxn_t CpswProxyRdevEthSwitchServerCbFxnTbl =
     .unregister_ethertype_handler   = CpswProxyServer_unregisterEthertypeHandlerCb,
     .register_remotetimer_handler   = CpswProxyServer_registerRemoteTimerHandlerCb,
     .unregister_remotetimer_handler = CpswProxyServer_unregisterRemoteTimerHandlerCb,
+    .set_promisc_mode_handler       = CpswProxyServer_setPromiscModeHandlerCb,
 };
 
 
@@ -2472,6 +2517,42 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &unregisterIpv4Res,
                                                 sizeof(unregisterIpv4Res));
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
+
+                        break;
+                    }
+                    case ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_REQ:
+                    {
+                        Eth_RpcSetPromiscModeRequest *setPromiscModeReq = (Eth_RpcSetPromiscModeRequest *)msgBuffer;
+                        Eth_RpcSetPromiscModeResponse setPromiscModeRes;
+
+                        EnetAppUtils_assert((setPromiscModeReq->header.messageId == ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_REQ) &&
+                                            (setPromiscModeReq->header.messageLen == sizeof(*setPromiscModeReq)));
+
+                        status =  CpswProxyServer_setPromiscModeHandlerCb(virtPort,
+                                                                          remoteProcId,
+                                                                          setPromiscModeReq->info.id,
+                                                                          setPromiscModeReq->info.coreKey,
+                                                                          setPromiscModeReq->enable);
+
+                        if (ENET_SOK == status)
+                        {
+                            setPromiscModeRes.info.status =  ETH_RPC_CMDSTATUS_OK;
+                        }
+                        else
+                        {
+                            setPromiscModeRes.info.status =  ETH_RPC_CMDSTATUS_EFAIL;
+                        }
+
+                        setPromiscModeRes.header.messageId = ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_RES;
+                        setPromiscModeRes.header.messageLen = sizeof(setPromiscModeRes);
+
+                        rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
+                                                remoteProcId,
+                                                remoteEndPt,
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &setPromiscModeRes,
+                                                sizeof(setPromiscModeRes));
                         EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;

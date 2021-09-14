@@ -1051,3 +1051,33 @@ int32_t rdevEthSwitchClient_unregisterremotetimer(uint32_t device_id,
 
     return ret;
 }
+
+int32_t rdevEthSwitchClient_setPromiscMode(uint32_t device_id,
+                                           uint64_t id,
+                                           uint32_t core_key,
+                                           uint32_t enable)
+{
+    rdevEthSwitchClientMessageList_t clientMsg;
+    struct rpmsg_kdrv_ethswitch_set_promisc_mode_request *msg = &clientMsg.rdevEthSwitchMsg.set_promisc_mode_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t set_promisc_mode_response;
+
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    msg->enable = enable;
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &set_promisc_mode_response, sizeof(set_promisc_mode_response), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(set_promisc_mode_response.hdr) + sizeof(set_promisc_mode_response.rdevEthSwitchMsg.set_promisc_mode_res)));
+        if (set_promisc_mode_response.rdevEthSwitchMsg.set_promisc_mode_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+
+    return ret;
+}

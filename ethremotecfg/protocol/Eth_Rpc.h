@@ -104,7 +104,9 @@ typedef enum
     ETH_RPC_CMD_TYPE_IPV4_MAC_UNREGISTER_RES        = 0x12,
     ETH_RPC_CMD_TYPE_C2S_NOTIFY                     = 0x13,
     ETH_RPC_CMD_TYPE_S2C_NOTIFY                     = 0x14,
-    ETH_RPC_CMD_TYPE_LAST                           = (ETH_RPC_CMD_TYPE_S2C_NOTIFY)
+    ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_REQ           = 0x15,
+    ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_RES           = 0x16,
+    ETH_RPC_CMD_TYPE_LAST                           = ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_RES,
 } Eth_RpcCmdType;
 
 #define ETH_RPC_CMD_TYPE_COUNT                    (ETH_RPC_CMD_TYPE_LAST + 1)
@@ -622,6 +624,28 @@ typedef struct Eth_RpcIoctlResponse_s
     uint64_t     outargs[(ETH_RPC_IOCTL_OUTARGS_LEN / sizeof(uint64_t))];
 } Eth_RpcIoctlResponse;
 
+/*!
+ * \brief Set promiscuous mode CMD request params
+ */
+typedef struct Eth_RpcSetPromiscModeRequest_s
+{
+    /*! Common CMD header */
+    Eth_RpcMessageHeader header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    Eth_RpcCommonRequestInfo info;
+    /*! Promiscuous mode: enable or disable */
+    uint32_t enable;
+} Eth_RpcSetPromiscModeRequest;
 
+/*!
+ * \brief Set promiscuous CMD response params
+ */
+typedef struct Eth_RpcSetPromiscModeResponse_s
+{
+    /*! common message header */
+    Eth_RpcMessageHeader header;
+    /*! common response info */
+    Eth_RpcCommonResponseInfo info;
+} Eth_RpcSetPromiscModeResponse;
 
 #endif

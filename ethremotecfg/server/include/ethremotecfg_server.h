@@ -505,6 +505,19 @@ typedef int32_t (*ethrdev_srv_cb_unregister_remotetimer_handler_t)(EthRemoteCfg_
                                                                    uint32_t core_key,
                                                                    uint8_t hwPushNum);
 
+/*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE
+ *  \param virtPort  Virtual port id.
+ *  \param host_id Remote Core Id
+ *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
+ *  \param core_key  Core key returned by attach / attach ext CMD
+ *  \param enable Promiscuous mode (enable or disable)
+*/
+typedef int32_t (*ethrdev_srv_cb_set_promisc_mode_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                             uint32_t host_id,
+                                                             uint64_t handle,
+                                                             uint32_t core_key,
+                                                             uint32_t enable);
+
 /*  @} */
 
 /*! \brief Ethernet Switch Remote Device Server Callback function table 
@@ -568,6 +581,8 @@ typedef struct rdevEthSwitchServerCbFxn_s
     ethrdev_srv_cb_register_remotetimer_handler_t register_remotetimer_handler;
     /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER */
     ethrdev_srv_cb_unregister_remotetimer_handler_t unregister_remotetimer_handler;
+    /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE */
+    ethrdev_srv_cb_set_promisc_mode_handler_t set_promisc_mode_handler;
 } rdevEthSwitchServerCbFxn_t;
 
 /*!
@@ -684,6 +699,10 @@ typedef union rdevEthSwitchServerMessageList_u
     struct rpmsg_kdrv_ethswitch_unregister_remotetimer_request unregister_remotetimer_req;
     /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER command. Sent from server to client */
     struct rpmsg_kdrv_ethswitch_unregister_remotetimer_response unregister_remotetimer_res;
+    /*! Request Message associated with RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE command. Sent from client to server  */
+    struct rpmsg_kdrv_ethswitch_set_promisc_mode_request set_promisc_mode_req;
+    /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE command. Sent from server to client */
+    struct rpmsg_kdrv_ethswitch_set_promisc_mode_response set_promisc_mode_res;
 } __attribute__((packed)) rdevEthSwitchServerMessageList_t;
 
 /**
