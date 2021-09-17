@@ -68,9 +68,9 @@
 /*! Ethernet Switch Remote Device API version major version */
 #define ETH_RPC_API_VERSION_MAJOR                         (0)
 /*! Ethernet Switch Remote Device API version minor version */
-#define ETH_RPC_API_VERSION_MINOR                         (1)
+#define ETH_RPC_API_VERSION_MINOR                         (2)
 /*! Ethernet Switch Remote Device API version minor revision */
-#define ETH_RPC_API_VERSION_REVISION                      (1)
+#define ETH_RPC_API_VERSION_REVISION                      (0)
 
 /*! Ethernet Switch Remote Device rpmsg service name  */
 #define ETH_RPC_REMOTE_SERVICE  "ti.autosar.ethdevice"
