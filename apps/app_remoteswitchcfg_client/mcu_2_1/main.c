@@ -130,7 +130,11 @@
 #define System_vprintf vprintf
 #endif
 
+#if defined(FREERTOS)
+#define CPSW_REMOTE_APP_REMOTE_NETIF_MAX      (2U)
+#else
 #define CPSW_REMOTE_APP_REMOTE_NETIF_MAX      (1U)
+#endif
 
 #define CPSW_REMOTE_APP_MASTER_CORE_ID        (IPC_MCU2_0)
 #define CPSW_REMOTE_APP_MASTER_ENDPT          (26)
@@ -361,19 +365,19 @@ typedef struct CpswRemoteApp_Obj_s
 #endif
 } CpswRemoteApp_Obj;
 
+/* Link status on these ports will be used to determine link up on virtual switch port */
 static Enet_MacPort gRemoteAppMacPorts[] =
 {
-#if defined (SOC_J721E)
     ENET_MAC_PORT_3,
-    ENET_MAC_PORT_4,
-#elif defined (SOC_J7200)
-#if defined(ENABLE_QSGMII_PORTS)
-    ENET_MAC_PORT_1,
-#else
-    ENET_MAC_PORT_2,
-#endif
-#endif
 };
+
+#if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2)
+/* Link status on these ports will be used to determine link up on virtual MAC port */
+static Enet_MacPort gRemoteApp_virtualMacPorts[] =
+{
+    ENET_MAC_PORT_4,
+};
+#endif
 
 CpswRemoteApp_Obj gRemoteAppObj =
 {
@@ -401,6 +405,17 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .isDfltNetif = true,
 #endif
         },
+#if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2)
+        {
+            .hCpswProxy  = NULL,
+            .virtPort    = ETHREMOTECFG_MAC_PORT_4,
+            .macPorts    = gRemoteApp_virtualMacPorts,
+            .numMacPorts = ENET_ARRAYSIZE(gRemoteApp_virtualMacPorts),
+#if defined (FREERTOS)
+            .isDfltNetif = false,
+#endif
+        },
+#endif
     },
 };
 
@@ -1178,13 +1193,20 @@ static void EthApp_netifStatusCb(struct netif *netif)
             localAssert(virtNetif->hCpswProxy != NULL);
             localAssert(gRemoteAppObj.hEnet != NULL);
 
-            CpswProxy_registerIPV4Addr(virtNetif->hCpswProxy,
-                                       gRemoteAppObj.hEnet,
-                                       gRemoteAppObj.coreKey,
-                                       virtNetif->macAddr,
-                                       virtNetif->ipv4Addr);
+            if (EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
+            {
+                CpswProxy_registerIPV4Addr(virtNetif->hCpswProxy,
+                                           gRemoteAppObj.hEnet,
+                                           gRemoteAppObj.coreKey,
+                                           virtNetif->macAddr,
+                                           virtNetif->ipv4Addr);
+            }
 
-            CpswRemoteApp_initSyncTimer(virtNetif);
+            /* Time synchronization only via virtual switch port */
+            if (EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
+            {
+                CpswRemoteApp_initSyncTimer(virtNetif);
+            }
         }
     }
     else

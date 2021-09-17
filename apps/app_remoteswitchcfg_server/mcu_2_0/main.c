@@ -339,7 +339,6 @@ static EthFw_Port gEthAppPorts[] =
 #endif
 #endif
 #if defined(SOC_J7200)
-#if defined(ENABLE_QSGMII_PORTS)
     /* On J7200 to use all 4 ports simultaneously, we use below configuration
      * QSGMII ports - 0, 1, 2, 3 */
     {
@@ -358,14 +357,6 @@ static EthFw_Port gEthAppPorts[] =
         .portNum    = ENET_MAC_PORT_4, /* QSGMII sub */
         .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
     },
-#else
-    /* For internal testing only - Alternatively, a single RGMII port
-     * configuration via GESI board is also available */
-    {
-        .portNum    = ENET_MAC_PORT_2, /* RGMII */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-#endif
 #endif
 };
 
@@ -378,6 +369,14 @@ static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
     {
         .remoteCoreId = IPC_MCU2_1,
         .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_MAC_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_MAC_PORT_4,
     },
 };
 
@@ -931,15 +930,7 @@ static void EthApp_netifStatusCb(struct netif *netif)
             gEthAppObj.hostIpAddr = lwip_ntohl(ip_addr_get_ip4_u32(ipAddr));
 
             /* MAC port used for PTP */
-#if defined(SOC_J721E)
             macPort = ENET_MAC_PORT_3;
-#elif defined(SOC_J7200)
-#if defined(ENABLE_QSGMII_PORTS)
-            macPort = ENET_MAC_PORT_1;
-#else
-            macPort = ENET_MAC_PORT_2;
-#endif
-#endif
 
             /* Initialize and enable PTP stack */
             EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
@@ -1050,15 +1041,7 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     gEthAppObj.hostIpAddr = ipAddrHex;
 
     /* MAC port used for PTP */
-#if defined(SOC_J721E)
     macPort = ENET_MAC_PORT_3;
-#elif defined(SOC_J7200)
-#if defined(ENABLE_QSGMII_PORTS)
-    macPort = ENET_MAC_PORT_1;
-#else
-    macPort = ENET_MAC_PORT_2;
-#endif
-#endif
 
     /* Initialize and enable PTP stack */
     EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
