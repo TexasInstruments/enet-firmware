@@ -322,6 +322,11 @@ typedef struct CpswRemoteApp_VirtNetif_s
 
     /* Time synchronization object */
     CpswRemoteApp_SyncTimerObj syncTimerObj;
+
+    /* CPTS HWPUSH number used for remote time synchronization. This example
+     * app only supports it on one interface, should be set to CPSW_CPTS_HWPUSH_INVALID
+     * on all other interfaces */
+    CpswCpts_HwPush hwPushNum;
 } CpswRemoteApp_VirtNetif;
 
 typedef struct CpswRemoteApp_Obj_s
@@ -401,6 +406,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .virtPort    = ETHREMOTECFG_SWITCH_PORT_1,
             .macPorts    = gRemoteAppMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteAppMacPorts),
+            .hwPushNum   = CPSW_CPTS_HWPUSH_2,
 #if defined (FREERTOS)
             .isDfltNetif = true,
 #endif
@@ -411,6 +417,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .virtPort    = ETHREMOTECFG_MAC_PORT_4,
             .macPorts    = gRemoteApp_virtualMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteApp_virtualMacPorts),
+            .hwPushNum   = CPSW_CPTS_HWPUSH_INVALID,
 #if defined (FREERTOS)
             .isDfltNetif = false,
 #endif
@@ -597,8 +604,7 @@ static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
     CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x0U);
 
     /* Register callback */
-    status = CpswProxy_registerHwPushNotifyCb(virtNetif->hCpswProxy,
-                                              CpswRemoteApp_calcSyncTimeParams,
+    status = CpswProxy_registerHwPushNotifyCb(CpswRemoteApp_calcSyncTimeParams,
                                               (void *)virtNetif);
     if (status == ENET_EALREADYOPEN)
     {
@@ -614,7 +620,7 @@ static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
                                   gRemoteAppObj.hEnet,
                                   gRemoteAppObj.coreKey,
                                   CSLR_TIMESYNC_INTRTR0_IN_GTC0_GTC_PUSH_EVENT_0,
-                                  CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM);
+                                  (uint8_t)virtNetif->hwPushNum);
 
     /* Enable GTC */
     CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
@@ -652,7 +658,7 @@ static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
 {
     CpswRemoteApp_VirtNetif *virtNetif = (CpswRemoteApp_VirtNetif *)cbArg;
 
-    if (hwPushNum == CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM)
+    if (hwPushNum == virtNetif->hwPushNum)
     {
         uint64_t gtcTime = 0U;
         uint64_t synchronizedTime = 0U;
@@ -700,7 +706,8 @@ static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
             hSyncTimerObj->offset = temp1 - temp2;
 
             synchronizedTime = CpswRemoteApp_getSynchronizedTime(hSyncTimerObj);
-            System_printf("Current Synchronized time in Epoch format: %lld\n",synchronizedTime);
+            System_printf("Current Synchronized time via HWPUSH_%u in Epoch format: %lld\n",
+                          hwPushNum, synchronizedTime);
         }
 
         hSyncTimerObj->prevLocalTime = gtcTime;
@@ -1202,8 +1209,8 @@ static void EthApp_netifStatusCb(struct netif *netif)
                                            virtNetif->ipv4Addr);
             }
 
-            /* Time synchronization only via virtual switch port */
-            if (EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
+            /* Init time synchronization */
+            if (virtNetif->hwPushNum != CPSW_CPTS_HWPUSH_INVALID)
             {
                 CpswRemoteApp_initSyncTimer(virtNetif);
             }

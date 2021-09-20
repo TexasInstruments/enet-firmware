@@ -784,7 +784,6 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
 /*!
  * \brief Register hardware push notification callback
  *
- * \param hProxy    Handle to Cpsw Proxy
  * \param cbFxn     Callback function to be called when event occurs
  * \param cbArg     Callback arguments
  *
@@ -792,20 +791,13 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
  *                  ENET_EALREADYOPEN if callback is already registered.
  *                  ENET_EBADARGS if invalid input arguments
  */
-int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
-                                         CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
+int32_t CpswProxy_registerHwPushNotifyCb(CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
                                          void *cbArg);
 
 /*!
  * \brief Unregister hardware push notification callback
- *
- * \param hProxy    Handle to Cpsw Proxy
- *
- * \return status   ENET_SOK if registered callback successfully
- *                  ENET_EALREADYOPEN if callback is already registered.
- *                  ENET_EBADARGS if invalid input arguments
  */
-int32_t CpswProxy_unregisterHwPushNotifyCb(CpswProxy_Handle hProxy);
+void CpswProxy_unregisterHwPushNotifyCb(void);
 
 /*!
  * \brief Set promiscuous mode.

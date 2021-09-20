@@ -480,9 +480,6 @@ typedef struct CpswProxy_ClientObj_s
 
     /* remote_device command handler task stack buffer */
     uint8_t rdevCmdTaskStack[CPSWPROXY_RDEVCMD_TSK_STACKSIZE] __attribute__ ((aligned(32)));
-
-    /* Timestamp event notify service */
-    CpswProxy_notifyServiceObj notifyServiceObj;
 } CpswProxy_ClientObj;
 
 typedef struct CpswProxy_Obj_s
@@ -504,6 +501,9 @@ typedef struct CpswProxy_Obj_s
     uint32_t masterEndpt;
 
     SemaphoreP_Handle hRdevStartSem;
+
+    /* Timestamp event notify service */
+    CpswProxy_notifyServiceObj notifyServiceObj;
 } CpswProxy_Obj;
 
 /* ========================================================================== */
@@ -1011,7 +1011,7 @@ static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
 static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
 {
     int32_t ret = 0;
-    CpswProxy_Handle hProxy = (CpswProxy_Handle) a0;
+    CpswProxy_notifyServiceObj *notifyObj = (CpswProxy_notifyServiceObj *)a0;
     RPMessage_Params rpmsgPrm;
     uint32_t localEp;
     uint32_t remoteProcId, remoteEndPt;
@@ -1027,13 +1027,13 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
     /* Create RPMsg */
     RPMessageParams_init(&rpmsgPrm);
     rpmsgPrm.requestedEndpt = CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID;
-    rpmsgPrm.buf = hProxy->notifyServiceObj.rpmsgBuf;
-    rpmsgPrm.bufSize = sizeof(hProxy->notifyServiceObj.rpmsgBuf);
+    rpmsgPrm.buf = notifyObj->rpmsgBuf;
+    rpmsgPrm.bufSize = sizeof(notifyObj->rpmsgBuf);
     rpmsgPrm.numBufs = CPSW_REMOTE_NOTIFY_SERVICE_NUM_RPMSG_BUFS;
 
-    hProxy->notifyServiceObj.hNotifyServicRpMsgEp = RPMessage_create(&rpmsgPrm, &localEp);
+    notifyObj->hNotifyServicRpMsgEp = RPMessage_create(&rpmsgPrm, &localEp);
 
-    if (NULL == hProxy->notifyServiceObj.hNotifyServicRpMsgEp)
+    if (NULL == notifyObj->hNotifyServicRpMsgEp)
     {
         System_printf("Could not create communication channel\n");
         ret = ENET_EFAIL;
@@ -1047,7 +1047,7 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
         }
         else
         {
-            hProxy->notifyServiceObj.localEp = localEp;
+            notifyObj->localEp = localEp;
         }
     }
 
@@ -1064,7 +1064,7 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
 
     while (!exitTask)
     {
-        ret = RPMessage_recv(hProxy->notifyServiceObj.hNotifyServicRpMsgEp,
+        ret = RPMessage_recv(notifyObj->hNotifyServicRpMsgEp,
                             data,
                             &len,
                             &remoteEp,
@@ -1085,11 +1085,11 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
                     hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)data;
                     CpswProxy_assert(hwPushMsg->header.messageLen == sizeof(CpswRemoteNotifyService_HwPushMsg));
 
-                    if(hProxy->notifyServiceObj.cb.hwPushCb != NULL)
+                    if (notifyObj->cb.hwPushCb != NULL)
                     {
-                        hProxy->notifyServiceObj.cb.hwPushCb((CpswCpts_HwPush)hwPushMsg->hwPushNum,
-                                                             hwPushMsg->timeStamp,
-                                                             hProxy->notifyServiceObj.cb.hwPushCbArg);
+                        notifyObj->cb.hwPushCb((CpswCpts_HwPush)hwPushMsg->hwPushNum,
+                                               hwPushMsg->timeStamp,
+                                               notifyObj->cb.hwPushCbArg);
                     }
 
                     break;
@@ -1141,16 +1141,14 @@ static void CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
     CpswProxy_assert(hProxy->hRdevCmdTsk != NULL);
 }
 
-static void CpswProxy_createNotifyServiceTask(CpswProxy_Handle hProxy)
+static void CpswProxy_createNotifyServiceTask(void)
 {
-    CpswProxy_notifyServiceObj *notifyObj = &hProxy->notifyServiceObj;
+    CpswProxy_notifyServiceObj *notifyObj = &gCpswProxy.notifyServiceObj;
     TaskP_Params taskParams;
-
-    memset(notifyObj, 0, sizeof(*notifyObj));
 
     TaskP_Params_init(&taskParams);
     taskParams.priority  = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
-    taskParams.arg0      = (void*)hProxy;
+    taskParams.arg0      = (void *)notifyObj;
     taskParams.stack     = &notifyObj->taskStack[0];
     taskParams.stacksize = sizeof(notifyObj->taskStack);
 
@@ -1194,6 +1192,9 @@ void CpswProxy_init(uint32_t masterCoreId,
 
     /* Unblock client side's remote device that it can proceed */
     SemaphoreP_post(gCpswProxy.hRdevStartSem);
+
+    /* Create time sync notify task */
+    CpswProxy_createNotifyServiceTask();
 }
 
 void CpswProxy_deinit(void)
@@ -1246,7 +1247,6 @@ static void CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Conf
 #endif
 
     CpswProxy_createRDevCmdTask(hProxy);
-    CpswProxy_createNotifyServiceTask(hProxy);
 }
 
 static void CpswProxy_instanceDeinit(CpswProxy_Handle hProxy)
@@ -1830,18 +1830,18 @@ void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_NOTIFY, &msg);
 }
 
-int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
-                                         CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
+int32_t CpswProxy_registerHwPushNotifyCb(CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
                                          void *cbArg)
 {
+    CpswProxy_notifyServiceObj *notifyObj = &gCpswProxy.notifyServiceObj;
     int status = ENET_SOK;
 
-    if ((NULL != hProxy) && (NULL != cbFxn))
+    if (NULL != cbFxn)
     {
-        if (hProxy->notifyServiceObj.cb.hwPushCb == NULL)
+        if (notifyObj->cb.hwPushCb == NULL)
         {
-            hProxy->notifyServiceObj.cb.hwPushCb = cbFxn;
-            hProxy->notifyServiceObj.cb.hwPushCbArg = cbArg;
+            notifyObj->cb.hwPushCb = cbFxn;
+            notifyObj->cb.hwPushCbArg = cbArg;
         }
         else
         {
@@ -1856,19 +1856,10 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_Handle hProxy,
     return status;
 }
 
-int32_t CpswProxy_unregisterHwPushNotifyCb(CpswProxy_Handle hProxy)
+void CpswProxy_unregisterHwPushNotifyCb(void)
 {
-    int status = ENET_SOK;
+    CpswProxy_notifyServiceObj *notifyObj = &gCpswProxy.notifyServiceObj;
 
-    if (NULL != hProxy)
-    {
-        hProxy->notifyServiceObj.cb.hwPushCb = NULL;
-        hProxy->notifyServiceObj.cb.hwPushCbArg = NULL;
-    }
-    else
-    {
-        status = ENET_EBADARGS;
-    }
-
-    return status;
+    notifyObj->cb.hwPushCb = NULL;
+    notifyObj->cb.hwPushCbArg = NULL;
 }
