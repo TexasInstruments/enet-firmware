@@ -36,8 +36,8 @@ PROFILE?=release
 BUILD_QNX_A72?=no
 
 # Treat compiler warning as error
-# Supported Values: yes | no
-TREAT_WARNINGS_AS_ERROR ?= yes
+# Supported Values: 1 | 0
+TREAT_WARNINGS_AS_ERROR ?= 1
 
 # R5F Thumb mode
 BUILD_R5F_THUMB?=yes
