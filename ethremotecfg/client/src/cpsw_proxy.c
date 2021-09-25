@@ -1159,10 +1159,6 @@ static void CpswProxy_createNotifyServiceTask(void)
 void CpswProxy_init(uint32_t masterCoreId,
                     uint32_t masterEndpt)
 {
-    uint32_t remoteCoreId;
-    uint32_t remoteEndPt;
-    int32_t status;
-
     memset(&gCpswProxy, 0, sizeof(gCpswProxy));
 
     gCpswProxy.hMutex = MutexP_create(&gCpswProxy.mutexObj);
@@ -1173,34 +1169,43 @@ void CpswProxy_init(uint32_t masterCoreId,
     CpswProxy_remoteDeviceInit(masterCoreId, masterEndpt, gCpswProxy.hRdevStartSem);
     gCpswProxy.masterCoreId = masterCoreId;
     gCpswProxy.masterEndpt  = masterEndpt;
-
-    /* Wait for remote_device to be initialized on the server side */
-    do {
-        status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY,
-                                          ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE,
-                                          &remoteCoreId,
-                                          &remoteEndPt,
-                                          CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT);
-        if (status != IPC_SOK)
-        {
-            System_printf("Remote Device Framework Endpoint locate failed. Retrying !!!\n");
-        }
-    } while (status != IPC_SOK);
-
-    System_printf("Remote Device Framework Endpoint located. Remote Core Id:%u, Remote End Point:%u\n",
-                  remoteCoreId, remoteEndPt);
-
-    /* Unblock client side's remote device that it can proceed */
-    SemaphoreP_post(gCpswProxy.hRdevStartSem);
-
-    /* Create time sync notify task */
-    CpswProxy_createNotifyServiceTask();
 }
 
 void CpswProxy_deinit(void)
 {
     SemaphoreP_delete(gCpswProxy.hRdevStartSem);
     MutexP_delete(gCpswProxy.hMutex);
+}
+
+int32_t CpswProxy_connect(void)
+{
+    uint32_t remoteCoreId;
+    uint32_t remoteEndPt;
+    int32_t status;
+
+    /* Check if remote_device has been initialized on the server side */
+    status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY,
+                                      ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE,
+                                      &remoteCoreId,
+                                      &remoteEndPt,
+                                      CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT);
+    if (status != IPC_SOK)
+    {
+        System_printf("Remote Device Framework Endpoint locate failed. Retrying !!!\n");
+    }
+    else
+    {
+        System_printf("Remote Device Framework Endpoint located. Remote Core Id:%u, Remote End Point:%u\n",
+                      remoteCoreId, remoteEndPt);
+
+        /* Unblock client side's remote device that it can proceed */
+        SemaphoreP_post(gCpswProxy.hRdevStartSem);
+
+        /* Create time sync notify task */
+        CpswProxy_createNotifyServiceTask();
+    }
+
+    return status;
 }
 
 static CpswProxy_Handle CpswProxy_getHandle(void)

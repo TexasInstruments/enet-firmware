@@ -844,6 +844,14 @@ static void CpswRemoteApp_initTask(void* a0,
     CpswProxy_init(CPSW_REMOTE_APP_MASTER_CORE_ID,
                    CPSW_REMOTE_APP_MASTER_ENDPT);
 
+    /* Step 5a. Wait for remote_device to be initialized on the server side */
+    do
+    {
+        status = CpswProxy_connect();
+    }
+    while (status != IPC_SOK);
+
+    /* Step 5b. Open proxy clients for all virtual interfaces */
     for (i = 0U; i < ENET_ARRAYSIZE(gRemoteAppObj.virtNetif); i++)
     {
         CpswRemoteApp_openCpswProxy(&gRemoteAppObj.virtNetif[i]);

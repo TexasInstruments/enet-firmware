@@ -146,6 +146,19 @@ void CpswProxy_init(uint32_t masterCoreId,
 void CpswProxy_deinit(void);
 
 /*!
+ * \brief Connect to the Cpsw Proxy server
+ *
+ * Connect with the server side if it has been initialized. Client side then continues
+ * its initialization steps which are dependent on server.
+ *
+ * Application should call this function until connection is established before calling
+ * CpswProxy_open() or any other CpswProxy API.
+ *
+ * \return       IPC_SOK in case of success. Negative IPC error otherwise.
+ */
+int32_t CpswProxy_connect(void);
+
+/*!
  * \brief Open CPSW proxy client instance with the given configuration
  *
  * Application will get a handle to Cpsw Proxy which will be used in all CPSW
