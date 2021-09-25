@@ -327,6 +327,12 @@ typedef struct CpswRemoteApp_VirtNetif_s
      * app only supports it on one interface, should be set to CPSW_CPTS_HWPUSH_INVALID
      * on all other interfaces */
     CpswCpts_HwPush hwPushNum;
+
+    /* PHY link status */
+    bool isPhyLinked;
+
+    /* Reduces the effective number of remote calls to check if PHY link status */
+    uint32_t pollingIntvl;
 } CpswRemoteApp_VirtNetif;
 
 typedef struct CpswRemoteApp_Obj_s
@@ -410,6 +416,8 @@ CpswRemoteApp_Obj gRemoteAppObj =
 #if defined (FREERTOS)
             .isDfltNetif = true,
 #endif
+            .isPhyLinked = false,
+            .pollingIntvl= 0,
         },
 #if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2)
         {
@@ -421,6 +429,8 @@ CpswRemoteApp_Obj gRemoteAppObj =
 #if defined (FREERTOS)
             .isDfltNetif = false,
 #endif
+            .isPhyLinked = false,
+            .pollingIntvl= 0,
         },
 #endif
     },
@@ -1394,28 +1404,34 @@ static bool LwipifEnetAppCb_isPortLinked(struct netif *netif,
                                          Enet_Handle hEnet)
 {
     CpswRemoteApp_VirtNetif *virtNetif;
-    static bool isPhyLinked = false;
-    static uint32_t pollingInterVal = 0;
+    bool isLinked = false;
     uint32_t i;
 
     virtNetif = container_of(netif, CpswRemoteApp_VirtNetif, netif);
     localAssert(virtNetif->hCpswProxy != NULL);
 
-    if ((isPhyLinked == false) || ((pollingInterVal % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
+    if (!virtNetif->isPhyLinked ||
+        ((virtNetif->pollingIntvl % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
     {
         for (i = 0U; i < virtNetif->numMacPorts; i++)
         {
-            isPhyLinked = (isPhyLinked ||
-                           CpswProxy_isPhyLinked(virtNetif->hCpswProxy,
-                                                 hEnet,
-                                                 gRemoteAppObj.coreKey,
-                                                 virtNetif->macPorts[i]));
+            isLinked = (isLinked ||
+                        CpswProxy_isPhyLinked(virtNetif->hCpswProxy,
+                                              hEnet,
+                                              gRemoteAppObj.coreKey,
+                                              virtNetif->macPorts[i]));
+            if (isLinked)
+            {
+                break;
+            }
         }
+
+        virtNetif->isPhyLinked = isLinked;
     }
 
-    pollingInterVal = (pollingInterVal + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
+    virtNetif->pollingIntvl = (virtNetif->pollingIntvl + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
 
-    return isPhyLinked;
+    return virtNetif->isPhyLinked;
 }
 
 void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
@@ -1686,26 +1702,33 @@ static void CpswRemoteApp_closeNDKTxCh(CpswProxy_Handle hProxy,
 static bool NimuEnetAppCb_isPortLinked(Enet_Handle hEnet)
 {
     CpswRemoteApp_VirtNetif *virtNetif = &gRemoteAppObj.virtNetif[0];
-    static bool isPhyLinked = false;
-    static uint32_t pollingInterVal = 0;
+    bool isLinked = false;
     uint32_t i;
 
     localAssert(virtNetif->hCpswProxy != NULL);
 
-    if ((isPhyLinked == false) || ((pollingInterVal % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
+    if (!virtNetif->isPhyLinked ||
+        ((virtNetif->pollingIntvl % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL) == 0))
     {
-        for (i = 0; i < virtNetif->numMacPorts; i++)
+        for (i = 0U; i < virtNetif->numMacPorts; i++)
         {
-            isPhyLinked = (isPhyLinked ||
-                            CpswProxy_isPhyLinked(virtNetif->hCpswProxy,
-                                                  hEnet,
-                                                  gRemoteAppObj.coreKey,
-                                                  virtNetif->macPorts[i]));
+            isLinked = (isLinked ||
+                        CpswProxy_isPhyLinked(virtNetif->hCpswProxy,
+                                              hEnet,
+                                              gRemoteAppObj.coreKey,
+                                              virtNetif->macPorts[i]));
+            if (isLinked)
+            {
+                break;
+            }
         }
+
+        virtNetif->isPhyLinked = isLinked;
     }
 
-    pollingInterVal = (pollingInterVal + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
-    return isPhyLinked;
+    virtNetif->pollingIntvl = (virtNetif->pollingIntvl + 1) % CPSW_REMOTE_APP_PHY_POLLING_INTERVAL;
+
+    return virtNetif->isPhyLinked;
 }
 
 void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
