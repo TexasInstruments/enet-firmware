@@ -258,8 +258,8 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
 > @ref ethfw_depend_evm_gesi_j721e for MAC port numbers in J721E EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
-> **Note:** **PC 2** should be connected to MAC port 1 in J7200. Refer to
-> @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J721E EVM.
+> **Note:** **PC 2** should be connected to MAC port 3 in J7200. Refer to
+> @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J7200 EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
 PTP stack is required to run master clock and synchronize with the slave
@@ -356,8 +356,8 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 -# Connect the laptops/PCs as per demo connections diagram above.
    * **Important:** DHCP server (if required) must be connected to
-     **MAC Port 1**.
-   * **Note:** Do not connect any device to **MAC Port 0** if using J721E/J7200 EVM alpha
+     **MAC Port 2**.
+   * **Note:** Do not connect any device to **MAC Port 1** if using J721E/J7200 EVM alpha
      version as it may not be functional, please refer to the
      @ref ethfw_known_issues sections for further details
 
@@ -474,19 +474,19 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 -# For J721E EVM:
 
-    -# Connect **PC 1** to MAC port 4 of GESI board. Refer to the
+    -# Connect **PC 1** to MAC port 3 of GESI board. Refer to the
        [J721E EVM GESI Expansion Board](@ref ethfw_depend_evm_gesi_j721e)
        section to find the right RJ-45 connector.
 
-    -# Connect **PC 2** to MAC port 3 of GESI board.
+    -# Connect **PC 2** to MAC port 2 of GESI board.
 
 -# For J7200 EVM:
 
-    -# Connect **PC 1** to MAC port 2 of Quad Port Eth board. Refer to the
+    -# Connect **PC 1** to MAC port 3 of Quad Port Eth board. Refer to the
        [J7200 EVM QPENet Expansion Board](@ref ethfw_depend_evm_quadport_j7200)
        section to find the right RJ-45 connector.
 
-    -# Connect **PC 2** to MAC port 1 of QPENet board.
+    -# Connect **PC 2** to MAC port 2 of QPENet board.
 
 > **Note:** The demo application in this release assumes that external devices,
 > **PC 1** and **PC 2**, are connected prior to starting the demo.  It's a

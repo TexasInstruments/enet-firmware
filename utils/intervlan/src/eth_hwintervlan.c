@@ -96,8 +96,8 @@
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
-#define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_4)
-#define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_3)
+#define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_3)
+#define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_2)
 
 #define CPSW_TEST_INTERVLAN_INGRESS_VLANID              (100)
 #define CPSW_TEST_INTERVLAN_EGRESS_VLANID               (200)
