@@ -235,9 +235,13 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
 void EthHwInterVlan_setVlanConfig(EnetPort_VlanCfg *vlanCfg,
                                   uint32_t portNum)
 {
-    vlanCfg->portPri = ENET_MACPORT_NORM(portNum);
-    vlanCfg->portCfi = 0;
-    vlanCfg->portVID = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(portNum);
+    if ((portNum == CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM) ||
+        (portNum == CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM))
+    {
+        vlanCfg->portPri = ENET_MACPORT_NORM(portNum);
+        vlanCfg->portCfi = 0;
+        vlanCfg->portVID = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(portNum);
+    }
 }
 
 static uint32_t CpswAppInterVlan_getIngressVlanMembershipMask(EnetCfgServer_InterVlanConfig *pInterVlanCfg)

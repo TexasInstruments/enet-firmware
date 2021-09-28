@@ -710,6 +710,7 @@ static int32_t EthApp_initEthFw(void)
     /* Overwrite config params with those for hardware interVLAN */
     EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswCfg);
 
+    /* Set MAC port VLAN for ports used in HW interVLAN demo */
     for (i = 0U; i < ethFwCfg.numPorts; i++)
     {
         EthHwInterVlan_setVlanConfig(&ethFwCfg.ports[i].vlanCfg,
