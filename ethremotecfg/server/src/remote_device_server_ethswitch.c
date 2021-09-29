@@ -942,6 +942,62 @@ static int32_t rdevEthSwitchServerHandleSetPromiscMode(rdevEthSwitchServerInstan
     return ret;
 }
 
+static int32_t rdevEthSwitchServerHandleFilterAddMac(rdevEthSwitchServerInstanceState_t *inst,
+                                                     app_remote_device_channel_t *channel,
+                                                     uint32_t request_id,
+                                                     union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                     rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_filter_add_mac_response *resp;
+    struct rpmsg_kdrv_ethswitch_filter_add_mac_request *req = &reqMsg->filter_add_mac_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst, sizeof(*resp), request_id, &msg);
+    if (ret == 0)
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status = cb->filter_add_mac_handler(inst->inst_prm.virtPort,
+                                                       inst->inst_prm.host_id,
+                                                       req->info.id,
+                                                       req->info.core_key,
+                                                       req->mac_address,
+                                                       req->vlan_id,
+                                                       req->flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+
+    return ret;
+}
+
+static int32_t rdevEthSwitchServerHandleFilterDelMac(rdevEthSwitchServerInstanceState_t *inst,
+                                                     app_remote_device_channel_t *channel,
+                                                     uint32_t request_id,
+                                                     union rdevEthSwitchServerMessageList_u *reqMsg,
+                                                     rdevEthSwitchServerCbFxn_t *cb)
+{
+    int32_t ret = 0;
+    rdevEthSwitchServerMessage_t *msg;
+    struct rpmsg_kdrv_ethswitch_filter_del_mac_response *resp;
+    struct rpmsg_kdrv_ethswitch_filter_del_mac_request *req = &reqMsg->filter_del_mac_req;
+
+    ret = rdevEthSwitchServerAllocInitRespMsg(inst, sizeof(*resp), request_id, &msg);
+    if (ret == 0)
+    {
+        resp = rdevEthSwitchServerMsg2Resp(msg);
+        resp->info.status = cb->filter_del_mac_handler(inst->inst_prm.virtPort,
+                                                       inst->inst_prm.host_id,
+                                                       req->info.id,
+                                                       req->info.core_key,
+                                                       req->mac_address,
+                                                       req->vlan_id,
+                                                       req->flow_idx);
+        ret = rdevEthSwitchServerSendMsg(msg);
+    }
+
+    return ret;
+}
+
 typedef int32_t (*rdevEthSwitchServerHandleRequestFxn_t)(rdevEthSwitchServerInstanceState_t *inst,
                                                          app_remote_device_channel_t *channel,
                                                          uint32_t request_id,
@@ -978,6 +1034,8 @@ rdevEthSwitchServerHandleRequestFxn_t rdevEthSwitchServerRequestHandlers[] =
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_REGISTER_REMOTEIMER)] = &rdevEthSwitchServerHandleRegisterRemoteTimer,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_UNREGISTER_REMOTEIMER)] = &rdevEthSwitchServerHandleUnRegisterRemoteTimer,
     [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE)] = &rdevEthSwitchServerHandleSetPromiscMode,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_FILTER_ADD_MAC)] = &rdevEthSwitchServerHandleFilterAddMac,
+    [RPMSG_KDRV_TP_ETHSWITCH_REQUESTID_NORMALIZE(RPMSG_KDRV_TP_ETHSWITCH_FILTER_DEL_MAC)] = &rdevEthSwitchServerHandleFilterDelMac,
 };
 
 static int32_t rdevEthSwitchServerRequest(uint32_t device_id,

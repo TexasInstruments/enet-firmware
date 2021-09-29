@@ -1081,3 +1081,71 @@ int32_t rdevEthSwitchClient_setPromiscMode(uint32_t device_id,
 
     return ret;
 }
+
+int32_t rdevEthSwitchClient_filterAddMac(uint32_t device_id,
+                                         uint64_t id,
+                                         uint32_t core_key,
+                                         uint32_t flow_idx,
+                                         uint8_t *mac_address,
+                                         uint16_t vlan_id)
+{
+    rdevEthSwitchClientMessageList_t clientMsg;
+    struct rpmsg_kdrv_ethswitch_filter_add_mac_request *msg = &clientMsg.rdevEthSwitchMsg.filter_add_mac_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t filter_add_resp;
+
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_FILTER_ADD_MAC;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    msg->flow_idx = flow_idx;
+    msg->vlan_id = vlan_id;
+    memcpy(msg->mac_address, mac_address, sizeof(msg->mac_address));
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &filter_add_resp, sizeof(filter_add_resp), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(filter_add_resp.hdr) + sizeof(filter_add_resp.rdevEthSwitchMsg.filter_add_mac_res)));
+        if (filter_add_resp.rdevEthSwitchMsg.filter_add_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+
+    return ret;
+}
+
+int32_t rdevEthSwitchClient_filterDelMac(uint32_t device_id,
+                                         uint64_t id,
+                                         uint32_t core_key,
+                                         uint32_t flow_idx,
+                                         uint8_t *mac_address,
+                                         uint16_t vlan_id)
+{
+    rdevEthSwitchClientMessageList_t clientMsg;
+    struct rpmsg_kdrv_ethswitch_filter_del_mac_request *msg = &clientMsg.rdevEthSwitchMsg.filter_del_mac_req;
+    int32_t ret;
+    uint32_t respMsgSize;
+    rdevEthSwitchClientMessageList_t filter_del_resp;
+
+    ENET_UTILS_COMPILETIME_ASSERT(offsetof(rdevEthSwitchClientMessageList_t, hdr) == 0);
+    memset(&clientMsg, 0, sizeof(clientMsg));
+    msg->header.message_type = RPMSG_KDRV_TP_ETHSWITCH_FILTER_DEL_MAC;
+    msg->info.id = id;
+    msg->info.core_key = core_key;
+    msg->flow_idx = flow_idx;
+    msg->vlan_id = vlan_id;
+    memcpy(msg->mac_address, mac_address, sizeof(msg->mac_address));
+    ret = appRemoteDeviceServiceRequest(device_id, &clientMsg, sizeof(clientMsg), &filter_del_resp, sizeof(filter_del_resp), &respMsgSize);
+    if (ret == 0)
+    {
+        assert(respMsgSize == (sizeof(filter_del_resp.hdr) + sizeof(filter_del_resp.rdevEthSwitchMsg.filter_del_mac_res)));
+        if (filter_del_resp.rdevEthSwitchMsg.filter_del_mac_res.info.status != RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK)
+        {
+            ret = RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL;
+        }
+    }
+
+    return ret;
+}

@@ -593,6 +593,46 @@ typedef int32_t (*ethrdev_srv_cb_set_promisc_mode_handler_t)(EthRemoteCfg_VirtPo
                                                              uint32_t core_key,
                                                              uint32_t enable);
 
+/*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_FILTER_ADD_MAC
+ *  \param virtPort  Virtual port id.
+ *  \param host_id Remote Core Id
+ *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
+ *  \param core_key  Core key returned by attach / attach ext CMD
+ *  \param macAddress  Destination mac address to be added to the receive filter
+ *  \param vlan_id  VLAN Id
+ *  \param flow_idx  Rx Flow Index for which the multicast MAC association will be added
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
+typedef int32_t (*ethrdev_srv_cb_filter_add_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                           uint32_t host_id,
+                                                           uint64_t handle,
+                                                           uint32_t core_key,
+                                                           uint8_t *mac_address,
+                                                           uint16_t vlan_id,
+                                                           uint32_t flow_idx);
+
+/*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_FILTER_DEL_MAC
+ *  \param virtPort  Virtual port id.
+ *  \param host_id Remote Core Id
+ *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
+ *  \param core_key  Core key returned by attach / attach ext CMD
+ *  \param macAddress  Destination mac address to be deleted from the receive filter
+ *  \param vlan_id  VLAN Id
+ *  \param flow_idx  Rx Flow Index for which the multicast MAC association will be deleted
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
+typedef int32_t (*ethrdev_srv_cb_filter_del_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
+                                                           uint32_t host_id,
+                                                           uint64_t handle,
+                                                           uint32_t core_key,
+                                                           uint8_t *mac_address,
+                                                           uint16_t vlan_id,
+                                                           uint32_t flow_idx);
+
 /*  @} */
 
 /*! \brief Ethernet Switch Remote Device Server Callback function table 
@@ -658,6 +698,10 @@ typedef struct rdevEthSwitchServerCbFxn_s
     ethrdev_srv_cb_unregister_remotetimer_handler_t unregister_remotetimer_handler;
     /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE */
     ethrdev_srv_cb_set_promisc_mode_handler_t set_promisc_mode_handler;
+    /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_FILTER_ADD_MAC */
+    ethrdev_srv_cb_filter_add_mac_handler_t filter_add_mac_handler;
+    /*! Server Callback Handler for RPMSG_KDRV_TP_ETHSWITCH_FILTER_DEL_MAC */
+    ethrdev_srv_cb_filter_del_mac_handler_t filter_del_mac_handler;
 } rdevEthSwitchServerCbFxn_t;
 
 /*!
@@ -778,6 +822,14 @@ typedef union rdevEthSwitchServerMessageList_u
     struct rpmsg_kdrv_ethswitch_set_promisc_mode_request set_promisc_mode_req;
     /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE command. Sent from server to client */
     struct rpmsg_kdrv_ethswitch_set_promisc_mode_response set_promisc_mode_res;
+    /*! Request Message associated with RPMSG_KDRV_TP_ETHSWITCH_FILTER_ADD_MAC command. Sent from client to server  */
+    struct rpmsg_kdrv_ethswitch_filter_add_mac_request filter_add_mac_req;
+    /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_FILTER_ADD_MAC command. Sent from server to client */
+    struct rpmsg_kdrv_ethswitch_filter_add_mac_response filter_add_mac_res;
+    /*! Request Message associated with RPMSG_KDRV_TP_ETHSWITCH_FILTER_DEL_MAC command. Sent from client to server  */
+    struct rpmsg_kdrv_ethswitch_filter_del_mac_request filter_del_mac_req;
+    /*! Response Message associated with RPMSG_KDRV_TP_ETHSWITCH_FILTER_DEL_MAC command. Sent from server to client */
+    struct rpmsg_kdrv_ethswitch_filter_del_mac_response filter_del_mac_res;
 } __attribute__((packed)) rdevEthSwitchServerMessageList_t;
 
 /**

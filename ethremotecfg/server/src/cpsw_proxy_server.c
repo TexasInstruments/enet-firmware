@@ -1795,6 +1795,259 @@ static int32_t CpswProxyServer_setPromiscModeHandlerCb(EthRemoteCfg_VirtPort vir
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
+static int32_t CpswProxyServer_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
+                                                Enet_Handle hEnet,
+                                                uint32_t host_id,
+                                                uint8_t *mac_address,
+                                                uint16_t vlan_id,
+                                                uint32_t flow_idx_offset)
+{
+    CpswProxyServer_Obj *hProxyServer;
+    Enet_IoctlPrms prms;
+    CpswAle_GetMcastEntryInArgs lookupInArgs;
+    CpswAle_GetMcastEntryOutArgs lookupOutArgs;
+    CpswAle_SetMcastEntryInArgs mcastInArgs;
+    CpswAle_SetPolicerEntryInArgs polInArgs;
+    CpswAle_SetPolicerEntryOutArgs polOutArgs;
+    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
+    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
+    uint32_t entry;
+    int32_t status;
+
+    hProxyServer = CpswProxyServer_getHandle();
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+
+    /* Lookup for multicast address */
+    lookupInArgs.addr.vlanId = vlan_id;
+    EnetUtils_copyMacAddr(&lookupInArgs.addr.addr[0], mac_address);
+    lookupInArgs.numIgnBits = 0U;
+
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupInArgs, &lookupOutArgs);
+
+    status = Enet_ioctl(hEnet, host_id, CPSW_ALE_IOCTL_LOOKUP_MCAST, &prms);
+    if (status == ENET_SOK)
+    {
+        /* Multicast address already requested, with requestor having exclusive access.
+         * Reject new caller */
+        status = CPSWPROXYSERVER_EBUSY;
+    }
+    else if (status == ENET_ENOTFOUND)
+    {
+        /* No one has requested this multicas address, caller gets it */
+        status = CPSWPROXYSERVER_SOK;
+    }
+    else
+    {
+        appLogPrintf("Failed to lookup mcast entry: %d\n", status);
+    }
+
+    /* Add multicast entry */
+    if (status == CPSWPROXYSERVER_SOK)
+    {
+        mcastInArgs.addr.vlanId = vlan_id;
+        EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], mac_address);
+
+        mcastInArgs.info.super    = false;
+        mcastInArgs.info.fwdState = CPSW_ALE_FWDSTLVL_FWD;
+        mcastInArgs.info.portMask = CPSW_ALE_HOST_PORT_MASK;
+        mcastInArgs.info.numIgnBits = 0U;
+
+        if (isMacPort)
+        {
+            mcastInArgs.info.portMask |= CPSW_ALE_MACPORT_TO_PORTMASK(macPort);
+        }
+        else
+        {
+            mcastInArgs.info.portMask |= (hProxyServer->alePortMask &
+                                          ~hProxyServer->aleMacOnlyPortMask);
+        }
+
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &entry);
+
+        status = Enet_ioctl(hEnet, host_id, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed to add mcast entry: %d\n", status);
+        }
+    }
+
+    /* Setup classifier */
+    if (status == CPSWPROXYSERVER_SOK)
+    {
+        polInArgs.policerMatch.policerMatchEnMask = 0U;
+
+        /* Multicast MAC address as match criteria */
+        polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
+        polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
+        polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlan_id;
+        EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], mac_address);
+
+        /* Ingress port as match criteria to fully qualify the classifier for
+         * virtual MAC ports as directed packets will be used and could hit i2148 errata */
+        if (isMacPort)
+        {
+            polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_PORT;
+            polInArgs.policerMatch.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
+            polInArgs.policerMatch.portIsTrunk = false;
+        }
+
+        polInArgs.threadIdEn = true;
+        polInArgs.threadId   = flow_idx_offset;
+        polInArgs.peakRateInBitsPerSec   = 0U;
+        polInArgs.commitRateInBitsPerSec = 0U;
+
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
+
+        status = Enet_ioctl(hEnet, host_id, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed to setup ALE classifier: %d\n", status);
+        }
+    }
+
+    return status;
+}
+
+static int32_t CpswProxyServer_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
+                                                Enet_Handle hEnet,
+                                                uint32_t host_id,
+                                                uint8_t *mac_address,
+                                                uint16_t vlan_id)
+{
+    CpswProxyServer_Obj *hProxyServer;
+    Enet_IoctlPrms prms;
+    CpswAle_DelPolicerEntryInArgs polInArgs;
+    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
+    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
+    int32_t status;
+
+    hProxyServer = CpswProxyServer_getHandle();
+    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+
+    polInArgs.policerMatch.policerMatchEnMask = 0U;
+
+    /* Multicast MAC address as match criteria */
+    polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
+    polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
+    polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlan_id;
+    EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], mac_address);
+
+    /* Ingress port as match criteria to fully qualify the classifier for
+     * virtual MAC ports as directed packets will be used and could hit i2148 errata */
+    if (isMacPort)
+    {
+        polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_PORT;
+        polInArgs.policerMatch.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
+        polInArgs.policerMatch.portIsTrunk = false;
+    }
+
+    polInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ALL;
+
+    ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
+
+    status = Enet_ioctl(hEnet, host_id, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+    if (status != ENET_SOK)
+    {
+        appLogPrintf("Failed to delete ALE classifier: %d\n", status);
+    }
+
+    return status;
+}
+
+static int32_t CpswProxyServer_filterAddMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                     uint32_t host_id,
+                                                     uint64_t handle,
+                                                     uint32_t core_key,
+                                                     uint8_t *mac_address,
+                                                     uint16_t vlan_id,
+                                                     uint32_t flow_idx)
+{
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    uint32_t start_flow_idx, flow_idx_offset;
+    int32_t status = CPSWPROXYSERVER_SOK;
+
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, vlanId:%u, FlowIdx:%u, FlowIdOffset:%u\n",
+                 __func__,
+                 host_id,
+                 hEnet,
+                 core_key,
+                 mac_address[0],
+                 mac_address[1],
+                 mac_address[2],
+                 mac_address[3],
+                 mac_address[4],
+                 mac_address[5],
+                 vlan_id,
+                 flow_idx,
+                 flow_idx_offset);
+
+    if (!EnetUtils_isMcastAddr(mac_address))
+    {
+        appLogPrintf("Addr is not multicast, cannot add to filter\n");
+        status = CPSWPROXYSERVER_EINVALIDPARAMS;
+    }
+
+    if (status == CPSWPROXYSERVER_SOK)
+    {
+        status = CpswProxyServer_filterAddMacExcl(virtPort, hEnet, host_id, mac_address, vlan_id, flow_idx_offset);
+        if (status != CPSWPROXYSERVER_SOK)
+        {
+            appLogPrintf("Failed to add multicast (exclusive): %d\n", status);
+        }
+    }
+
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
+}
+
+static int32_t CpswProxyServer_filterDelMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
+                                                     uint32_t host_id,
+                                                     uint64_t handle,
+                                                     uint32_t core_key,
+                                                     uint8_t *mac_address,
+                                                     uint16_t vlan_id,
+                                                     uint32_t flow_idx)
+{
+    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
+    uint32_t start_flow_idx, flow_idx_offset;
+    int32_t status = CPSWPROXYSERVER_SOK;
+
+    CpswProxyServer_validateHandle(hEnet);
+    EnetAppUtils_absFlowIdx2FlowIdxOffset(hEnet, host_id, flow_idx, &start_flow_idx, &flow_idx_offset);
+    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, MacAddress:%x:%x:%x:%x:%x:%x, vlanId:%u, FlowIdx:%u, FlowIdOffset:%u\n",
+                 __func__,
+                 host_id,
+                 hEnet,
+                 core_key,
+                 mac_address[0],
+                 mac_address[1],
+                 mac_address[2],
+                 mac_address[3],
+                 mac_address[4],
+                 mac_address[5],
+                 vlan_id,
+                 flow_idx,
+                 flow_idx_offset);
+
+    if (!EnetUtils_isMcastAddr(mac_address))
+    {
+        appLogPrintf("Addr is not multicast, cannot delete from filter\n");
+        status = CPSWPROXYSERVER_EINVALIDPARAMS;
+    }
+
+    if (status == CPSWPROXYSERVER_SOK)
+    {
+        status = CpswProxyServer_filterDelMacExcl(virtPort, hEnet, host_id, mac_address, vlan_id);
+        if (status != CPSWPROXYSERVER_SOK)
+        {
+            appLogPrintf("Failed to add multicast (exclusive): %d\n", status);
+        }
+    }
+
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
+}
+
 static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *virtPortCfg,
                                             rdevEthSwitchServerInstPrm_t *prm)
 {
@@ -1857,6 +2110,8 @@ static rdevEthSwitchServerCbFxn_t CpswProxyRdevEthSwitchServerCbFxnTbl =
     .register_remotetimer_handler   = CpswProxyServer_registerRemoteTimerHandlerCb,
     .unregister_remotetimer_handler = CpswProxyServer_unregisterRemoteTimerHandlerCb,
     .set_promisc_mode_handler       = CpswProxyServer_setPromiscModeHandlerCb,
+    .filter_add_mac_handler         = CpswProxyServer_filterAddMacHandlerCb,
+    .filter_del_mac_handler         = CpswProxyServer_filterDelMacHandlerCb,
 };
 
 void CpswProxyServer_getMacPortMask(CpswProxyServer_Obj *hProxyServer,
@@ -2594,6 +2849,80 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
                                                 hProxyServer->ethDrvObj.localEp,
                                                 &setPromiscModeRes,
                                                 sizeof(setPromiscModeRes));
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
+
+                        break;
+                    }
+                    case ETH_RPC_CMD_TYPE_FILTER_ADD_MAC_REQ:
+                    {
+                        Eth_RpcFilterAddMacRequest *filterAddMacReq = (Eth_RpcFilterAddMacRequest *)msgBuffer;
+                        Eth_RpcFilterAddMacResponse filterAddMacRes;
+
+                        EnetAppUtils_assert((filterAddMacReq->header.messageId == ETH_RPC_CMD_TYPE_FILTER_ADD_MAC_REQ) &&
+                                            (filterAddMacReq->header.messageLen == sizeof(*filterAddMacReq)));
+
+                        status =  CpswProxyServer_filterAddMacHandlerCb(virtPort,
+                                                                        remoteProcId,
+                                                                        filterAddMacReq->info.id,
+                                                                        filterAddMacReq->info.coreKey,
+                                                                        filterAddMacReq->macAddress,
+                                                                        filterAddMacReq->vlanId,
+                                                                        filterAddMacReq->flowIdx);
+                        if (CPSWPROXYSERVER_SOK == status)
+                        {
+                            filterAddMacRes.info.status =  ETH_RPC_CMDSTATUS_OK;
+                        }
+                        else
+                        {
+                            filterAddMacRes.info.status =  ETH_RPC_CMDSTATUS_EFAIL;
+                        }
+
+                        filterAddMacRes.header.messageId = ETH_RPC_CMD_TYPE_FILTER_ADD_MAC_RES;
+                        filterAddMacRes.header.messageLen = sizeof(filterAddMacRes);
+
+                        rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
+                                                remoteProcId,
+                                                remoteEndPt,
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &filterAddMacRes,
+                                                sizeof(filterAddMacRes));
+                        EnetAppUtils_assert(IPC_SOK == rtnVal);
+
+                        break;
+                    }
+                    case ETH_RPC_CMD_TYPE_FILTER_DEL_MAC_REQ:
+                    {
+                        Eth_RpcFilterDelMacRequest *filterDelMacReq = (Eth_RpcFilterDelMacRequest *)msgBuffer;
+                        Eth_RpcFilterDelMacResponse filterDelMacRes;
+
+                        EnetAppUtils_assert((filterDelMacReq->header.messageId == ETH_RPC_CMD_TYPE_FILTER_DEL_MAC_REQ) &&
+                                            (filterDelMacReq->header.messageLen == sizeof(*filterDelMacReq)));
+
+                        status =  CpswProxyServer_filterDelMacHandlerCb(virtPort,
+                                                                        remoteProcId,
+                                                                        filterDelMacReq->info.id,
+                                                                        filterDelMacReq->info.coreKey,
+                                                                        filterDelMacReq->macAddress,
+                                                                        filterDelMacReq->vlanId,
+                                                                        filterDelMacReq->flowIdx);
+                        if (CPSWPROXYSERVER_SOK == status)
+                        {
+                            filterDelMacRes.info.status =  ETH_RPC_CMDSTATUS_OK;
+                        }
+                        else
+                        {
+                            filterDelMacRes.info.status =  ETH_RPC_CMDSTATUS_EFAIL;
+                        }
+
+                        filterDelMacRes.header.messageId = ETH_RPC_CMD_TYPE_FILTER_DEL_MAC_RES;
+                        filterDelMacRes.header.messageLen = sizeof(filterDelMacRes);
+
+                        rtnVal = RPMessage_send(hProxyServer->ethDrvObj.hAutosarEthRpMsgEp,
+                                                remoteProcId,
+                                                remoteEndPt,
+                                                hProxyServer->ethDrvObj.localEp,
+                                                &filterDelMacRes,
+                                                sizeof(filterDelMacRes));
                         EnetAppUtils_assert(IPC_SOK == rtnVal);
 
                         break;

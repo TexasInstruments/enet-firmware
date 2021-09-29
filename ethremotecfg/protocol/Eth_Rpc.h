@@ -106,7 +106,11 @@ typedef enum
     ETH_RPC_CMD_TYPE_S2C_NOTIFY                     = 0x14,
     ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_REQ           = 0x15,
     ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_RES           = 0x16,
-    ETH_RPC_CMD_TYPE_LAST                           = ETH_RPC_CMD_TYPE_SET_PROMISC_MODE_RES,
+    ETH_RPC_CMD_TYPE_FILTER_ADD_MAC_REQ             = 0x17,
+    ETH_RPC_CMD_TYPE_FILTER_ADD_MAC_RES             = 0x18,
+    ETH_RPC_CMD_TYPE_FILTER_DEL_MAC_REQ             = 0x19,
+    ETH_RPC_CMD_TYPE_FILTER_DEL_MAC_RES             = 0x1A,
+    ETH_RPC_CMD_TYPE_LAST                           = ETH_RPC_CMD_TYPE_FILTER_DEL_MAC_RES,
 } Eth_RpcCmdType;
 
 #define ETH_RPC_CMD_TYPE_COUNT                    (ETH_RPC_CMD_TYPE_LAST + 1)
@@ -647,5 +651,61 @@ typedef struct Eth_RpcSetPromiscModeResponse_s
     /*! common response info */
     Eth_RpcCommonResponseInfo info;
 } Eth_RpcSetPromiscModeResponse;
+
+/*!
+ * \brief Add multicast MAC address to receive filter CMD request params
+ */
+typedef struct Eth_RpcFilterAddMacRequest_s
+{
+    /*! Common CMD header */
+    Eth_RpcMessageHeader header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    Eth_RpcCommonRequestInfo info;
+    /*! Multicast MAC address to be added */
+    uint8_t macAddress[ETH_RPC_MACADDRLEN];
+    /*! VLAN id */
+    uint16_t vlanId;
+    /*! RX flow index from which the mac_address association will be added */
+    uint32_t flowIdx;
+} Eth_RpcFilterAddMacRequest;
+
+/*!
+ * \brief Add multicast MAC address to receive filter CMD response params
+ */
+typedef struct Eth_RpcFilterAddMacResponse_s
+{
+    /*! Common message header */
+    Eth_RpcMessageHeader header;
+    /*! Common response info */
+    Eth_RpcCommonResponseInfo info;
+} Eth_RpcFilterAddMacResponse;
+
+/*!
+ * \brief Delete multicast MAC address from receive filter CMD request params
+ */
+typedef struct Eth_RpcFilterDelMacRequest_s
+{
+    /*! Common CMD header */
+    Eth_RpcMessageHeader header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    Eth_RpcCommonRequestInfo info;
+    /*! Multicast MAC address to be deleted */
+    uint8_t macAddress[ETH_RPC_MACADDRLEN];
+    /*! VLAN id */
+    uint16_t vlanId;
+    /*! RX flow index from which the mac_address association will be deleted */
+    uint32_t flowIdx;
+} Eth_RpcFilterDelMacRequest;
+
+/*!
+ * \brief Delete multicast MAC address from receive filter CMD response params
+ */
+typedef struct Eth_RpcFilterDelMacResponse_s
+{
+    /*! Common message header */
+    Eth_RpcMessageHeader header;
+    /*! Common response info */
+    Eth_RpcCommonResponseInfo info;
+} Eth_RpcFilterDelMacResponse;
 
 #endif

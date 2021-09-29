@@ -734,6 +734,78 @@ void CpswProxy_delAddrEntry(CpswProxy_Handle hProxy,
                             uint32_t coreKey,
                             const uint8_t *macAddr);
 
+/*!
+ * \brief Add multicast address to receive filter.
+ *
+ * This function adds a multicast address to the receive filter.  Ethernet Firmware
+ * differentiates multicast addresses as shared or exclusive.
+ *
+ * - Exclusive multicast address - Use is allowed only on a single remote client,
+ *   the first one to request it.  Traffic received with exclusive address is
+ *   routed to the remote client in hardware to the given RX flow index.
+ * - Shared multicast address - Traffic received with shared address is fanned out
+ *   to all remote clients that request it via virtual intercore interface. RX
+ *   flow index is not relevant in this case.
+ *
+ * Note: The API will send the RPC msg, block for response and if the response
+ * status is not success will abort execution.
+ * The API will be modified to return error status to allow the application to
+ * handle the error in next version.
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param coreKey   Unique core_key returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param rxFlowStartIdx   Rx Flow Index Base value.
+ *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
+ * \param rxFlowOffsetIdx  Default Flow Id from to which the default flow will
+ *                         no longer be directed
+ * \param macAddress Multicast MAC address to be added to receive filter
+ * \param vlanId     VLAN id
+ *
+ * \return Refer to \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
+                               Enet_Handle hEnet,
+                               uint32_t coreKey,
+                               uint32_t rxFlowStartIdx,
+                               uint32_t rxFlowOffsetIdx,
+                               const uint8_t *macAddress,
+                               uint16_t vlanId);
+
+/*!
+ * \brief Delete multicast address from receive filter.
+ *
+ * This function deletes a multicast address to the receive filter which was
+ * previous added via CpswProxy_addFilterAdddr().
+ *
+ * Note: The API will send the RPC msg, block for response and if the response
+ * status is not success will abort execution.
+ * The API will be modified to return error status to allow the application to
+ * handle the error in next version.
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param coreKey   Unique core_key returned by CpswProxy_attach() or
+ *                  CpswProxy_attachExtended()
+ * \param rxFlowStartIdx   Rx Flow Index Base value.
+ *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
+ * \param rxFlowOffsetIdx  Default Flow Id from to which the default flow will
+ *                         no longer be directed
+ * \param macAddress Multicast MAC address to be deleted from receive filter
+ * \param vlanId     VLAN id
+ *
+ * \return Refer to \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
+                               Enet_Handle hEnet,
+                               uint32_t coreKey,
+                               uint32_t rxFlowStartIdx,
+                               uint32_t rxFlowOffsetIdx,
+                               const uint8_t *macAddress,
+                               uint16_t vlanId);
 
 /*!
  * \brief Invoke Cpsw IOCTL

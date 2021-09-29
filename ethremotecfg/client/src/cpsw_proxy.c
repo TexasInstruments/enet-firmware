@@ -143,6 +143,8 @@ typedef enum CpswProxy_RdevCmd_tag
     CPSWPROXY_RDEVCMD_REGREMOTETIMER,
     CPSWPROXY_RDEVCMD_UNREGREMOTETIMER,
     CPSWPROXY_RDEVCMD_SETPROMISCMODE,
+    CPSWPROXY_RDEVCMD_FILTERADDMAC,
+    CPSWPROXY_RDEVCMD_FILTERDELMAC,
     CPSWPROXY_RDEVCMD_NOTIFY,
     CPSWPROXY_RDEVCMD_PING,
     CPSWPROXY_RDEVCMD_EXIT,
@@ -378,6 +380,24 @@ typedef struct CpswProxy_rdevCmdSetPromiscMode_s
     uint32_t enable;
 } CpswProxy_rdevCmdSetPromiscMode_t;
 
+typedef struct CpswProxy_rdevCmdFilterAddMacReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_flow_allocidx;
+    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    uint16_t vlan_id;
+} CpswProxy_rdevCmdFilterAddMacReq_t;
+
+typedef struct CpswProxy_rdevCmdFilterDelMacReq_s
+{
+    uint64_t id;
+    uint32_t core_key;
+    uint32_t rx_flow_allocidx;
+    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    uint16_t vlan_id;
+} CpswProxy_rdevCmdFilterDelMacReq_t;
+
 typedef struct CpswProxy_rdevCmdNotifyReq_s
 {
     uint64_t id;
@@ -418,6 +438,8 @@ typedef struct CpswProxy_rdevCmdReqMsg_s
         CpswProxy_rdevCmdRegRemoteTimerReq_t regremotetimer;
         CpswProxy_rdevCmdUnRegRemoteTimerReq_t unregremotetimer;
         CpswProxy_rdevCmdSetPromiscMode_t setpromiscmode;
+        CpswProxy_rdevCmdFilterAddMacReq_t filteraddmac;
+        CpswProxy_rdevCmdFilterDelMacReq_t filterdelmac;
         CpswProxy_rdevCmdNotifyReq_t notify;
         rdecEthSwitchAppPingReq_t ping;
     } u;
@@ -912,6 +934,26 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                                                                     msg.req.u.setpromiscmode.id,
                                                                     msg.req.u.setpromiscmode.core_key,
                                                                     msg.req.u.setpromiscmode.enable);
+                break;
+            }
+            case CPSWPROXY_RDEVCMD_FILTERADDMAC:
+            {
+                msg.res.retVal = rdevEthSwitchClient_filterAddMac(deviceId,
+                                                                  msg.req.u.filteraddmac.id,
+                                                                  msg.req.u.filteraddmac.core_key,
+                                                                  msg.req.u.filteraddmac.rx_flow_allocidx,
+                                                                  msg.req.u.filteraddmac.mac_address,
+                                                                  msg.req.u.filteraddmac.vlan_id);
+                break;
+            }
+            case CPSWPROXY_RDEVCMD_FILTERDELMAC:
+            {
+                msg.res.retVal = rdevEthSwitchClient_filterDelMac(deviceId,
+                                                                   msg.req.u.filterdelmac.id,
+                                                                   msg.req.u.filterdelmac.core_key,
+                                                                   msg.req.u.filterdelmac.rx_flow_allocidx,
+                                                                   msg.req.u.filterdelmac.mac_address,
+                                                                   msg.req.u.filterdelmac.vlan_id);
                 break;
             }
             case CPSWPROXY_RDEVCMD_NOTIFY:
@@ -1818,6 +1860,66 @@ void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
     msg.req.u.setpromiscmode.core_key = coreKey;
     msg.req.u.setpromiscmode.enable = enable ? 1U : 0U;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_SETPROMISCMODE, &msg);
+}
+
+int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
+                               Enet_Handle hEnet,
+                               uint32_t coreKey,
+                               uint32_t rxFlowStartIdx,
+                               uint32_t freeRxFlowIdx,
+                               const uint8_t *macAddress,
+                               uint16_t vlanId)
+{
+    CpswProxy_rdevCmd_t msg;
+    int32_t status = CPSWPROXY_SOK;
+
+    if (!EnetUtils_isMcastAddr(macAddress))
+    {
+        System_printf("%s: MAC addr is not multicast\n", __func__);
+        status = CPSWPROXY_EINVALIDPARAMS;
+    }
+
+    if (status == CPSWPROXY_SOK)
+    {
+        msg.req.u.filteraddmac.id = (uint64_t)hEnet;
+        msg.req.u.filteraddmac.core_key = coreKey;
+        msg.req.u.filteraddmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
+        msg.req.u.filteraddmac.vlan_id = vlanId;
+        memcpy(msg.req.u.filteraddmac.mac_address, macAddress, sizeof(msg.req.u.filteraddmac.mac_address));
+        CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FILTERADDMAC, &msg);
+    }
+
+    return status;
+}
+
+int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
+                               Enet_Handle hEnet,
+                               uint32_t coreKey,
+                               uint32_t rxFlowStartIdx,
+                               uint32_t freeRxFlowIdx,
+                               const uint8_t *macAddress,
+                               uint16_t vlanId)
+{
+    CpswProxy_rdevCmd_t msg;
+    int32_t status = CPSWPROXY_SOK;
+
+    if (!EnetUtils_isMcastAddr(macAddress))
+    {
+        System_printf("%s: MAC addr is not multicast\n", __func__);
+        status = CPSWPROXY_EINVALIDPARAMS;
+    }
+
+    if (status == CPSWPROXY_SOK)
+    {
+        msg.req.u.filterdelmac.id = (uint64_t)hEnet;
+        msg.req.u.filterdelmac.core_key = coreKey;
+        msg.req.u.filterdelmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
+        msg.req.u.filterdelmac.vlan_id = vlanId;
+        memcpy(msg.req.u.filterdelmac.mac_address, macAddress, sizeof(msg.req.u.filterdelmac.mac_address));
+        CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FILTERDELMAC, &msg);
+    }
+
+    return status;
 }
 
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,

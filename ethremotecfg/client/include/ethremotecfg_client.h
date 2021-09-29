@@ -666,6 +666,57 @@ int32_t rdevEthSwitchClient_setPromiscMode(uint32_t device_id,
                                            uint32_t core_key,
                                            uint32_t enable);
 
+/*!
+ * \brief Add multicast address to receive filter.
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach
+ *                  or rdevEthSwitchClient_attachext
+ * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach or
+ *                  rdevEthSwitchClient_attachext
+ * \param flow_idx  Flow Id to which the traffic with the given MAC address will
+ *                  be directed.  Applicable only for multicast addresses with
+ *                  exclusive access
+ * \param mac_address Multicast MAC address to be added
+ * \param vlan_id   VLAN id
+ *
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
+ */
+int32_t rdevEthSwitchClient_filterAddMac(uint32_t device_id,
+                                         uint64_t id,
+                                         uint32_t core_key,
+                                         uint32_t flow_idx,
+                                         uint8_t *mac_address,
+                                         uint16_t vlan_id);
+
+/*!
+ * \brief Delete multicast address from receive filter.
+ *
+ * \param device_id Device id returned by rdevEthSwitchClient_connect
+ * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach
+ *                  or rdevEthSwitchClient_attachext
+ * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach or
+ *                  rdevEthSwitchClient_attachext
+ * \param flow_idx  Flow Id to which the traffic with the given MAC address will
+ *                  no longer be directed.  Applicable only for multicast addresses
+ *                  with exclusive access
+ * \param mac_address Multicast MAC address to be deleted
+ * \param vlan_id   VLAN id
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
+ */
+int32_t rdevEthSwitchClient_filterDelMac(uint32_t device_id,
+                                         uint64_t id,
+                                         uint32_t core_key,
+                                         uint32_t flow_idx,
+                                         uint8_t *mac_address,
+                                         uint16_t vlan_id);
+
 /* @} */
 
 #endif

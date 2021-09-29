@@ -457,9 +457,31 @@ enum rpmsg_kdrv_ethswitch_message_type
     RPMSG_KDRV_TP_ETHSWITCH_SET_PROMISC_MODE            = 0x1B,
 
     /*!
+     * \brief CMD to add multicast MAC address to receive filter
+     *
+     *  Commands allows remote core client to add a multicast address to receive filter
+     *
+     *  Command parameters:
+     *   Request Message (Sent from client to server): struct rpmsg_kdrv_ethswitch_filter_add_mac_request
+     *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_filter_add_mac_response
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_FILTER_ADD_MAC              = 0x1C,
+
+    /*!
+     * \brief CMD to delete multicast MAC address to receive filter
+     *
+     *  Commands allows remote core client to delete a multicast address from receive filter
+     *
+     *  Command parameters:
+     *   Request Message (Sent from client to server): struct rpmsg_kdrv_ethswitch_filter_del_mac_request
+     *   Response Message (Sent from server to client): struct rpmsg_kdrv_ethswitch_filter_del_mac_response
+     */
+    RPMSG_KDRV_TP_ETHSWITCH_FILTER_DEL_MAC              = 0x1D,
+
+    /*!
      * \brief Max value of Ethernet Switch Remote Device. For internal use only
      */
-    RPMSG_KDRV_TP_ETHSWITCH_MAX                         = 0x1C,
+    RPMSG_KDRV_TP_ETHSWITCH_MAX                         = 0x1E,
 };
 
 /*!
@@ -1210,6 +1232,58 @@ struct rpmsg_kdrv_ethswitch_set_promisc_mode_request
  * \brief Set promiscuous mode CMD response params
  */
 struct rpmsg_kdrv_ethswitch_set_promisc_mode_response
+{
+    /*! common response info */
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+} __attribute__((packed));
+
+/*!
+ * \brief Add multicast MAC address to receive filter CMD request params
+ */
+struct rpmsg_kdrv_ethswitch_filter_add_mac_request
+{
+    /*! Common CMD header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Multicast MAC address to be added to receive filter */
+    u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /* VLAN id */
+    u16 vlan_id;
+    /*! Flow's index associated with the MAC address to be registered in ALE */
+    u32 flow_idx;
+} __attribute__((packed));
+
+/*!
+ * \brief Add multicast MAC address to receive filter CMD response params
+ */
+struct rpmsg_kdrv_ethswitch_filter_add_mac_response
+{
+    /*! common response info */
+    struct rpmsg_kdrv_ethswitch_common_response_info info;
+} __attribute__((packed));
+
+/*!
+ * \brief Delete multicast MAC address from receive filter CMD request params
+ */
+struct rpmsg_kdrv_ethswitch_filter_del_mac_request
+{
+    /*! Common CMD header */
+    struct rpmsg_kdrv_ethswitch_message_header header;
+    /*! Common info associated with all CMDs other than ATTACH */
+    struct rpmsg_kdrv_ethswitch_common_request_info info;
+    /*! Multicast MAC address to be deleted from receive filter */
+    u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
+    /* VLAN id */
+    u16 vlan_id;
+    /*! Flow's index associated with the MAC address to be unregistered in ALE */
+    u32 flow_idx;
+} __attribute__((packed));
+
+/*!
+ * \brief Delete multicast MAC address from receive filter CMD response params
+ */
+struct rpmsg_kdrv_ethswitch_filter_del_mac_response
 {
     /*! common response info */
     struct rpmsg_kdrv_ethswitch_common_response_info info;
