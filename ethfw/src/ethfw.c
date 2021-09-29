@@ -800,6 +800,13 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.notifyCb = &EthFw_handleProfileInfoNotify;
     cfg.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
 
+    /* Enable MAC ports */
+    cfg.numMacPorts = gEthFwObj.numPorts;
+    for (i = 0U; i < cfg.numMacPorts; i++)
+    {
+        cfg.macPort[i] = gEthFwObj.ports[i].portNum;
+    }
+
     /* Remote cores which use remote_device framework */
     cfg.numVirtPorts = gEthFwObj.numVirtPorts;
     for (i = 0U; i < cfg.numVirtPorts; i++)

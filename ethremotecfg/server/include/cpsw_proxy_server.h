@@ -94,6 +94,9 @@ extern "C" {
  * @{
  */
 
+/*! Maximum number of MAC ports */
+#define CPSWPROXYSERVER_MAC_PORT_MAX                  (8U)
+
 /*!
  * \brief Application callback function pointer to initialize Ethernet Firmware data
  *
@@ -201,6 +204,12 @@ typedef struct CpswProxyServer_Config_s
 
     /*! Number of remote virtual ports that remotes cores can attach to */
     uint32_t numVirtPorts;
+
+    /*! Enabled MAC ports */
+    Enet_MacPort macPort[CPSWPROXYSERVER_MAC_PORT_MAX];
+
+    /*! Number of MAC ports being enabled */
+    uint32_t numMacPorts;
 } CpswProxyServer_Config_t;
 
 /*!

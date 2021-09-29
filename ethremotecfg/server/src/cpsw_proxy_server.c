@@ -185,6 +185,8 @@ typedef struct CpswProxyServer_Obj_s
     SemaphoreP_Handle                     rdevStartSem;
     CpswProxyServer_EthDriverObj          ethDrvObj;
     CpswProxyServer_NotifyServiceObj      notifyServiceObj;
+    uint32_t alePortMask;
+    uint32_t aleMacOnlyPortMask;
 } CpswProxyServer_Obj;
 
 /* ========================================================================== */
@@ -1861,6 +1863,36 @@ static rdevEthSwitchServerCbFxn_t CpswProxyRdevEthSwitchServerCbFxnTbl =
     .set_promisc_mode_handler       = CpswProxyServer_setPromiscModeHandlerCb,
 };
 
+void CpswProxyServer_getMacPortMask(CpswProxyServer_Obj *hProxyServer,
+                                    const CpswProxyServer_Config_t *cfg)
+{
+    EthRemoteCfg_VirtPort virtPort;
+    Enet_MacPort macPort;
+    uint32_t i;
+
+    hProxyServer->alePortMask = 0U;
+    hProxyServer->aleMacOnlyPortMask = 0U;
+
+    for (i = 0U; i < cfg->numMacPorts; i++)
+    {
+        macPort = cfg->macPort[i];
+        hProxyServer->alePortMask |= CPSW_ALE_MACPORT_TO_PORTMASK(macPort);
+    }
+
+    for (i = 0U; i < cfg->numVirtPorts; i++)
+    {
+        virtPort = cfg->virtPortCfg[i].portId;
+
+        if (EthRemoteCfg_isMacPort(virtPort))
+        {
+            macPort = EthRemoteCfg_getMacPort(virtPort);
+            hProxyServer->aleMacOnlyPortMask |= CPSW_ALE_MACPORT_TO_PORTMASK(macPort);
+        }
+    }
+
+    /* TODO - Check for AUTOSAR virtual port configuration.
+     * Currently, it's virtual switch port */
+}
 
 int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 {
@@ -1870,59 +1902,72 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     rdevEthSwitchServerInitPrm_t remote_ethswitch_init_prm;
     rdevEthSwitchServerInstPrm_t *inst;
     int32_t i;
-    int32_t status;
+    int32_t status = ENET_SOK;
 
     hProxyServer = CpswProxyServer_getHandle();
-
     EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == false));
-    SemaphoreP_Params_init(&sem_params);
-    sem_params.mode = SemaphoreP_Mode_BINARY;
-    hProxyServer->rdevStartSem = SemaphoreP_create(0, &sem_params);
-    EnetAppUtils_assert(hProxyServer->rdevStartSem != NULL);
 
+    CpswProxyServer_getMacPortMask(hProxyServer, cfg);
 
-    hProxyServer->getMcmCmdIfCb = cfg->getMcmCmdIfCb;
-    hProxyServer->initEthfwDeviceDataCb = cfg->initEthfwDeviceDataCb;
-    hProxyServer->notifyCb = cfg->notifyCb;
-    hProxyServer->handleTbl.numEntries = 0;
-    appRemoteDeviceInitParamsInit(&remote_dev_init_prm);
-
-    remote_dev_init_prm.rpmsg_buf_size = CPSWPROXY_RDEV_MSGSIZE;
-    remote_dev_init_prm.remote_device_endpt = cfg->rpmsgEndPointId;
-    remote_dev_init_prm.wait_sem = hProxyServer->rdevStartSem;
-
-    status = appRemoteDeviceInit(&remote_dev_init_prm);
-
-    EnetAppUtils_assert(status == 0);
-
-    rdevEthSwitchServerInitPrmSetDefault(&remote_ethswitch_init_prm);
-
-    remote_ethswitch_init_prm.rpmsg_buf_size = CPSWPROXY_RDEV_MSGSIZE;
-    remote_ethswitch_init_prm.num_instances = cfg->numVirtPorts;
-    remote_ethswitch_init_prm.cb = CpswProxyRdevEthSwitchServerCbFxnTbl;
-
-    EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(remote_ethswitch_init_prm.inst_prm));
-    EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(cfg->virtPortCfg));
-
-    for (i = 0U; i < cfg->numVirtPorts; i++)
+    if ((hProxyServer->aleMacOnlyPortMask & hProxyServer->alePortMask) !=
+        hProxyServer->aleMacOnlyPortMask)
     {
-        inst = &remote_ethswitch_init_prm.inst_prm[i];
-
-        CpswProxyServer_setRemoteParams(&cfg->virtPortCfg[i], inst);
+        appLogPrintf("CpswProxyServer: MAC ports required for virtual MAC ports are not enabled\r\n");
+        status = ENET_EINVALIDPARAMS;
     }
 
-    status = rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
-    EnetAppUtils_assert(status == 0);
+    if (status == ENET_SOK)
+    {
+        SemaphoreP_Params_init(&sem_params);
+        sem_params.mode = SemaphoreP_Mode_BINARY;
+        hProxyServer->rdevStartSem = SemaphoreP_create(0, &sem_params);
+        EnetAppUtils_assert(hProxyServer->rdevStartSem != NULL);
 
-    status = CpswProxyServer_initAutosarEthDeviceEp(hProxyServer, cfg);
-    EnetAppUtils_assert(status == 0);
+        hProxyServer->getMcmCmdIfCb = cfg->getMcmCmdIfCb;
+        hProxyServer->initEthfwDeviceDataCb = cfg->initEthfwDeviceDataCb;
+        hProxyServer->notifyCb = cfg->notifyCb;
+        hProxyServer->handleTbl.numEntries = 0;
+        appRemoteDeviceInitParamsInit(&remote_dev_init_prm);
 
-    status = CpswProxyServer_initNotifyServiceEp(hProxyServer, cfg);
-    EnetAppUtils_assert(status == 0);
+        remote_dev_init_prm.rpmsg_buf_size = CPSWPROXY_RDEV_MSGSIZE;
+        remote_dev_init_prm.remote_device_endpt = cfg->rpmsgEndPointId;
+        remote_dev_init_prm.wait_sem = hProxyServer->rdevStartSem;
 
-    hProxyServer->initDone = true;
-    appLogPrintf("Remote demo device (core : mcu2_0) .....\r\n");
-    return ENET_SOK;
+        status = appRemoteDeviceInit(&remote_dev_init_prm);
+        EnetAppUtils_assert(status == 0);
+
+        rdevEthSwitchServerInitPrmSetDefault(&remote_ethswitch_init_prm);
+
+        remote_ethswitch_init_prm.rpmsg_buf_size = CPSWPROXY_RDEV_MSGSIZE;
+        remote_ethswitch_init_prm.num_instances = cfg->numVirtPorts;
+        remote_ethswitch_init_prm.cb = CpswProxyRdevEthSwitchServerCbFxnTbl;
+
+        EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(remote_ethswitch_init_prm.inst_prm));
+        EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(cfg->virtPortCfg));
+
+        for (i = 0U; i < cfg->numVirtPorts; i++)
+        {
+            inst = &remote_ethswitch_init_prm.inst_prm[i];
+
+            CpswProxyServer_setRemoteParams(&cfg->virtPortCfg[i], inst);
+        }
+
+        status = rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
+        EnetAppUtils_assert(status == 0);
+
+        status = CpswProxyServer_initAutosarEthDeviceEp(hProxyServer, cfg);
+        EnetAppUtils_assert(status == 0);
+
+        status = CpswProxyServer_initNotifyServiceEp(hProxyServer, cfg);
+        EnetAppUtils_assert(status == 0);
+
+        hProxyServer->initDone = true;
+    }
+
+    appLogPrintf("CpswProxyServer: initialization %s (core: mcu2_0)\r\n",
+                 (status == ENET_SOK) ? "completed" : "failed");
+
+    return status;
 }
 
 int32_t  CpswProxyServer_start(void)
