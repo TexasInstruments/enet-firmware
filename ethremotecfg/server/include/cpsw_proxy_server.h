@@ -94,6 +94,65 @@ extern "C" {
  * @{
  */
 
+/*!
+ * \anchor CpswProxyServer_ErrorCodes
+ * \name CpswProxyServer Error Codes
+ *
+ * Error codes returned by the CPSW Proxy server APIs.
+ *
+ * @{
+ */
+
+/* Below error codes are aligned with CSL's and Enet LLD's to maintain
+ * consistency and avoid error code conversion */
+
+/*! \brief Success. */
+#define CPSWPROXYSERVER_SOK                           (0)
+
+/*! \brief Operation in progress. */
+#define CPSWPROXYSERVER_SINPROGRESS                   (1)
+
+/*! \brief Generic failure error condition (typically caused by hardware). */
+#define CPSWPROXYSERVER_EFAIL                         (-1)
+
+/*! \brief Bad arguments (i.e. NULL pointer). */
+#define CPSWPROXYSERVER_EBADARGS                      (-2)
+
+/*! \brief Invalid parameters (i.e. value out-of-range). */
+#define CPSWPROXYSERVER_EINVALIDPARAMS                (-3)
+
+/*! \brief Time out while waiting for a given condition to happen. */
+#define CPSWPROXYSERVER_ETIMEOUT                      (-4)
+
+/*! \brief Allocation failure. */
+#define CPSWPROXYSERVER_EALLOC                        (-8)
+
+/*! \brief Unexpected condition occurred (sometimes unrecoverable). */
+#define CPSWPROXYSERVER_EUNEXPECTED                   (-9)
+
+/*! \brief The resource is currently busy performing an operation. */
+#define CPSWPROXYSERVER_EBUSY                         (-10)
+
+/*! \brief Already open error. */
+#define CPSWPROXYSERVER_EALREADYOPEN                  (-11)
+
+/*! \brief Operation not permitted. */
+#define CPSWPROXYSERVER_EPERM                         (-12)
+
+/*! \brief Operation not supported. */
+#define CPSWPROXYSERVER_ENOTSUPPORTED                 (-13)
+
+/*! \brief Resource not found. */
+#define CPSWPROXYSERVER_ENOTFOUND                     (-14)
+
+/*! \brief Unknown IOCTL. */
+#define CPSWPROXYSERVER_EUNKNOWNIOCTL                 (-15)
+
+/*! \brief Malformed IOCTL (args pointer or size not as expected). */
+#define CPSWPROXYSERVER_EMALFORMEDIOCTL               (-16)
+
+/*! @} */
+
 /*! Maximum number of MAC ports */
 #define CPSWPROXYSERVER_MAC_PORT_MAX                  (8U)
 
@@ -224,7 +283,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg);
  *
  * Starts the remote device framework.
  *
- * \return ENET_SOK if succeeded, an error code otherwise.
+ * \return Refer to \ref CpswProxyServer_ErrorCodes.
  */
 int32_t  CpswProxyServer_start(void);
 

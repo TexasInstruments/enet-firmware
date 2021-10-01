@@ -1010,7 +1010,7 @@ static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
 
 static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
 {
-    int32_t ret = 0;
+    int32_t ret = CPSWPROXY_SOK;
     CpswProxy_notifyServiceObj *notifyObj = (CpswProxy_notifyServiceObj *)a0;
     RPMessage_Params rpmsgPrm;
     uint32_t localEp;
@@ -1036,10 +1036,10 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
     if (NULL == notifyObj->hNotifyServicRpMsgEp)
     {
         System_printf("Could not create communication channel\n");
-        ret = ENET_EFAIL;
+        ret = CPSWPROXY_EFAIL;
     }
 
-    if (ENET_SOK == ret)
+    if (CPSWPROXY_SOK == ret)
     {
         if (localEp != CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID)
         {
@@ -1839,7 +1839,7 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswRemoteNotifyService_hwPushNotifyCbF
                                          void *cbArg)
 {
     CpswProxy_notifyServiceObj *notifyObj = &gCpswProxy.notifyServiceObj;
-    int status = ENET_SOK;
+    int status = CPSWPROXY_SOK;
 
     if (NULL != cbFxn)
     {
@@ -1850,12 +1850,12 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswRemoteNotifyService_hwPushNotifyCbF
         }
         else
         {
-            status = ENET_EALREADYOPEN;
+            status = CPSWPROXY_EALREADYOPEN;
         }
     }
     else
     {
-        status = ENET_EBADARGS;
+        status = CPSWPROXY_EBADARGS;
     }
 
     return status;

@@ -92,6 +92,65 @@ extern "C" {
  */
 
 /*!
+ * \anchor CpswProxy_ErrorCodes
+ * \name CpswProxy Error Codes
+ *
+ * Error codes returned by the CPSW Proxy client APIs.
+ *
+ * @{
+ */
+
+/* Below error codes are aligned with CSL's and Enet LLD's to maintain
+ * consistency and avoid error code conversion */
+
+/*! \brief Success. */
+#define CPSWPROXY_SOK                              (0)
+
+/*! \brief Operation in progress. */
+#define CPSWPROXY_SINPROGRESS                      (1)
+
+/*! \brief Generic failure error condition (typically caused by hardware). */
+#define CPSWPROXY_EFAIL                            (-1)
+
+/*! \brief Bad arguments (i.e. NULL pointer). */
+#define CPSWPROXY_EBADARGS                         (-2)
+
+/*! \brief Invalid parameters (i.e. value out-of-range). */
+#define CPSWPROXY_EINVALIDPARAMS                   (-3)
+
+/*! \brief Time out while waiting for a given condition to happen. */
+#define CPSWPROXY_ETIMEOUT                         (-4)
+
+/*! \brief Allocation failure. */
+#define CPSWPROXY_EALLOC                           (-8)
+
+/*! \brief Unexpected condition occurred (sometimes unrecoverable). */
+#define CPSWPROXY_EUNEXPECTED                      (-9)
+
+/*! \brief The resource is currently busy performing an operation. */
+#define CPSWPROXY_EBUSY                            (-10)
+
+/*! \brief Already open error. */
+#define CPSWPROXY_EALREADYOPEN                     (-11)
+
+/*! \brief Operation not permitted. */
+#define CPSWPROXY_EPERM                            (-12)
+
+/*! \brief Operation not supported. */
+#define CPSWPROXY_ENOTSUPPORTED                    (-13)
+
+/*! \brief Resource not found. */
+#define CPSWPROXY_ENOTFOUND                        (-14)
+
+/*! \brief Unknown IOCTL. */
+#define CPSWPROXY_EUNKNOWNIOCTL                    (-15)
+
+/*! \brief Malformed IOCTL (args pointer or size not as expected). */
+#define CPSWPROXY_EMALFORMEDIOCTL                  (-16)
+
+/*! @} */
+
+/*!
  * \brief Application Callback function pointers to notify when remote
  *        ethernet device data is received on remote core
  *
@@ -800,9 +859,9 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
  * \param cbFxn     Callback function to be called when event occurs
  * \param cbArg     Callback arguments
  *
- * \return status   ENET_SOK if registered callback successfully
- *                  ENET_EALREADYOPEN if callback is already registered.
- *                  ENET_EBADARGS if invalid input arguments
+ * \return status   CPSWPROXY_SOK if registered callback successfully
+ *                  CPSWPROXY_EALREADYOPEN if callback is already registered.
+ *                  CPSWPROXY_EBADARGS if invalid input arguments
  */
 int32_t CpswProxy_registerHwPushNotifyCb(CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
                                          void *cbArg);
