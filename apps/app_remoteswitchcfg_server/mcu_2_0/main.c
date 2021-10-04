@@ -159,9 +159,12 @@
 
 #define VQ_BUF_SIZE                             (2048U)
 
-#define IPC_RPMESSAGE_OBJ_SIZE                  (256U)
-
-#define RPMSG_DATA_SIZE                         ((256U * 512U) + IPC_RPMESSAGE_OBJ_SIZE)
+#define ETHAPP_IPC_RPC_MSG_SIZE                 (496U + 32U)
+#define ETHAPP_IPC_NUM_RPMSG_BUFS               (256U)
+#define ETHAPP_IPC_RPMSG_OBJ_SIZE               (256U)
+#define ETHAPP_IPC_DATA_SIZE                    (ETHAPP_IPC_RPC_MSG_SIZE * \
+                                                 ETHAPP_IPC_NUM_RPMSG_BUFS + \
+                                                 ETHAPP_IPC_RPMSG_OBJ_SIZE)
 
 #define ARRAY_SIZE(x)                           (sizeof((x)) / sizeof(x[0U]))
 
@@ -402,7 +405,7 @@ static uint8_t gEthAppCtrlTaskBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".
 
 static uint8_t gEthAppSysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section("ipc_data_buffer"), aligned(8)));
 
-static uint8_t gEthAppCntrlBuf[RPMSG_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned(8)));
+static uint8_t gEthAppCntrlBuf[ETHAPP_IPC_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned(8)));
 
 static uint8_t gEthAppVringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
@@ -615,7 +618,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
         /* Initialize the param and set memory for HeapMemory for control task */
         RPMessageParams_init(&cntrlParam);
         cntrlParam.buf = &gEthAppCntrlBuf[0];
-        cntrlParam.bufSize = RPMSG_DATA_SIZE;
+        cntrlParam.bufSize = ETHAPP_IPC_DATA_SIZE;
         cntrlParam.stackBuffer = &gEthAppCtrlTaskBuf[0];
         cntrlParam.stackSize = IPC_TASK_STACKSIZE;
         status = RPMessage_init(&cntrlParam);

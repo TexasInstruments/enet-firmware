@@ -144,10 +144,15 @@
 #define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL   (30U)
 #define CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM      (2U)
 
-#define IPC_RPMESSAGE_OBJ_SIZE  (256)
 #define VQ_TIMEOUT              (100)
 #define VQ_BUF_SIZE             (2048)
-#define RPMSG_DATA_SIZE         (256 * 512 + IPC_RPMESSAGE_OBJ_SIZE)
+
+#define CPSW_REMOTE_APP_IPC_RPC_MSG_SIZE      (496U + 32U)
+#define CPSW_REMOTE_APP_IPC_NUM_RPMSG_BUFS    (256U)
+#define CPSW_REMOTE_APP_IPC_RPMSG_OBJ_SIZE    (256U)
+#define CPSW_REMOTE_APP_IPC_DATA_SIZE         (CPSW_REMOTE_APP_IPC_RPC_MSG_SIZE * \
+                                               CPSW_REMOTE_APP_IPC_NUM_RPMSG_BUFS + \
+                                               CPSW_REMOTE_APP_IPC_RPMSG_OBJ_SIZE)
 
 #if defined (FREERTOS)
 #define ETHAPP_LWIP_TASK_STACKSIZE      (4U * 1024U)
@@ -219,7 +224,7 @@ __attribute__ ((aligned(8192)))
 ;
 
 static uint8_t sysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section("ipc_data_buffer"), aligned(8)));
-static uint8_t gCntrlBuf[RPMSG_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned(8)));
+static uint8_t gCntrlBuf[CPSW_REMOTE_APP_IPC_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned(8)));
 
 static uint8_t g_vringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
@@ -832,7 +837,7 @@ static void CpswRemoteApp_initTask(void* a0,
     {
         /* Set memory for HeapMemory for control task */
         cntrlParam.buf = &gCntrlBuf[0];
-        cntrlParam.bufSize = RPMSG_DATA_SIZE;
+        cntrlParam.bufSize = CPSW_REMOTE_APP_IPC_DATA_SIZE;
         cntrlParam.stackBuffer = &ctrlTaskBuf[0];
         cntrlParam.stackSize = sizeof(ctrlTaskBuf);
         status = RPMessage_init(&cntrlParam);
