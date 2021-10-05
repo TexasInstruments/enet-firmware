@@ -197,8 +197,6 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
 
 static int32_t EthFw_setAleBcastEntry(void);
 
-static int32_t EthFw_setAllMultiFilter(void);
-
 static void EthFw_getMcmCmdIfCb(Enet_Type enetType,
                                 EnetMcm_CmdIf **pMcmCmdIfHandle);
 
@@ -760,12 +758,6 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         status = EthFw_setAleBcastEntry();
     }
 
-    /* ALL_MULTI */
-    if (status == ENET_SOK)
-    {
-        status = EthFw_setAllMultiFilter();
-    }
-
     return (status == ENET_SOK) ? &gEthFwObj : NULL;
 }
 
@@ -994,24 +986,6 @@ static int32_t EthFw_setAleBcastEntry(void)
     if (status != ENET_SOK)
     {
         appLogPrintf("EthFw_setAleBcastEntry() ADD_MULTICAST ioctl failed: %d\n", status);
-    }
-
-    return status;
-}
-
-static int32_t EthFw_setAllMultiFilter(void)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    Enet_IoctlPrms prms;
-    CpswAle_RxFilter rxFilter = CPSW_ALE_RXFILTER_ALLMCAST;
-    int32_t status;
-
-    ENET_IOCTL_SET_IN_ARGS(&prms, &rxFilter);
-
-    status = Enet_ioctl(hEnet, gEthFwObj.coreId, CPSW_ALE_IOCTL_SET_RX_FILTER, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("EthFw_setAllMultiFilter() failter to set RX filter: %d\n", status);
     }
 
     return status;
