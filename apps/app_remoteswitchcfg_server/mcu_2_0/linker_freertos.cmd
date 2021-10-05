@@ -73,6 +73,7 @@ SECTIONS
     } palign(32)    >  DDR_MCU2_0
 
     .const              : {} palign(8)      > DDR_MCU2_0
+    .rodata             : {} palign(8)      > DDR_MCU2_0
     .cinit              : {} palign(8)      > DDR_MCU2_0
     .pinit              : {} palign(8)      > R5F_TCMB0
     .bss                : {} align(4)       > DDR_MCU2_0
@@ -91,14 +92,6 @@ SECTIONS
     }                                           > DDR_MCU2_0_RESOURCE_TABLE
 
     .tracebuf                : {} align(1024)   > DDR_MCU2_0
-
-    .const_sect {
-       *(.const)
-    } palign(32)    >  DDR_MCU2_0
-
-    .data_sect {
-       *(.data)
-    } palign(128)   >  DDR_MCU2_0
 
     .bss:ENET_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
     .bss:ENET_DMA_RING_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0

@@ -180,8 +180,8 @@ CpswApp_Obj gCpswInterVlanAppObj =
 static uint8_t testDstMacAddr[] = {0x00, 0x11, 0x02, 0x00, 0x00, 0x01};
 
 /* Test application stack */
-#pragma DATA_SECTION(gAppTskStackMain,".bss:appStack")
 static uint8_t gAppTskStackMain[APP_TSK_STACK_SIZE]
+ __attribute__((section(".bss:appStack")))
 __attribute__ ((aligned(32)));
 
 static TaskP_Handle task;

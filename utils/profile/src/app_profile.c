@@ -145,14 +145,12 @@ typedef struct loadEntryTbl {
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
-#pragma DATA_SECTION(apploadEntryTbl,".benchmark_buffer")
-loadEntryTbl apploadEntryTbl =
+loadEntryTbl apploadEntryTbl __attribute__((section(".benchmark_buffer"))) =
 {.hProfileControlEvt = NULL};
 volatile uint32_t appLoadDebugFlag = 1;
 
 
-#pragma DATA_SECTION(FXNPROFILE,".bss:appStack")
-fxnProfile FXNPROFILE[APP_MAX_PROFILE_FXNS];
+fxnProfile FXNPROFILE[APP_MAX_PROFILE_FXNS]  __attribute__((section(".bss:appStack")));
 
 
 
@@ -201,7 +199,7 @@ static void app_loadSetPmuCounters(struct loadEntryRecord_s * curRecord)
 }
 
 
-#pragma CODE_SECTION(app_fxnEntry,".text_boot")
+void app_fxnEntry(uint32_t profileIndex) __attribute__((section(".text_boot")));
 void app_fxnEntry(uint32_t profileIndex)
 {
     FXNPROFILE[profileIndex].key = Hwi_disable();
@@ -210,7 +208,7 @@ void app_fxnEntry(uint32_t profileIndex)
     FXNPROFILE[profileIndex].startTime[2]  = CSL_armR5PmuReadCntr(2);
 }
 
-#pragma CODE_SECTION(app_fxnExit,".text_boot")
+void app_fxnExit(uint32_t profileIndex) __attribute__((section(".text_boot")));
 void app_fxnExit(uint32_t profileIndex)
 {
     FXNPROFILE[profileIndex].deltaTotalTime[0]  += CSL_armR5PmuReadCntr(0)  - FXNPROFILE[profileIndex].startTime[0] ;

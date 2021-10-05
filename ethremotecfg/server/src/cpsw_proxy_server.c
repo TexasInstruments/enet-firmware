@@ -1002,6 +1002,12 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
                 EnetAppUtils_printHostPortStats9G(st);
                 break;
             }
+
+            default:
+            {
+                EnetAppUtils_assert(false);
+                break;
+            }
         }
 
         appLogPrintf("\n");
@@ -1039,6 +1045,12 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
 
                         st = (CpswStats_MacPort_Ng *)&portStats;
                         EnetAppUtils_printMacPortStats9G(st);
+                        break;
+                    }
+
+                    default:
+                    {
+                        EnetAppUtils_assert(false);
                         break;
                     }
                 }

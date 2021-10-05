@@ -834,6 +834,12 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
                 break;
             }
 
+            case CPSWPROXY_RDEVCMD_UNREGIPV6:
+            {
+                /* Nothing to do */
+                break;
+            }
+
             case CPSWPROXY_RDEVCMD_IOCTL:
             {
                 msg.res.retVal = rdevEthSwitchClient_ioctl(deviceId,

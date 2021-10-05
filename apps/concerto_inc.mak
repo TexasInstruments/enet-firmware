@@ -111,41 +111,47 @@ else ifeq ($(TARGET_OS),FREERTOS)
 endif
 STATIC_LIBS += app_utils_console_io
 STATIC_LIBS += app_utils_mem
-STATIC_LIBS += app_perf_stats
 STATIC_LIBS += app_ethfw_stats
 STATIC_LIBS += app_remote_service
+STATIC_LIBS += app_perf_stats
 
 ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     # Same extension is kept for R5F or R5Ft (Thumb mode)
     # in PDK build system for backwards compatibility reasons
     TARGET_CPU_SUFFIX=r5f
-    ifeq ($(TARGET_OS),SYSBIOS)
-        ADDITIONAL_STATIC_LIBS += nimuenet.ae$(TARGET_CPU_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += slnetsock_$(TARGET_BUILD).a
-        ADDITIONAL_STATIC_LIBS += httpserver_$(TARGET_BUILD).a
-    else ifeq ($(TARGET_OS),FREERTOS)
-        ADDITIONAL_STATIC_LIBS += ti.kernel.freertos.ae$(TARGET_CPU_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += ti.csl.init.ae$(TARGET_CPU_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += lwipstack_freertos.ae$(TARGET_CPU_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += lwipcontrib_freertos.ae$(TARGET_CPU_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += lwipif_freertos.ae$(TARGET_CPU_SUFFIX)
-    endif
-    ADDITIONAL_STATIC_LIBS += ti.board.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.timesync.hal.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enet_cfgserver.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enetsoc.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += $(ENET_APPUTILS_LIB).ae$(TARGET_CPU_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += enetphy.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enet.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += enetphy.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.board.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += udma.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ipc.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += sciclient.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.i2c.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(TARGET_CPU_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += ti.csl.ae$(TARGET_CPU_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += pm_lib.ae$(TARGET_CPU_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += ti.timesync.hal.ae$(TARGET_CPU_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.ae$(TARGET_CPU_SUFFIX)
+    ifeq ($(TARGET_OS),SYSBIOS)
+        ADDITIONAL_STATIC_LIBS += nimuenet.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += slnetsock_$(TARGET_BUILD).a
+        ADDITIONAL_STATIC_LIBS += httpserver_$(TARGET_BUILD).a
+    else ifeq ($(TARGET_OS),FREERTOS)
+        ADDITIONAL_STATIC_LIBS += lwipstack_freertos.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += lwipcontrib_freertos.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += lwipif_freertos.ae$(TARGET_CPU_SUFFIX)
+    endif
+
+    ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
+    ifeq ($(TARGET_OS),FREERTOS)
+        ADDITIONAL_STATIC_LIBS += ti.kernel.freertos.ae$(TARGET_CPU_SUFFIX)
+    endif
+
+    ADDITIONAL_STATIC_LIBS += ti.csl.ae$(TARGET_CPU_SUFFIX)
+    ifeq ($(TARGET_OS),FREERTOS)
+        ADDITIONAL_STATIC_LIBS += ti.csl.init.ae$(TARGET_CPU_SUFFIX)
+    endif
 else
     CORTEX_A_LIB_SUFFIX := $(if $(filter $(TARGET_BUILD),debug),g,)
     ifneq (,$(filter ${TARGET_CPU},A72 A53))

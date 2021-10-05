@@ -47,17 +47,11 @@ else ifeq ($(TARGET_OS),FREERTOS)
   LINKER_CMD_FILES += $(SDIR)/linker_freertos.cmd
 endif
 
-ifeq ($(TARGET_CPU),R5F)
-  SYS_STATIC_LIBS += rtsv7R4_A_le_v3D16_eabi
-else ifeq ($(TARGET_CPU),R5Ft)
-  SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
-endif
-
 STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
-STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
+STATIC_LIBS += lib_remote_device
 
 ifeq ($(TARGET_OS),FREERTOS)
   STATIC_LIBS += ethfw_lwip
@@ -131,17 +125,11 @@ else ifeq ($(TARGET_OS),FREERTOS)
   LINKER_CMD_FILES += $(SDIR)/linker_freertos.cmd
 endif
 
-ifeq ($(TARGET_CPU),R5F)
-  SYS_STATIC_LIBS += rtsv7R4_A_le_v3D16_eabi
-else ifeq ($(TARGET_CPU),R5Ft)
-  SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
-endif
-
 STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
-STATIC_LIBS += lib_remote_device
 STATIC_LIBS += lib_remoteswitchcfg_server
+STATIC_LIBS += lib_remote_device
 
 ifeq ($(TARGET_OS),FREERTOS)
   STATIC_LIBS += ethfw_lwip

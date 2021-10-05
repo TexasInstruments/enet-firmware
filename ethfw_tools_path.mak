@@ -28,6 +28,10 @@ CCS_PATH ?= D:/ccs_v8_3/ccsv8
 TIARMCGT_ROOT_AM65XX ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
 TIARMCGT_ROOT_J721E ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
 TIARMCGT_ROOT_J7200 ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
+TIARMCGT_LLVM_ROOT_AM65XX ?= $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
+TIARMCGT_LLVM_ROOT_J721E ?= $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
+TIARMCGT_LLVM_ROOT_J7200 ?= $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
+
 ifneq (,$(filter $(HOST_OS),Windows_NT CYGWIN))
   GCC_SYSBIOS_ARM_ROOT ?= $(PSDK_PATH)/gcc-linaro-9.2-2019.12-mingw-w64-i686_aarch64-elf
 else
@@ -44,6 +48,7 @@ CTOOLSLIB_PATH ?= $(PSDK_PATH)/ctoolslib
 REMOTE_DEVICE_PATH ?= $(PSDK_PATH)/remote_device
 
 TIARMCGT_ROOT = $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
+TIARMCGT_LLVM_ROOT = $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
 BIOS_PATH = $(PSDK_PATH)/bios_6_83_00_18
 
 PDK_PATH ?= $(PSDK_PATH)/pdk

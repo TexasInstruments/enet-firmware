@@ -52,7 +52,7 @@ ifneq ($(filter $(origin TARGET_BUILD),environment command),)
 endif
 
 # The compilers which must have roots set.
-COMPILER_ROOTS := TIARMCGT_ROOT GCC_SYSBIOS_ARM_ROOT CGT6X_ROOT CGT7X_ROOT GCC_WINDOWS_ROOT GCC_LINUX_ROOT
+COMPILER_ROOTS := TIARMCGT_ROOT TIARMCGT_LLVM_ROOT GCC_SYSBIOS_ARM_ROOT CGT6X_ROOT CGT7X_ROOT GCC_WINDOWS_ROOT GCC_LINUX_ROOT
 
 $(foreach root,$(COMPILER_ROOTS),$(info $(origin $(root)) $(root)=$(value $(root))))
 

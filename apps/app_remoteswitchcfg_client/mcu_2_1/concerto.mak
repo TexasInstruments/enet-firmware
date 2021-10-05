@@ -39,14 +39,8 @@ else ifeq ($(TARGET_OS),FREERTOS)
   LINKER_CMD_FILES += $(SDIR)/linker_freertos.cmd
 endif
 
-ifeq ($(TARGET_CPU),R5F)
-  SYS_STATIC_LIBS += rtsv7R4_A_le_v3D16_eabi
-else ifeq ($(TARGET_CPU),R5Ft)
-  SYS_STATIC_LIBS += rtsv7R4_T_le_v3D16_eabi
-endif
-
-STATIC_LIBS += lib_remote_device_client
 STATIC_LIBS += lib_remoteswitchcfg_client
+STATIC_LIBS += lib_remote_device_client
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)

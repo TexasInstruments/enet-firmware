@@ -134,6 +134,8 @@ else ifeq ($(HOST_COMPILER),TMS470)
 	include $(CONCERTO_ROOT)/compilers/tms470.mak
 else ifeq ($(HOST_COMPILER),TIARMCGT)
 	include $(CONCERTO_ROOT)/compilers/tiarmcgt.mak
+else ifeq ($(HOST_COMPILER),TIARMCGT_LLVM)
+	include $(CONCERTO_ROOT)/compilers/tiarmcgt_llvm.mak
 else ifeq ($(HOST_COMPILER),ARP32CGT)
 	include $(CONCERTO_ROOT)/compilers/arp32.mak
 else ifeq ($(HOST_COMPILER),GCC_QNX_ARM)
