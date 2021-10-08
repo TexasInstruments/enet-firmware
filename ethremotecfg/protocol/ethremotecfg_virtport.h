@@ -215,14 +215,14 @@ static uint32_t EthRemoteCfg_getPortNum(EthRemoteCfg_VirtPort portId)
  * \brief Get Enet MAC port number corresponding to a virtual port id.
  *
  * Gets the Enet MAC port number corresponding to a virtual MAC port.  It will return
- * \ref ENET_MAC_PORT_INV for virtual switch ports.
+ * `ENET_MAC_PORT_INV` for virtual switch ports.
  *
  * The returned value of this function could be used as is to populate the port
  * number used for TX directed packets.
  *
  * \param portId    Virtual port id.
  *
- * \return Enet MAC port number for virtual MAC ports, \ref ENET_MAC_PORT_INV for
+ * \return Enet MAC port number for virtual MAC ports, `ENET_MAC_PORT_INV` for
  *         virtual switch ports.
  */
 static Enet_MacPort EthRemoteCfg_getMacPort(EthRemoteCfg_VirtPort portId)
