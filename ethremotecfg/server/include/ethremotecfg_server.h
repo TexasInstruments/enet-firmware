@@ -129,7 +129,10 @@ typedef struct rdevEthSwitchServerInstPrm_s
  *  \param txMtuArraySize Number of priority supported
  *  \param pFeatures Pointer to feature bitmap. Bitmask of type RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx
  *  \param pMacOnlyPort  MAC-only port number (1-based). 0 for non MAC only ports.
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                    uint32_t host_id,
                                                    uint8_t cpsw_type,
@@ -155,7 +158,10 @@ typedef int32_t (*ethrdev_srv_cb_attach_handler_t)(EthRemoteCfg_VirtPort virtPor
  *  \param pTxCpswPsilDstId Pointer to allocated Tx Channel CPSW PSIL destination thread id populated by callback handler
  *  \param macAddress  Pointer to allocated destination mac address allocated to remote core populated by callback handler
  *  \param pMacOnlyPort  MAC-only port number (1-based). 0 for non MAC only ports.
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_attach_ext_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                        uint32_t host_id,
                                                        uint8_t cpsw_type,
@@ -176,7 +182,10 @@ typedef int32_t (*ethrdev_srv_cb_attach_ext_handler_t)(EthRemoteCfg_VirtPort vir
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param pTxCpswPsilDstId Pointer to allocated Tx Channel CPSW PSIL destination thread id populated by callback handler
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_alloc_tx_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                      uint32_t host_id,
                                                      uint64_t handle,
@@ -189,7 +198,10 @@ typedef int32_t (*ethrdev_srv_cb_alloc_tx_handler_t)(EthRemoteCfg_VirtPort virtP
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param pAllocFlowIdx Pointer to allocated Rx Flow Index populated by callback handler
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_alloc_rx_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                      uint32_t host_id,
                                                      uint64_t handle,
@@ -202,7 +214,10 @@ typedef int32_t (*ethrdev_srv_cb_alloc_rx_handler_t)(EthRemoteCfg_VirtPort virtP
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param macAddress  Pointer to allocated destination mac address allocated to remote core populated by callback handler
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_alloc_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                       uint32_t host_id,
                                                       uint64_t handle,
@@ -216,7 +231,10 @@ typedef int32_t (*ethrdev_srv_cb_alloc_mac_handler_t)(EthRemoteCfg_VirtPort virt
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param macAddress  Destination mac address to be registered
  *  \param flow_idx  Rx Flow Index to eb associated with the destination MAC address
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_register_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                          uint32_t host_id,
                                                          uint64_t handle,
@@ -232,7 +250,10 @@ typedef int32_t (*ethrdev_srv_cb_register_mac_handler_t)(EthRemoteCfg_VirtPort v
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param macAddress  Destination mac address to be unregistered
  *  \param flow_idx  Rx Flow Index to eb disassociated with the destination MAC address
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_unregister_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                            uint32_t host_id,
                                                            uint64_t handle,
@@ -246,7 +267,10 @@ typedef int32_t (*ethrdev_srv_cb_unregister_mac_handler_t)(EthRemoteCfg_VirtPort
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param flow_idx  Rx Flow Index to which default flow traffic will be routed
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_register_rx_default_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                 uint32_t host_id,
                                                                 uint64_t handle,
@@ -259,7 +283,10 @@ typedef int32_t (*ethrdev_srv_cb_register_rx_default_handler_t)(EthRemoteCfg_Vir
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param flow_idx  Rx Flow Index to which default flow mapping is to be removed.
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_unregister_rx_default_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                   uint32_t host_id,
                                                                   uint64_t handle,
@@ -272,7 +299,10 @@ typedef int32_t (*ethrdev_srv_cb_unregister_rx_default_handler_t)(EthRemoteCfg_V
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param tx_cpsw_psil_dst_id Allocated Tx Channel CPSW PSIL destination thread id to be freed
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_free_tx_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                     uint32_t host_id,
                                                     uint64_t handle,
@@ -285,7 +315,10 @@ typedef int32_t (*ethrdev_srv_cb_free_tx_handler_t)(EthRemoteCfg_VirtPort virtPo
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param alloc_flow_idx Allocated Rx Flow Index to be freed
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_free_rx_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                     uint32_t host_id,
                                                     uint64_t handle,
@@ -298,7 +331,10 @@ typedef int32_t (*ethrdev_srv_cb_free_rx_handler_t)(EthRemoteCfg_VirtPort virtPo
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param mac_address Destination mac address to be freed
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_free_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                      uint32_t host_id,
                                                      uint64_t handle,
@@ -310,6 +346,9 @@ typedef int32_t (*ethrdev_srv_cb_free_mac_handler_t)(EthRemoteCfg_VirtPort virtP
  *  \param host_id Remote Core Id
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_detach_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                    uint32_t host_id,
@@ -326,6 +365,9 @@ typedef int32_t (*ethrdev_srv_cb_detach_handler_t)(EthRemoteCfg_VirtPort virtPor
  *  \param inargs_len CPSW IOCTL CMD input arguments length
  *  \param outargs CPSW IOCTL CMD output arguments .Byte array is typecast to the outArgs structure associated with the IOCTL. Populated by callback handler
  *  \param outargs_len CPSW IOCTL CMD output arguments length
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_ioctl_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                   uint32_t host_id,
@@ -343,6 +385,9 @@ typedef int32_t (*ethrdev_srv_cb_ioctl_handler_t)(EthRemoteCfg_VirtPort virtPort
  *  \param regaddr Register address to be written to
  *  \param regval Register value to be written
  *  \param pRegval Pointer to register value after register write. Populated by callback handler
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_regwr_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                   uint32_t host_id,
@@ -355,6 +400,9 @@ typedef int32_t (*ethrdev_srv_cb_regwr_handler_t)(EthRemoteCfg_VirtPort virtPort
  *  \param host_id Remote Core Id
  *  \param regaddr Register address to be read from
  *  \param pRegval Pointer to register value read from regaddr. Populated by callback handler
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_regrd_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                   uint32_t host_id,
@@ -368,6 +416,9 @@ typedef int32_t (*ethrdev_srv_cb_regrd_handler_t)(EthRemoteCfg_VirtPort virtPort
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param mac_address  Destination mac address with which the IPv4 address will be associated in the ARP database
  *  \param ipv4_addr  IPv4 address to be added  in the ARP database with associated MAC address
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_register_ipv4_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                               uint32_t host_id,
@@ -383,6 +434,9 @@ typedef int32_t (*ethrdev_srv_cb_register_ipv4_mac_handler_t)(EthRemoteCfg_VirtP
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param mac_address  Destination mac address with which the IPv6 address will be associated in the ARP database
  *  \param ipv6_addr  IPv6 address to be added  in the ARP database with associated MAC address
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_register_ipv6_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                               uint32_t host_id,
@@ -397,6 +451,9 @@ typedef int32_t (*ethrdev_srv_cb_register_ipv6_mac_handler_t)(EthRemoteCfg_VirtP
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ipv4_addr  IPv4 address to be removed from  the ARP database
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_unregister_ipv4_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                 uint32_t host_id,
@@ -410,6 +467,9 @@ typedef int32_t (*ethrdev_srv_cb_unregister_ipv4_mac_handler_t)(EthRemoteCfg_Vir
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ipv6_addr  IPv6 address to be removed from  the ARP database
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
  */
 typedef int32_t (*ethrdev_srv_cb_unregister_ipv6_mac_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                 uint32_t host_id,
@@ -450,7 +510,10 @@ typedef void (*ethrdev_srv_cb_init_device_data_t)(EthRemoteCfg_VirtPort virtPort
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ether_type  Ethertype to be registered
  *  \param flow_idx  Rx Flow Index to eb associated with the destination MAC address
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_register_ethertype_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                uint32_t host_id,
                                                                uint64_t handle,
@@ -465,7 +528,10 @@ typedef int32_t (*ethrdev_srv_cb_register_ethertype_handler_t)(EthRemoteCfg_Virt
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param ether_type  Ethertype to be unregistered
  *  \param flow_idx  Rx Flow Index to eb disassociated with the destination MAC address
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_unregister_ethertype_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                  uint32_t host_id,
                                                                  uint64_t handle,
@@ -481,7 +547,10 @@ typedef int32_t (*ethrdev_srv_cb_unregister_ethertype_handler_t)(EthRemoteCfg_Vi
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param timer_id  Timer to be registered with CPTS for time synchronization
  *  \param hwPushNum CPTS hardware push number used for time synchronization
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_register_remotetimer_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                  uint32_t host_id,
                                                                  uint8_t *name,
@@ -497,7 +566,10 @@ typedef int32_t (*ethrdev_srv_cb_register_remotetimer_handler_t)(EthRemoteCfg_Vi
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param hwPushNum CPTS hardware push number used for time synchronization
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_unregister_remotetimer_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                                    uint32_t host_id,
                                                                    uint8_t *name,
@@ -511,7 +583,10 @@ typedef int32_t (*ethrdev_srv_cb_unregister_remotetimer_handler_t)(EthRemoteCfg_
  *  \param handle Unique Opaque Handle returned by attach / attach ext CMD
  *  \param core_key  Core key returned by attach / attach ext CMD
  *  \param enable Promiscuous mode (enable or disable)
-*/
+ *
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ *  \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL Error allocating response message or sending message.
+ */
 typedef int32_t (*ethrdev_srv_cb_set_promisc_mode_handler_t)(EthRemoteCfg_VirtPort virtPort,
                                                              uint32_t host_id,
                                                              uint64_t handle,

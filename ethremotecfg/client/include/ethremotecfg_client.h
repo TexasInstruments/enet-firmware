@@ -109,6 +109,10 @@ typedef struct rdevEthSwitchClientInitPrms_s
  * APIs to configure the remote ethernet switch device
  *
  * \param initPrms Server Connect params
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of incorrect init parameters or
+ *                                                 any failure connecting to remote server side.
  */
 int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms);
 
@@ -118,6 +122,9 @@ int32_t rdevEthSwitchClient_connect(rdevEthSwitchClientInitPrms_t *initPrms);
  * The client can disconnect from the Ethernet Switch Remote Device server.
  *
  * \param device_id Device id returned by rdevEthSwitchClient_connect
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any failure disconnecting from server side.
  */
 int32_t rdevEthSwitchClient_disconnect(uint32_t device_id);
 
@@ -131,6 +138,10 @@ int32_t rdevEthSwitchClient_disconnect(uint32_t device_id);
  * \param ping_len  Length of ping msg
  * \param respMsg   Response to ping message received from server
  * \param respMaxLen Length of response ping msg
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_sendping(uint32_t device_id,
                                      char *ping_msg,
@@ -145,6 +156,10 @@ int32_t rdevEthSwitchClient_sendping(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param ipv4_address  IPV4 address to be unregistered
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id,
                                               uint64_t id,
@@ -159,6 +174,10 @@ int32_t rdevEthSwitchClient_ipv4macunregister(uint32_t device_id,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param mac_address   MAC address with which the IPv4 address will be associated
  * \param ipv6_address  IPV4 address to be added to ARP database
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_ipv6macregister(uint32_t device_id,
                                             uint64_t id,
@@ -174,6 +193,10 @@ int32_t rdevEthSwitchClient_ipv6macregister(uint32_t device_id,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param mac_address   MAC address with which the IPv4 address will be associated
  * \param ipv4_address  IPV4 address to be added to ARP database
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_ipv4macregister(uint32_t device_id,
                                             uint64_t id,
@@ -187,6 +210,10 @@ int32_t rdevEthSwitchClient_ipv4macregister(uint32_t device_id,
  * \param device_id Device id returned by rdevEthSwitchClient_connect
  * \param regaddr   Register Address to be read from
  * \param pregval   Pointer to register value which will be populated by this function
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_regrd(uint32_t device_id,
                                   uint32_t regaddr,
@@ -198,6 +225,10 @@ int32_t rdevEthSwitchClient_regrd(uint32_t device_id,
  * \param regaddr   Register Address to be read from
  * \param regval    Register value to be written
  * \param post_wr_regval    Pointer to register value after register write populated by this function
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_regwr(uint32_t device_id,
                                   uint32_t regaddr,
@@ -215,6 +246,10 @@ int32_t rdevEthSwitchClient_regwr(uint32_t device_id,
  * \param inargs_len  CPSW IOCTL CMD input arguments length
  * \param outargs     CPSW IOCTL CMD input arguments .Byte array is typecast to the outArgs structure associated with the IOCTL. Populated by this function
  * \param outargs_len CPSW IOCTL CMD output arguments length
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
                                   uint64_t id,
@@ -231,6 +266,10 @@ int32_t rdevEthSwitchClient_ioctl(uint32_t device_id,
  * \param device_id Device id returned by rdevEthSwitchClient_connect
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_detach(uint32_t device_id,
                                    uint64_t id,
@@ -243,6 +282,10 @@ int32_t rdevEthSwitchClient_detach(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param alloc_flow_idx Rx Flow Id to be freed
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_freerx(uint32_t device_id,
                                    uint64_t id,
@@ -256,6 +299,10 @@ int32_t rdevEthSwitchClient_freerx(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param tx_cpsw_psil_dst_id Tx Channel CPSW PSIL Destination thread id to be freed
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_freetx(uint32_t device_id,
                                    uint64_t id,
@@ -269,6 +316,10 @@ int32_t rdevEthSwitchClient_freetx(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param mac_address Destination mac address to be freed
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_freemac(uint32_t device_id,
                                     uint64_t id,
@@ -286,6 +337,10 @@ int32_t rdevEthSwitchClient_freemac(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param default_flow_idx Default Flow Id from to which the default flow will no longer be directed
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_unregisterrxdefault(uint32_t device_id,
                                                 uint64_t id,
@@ -300,6 +355,10 @@ int32_t rdevEthSwitchClient_unregisterrxdefault(uint32_t device_id,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param flow_idx  Flow Id from to which the traffic with the given DST mac address will no longer be directed
  * \param mac_address Destination mac address to be unregistered
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_unregistermac(uint32_t device_id,
                                           uint64_t id,
@@ -319,6 +378,10 @@ int32_t rdevEthSwitchClient_unregistermac(uint32_t device_id,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param flow_idx  Flow Id to which the traffic with the given DST mac address will directed
  * \param mac_address Destination mac address to be registered
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_registermac(uint32_t device_id,
                                         uint64_t id,
@@ -334,6 +397,10 @@ int32_t rdevEthSwitchClient_registermac(uint32_t device_id,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param mac_address Destination mac address .Populated by this function with allocated DST MAC address
  * \param mac_address_len Destination mac address buffer length
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_allocmac(uint32_t device_id,
                                      uint64_t id,
@@ -351,6 +418,10 @@ int32_t rdevEthSwitchClient_allocmac(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param default_flow_idx Default Flow Id from to which the default flow will no longer be directed
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id,
                                               uint64_t id,
@@ -364,6 +435,10 @@ int32_t rdevEthSwitchClient_registerrxdefault(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param rx_flow_allocidx Allocated Rx Flow Index populated by this function
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_allocrx(uint32_t device_id,
                                     uint64_t id,
@@ -377,6 +452,10 @@ int32_t rdevEthSwitchClient_allocrx(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param tx_cpsw_psil_dst_id Allocated Tx Channel CPSW PSIL Destination thread id populated by this function
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_alloctx(uint32_t device_id,
                                     uint64_t id,
@@ -399,6 +478,10 @@ int32_t rdevEthSwitchClient_alloctx(uint32_t device_id,
  * \param tx_mtu_array_size Size of tx_mtu array.Must be sufficient to store MTU size for all priorities supported by the CPSW
  * \param features Pointer to feature bitmap. Bitmask of type RPMSG_KDRV_TP_ETHSWITCH_FEATURE_xxx
  * \param mac_only_port Pointer to MAC-only port. 1-relative MAC-only port number, 0 for non MAC-only ports
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_attach(uint32_t device_id,
                                    uint8_t enetType,
@@ -433,6 +516,10 @@ int32_t rdevEthSwitchClient_attach(uint32_t device_id,
  * \param mac_address  Pointer to allocated destination mac address allocated to remote core populated by this function
  * \param mac_address_len Destination mac address buffer length
  * \param mac_only_port Pointer to MAC-only port. 1-relative MAC-only port number, 0 for non MAC-only ports
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
                                       uint8_t enetType,
@@ -457,6 +544,10 @@ int32_t rdevEthSwitchClient_attachext(uint32_t device_id,
  * \param notify_id Client to server notify id of type enum rpmsg_kdrv_ethswitch_client_notify_type
  * \param notify_info Notify info associated with the notify id
  * \param notify_info_len Notify info length
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id,
                                        u64 id,
@@ -473,6 +564,8 @@ int32_t rdevEthSwitchClient_sendNotify(uint32_t device_id,
  *
  * \param priv      Context Pointer associated with printText call
  * \param data      Formatted string buffer to be printed
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
  */
 uint32_t rdevEthSwitchClient_printText(void *priv,
                                        void *data);
@@ -490,6 +583,10 @@ uint32_t rdevEthSwitchClient_printText(void *priv,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param flow_idx  Flow Id to which the traffic with the given DST mac address will directed
  * \param ether_type Ethertype to be registered
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
                                         uint64_t id,
@@ -505,6 +602,10 @@ int32_t rdevEthSwitchClient_registerethtype(uint32_t device_id,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param flow_idx  Flow Id from to which the traffic with the given DST mac address will no longer be directed
  * \param ether_type Ethertype to be unregistered
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
                                           uint64_t id,
@@ -520,6 +621,10 @@ int32_t rdevEthSwitchClient_unregisterethtype(uint32_t device_id,
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param timerid   Timer Id used for configuring timesync router
  * \param hwPushNum Hardware push number of CPTS
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_registerremotetimer(uint32_t device_id,
                                                 uint64_t id,
@@ -534,6 +639,10 @@ int32_t rdevEthSwitchClient_registerremotetimer(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param hwPushNum Hardware push number of CPTS
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_unregisterremotetimer(uint32_t device_id,
                                                   uint64_t id,
@@ -547,6 +656,10 @@ int32_t rdevEthSwitchClient_unregisterremotetimer(uint32_t device_id,
  * \param id        Unique Opaque Handle returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param core_key  Unique core_key returned by rdevEthSwitchClient_attach/rdevEthSwitchClient_attachext
  * \param enable    Promiscuous mode (enable or disable)
+ *
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK    Success.
+ * \retval RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_EFAIL In case of any error while executing the command
+ *                                                 on the server side or an argument mismatch.
  */
 int32_t rdevEthSwitchClient_setPromiscMode(uint32_t device_id,
                                            uint64_t id,
