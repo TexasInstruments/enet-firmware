@@ -799,6 +799,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     }
 
 #if defined(FREERTOS)
+#if defined(ETHFW_PROXY_ARP_HANDLING)
     /* Initialize lwIP ARP helper */
     if (status == ENET_SOK)
     {
@@ -808,6 +809,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
             appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
         }
     }
+#endif
 #endif
 
     /* Initialize MCM */
@@ -837,8 +839,10 @@ void EthFw_deinit(EthFw_Handle hEthFw)
     EnetAppUtils_assert(hEthFw != NULL);
 
 #if defined(FREERTOS)
+#if defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
     EthFwArpUtils_deinit();
+#endif
 #endif
 
     /* De-initialize MCM */

@@ -1211,8 +1211,10 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
     uint32_t numEntries;
     LLI_INFO *llitable = NULL;
 #elif defined(FREERTOS)
+#if defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
     struct eth_addr hwAddr;
+#endif
 #endif
     bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
@@ -1261,6 +1263,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
         CpswProxyServer_dumpLliTable(llitable, numEntries);
         LLIFreeStaticARPTable(llitable);
 #elif defined(FREERTOS)
+#if defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
         SMEMCPY(&hwAddr, mac_address, ETH_HWADDR_LEN);
 
@@ -1273,6 +1276,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
         {
             EthFwArpUtils_printTable();
         }
+#endif
 #endif
     }
     else
@@ -1297,7 +1301,9 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
     uint32_t numEntries;
     LLI_INFO *llitable = NULL;
 #elif defined(FREERTOS)
+#if defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
+#endif
 #endif
     bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
@@ -1329,6 +1335,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
         CpswProxyServer_dumpLliTable(llitable, numEntries);
         LLIFreeStaticARPTable(llitable);
 #elif defined(FREERTOS)
+#if defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
 
         status = EthFwArpUtils_delAddr(&ip4Addr);
@@ -1340,6 +1347,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
         {
             EthFwArpUtils_printTable();
         }
+#endif
 #endif
     }
     else

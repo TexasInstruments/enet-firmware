@@ -80,5 +80,10 @@ else
   BUILD_ISA_A53=no
 endif
 
+# Proxy ARP handling support
+# Supported Values: yes | no
+ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0)))
+  ETHFW_PROXY_ARP_SUPPORT=no
+endif
 
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)

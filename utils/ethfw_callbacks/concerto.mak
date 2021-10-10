@@ -28,6 +28,11 @@ ifeq ($(TARGET_OS),SYSBIOS)
 else ifeq ($(TARGET_OS),FREERTOS)
   DEFS += MAKEFILE_BUILD FREERTOS
 endif
+
+ifeq ($(ETHFW_PROXY_ARP_SUPPORT),yes)
+  DEFS += ETHFW_PROXY_ARP_HANDLING
+endif
+
 endif
 
 include $(FINALE)

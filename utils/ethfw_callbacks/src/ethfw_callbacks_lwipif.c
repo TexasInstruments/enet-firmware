@@ -120,7 +120,7 @@ typedef struct EthFwCallbacks_RemoteCoreAddrTable_s
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
-
+#if defined(ETHFW_PROXY_ARP_HANDLING)
 static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
                                             uint32_t coreKey,
                                             uint32_t coreId,
@@ -140,7 +140,7 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
 
 static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
                                              struct pbuf *pbuf);
-
+#endif
 /* ========================================================================== */
 /*                          Extern variables                                  */
 /* ========================================================================== */
@@ -177,7 +177,9 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     uint32_t coreId = EnetSoc_getCoreId();
     bool useDefaultFlow = true;    /* Must handle the default flow */
     bool useRingMon = true;
+#if defined(ETHFW_PROXY_ARP_HANDLING)
     int32_t status;
+#endif
 
     /* Get MCM command interface */
     EnetMcm_getCmdIf(enetType, &mcmCmdIf);
@@ -283,6 +285,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                  macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
 
 
+#if defined(ETHFW_PROXY_ARP_HANDLING)
     rxInfo->handlePktFxn = NULL;
 
     /* Open second RX channel/flow for ARP */
@@ -307,6 +310,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     {
         rxInfo->handlePktFxn = EthFwCallbacks_handleArpRxPktFxn;
     }
+#endif
 }
 
 void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
@@ -328,6 +332,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetAppUtils_assert(mcmCmdIf.hMboxCmd != NULL);
     EnetAppUtils_assert(mcmCmdIf.hMboxResponse != NULL);
 
+#if defined(ETHFW_PROXY_ARP_HANDLING)
     /* Tear-down ARP route (RX flow + ALE classifier) */
     rxInfo = &releaseInfo->rxInfo[1U];
     freePktInfo = &releaseInfo->rxFreePkt[1U];
@@ -339,6 +344,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
                                     rxInfo->rxFlowStartIdx,
                                     rxInfo->rxFlowIdx,
                                     freePktInfo);
+#endif
 
     /* Close TX channel */
     EnetQueue_initQ(&fqPktInfoQ);
@@ -375,7 +381,8 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetMcm_releaseHandleInfo(&mcmCmdIf);
 }
 
-int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
+#if defined(ETHFW_PROXY_ARP_HANDLING)
+static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
                                      uint32_t coreKey,
                                      uint32_t coreId,
                                      EnetMcm_HandleInfo *handleInfo,
@@ -579,3 +586,4 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
 
     return handled;
 }
+#endif
