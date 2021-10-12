@@ -129,6 +129,9 @@ extern "C" {
 /*! Max number of AUTOSAR client cores */
 #define ETHFW_AUTOSAR_REMOTE_CLIENT_MAX   (1U)
 
+/*! Size of shared multicast address table */
+#define ETHFW_SHARED_MCAST_LIST_LEN       (8U)
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
@@ -200,6 +203,51 @@ typedef struct EthFw_VirtPortCfg_s
 } EthFw_VirtPortCfg;
 
 /*!
+ * \brief Filter 'add' shared multicast callback.
+ *
+ * Application callback function called when a remote client requests the addition of
+ * a shared multicast address to the filter.
+ *
+ * \param macAddr    Multicast address being added
+ * \param coreId     Remote core id which originated the multicast 'add' request
+ */
+typedef void (*EthFw_FilterAddMacSharedCb)(const uint8_t *macAddr,
+                                           const uint8_t coreId);
+
+/*!
+ * \brief Filter delete shared multicast callback.
+ *
+ * Application callback function called when a remote client requests the deletion of
+ * a shared multicast address from the filter.
+ *
+ * \param macAddr    Multicast address being added
+ * \param coreId     Remote core id which originated the multicast 'remove' request
+ */
+typedef void (*EthFw_FilterDelMacSharedCb)(const uint8_t *macAddr,
+                                           const uint8_t coreId);
+
+/*!
+ * \brief Ethernet Firmware shared multicast fanout configuration.
+ *
+ * Ethernet Firmware configuration parameters for shared multicast fanout.
+ */
+typedef struct EthFw_SharedMcastCfg_s
+{
+    /*! Shared multicast address table */
+    uint8_t macAddrList[ETHFW_SHARED_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
+
+    /*! Number of multicast address actually populated in the shared table.
+     *  Must be < \ref ETHFW_SHARED_MCAST_LIST_LEN */
+    uint32_t numMacAddr;
+
+    /*! Application callback function to handle addition of a shared multicast address. */
+    EthFw_FilterAddMacSharedCb filterAddMacSharedCb;
+
+    /*! Application callback function to handle deletion of a shared multicast address. */
+    EthFw_FilterDelMacSharedCb filterDelMacSharedCb;
+} EthFw_SharedMcastCfg;
+
+/*!
  * \brief Ethernet Firmware configuration
  *
  * Ethernet Firmware configuration parameters.
@@ -230,6 +278,9 @@ typedef struct EthFw_Config_s
     /*! Number of virtual ports accessed by AUTOSAR cores.
      *  Note: Single virtual port is supported for AUTOSAR core */
     uint32_t numAutosarVirtPorts;
+
+    /*! Shared multicast fanout configuration. */
+    EthFw_SharedMcastCfg sharedMcastCfg;
 } EthFw_Config;
 
 /*!

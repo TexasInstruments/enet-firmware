@@ -156,6 +156,9 @@ extern "C" {
 /*! Maximum number of MAC ports */
 #define CPSWPROXYSERVER_MAC_PORT_MAX                  (8U)
 
+/*! Size of shared multicast address table */
+#define CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN         (8U)
+
 /*!
  * \brief Application callback function pointer to initialize Ethernet Firmware data
  *
@@ -224,6 +227,51 @@ typedef struct CpswProxyServer_VirtPortCfg_s
 } CpswProxyServer_VirtPortCfg;
 
 /*!
+ * \brief Filter add shared multicast callback.
+ *
+ * Application callback function called when a remote client requests the addition of
+ * a shared multicast address to the filter.
+ *
+ * \param macAddr    Multicast address being added
+ * \param coreId     Remote core id which originated the multicast 'add' request
+ */
+typedef void (*CpswProxyServer_FilterAddMacSharedCb)(const uint8_t *macAddr,
+                                                     const uint8_t coreId);
+
+/*!
+ * \brief Filter delete shared multicast callback.
+ *
+ * Application callback function called when a remote client requests the deletion of
+ * a shared multicast address from the filter.
+ *
+ * \param macAddr    Multicast address being added
+ * \param coreId     Remote core id which originated the multicast 'remove' request
+ */
+typedef void (*CpswProxyServer_FilterDelMacSharedCb)(const uint8_t *macAddr,
+                                                     const uint8_t coreId);
+
+/*!
+ * \brief Ethernet Firmware shared multicast fanout configuration.
+ *
+ * Ethernet Firmware configuration parameters for shared multicast fanout.
+ */
+typedef struct CpswProxyServer_SharedMcastCfg_s
+{
+    /*! Shared multicast address table */
+    uint8_t macAddrList[CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
+
+    /*! Number of multicast address actually populated in the shared table.
+     *  Must be < \ref CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN */
+    uint32_t numMacAddr;
+
+    /*! Notification function called when a remote client adds a multicast to the filter. */
+    CpswProxyServer_FilterAddMacSharedCb filterAddMacSharedCb;
+
+    /*! Notification function called when a remote client deletes a multicast from the filter. */
+    CpswProxyServer_FilterDelMacSharedCb filterDelMacSharedCb;
+} CpswProxyServer_SharedMcastCfg;
+
+/*!
  * \brief Cpsw Proxy Server Remote Configuration structure
  *
  * Structure passed by application to configure the CPSW Proxy server.
@@ -269,6 +317,9 @@ typedef struct CpswProxyServer_Config_s
 
     /*! Number of MAC ports being enabled */
     uint32_t numMacPorts;
+
+    /*! Shared multicast configuration */
+    CpswProxyServer_SharedMcastCfg sharedMcastCfg;
 } CpswProxyServer_Config_t;
 
 /*!
