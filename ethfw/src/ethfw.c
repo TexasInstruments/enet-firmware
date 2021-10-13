@@ -516,27 +516,33 @@ static void EthFw_setPortMode(void)
         }
     }
 
-    aleMacOnlyPortMask = (macOnlyPortMask << 1U) | CPSW_ALE_HOST_PORT_MASK;
+    aleMacOnlyPortMask = (macOnlyPortMask << 1U);
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
         macPort = gEthFwObj.ports[i].portNum;
+        alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
+        pvidCfg = &aleCfg->portCfg[alePort].pvidCfg;
 
         if ((ENET_MACPORT_MASK(macPort) & macOnlyPortMask) != 0U)
         {
-            alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-            pvidCfg = &aleCfg->portCfg[alePort].pvidCfg;
-
             pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
             pvidCfg->vlanIdInfo.vlanId   = 0U;
-            pvidCfg->vlanMemberList      = aleMacOnlyPortMask;
-            pvidCfg->unregMcastFloodMask = aleMacOnlyPortMask;
-            pvidCfg->regMcastFloodMask   = aleMacOnlyPortMask;
-            pvidCfg->forceUntaggedEgressMask = aleMacOnlyPortMask;
+            pvidCfg->vlanMemberList      = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
+            pvidCfg->unregMcastFloodMask = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
+            pvidCfg->regMcastFloodMask   = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
+            pvidCfg->forceUntaggedEgressMask = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
             pvidCfg->noLearnMask     = 0U;
             pvidCfg->vidIngressCheck = 0U;
             pvidCfg->limitIPNxtHdr   = false;
             pvidCfg->disallowIPFrag  = false;
+        }
+        else
+        {
+            pvidCfg->vlanMemberList      &= ~aleMacOnlyPortMask;
+            pvidCfg->unregMcastFloodMask &= ~aleMacOnlyPortMask;
+            pvidCfg->regMcastFloodMask   &= ~aleMacOnlyPortMask;
+            pvidCfg->forceUntaggedEgressMask &= ~aleMacOnlyPortMask;
         }
     }
 }
