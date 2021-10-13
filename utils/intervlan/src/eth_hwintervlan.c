@@ -98,9 +98,6 @@
 /* ========================================================================== */
 #define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_3)
 #define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_2)
-#define CPSW_TEST_INTERVLAN_VLAN_MEMBER_MASK            (CPSW_ALE_MACPORT_TO_ALEPORT(CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM) | \
-                                                         CPSW_ALE_MACPORT_TO_ALEPORT(CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM) | \
-                                                         CPSW_ALE_HOST_PORT_MASK)
 
 #define CPSW_TEST_INTERVLAN_INGRESS_VLANID              (100)
 #define CPSW_TEST_INTERVLAN_EGRESS_VLANID               (200)
@@ -203,30 +200,30 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].learningCfg.noLearn = FALSE;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].vlanCfg.dropUntagged = FALSE;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.unregMcastFloodMask = 0x0;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.regMcastFloodMask = CPSW_TEST_INTERVLAN_VLAN_MEMBER_MASK;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.forceUntaggedEgressMask = CPSW_TEST_INTERVLAN_VLAN_MEMBER_MASK;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.regMcastFloodMask = CPSW_ALE_ALL_PORTS_MASK;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.forceUntaggedEgressMask = CPSW_ALE_ALL_PORTS_MASK;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.noLearnMask = 0x0;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vidIngressCheck = 0x0;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.limitIPNxtHdr = false;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.disallowIPFrag = false;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_HOSTPORT_PVID;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanMemberList = CPSW_TEST_INTERVLAN_VLAN_MEMBER_MASK;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanMemberList = CPSW_ALE_ALL_PORTS_MASK;
 
     for (i = ENET_MAC_PORT_FIRST; i < CPSW_ALE_NUM_MAC_PORTS; i++)
     {
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].learningCfg.noLearn = FALSE;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].vlanCfg.dropUntagged = FALSE;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.unregMcastFloodMask = 0x0;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.regMcastFloodMask = CPSW_TEST_INTERVLAN_VLAN_MEMBER_MASK;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.forceUntaggedEgressMask = CPSW_TEST_INTERVLAN_VLAN_MEMBER_MASK;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.regMcastFloodMask = CPSW_ALE_ALL_PORTS_MASK;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.forceUntaggedEgressMask = CPSW_ALE_ALL_PORTS_MASK;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.noLearnMask = 0x0;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vidIngressCheck = 0x0;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.limitIPNxtHdr = false;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.disallowIPFrag = false;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(i);
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanMemberList = CPSW_TEST_INTERVLAN_VLAN_MEMBER_MASK;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanMemberList = CPSW_ALE_ALL_PORTS_MASK;
     }
 
     pCpswCfg->hostPortCfg.vlanCfg.portPri = 7;
