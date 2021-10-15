@@ -282,6 +282,66 @@ static void EthApp_netifStatusCb(struct netif *netif);
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1);
 
+#if ETHAPP_ENABLE_INTERCORE_ETH
+static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
+                                        const uint8_t hostId);
+
+static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
+                                        const uint8_t hostId);
+
+/* Array to store coreId to lwip bridge portId map */
+static uint8_t gEthApp_lwipBridgePortIdMap[IPC_MAX_PROCS];
+
+/* Shared multicast address table */
+typedef struct
+{
+    /*! Shared Mcast address */
+    uint8_t macAddr[ENET_MAC_ADDR_LEN];
+    /*! lwIP Bridge port mask */
+    bridgeif_portmask_t portMask;
+} EthApp_sharedMcastAddrTable;
+
+static EthApp_sharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
+{
+    {
+        /* MCast IP ADDR: 224.0.0.1 */
+        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0x01},
+        .portMask= 0x00,
+    },
+    {
+        /* MCast IP ADDR: 224.0.0.251 */
+        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFB},
+        .portMask= 0x00,
+    },
+    {
+        /* MCast IP ADDR: 224.0.0.252 */
+        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFC},
+        .portMask= 0x00,
+    },
+    {
+        /* MCast IP ADDR: 239.255.1.3 */
+        .macAddr = {0x01,0x00,0x5E,0x7F,0x01,0x03},
+        .portMask= 0x00,
+    },
+    {
+        .macAddr = {0x33,0x33,0x00,0x00,0x00,0x01},
+        .portMask= 0x00,
+    },
+    {
+        .macAddr = {0x33,0x33,0xFF,0x1D,0x92,0xC2},
+        .portMask= 0x00,
+    },
+    {
+        .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x00},
+        .portMask= 0x00,
+    },
+    {
+        .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x03},
+        .portMask= 0x00,
+    },
+
+};
+#endif
 #endif
 
 void EthApp_traceBufCacheWb(void);
@@ -750,6 +810,16 @@ static int32_t EthApp_initEthFw(void)
                                      ethFwCfg.ports[i].portNum);
     }
 
+    for (i = 0U; i < ARRAY_SIZE(gEthApp_sharedMcastAddrTable); i++)
+    {
+        EnetUtils_copyMacAddr(&ethFwCfg.sharedMcastCfg.macAddrList[i][0],
+                              &gEthApp_sharedMcastAddrTable[i].macAddr[0]);
+    }
+
+    ethFwCfg.sharedMcastCfg.numMacAddr = ARRAY_SIZE(gEthApp_sharedMcastAddrTable);
+    ethFwCfg.sharedMcastCfg.filterAddMacSharedCb = EthApp_filterAddMacSharedCb;
+    ethFwCfg.sharedMcastCfg.filterDelMacSharedCb = EthApp_filterDelMacSharedCb;
+
     /* Initialize the EthFw */
     gEthAppObj.hEthFw = EthFw_init(gEthAppObj.enetType, &ethFwCfg);
     if (gEthAppObj.hEthFw == NULL)
@@ -954,10 +1024,15 @@ static void EthApp_initNetif(void)
 
     netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
 
-    /* Add all network interfaces to the bridge */
+    /* Add all netifs to the bridge and create coreId to bridge portId map */
     bridgeif_add_port(&netif_bridge, &netif);
+    gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = BRIDGEIF_MAX_PORTS; /* CPU port */
+
     bridgeif_add_port(&netif_bridge, &netif_ic[0]);
+    gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = 1;
+
     bridgeif_add_port(&netif_bridge, &netif_ic[1]);
+    gEthApp_lwipBridgePortIdMap[IPC_MPU1_0] = 2;
 
     /* Set bridge interface as the default */
     netif_set_default(&netif_bridge);
@@ -1189,3 +1264,110 @@ void EthApp_traceBufCacheWb(void)
         }
     }
 }
+
+#if ETHAPP_ENABLE_INTERCORE_ETH
+/* Application callback function to handle addition of a shared mcast
+ * address in the ALE */
+static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
+                                        const uint8_t hostId)
+{
+    uint8_t idx = 0;
+    bridgeif_portmask_t portMask;
+    struct eth_addr ethaddr;
+    bool matchFound = false;
+    int32_t errVal = 0;
+
+    /* Search the mac_address in the shared mcast addr table */
+    for(idx = 0; idx < ETHFW_SHARED_MCAST_LIST_LEN; idx++)
+    {
+        if(EnetUtils_cmpMacAddr(mac_address,
+                    &gEthApp_sharedMcastAddrTable[idx].macAddr[0]))
+        {
+            matchFound = true;
+            /* Read and update stored port mask */
+            portMask = gEthApp_sharedMcastAddrTable[idx].portMask;
+            portMask |= (0x01 << gEthApp_lwipBridgePortIdMap[hostId]);
+            gEthApp_sharedMcastAddrTable[idx].portMask = portMask;
+
+            /* Update bridge fdb entry for this mac_address */
+            EnetUtils_copyMacAddr(&ethaddr.addr[0U], mac_address);
+
+            /* There will be a delay between removing existing FDB entry
+             * and adding the updated one. During this time, multicast
+             * packets will be flodded to all the bridge ports
+             */
+            bridgeif_fdb_remove(&netif_bridge, &ethaddr);
+
+            errVal = bridgeif_fdb_add(&netif_bridge,
+                    &ethaddr,
+                    gEthApp_sharedMcastAddrTable[idx].portMask);
+
+            if(errVal)
+            {
+                appLogPrintf("addMacSharedCb: bridgeif_fdb_add failed\n");
+                return;
+            }
+        }
+    }
+
+    if(!matchFound)
+    {
+        appLogPrintf("addMacSharedCb: Address not found\n");
+    }
+
+}
+
+/* Application callback function to handle deletion of a shared mcast
+ * address from the ALE */
+static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
+                                        const uint8_t hostId)
+{
+    uint8_t idx = 0;
+    bridgeif_portmask_t portMask;
+    struct eth_addr ethaddr;
+    bool matchFound = false;
+    int32_t errVal = 0;
+
+    /* Search the mac_address in the shared mcast addr table */
+    for(idx = 0; idx < ETHFW_SHARED_MCAST_LIST_LEN; idx++)
+    {
+        if(EnetUtils_cmpMacAddr(mac_address,
+                    &gEthApp_sharedMcastAddrTable[idx].macAddr[0]))
+        {
+            matchFound = true;
+            /* Read and update stored port mask */
+            portMask = gEthApp_sharedMcastAddrTable[idx].portMask;
+            portMask &= ~(0x01 << gEthApp_lwipBridgePortIdMap[hostId]);
+            gEthApp_sharedMcastAddrTable[idx].portMask = portMask;
+
+            /* Update bridge fdb entry for this mac_address */
+            EnetUtils_copyMacAddr(&ethaddr.addr[0U], mac_address);
+
+            /* There will be a delay between removing existing FDB entry
+             * and adding the updated one. During this time, multicast
+             * packets will be flodded to all the bridge ports
+             */
+            bridgeif_fdb_remove(&netif_bridge, &ethaddr);
+
+            if(gEthApp_sharedMcastAddrTable[idx].portMask)
+            {
+                errVal = bridgeif_fdb_add(&netif_bridge,
+                        &ethaddr,
+                        gEthApp_sharedMcastAddrTable[idx].portMask);
+            }
+
+            if(errVal)
+            {
+                appLogPrintf("delMacSharedCb: bridgeif_fdb_add failed\n");
+                return;
+            }
+        }
+    }
+
+    if(!matchFound)
+    {
+        appLogPrintf("delMacSharedCb: Address not found\n");
+    }
+
+}
+#endif
