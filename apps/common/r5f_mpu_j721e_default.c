@@ -248,7 +248,7 @@ const CSL_ArmR5MpuRegionCfg  gCslR5MpuCfg[CSL_ARM_R5F_MPU_REGIONS_MAX] =
          */
         .regionId         = 13U,
         .enable           = 1U,
-        .baseAddr         = 0xDF000000,
+        .baseAddr         = 0xAC000000,
         .size             = CSL_ARM_R5_MPU_REGION_SIZE_2MB,
         .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
         .exeNeverControl  = 1U,
@@ -260,12 +260,12 @@ const CSL_ArmR5MpuRegionCfg  gCslR5MpuCfg[CSL_ARM_R5F_MPU_REGIONS_MAX] =
     },
     {
         /* Region 14 configuration:
-         * INTERCORE_ETH_DATA_MEM as cached 8 MB
+         * INTERCORE_ETH_DATA_MEM as cached 16 MB
          */
         .regionId         = 14U,
         .enable           = 1U,
-        .baseAddr         = 0xDF200000,
-        .size             = CSL_ARM_R5_MPU_REGION_SIZE_8MB,
+        .baseAddr         = 0xAC200000,
+        .size             = CSL_ARM_R5_MPU_REGION_SIZE_16MB,
         .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
         .exeNeverControl  = 1U,
         .accessPermission = CSL_ARM_R5_ACC_PERM_PRIV_USR_RD_WR,
