@@ -80,8 +80,8 @@ MEMORY
     APP_LOG_MEM                       : ORIGIN = 0xB8000000 , LENGTH = 0x00040000
     /* Memory for TI OpenVX shared memory. MUST be non-cached or cache-coherent [ size 31.75 MB ] */
     TIOVX_OBJ_DESC_MEM                : ORIGIN = 0xB8040000 , LENGTH = 0x01FC0000
-    /* Memory for IPC Vring's. MUST be non-cached or cache-coherent [ size 32.00 MB ] */
-    IPC_VRING_MEM                     : ORIGIN = 0xA4000000 , LENGTH = 0x02000000
+    /* Memory for IPC Vring's. MUST be non-cached or cache-coherent [ size 8.00 MB ] */
+    IPC_VRING_MEM                     : ORIGIN = 0xA4000000 , LENGTH = 0x00800000
     /* Memory for shared memory buffers in DDR [ size 560.00 MB ] */
     DDR_SHARED_MEM                    : ORIGIN = 0xBC000000 , LENGTH = 0x23000000
     /* Inter-core ethernet shared desc queues. MUST be non-cached or cache-coherent [ size 2 MB ] */

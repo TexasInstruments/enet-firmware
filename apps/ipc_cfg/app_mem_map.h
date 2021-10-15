@@ -151,10 +151,17 @@
 #define TIOVX_OBJ_DESC_MEM_ADDR (0xB8040000u)
 #define TIOVX_OBJ_DESC_MEM_SIZE (0x01FC0000u)
 
+#if defined(SOC_J721E)
 /* Memory for IPC Vring's. MUST be non-cached or cache-coherent [ size 32.00 MB ] */
 #define IPC_VRING_MEM_ADDR (0xAA000000u)
 #define IPC_VRING_MEM_SIZE (0x02000000u)
-
+#elif defined(SOC_J7200)
+/* Memory for IPC Vring's. MUST be non-cached or cache-coherent [ size 8.00 MB ] */
+#define IPC_VRING_MEM_ADDR (0xA4000000u)
+#define IPC_VRING_MEM_SIZE (0x00800000u)
+#else
+#error "Unsupported device"
+#endif
 /* Memory for shared memory buffers in DDR [ size 576.00 MB ] */
 #define DDR_SHARED_MEM_ADDR (0xBC000000u)
 #define DDR_SHARED_MEM_SIZE (0x24000000u)
