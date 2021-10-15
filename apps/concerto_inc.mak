@@ -73,7 +73,7 @@ ifeq ($(TARGET_OS),SYSBIOS)
     IDIRS += $(NS_PATH)/source/ti/net/bsd
 else ifeq ($(TARGET_OS),FREERTOS)
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
-    IDIRS += $(PDK_PATH)/packages/ti/drv/enet/lwipif/ports/freertos/include
+    IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/freertos/include
 endif
 IDIRS += $(PDK_PATH)/packages
 IDIRS += $(REMOTE_DEVICE_PATH)
@@ -88,6 +88,7 @@ else ifeq ($(TARGET_OS),FREERTOS)
     LDIRS += $(PDK_PATH)/packages/ti/kernel/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/lib/${TARGET_OS_FOLDER}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-contrib/lib/${TARGET_OS_FOLDER}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+    LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/lib/${TARGET_OS_FOLDER}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 endif
 LDIRS += $(PDK_PATH)/packages/ti/csl/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/board/lib/${TARGET_BOARD_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
@@ -140,6 +141,7 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     else ifeq ($(TARGET_OS),FREERTOS)
         ADDITIONAL_STATIC_LIBS += lwipstack_freertos.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipcontrib_freertos.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += lwipport_freertos.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipif_freertos.ae$(TARGET_CPU_SUFFIX)
     endif
 
@@ -185,6 +187,7 @@ else ifeq ($(TARGET_OS),FREERTOS)
     PDK_LIB_RULES += freertos
     PDK_LIB_RULES += lwipstack_freertos
     PDK_LIB_RULES += lwipcontrib_freertos
+    PDK_LIB_RULES += lwipport_freertos
     PDK_LIB_RULES += lwipif_freertos
 endif
 PDK_LIB_RULES += udma

@@ -16,7 +16,7 @@ ifeq ($(TARGET_OS),SYSBIOS)
   IDIRS       += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
 else ifeq ($(TARGET_OS),FREERTOS)
   IDIRS       += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
-  IDIRS       += $(PDK_PATH)/packages/ti/drv/enet/lwipif/ports/freertos/include
+  IDIRS       += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/freertos/include
 endif
 IDIRS       += $(PDK_PATH)/packages
 IDIRS       += $(REMOTE_DEVICE_PATH)

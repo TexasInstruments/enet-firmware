@@ -216,13 +216,13 @@ The Enet LLD lwIP driver interface implementation can be located at:
 
 The lwIP configuration file (lwipopts.h) contains the lwIP stack features that are
 enabled by default in the Enet LLD driver implementation, such as TCP, UDP, DHCP, etc.
-It's located at `<pdk>/packages/ti/drv/enet/lwipif/ports/freertos/include/lwipopts.h`.
+It's located at `<pdk>/packages/ti/transport/lwip/lwip-port/freertos/include/lwipopts.h`.
 User should also refer to this file if interested on enabling any of the different
 lwIP debug options.
 
 The lwIP pool configuration file (lwippools.h) contains the different pools and their
 sizes required by the Enet LLD lwIP interface implementation. This file is located at
-`<pdk>/packages/ti/drv/enet/lwipif/ports/freertos/include/lwippools.h`.
+`<pdk>/packages/ti/drv/transport/lwip/lwip-port/freertos/include/lwippools.h`.
 
 #### Ethernet Firmware Proxy ARP {#ethfw_depend_lwip_proxyarp}
 

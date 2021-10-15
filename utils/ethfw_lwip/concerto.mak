@@ -9,7 +9,7 @@ ifeq ($(TARGET_OS),FREERTOS)
 
   IDIRS := ${ETHFW_PATH}
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
-  IDIRS += $(PDK_PATH)/packages/ti/drv/enet/lwipif/ports/freertos/include
+  IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/freertos/include
   IDIRS += $(PDK_PATH)/packages
 
   DEFS += MAKEFILE_BUILD FREERTOS
