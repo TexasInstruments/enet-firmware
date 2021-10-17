@@ -242,4 +242,36 @@ const CSL_ArmR5MpuRegionCfg  gCslR5MpuCfg[CSL_ARM_R5F_MPU_REGIONS_MAX] =
         .cachePolicy      = CSL_ARM_R5_CACHE_POLICY_NON_CACHEABLE,
         .memAttr          = 0U,
     },
+    {
+        /* Region 13 configuration:
+         * INTERCORE_ETH_DESC_MEM as non-cache 2 MB
+         */
+        .regionId         = 13U,
+        .enable           = 1U,
+        .baseAddr         = 0xDF000000,
+        .size             = CSL_ARM_R5_MPU_REGION_SIZE_2MB,
+        .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
+        .exeNeverControl  = 1U,
+        .accessPermission = CSL_ARM_R5_ACC_PERM_PRIV_USR_RD_WR,
+        .shareable        = 1U,
+        .cacheable        = (uint32_t)FALSE,
+        .cachePolicy      = CSL_ARM_R5_CACHE_POLICY_NON_CACHEABLE,
+        .memAttr          = 0U,
+    },
+    {
+        /* Region 14 configuration:
+         * INTERCORE_ETH_DATA_MEM as cached 8 MB
+         */
+        .regionId         = 14U,
+        .enable           = 1U,
+        .baseAddr         = 0xDF200000,
+        .size             = CSL_ARM_R5_MPU_REGION_SIZE_8MB,
+        .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
+        .exeNeverControl  = 1U,
+        .accessPermission = CSL_ARM_R5_ACC_PERM_PRIV_USR_RD_WR,
+        .shareable        = 1U,
+        .cacheable        = (uint32_t)TRUE,
+        .cachePolicy      = CSL_ARM_R5_CACHE_POLICY_WB_WA,
+        .memAttr          = 0U,
+    },
 };

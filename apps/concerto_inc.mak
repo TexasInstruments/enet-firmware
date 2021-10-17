@@ -143,6 +143,8 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
         ADDITIONAL_STATIC_LIBS += lwipcontrib_freertos.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipport_freertos.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipif_freertos.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += lwipific_freertos.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += intercore.ae$(TARGET_CPU_SUFFIX)
     endif
 
     ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
@@ -189,6 +191,8 @@ else ifeq ($(TARGET_OS),FREERTOS)
     PDK_LIB_RULES += lwipcontrib_freertos
     PDK_LIB_RULES += lwipport_freertos
     PDK_LIB_RULES += lwipif_freertos
+    PDK_LIB_RULES += lwipific_freertos
+    PDK_LIB_RULES += intercore
 endif
 PDK_LIB_RULES += udma
 PDK_LIB_RULES += csl

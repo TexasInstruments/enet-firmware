@@ -130,6 +130,7 @@
 #include "lwip/sys.h"
 #include "lwip/tcpip.h"
 #include "lwip/netif.h"
+#include "lwip/netifapi.h"
 #include "lwip/api.h"
 
 #include "lwip/tcp.h"
@@ -139,8 +140,16 @@
 /* lwIP netif includes */
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
+#include "netif/bridgeif.h"
 
 #include <ti/drv/enet/lwipif/inc/default_netif.h>
+#include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
+
+#define ETHAPP_ENABLE_INTERCORE_ETH 1
+#if ETHAPP_ENABLE_INTERCORE_ETH
+#include <ti/drv/enet/lwipific/inc/lwip2enet_ic.h>
+#include <ti/drv/enet/lwipific/inc/lwip2lwipif_ic.h>
+#endif
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
 #endif
@@ -272,6 +281,7 @@ static void EthApp_initNetif(void);
 static void EthApp_netifStatusCb(struct netif *netif);
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1);
+
 #endif
 
 void EthApp_traceBufCacheWb(void);
@@ -421,6 +431,26 @@ static uint32_t gEthAppRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
 };
 #endif
+
+#if defined (FREERTOS)
+static struct netif netif;
+#if ETHAPP_ENABLE_INTERCORE_ETH
+static struct netif netif_ic[2];
+static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
+{
+    IC_ETH_IF_MCU2_0_MCU2_1,
+    IC_ETH_IF_MCU2_1_MCU2_0,
+    IC_ETH_IF_MCU2_0_A72
+};
+
+static struct netif netif_bridge;
+bridgeif_initdata_t bridge_initdata;
+
+#define ETHAPP_LWIP_BRIDGE_MAX_PORTS (4)
+#define ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES (32)
+#define ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES (8)
+#endif /* ETHAPP_ENABLE_INTERCORE_ETH */
+#endif /* FREERTOS */
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -834,6 +864,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     /* Save host port MAC address */
     EnetUtils_copyMacAddr(&gEthAppObj.hostMacAddr[0U],
                           &outArgs->rxInfo[0U].macAddr[0U]);
+
 }
 
 void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
@@ -882,6 +913,7 @@ static void EthApp_initLwip(void *arg)
 
 static void EthApp_initNetif(void)
 {
+
     ip4_addr_t ipaddr, netmask, gw;
 #if ETHAPP_LWIP_USE_DHCP
     err_t err;
@@ -900,13 +932,52 @@ static void EthApp_initNetif(void)
     appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
-    init_default_netif(&ipaddr, &netmask, &gw);
+#if ETHAPP_ENABLE_INTERCORE_ETH
+    /* Create Enet LLD ethernet interface */
+    netif_add(&netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
+
+    /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU2_1 */
+    netif_add(&netif_ic[0], NULL, NULL, NULL,
+              (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_MCU2_1],
+              LWIPIF_LWIP_IC_init, tcpip_input);
+
+    /* Create inter-core virtual ethernet interface: MCU2_0 <-> A72 */
+    netif_add(&netif_ic[1], NULL, NULL, NULL,
+              (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_A72],
+              LWIPIF_LWIP_IC_init, tcpip_input);
+
+    /* Create bridge interface */
+    bridge_initdata.max_ports = ETHAPP_LWIP_BRIDGE_MAX_PORTS;
+    bridge_initdata.max_fdb_dynamic_entries = ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES;
+    bridge_initdata.max_fdb_static_entries = ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES;
+    EnetUtils_copyMacAddr(&bridge_initdata.ethaddr.addr[0U], &gEthAppObj.hostMacAddr[0U]);
+
+    netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
+
+    /* Add all network interfaces to the bridge */
+    bridgeif_add_port(&netif_bridge, &netif);
+    bridgeif_add_port(&netif_bridge, &netif_ic[0]);
+    bridgeif_add_port(&netif_bridge, &netif_ic[1]);
+
+    /* Set bridge interface as the default */
+    netif_set_default(&netif_bridge);
+#else
+    netif_add(&netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+    netif_set_default(&netif);
+#endif
 
     netif_set_status_callback(netif_default, EthApp_netifStatusCb);
 
     dhcp_set_struct(netif_default, &gEthAppObj.dhcpNetif);
 
+#if ETHAPP_ENABLE_INTERCORE_ETH
+    netif_set_up(&netif);
+    netif_set_up(&netif_ic[0]);
+    netif_set_up(&netif_ic[1]);
+    netif_set_up(&netif_bridge);
+#else
     netif_set_up(netif_default);
+#endif
 
 #if ETHAPP_LWIP_USE_DHCP
     err = dhcp_start(netif_default);
@@ -969,6 +1040,7 @@ static void EthApp_traceBufFlush(void* arg0, void* arg1)
         EthApp_traceBufCacheWb();
     }
 }
+
 #else /* !FREERTOS */
 void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
                              NimuEnetAppIf_GetHandleOutArgs *outArgs)

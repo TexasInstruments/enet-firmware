@@ -112,6 +112,7 @@
 #include "lwip/sys.h"
 #include "lwip/tcpip.h"
 #include "lwip/netif.h"
+#include "lwip/netifapi.h"
 #include "lwip/api.h"
 
 #include "lwip/tcp.h"
@@ -121,8 +122,18 @@
 /* lwIP netif includes */
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
+#include "netif/bridgeif.h"
 
 #include <ti/drv/enet/lwipif/inc/default_netif.h>
+#include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
+
+#define ETHAPP_ENABLE_INTERCORE_ETH 1
+#if ETHAPP_ENABLE_INTERCORE_ETH
+#include <ti/drv/enet/lwipific/inc/netif_ic.h>
+#include <ti/drv/enet/lwipific/inc/lwip2enet_ic.h>
+#include <ti/drv/enet/lwipific/inc/lwip2lwipif_ic.h>
+#endif
+
 #endif
 
 #if defined (FREERTOS)
@@ -242,6 +253,25 @@ static uint32_t gRemoteProc[] =
 };
 #endif
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
+
+#if defined(FREERTOS)
+#if ETHAPP_ENABLE_INTERCORE_ETH
+static struct netif netif_ic;
+static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
+{
+    IC_ETH_IF_MCU2_0_MCU2_1,
+    IC_ETH_IF_MCU2_1_MCU2_0,
+    IC_ETH_IF_MCU2_0_A72
+};
+
+struct netif netif_bridge;
+bridgeif_initdata_t bridge_initdata;
+
+#define ETHAPP_LWIP_BRIDGE_MAX_PORTS (4)
+#define ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES (32)
+#define ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES (8)
+#endif /* ETHAPP_ENABLE_INTERCORE_ETH */
+#endif /* FREERTOS */
 
 #if defined (SYSBIOS)
 #define ENABLE_NDKSERVERS
@@ -477,7 +507,9 @@ static void EthApp_initLwip(void *arg);
 
 static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif);
 
-static void EthApp_netifStatusCb(struct netif *netif);
+static void EthApp_virtNetifStatusCb(struct netif *netif);
+
+static void EthApp_lwipNetifStatusCb(struct netif *netif);
 #endif
 
 // hack for release mode build fix TODO fix this
@@ -1178,29 +1210,86 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
-    netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
-
-    if (virtNetif->isDfltNetif)
+    if(EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
     {
-        netif_set_default(netif);
-    }
+#if ETHAPP_ENABLE_INTERCORE_ETH
+        /* Create Enet LLD ethernet interface */
+        netif_add(netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
 
-    netif_set_status_callback(netif, EthApp_netifStatusCb);
+        /* Create inter-core virtual ethernet interface: MCU2_1 <-> MCU2_0 */
+        netif_add(&netif_ic, NULL, NULL, NULL,
+                  (void*)&netif_ic_state[IC_ETH_IF_MCU2_1_MCU2_0],
+                  LWIPIF_LWIP_IC_init, tcpip_input);
 
-    dhcp_set_struct(netif, &virtNetif->dhcpNetif);
+        /* Create bridge interface */
+        bridge_initdata.max_ports = ETHAPP_LWIP_BRIDGE_MAX_PORTS;
+        bridge_initdata.max_fdb_dynamic_entries = ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES;
+        bridge_initdata.max_fdb_static_entries = ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES;
+        EnetUtils_copyMacAddr(&bridge_initdata.ethaddr.addr[0U], &virtNetif->macAddr[0U]);
 
-    netif_set_up(netif);
+        netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
+
+        /* Add all network interfaces to the bridge */
+        bridgeif_add_port(&netif_bridge, netif);
+        bridgeif_add_port(&netif_bridge, &netif_ic);
+
+        /* Set bridge interface as the default */
+        netif_set_default(&netif_bridge);
+        netif_set_status_callback(&netif_bridge, EthApp_lwipNetifStatusCb);
+#else
+        netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+
+        if (virtNetif->isDfltNetif)
+        {
+            netif_set_default(netif);
+        }
+#endif
+        netif_set_status_callback(netif, EthApp_virtNetifStatusCb);
+
+        dhcp_set_struct(netif_default, &virtNetif->dhcpNetif);
+
+        netif_set_up(netif);
+#if ETHAPP_ENABLE_INTERCORE_ETH
+        netif_set_up(&netif_ic);
+        netif_set_up(&netif_bridge);
+#endif
 
 #if ETHAPP_LWIP_USE_DHCP
-    err = dhcp_start(netif);
-    if (err != ERR_OK)
-    {
-        appLogPrintf("Failed to start DHCP: %d\n", err);
-    }
+        err = dhcp_start(netif_default);
+        if (err != ERR_OK)
+        {
+            appLogPrintf("Failed to start DHCP: %d\n", err);
+        }
 #endif /* ETHAPP_LWIP_USE_DHCP */
+    }
+    else
+    {
+        netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+
+        if (virtNetif->isDfltNetif)
+        {
+            netif_set_default(netif);
+        }
+
+        netif_set_status_callback(netif, EthApp_virtNetifStatusCb);
+
+        dhcp_set_struct(netif, &virtNetif->dhcpNetif);
+
+        netif_set_up(netif);
+
+#if ETHAPP_LWIP_USE_DHCP
+        err = dhcp_start(netif);
+        if (err != ERR_OK)
+        {
+            appLogPrintf("Failed to start DHCP: %d\n", err);
+        }
+#endif /* ETHAPP_LWIP_USE_DHCP */
+    }
+
+
 }
 
-static void EthApp_netifStatusCb(struct netif *netif)
+static void EthApp_virtNetifStatusCb(struct netif *netif)
 {
     CpswRemoteApp_VirtNetif *virtNetif;
 
@@ -1232,17 +1321,36 @@ static void EthApp_netifStatusCb(struct netif *netif)
                                            virtNetif->ipv4Addr);
             }
 
-            /* Init time synchronization */
-            if (virtNetif->hwPushNum != CPSW_CPTS_HWPUSH_INVALID)
-            {
-                CpswRemoteApp_initSyncTimer(virtNetif);
-            }
         }
+
+        /* Init time synchronization */
+        if (virtNetif->hwPushNum != CPSW_CPTS_HWPUSH_INVALID)
+        {
+            CpswRemoteApp_initSyncTimer(virtNetif);
+        }
+
     }
     else
     {
         appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
     }
+}
+
+static void EthApp_lwipNetifStatusCb(struct netif *netif)
+{
+
+    if (netif_is_up(netif))
+    {
+        const ip4_addr_t *ipAddr = netif_ip4_addr(netif);
+
+        appLogPrintf("Added interface '%c%c%d', IP is %s\n",
+                     netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
+    }
+    else
+    {
+        appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
+    }
+
 }
 
 static void CpswRemoteApp_openLwipRxCh(CpswProxy_Handle hProxy,
