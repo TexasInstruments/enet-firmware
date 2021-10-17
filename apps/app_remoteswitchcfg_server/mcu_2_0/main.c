@@ -145,8 +145,7 @@
 #include <ti/drv/enet/lwipif/inc/default_netif.h>
 #include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
 
-#define ETHAPP_ENABLE_INTERCORE_ETH 1
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 #include <ti/drv/enet/lwipific/inc/lwip2enet_ic.h>
 #include <ti/drv/enet/lwipific/inc/lwip2lwipif_ic.h>
 #endif
@@ -200,6 +199,27 @@
 #define ETHFW_SERVER_GW(addr)           IP4_ADDR((addr), 192,168,1,1)
 #define ETHFW_SERVER_NETMASK(addr)      IP4_ADDR((addr), 255,255,255,0)
 #endif
+
+/* BridgeIf configuration parameters */
+#define ETHAPP_LWIP_BRIDGE_MAX_PORTS (4U)
+#define ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES (32U)
+#define ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES (8U)
+
+/* BridgeIf port IDs
+ * Used for creating CoreID to Bridge PortId Map
+ */
+#define ETHAPP_BRIDGEIF_PORT1_ID        (1U)
+#define ETHAPP_BRIDGEIF_PORT2_ID        (2U)
+#define ETHAPP_BRIDGEIF_CPU_PORT_ID     BRIDGEIF_MAX_PORTS
+
+/* Inter-core netif IDs */
+#define ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX   (0U)
+#define ETHAPP_NETIF_IC_MCU2_0_A72_IDX      (1U)
+#define ETHAPP_NETIF_IC_MAX_IDX             (2U)
+
+/* Max length of shared mcast address list */
+#define ETHAPP_MAX_SHARED_MCAST_ADDR        (8U)
+
 #endif
 
 /* Define A72_QNX_OS if A72 is running Qnx. Qnx doesn't load resource table. */
@@ -282,7 +302,7 @@ static void EthApp_netifStatusCb(struct netif *netif);
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1);
 
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
                                         const uint8_t hostId);
 
@@ -299,45 +319,46 @@ typedef struct
     uint8_t macAddr[ENET_MAC_ADDR_LEN];
     /*! lwIP Bridge port mask */
     bridgeif_portmask_t portMask;
-} EthApp_sharedMcastAddrTable;
+} EthApp_SharedMcastAddrTable;
 
-static EthApp_sharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
+/* Must not exceed ETHAPP_MAX_SHARED_MCAST_ADDR entries */
+static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
 {
     {
         /* MCast IP ADDR: 224.0.0.1 */
         .macAddr = {0x01,0x00,0x5E,0x00,0x00,0x01},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
     {
         /* MCast IP ADDR: 224.0.0.251 */
         .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFB},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
     {
         /* MCast IP ADDR: 224.0.0.252 */
         .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFC},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
     {
         /* MCast IP ADDR: 239.255.1.3 */
         .macAddr = {0x01,0x00,0x5E,0x7F,0x01,0x03},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
     {
         .macAddr = {0x33,0x33,0x00,0x00,0x00,0x01},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
     {
         .macAddr = {0x33,0x33,0xFF,0x1D,0x92,0xC2},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
     {
         .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x00},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
     {
         .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x03},
-        .portMask= 0x00,
+        .portMask= 0U,
     },
 
 };
@@ -492,10 +513,11 @@ static uint32_t gEthAppRemoteProc[] =
 };
 #endif
 
-#if defined (FREERTOS)
+#if defined(FREERTOS)
 static struct netif netif;
-#if ETHAPP_ENABLE_INTERCORE_ETH
-static struct netif netif_ic[2];
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
+static struct netif netif_ic[ETHAPP_NETIF_IC_MAX_IDX];
+
 static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
 {
     IC_ETH_IF_MCU2_0_MCU2_1,
@@ -505,10 +527,6 @@ static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
 
 static struct netif netif_bridge;
 bridgeif_initdata_t bridge_initdata;
-
-#define ETHAPP_LWIP_BRIDGE_MAX_PORTS (4)
-#define ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES (32)
-#define ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES (8)
 #endif /* ETHAPP_ENABLE_INTERCORE_ETH */
 #endif /* FREERTOS */
 
@@ -810,24 +828,37 @@ static int32_t EthApp_initEthFw(void)
                                      ethFwCfg.ports[i].portNum);
     }
 
-    for (i = 0U; i < ARRAY_SIZE(gEthApp_sharedMcastAddrTable); i++)
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
+    if (ARRAY_SIZE(gEthApp_sharedMcastAddrTable) > ETHAPP_MAX_SHARED_MCAST_ADDR)
     {
-        EnetUtils_copyMacAddr(&ethFwCfg.sharedMcastCfg.macAddrList[i][0],
-                              &gEthApp_sharedMcastAddrTable[i].macAddr[0]);
-    }
-
-    ethFwCfg.sharedMcastCfg.numMacAddr = ARRAY_SIZE(gEthApp_sharedMcastAddrTable);
-    ethFwCfg.sharedMcastCfg.filterAddMacSharedCb = EthApp_filterAddMacSharedCb;
-    ethFwCfg.sharedMcastCfg.filterDelMacSharedCb = EthApp_filterDelMacSharedCb;
-
-    /* Initialize the EthFw */
-    gEthAppObj.hEthFw = EthFw_init(gEthAppObj.enetType, &ethFwCfg);
-    if (gEthAppObj.hEthFw == NULL)
-    {
-        appLogPrintf("ETHFW: failed to initialize the firmware\n");
+        appLogPrintf("ETHFW error: No. of shared mcast addr cannot exceed %d\n",
+                    ETHAPP_MAX_SHARED_MCAST_ADDR);
         status = ETHAPP_ERROR;
     }
+    else
+    {
+        for (i = 0U; i < ARRAY_SIZE(gEthApp_sharedMcastAddrTable); i++)
+        {
+            EnetUtils_copyMacAddr(&ethFwCfg.sharedMcastCfg.macAddrList[i][0],
+                                  &gEthApp_sharedMcastAddrTable[i].macAddr[0]);
+        }
 
+        ethFwCfg.sharedMcastCfg.numMacAddr = ARRAY_SIZE(gEthApp_sharedMcastAddrTable);
+        ethFwCfg.sharedMcastCfg.filterAddMacSharedCb = EthApp_filterAddMacSharedCb;
+        ethFwCfg.sharedMcastCfg.filterDelMacSharedCb = EthApp_filterDelMacSharedCb;
+    }
+#endif
+
+    /* Initialize the EthFw */
+    if (status == ETHAPP_OK)
+    {
+        gEthAppObj.hEthFw = EthFw_init(gEthAppObj.enetType, &ethFwCfg);
+        if (gEthAppObj.hEthFw == NULL)
+        {
+            appLogPrintf("ETHFW: failed to initialize the firmware\n");
+            status = ETHAPP_ERROR;
+        }
+    }
     /* Get and print EthFw version */
     if (status == ETHAPP_OK)
     {
@@ -983,7 +1014,6 @@ static void EthApp_initLwip(void *arg)
 
 static void EthApp_initNetif(void)
 {
-
     ip4_addr_t ipaddr, netmask, gw;
 #if ETHAPP_LWIP_USE_DHCP
     err_t err;
@@ -1002,17 +1032,17 @@ static void EthApp_initNetif(void)
     appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
     /* Create Enet LLD ethernet interface */
     netif_add(&netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
 
     /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU2_1 */
-    netif_add(&netif_ic[0], NULL, NULL, NULL,
+    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], NULL, NULL, NULL,
               (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_MCU2_1],
               LWIPIF_LWIP_IC_init, tcpip_input);
 
     /* Create inter-core virtual ethernet interface: MCU2_0 <-> A72 */
-    netif_add(&netif_ic[1], NULL, NULL, NULL,
+    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX], NULL, NULL, NULL,
               (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_A72],
               LWIPIF_LWIP_IC_init, tcpip_input);
 
@@ -1026,13 +1056,13 @@ static void EthApp_initNetif(void)
 
     /* Add all netifs to the bridge and create coreId to bridge portId map */
     bridgeif_add_port(&netif_bridge, &netif);
-    gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = BRIDGEIF_MAX_PORTS; /* CPU port */
+    gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = ETHAPP_BRIDGEIF_CPU_PORT_ID;
 
     bridgeif_add_port(&netif_bridge, &netif_ic[0]);
-    gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = 1;
+    gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = ETHAPP_BRIDGEIF_PORT1_ID;
 
     bridgeif_add_port(&netif_bridge, &netif_ic[1]);
-    gEthApp_lwipBridgePortIdMap[IPC_MPU1_0] = 2;
+    gEthApp_lwipBridgePortIdMap[IPC_MPU1_0] = ETHAPP_BRIDGEIF_PORT2_ID;
 
     /* Set bridge interface as the default */
     netif_set_default(&netif_bridge);
@@ -1045,10 +1075,10 @@ static void EthApp_initNetif(void)
 
     dhcp_set_struct(netif_default, &gEthAppObj.dhcpNetif);
 
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
     netif_set_up(&netif);
-    netif_set_up(&netif_ic[0]);
-    netif_set_up(&netif_ic[1]);
+    netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX]);
+    netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX]);
     netif_set_up(&netif_bridge);
 #else
     netif_set_up(netif_default);
@@ -1265,7 +1295,7 @@ void EthApp_traceBufCacheWb(void)
     }
 }
 
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 /* Application callback function to handle addition of a shared mcast
  * address in the ALE */
 static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
@@ -1278,9 +1308,9 @@ static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
     int32_t errVal = 0;
 
     /* Search the mac_address in the shared mcast addr table */
-    for(idx = 0; idx < ETHFW_SHARED_MCAST_LIST_LEN; idx++)
+    for (idx = 0; idx < ETHFW_SHARED_MCAST_LIST_LEN; idx++)
     {
-        if(EnetUtils_cmpMacAddr(mac_address,
+        if (EnetUtils_cmpMacAddr(mac_address,
                     &gEthApp_sharedMcastAddrTable[idx].macAddr[0]))
         {
             matchFound = true;
@@ -1299,22 +1329,25 @@ static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
             bridgeif_fdb_remove(&netif_bridge, &ethaddr);
 
             errVal = bridgeif_fdb_add(&netif_bridge,
-                    &ethaddr,
-                    gEthApp_sharedMcastAddrTable[idx].portMask);
+                                      &ethaddr,
+                                      gEthApp_sharedMcastAddrTable[idx].portMask);
 
-            if(errVal)
+            if (errVal)
             {
-                appLogPrintf("addMacSharedCb: bridgeif_fdb_add failed\n");
-                return;
+                appLogPrintf("addMacSharedCb: bridgeif_fdb_add failed (%d)\n", errVal);
             }
+
+            /* The array should have unique mcast addresses,
+             * so no other match is expected
+             */
+            break;
         }
     }
 
-    if(!matchFound)
+    if (!matchFound)
     {
         appLogPrintf("addMacSharedCb: Address not found\n");
     }
-
 }
 
 /* Application callback function to handle deletion of a shared mcast
@@ -1329,9 +1362,9 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
     int32_t errVal = 0;
 
     /* Search the mac_address in the shared mcast addr table */
-    for(idx = 0; idx < ETHFW_SHARED_MCAST_LIST_LEN; idx++)
+    for (idx = 0; idx < ETHFW_SHARED_MCAST_LIST_LEN; idx++)
     {
-        if(EnetUtils_cmpMacAddr(mac_address,
+        if (EnetUtils_cmpMacAddr(mac_address,
                     &gEthApp_sharedMcastAddrTable[idx].macAddr[0]))
         {
             matchFound = true;
@@ -1349,25 +1382,28 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
              */
             bridgeif_fdb_remove(&netif_bridge, &ethaddr);
 
-            if(gEthApp_sharedMcastAddrTable[idx].portMask)
+            if (gEthApp_sharedMcastAddrTable[idx].portMask)
             {
                 errVal = bridgeif_fdb_add(&netif_bridge,
-                        &ethaddr,
-                        gEthApp_sharedMcastAddrTable[idx].portMask);
+                                          &ethaddr,
+                                          gEthApp_sharedMcastAddrTable[idx].portMask);
             }
 
-            if(errVal)
+            if (errVal)
             {
-                appLogPrintf("delMacSharedCb: bridgeif_fdb_add failed\n");
-                return;
+                appLogPrintf("delMacSharedCb: bridgeif_fdb_add failed (%d)\n", errVal);
             }
+
+            /* The array should have unique mcast addresses,
+             * so no other match is expected
+             */
+            break;
         }
     }
 
-    if(!matchFound)
+    if (!matchFound)
     {
         appLogPrintf("delMacSharedCb: Address not found\n");
     }
-
 }
 #endif

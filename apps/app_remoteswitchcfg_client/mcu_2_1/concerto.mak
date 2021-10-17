@@ -59,6 +59,12 @@ else ifeq ($(TARGET_OS),FREERTOS)
   ENET_APPUTILS_LIB = enet_example_utils_freertos
 endif
 
+ifeq ($(TARGET_OS),FREERTOS)
+  ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
+    DEFS += ETHAPP_ENABLE_INTERCORE_ETH
+  endif
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 endif

@@ -86,4 +86,10 @@ ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0)))
   ETHFW_PROXY_ARP_SUPPORT=no
 endif
 
+# Inter-core virtual ethernet support
+# Supported Values: yes | no
+ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1)))
+  ETHFW_INTERCORE_ETH_SUPPORT=yes
+endif
+
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)
