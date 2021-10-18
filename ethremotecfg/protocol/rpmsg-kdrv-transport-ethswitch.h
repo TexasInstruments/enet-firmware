@@ -585,6 +585,9 @@ enum rpmsg_kdrv_ethswitch_client_notify_type
 
 /*! Feature: MAC-only mode enabled */
 #define RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY    (1 << 2)
+
+/*! Feature: Multicast filter enabled */
+#define RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MC_FILTER   (1 << 3)
 /*  @} */
 
 /*!

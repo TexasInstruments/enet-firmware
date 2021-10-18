@@ -500,6 +500,7 @@ static int32_t CpswProxyServer_attachHandlerCb(EthRemoteCfg_VirtPort virtPort,
         }
         else
         {
+            *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MC_FILTER;
             *pMacOnlyPort = 0U;
         }
 
@@ -1475,6 +1476,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(EthRemoteCfg_VirtPort virtPort
         }
         else
         {
+            *pFeatures |= RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MC_FILTER;
             *pMacOnlyPort = 0U;
         }
     }
