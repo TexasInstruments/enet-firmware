@@ -13,7 +13,7 @@ To cross compile for the EVM run:<br>
     $ make CROSS_COMPILE=aarch64-none-linux-gnu-
 ```
 Then, copy the following files:<br>
-cleantapif.sh    J7ic.conflaunch_tap.service    tapif    tapif.sh    Makefile<br>
+cleantapif.sh    J7ic.conf    launch_tap.service    tapif    tapif.sh    Makefile<br>
 to the EVM and run:<br>
 ```shell
     $ make install
