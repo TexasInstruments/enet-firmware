@@ -340,11 +340,6 @@ static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
         .portMask= 0U,
     },
     {
-        /* MCast IP ADDR: 239.255.1.3 */
-        .macAddr = {0x01,0x00,0x5E,0x7F,0x01,0x03},
-        .portMask= 0U,
-    },
-    {
         .macAddr = {0x33,0x33,0x00,0x00,0x00,0x01},
         .portMask= 0U,
     },
@@ -360,7 +355,6 @@ static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
         .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x03},
         .portMask= 0U,
     },
-
 };
 #endif
 #endif
