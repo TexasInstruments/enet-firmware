@@ -78,7 +78,6 @@ extern "C" {
 #endif
 
 #include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
-#include <ti/drv/enet/nimuenet/ndk2enet_appif.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
