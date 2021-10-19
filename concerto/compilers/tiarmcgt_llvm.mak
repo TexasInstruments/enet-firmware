@@ -115,7 +115,7 @@ $(_MODULE)_LIBRARIES:= $(foreach ldir,$($(_MODULE)_LDIRS),-L$(ldir)) \
                        $(foreach lib,$(ADDITIONAL_STATIC_LIBS),-l$(lib)) \
                        $(LINK_END_GROUP)
 $(_MODULE)_AFLAGS   := $($(_MODULE)_INCLUDES)
-$(_MODULE)_LDFLAGS  += $($(_MODULE)_LOPT) --zero_init=on --rom_model
+$(_MODULE)_LDFLAGS  += $($(_MODULE)_LOPT) --zero_init=on --rom_model --diag_suppress=10063-D
 $(_MODULE)_CPLDFLAGS := $(foreach ldf,$($(_MODULE)_LDFLAGS),-Wl,$(ldf)) $(TARGET_CPU_FLAGS) $($(_MODULE)_LINKER_CMD_FILES)
 $(_MODULE)_CFLAGS   := -c $($(_MODULE)_INCLUDES) $($(_MODULE)_DEFINES) $($(_MODULE)_COPT) $(CFLAGS) -ffunction-sections
 
