@@ -159,6 +159,9 @@ extern "C" {
 /*! Size of shared multicast address table */
 #define CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN         (8U)
 
+/*! Size of reserved multicast address table */
+#define CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN           (4U)
+
 /*!
  * \brief Application callback function pointer to initialize Ethernet Firmware data
  *
@@ -272,6 +275,23 @@ typedef struct CpswProxyServer_SharedMcastCfg_s
 } CpswProxyServer_SharedMcastCfg;
 
 /*!
+ * \brief Ethernet Firmware reserved multicast configuration.
+ *
+ * Ethernet Firmware configuration parameters for reserved multicast addresses, that is,
+ * multicast addresses that are restricted to Ethernet Firmware only.  Requests from
+ * remote clients to add any of these multicast addresses to the filter will be rejected.
+ */
+typedef struct CpswProxyServer_RsvdMcastCfg_s
+{
+    /*! Reserved multicast address table */
+    uint8_t macAddrList[CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
+
+    /*! Number of multicast address actually populated in the reserved address table.
+     *  Must be < \ref CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN */
+    uint32_t numMacAddr;
+} CpswProxyServer_RsvdMcastCfg;
+
+/*!
  * \brief Cpsw Proxy Server Remote Configuration structure
  *
  * Structure passed by application to configure the CPSW Proxy server.
@@ -320,6 +340,9 @@ typedef struct CpswProxyServer_Config_s
 
     /*! Shared multicast configuration */
     CpswProxyServer_SharedMcastCfg sharedMcastCfg;
+
+    /*! Reserved multicast configuration */
+    CpswProxyServer_RsvdMcastCfg rsvdMcastCfg;
 } CpswProxyServer_Config_t;
 
 /*!

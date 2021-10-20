@@ -197,6 +197,7 @@ typedef struct CpswProxyServer_Obj_s
     SemaphoreP_Handle                     rdevStartSem;
     CpswProxyServer_EthDriverObj          ethDrvObj;
     CpswProxyServer_NotifyServiceObj      notifyServiceObj;
+    CpswProxyServer_RsvdMcastCfg          rsvdMcastTbl;
     CpswProxyServer_SharedMcastTable      sharedMcastTbl;
     CpswProxyServer_FilterAddMacSharedCb  filterAddMacSharedCb;
     CpswProxyServer_FilterDelMacSharedCb  filterDelMacSharedCb;
@@ -2094,6 +2095,26 @@ static int32_t CpswProxyServer_filterDelMacShared(CpswProxyServer_Obj *hProxySer
     return status;
 }
 
+static bool CpswProxyServer_isRsvdMcast(CpswProxyServer_Obj *hProxyServer,
+                                        const uint8_t *mac_address)
+
+{
+    uint32_t i;
+    bool isRsvd = false;
+
+    for (i = 0U; i < hProxyServer->rsvdMcastTbl.numMacAddr; i++)
+    {
+        if (EnetUtils_cmpMacAddr(&hProxyServer->rsvdMcastTbl.macAddrList[i][0U], mac_address))
+        {
+            appLogPrintf("%s: Reserved mcast cannot be added to filter\n", __func__);
+            isRsvd = true;
+            break;
+        }
+    }
+
+    return isRsvd;
+}
+
 static CpswProxyServer_SharedMcastEntry *CpswProxyServer_getSharedMcastEntry(CpswProxyServer_Obj *hProxyServer,
                                                                              const uint8_t *mac_address)
 {
@@ -2152,7 +2173,8 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(EthRemoteCfg_VirtPort virtP
         status = CPSWPROXYSERVER_EINVALIDPARAMS;
     }
 
-    if (status == CPSWPROXYSERVER_SOK)
+    if ((status == CPSWPROXYSERVER_SOK) &&
+        !CpswProxyServer_isRsvdMcast(hProxyServer, mac_address))
     {
         CpswProxyServer_SharedMcastEntry *sharedMcastEntry;
 
@@ -2175,7 +2197,7 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(EthRemoteCfg_VirtPort virtP
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_filterDelMacHandlerCb(EthRemoteCfg_VirtPort virtPort,
@@ -2217,7 +2239,8 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(EthRemoteCfg_VirtPort virtP
         status = CPSWPROXYSERVER_EINVALIDPARAMS;
     }
 
-    if (status == CPSWPROXYSERVER_SOK)
+    if ((status == CPSWPROXYSERVER_SOK) &&
+        !CpswProxyServer_isRsvdMcast(hProxyServer, mac_address))
     {
         CpswProxyServer_SharedMcastEntry *sharedMcastEntry;
 
@@ -2240,7 +2263,7 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(EthRemoteCfg_VirtPort virtP
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *virtPortCfg,
@@ -2347,7 +2370,8 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     app_remote_device_init_prm_t remote_dev_init_prm;
     rdevEthSwitchServerInitPrm_t remote_ethswitch_init_prm;
     rdevEthSwitchServerInstPrm_t *inst;
-    CpswProxyServer_SharedMcastCfg *mcastCfg;
+    CpswProxyServer_RsvdMcastCfg *rsvdMcastCfg;
+    CpswProxyServer_SharedMcastCfg *sharedMcastCfg;
     CpswProxyServer_SharedMcastEntry *entry;
     int32_t i;
     int32_t status = CPSWPROXYSERVER_SOK;
@@ -2366,11 +2390,11 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
     if (status == CPSWPROXYSERVER_SOK)
     {
-        mcastCfg = &cfg->sharedMcastCfg;
+        sharedMcastCfg = &cfg->sharedMcastCfg;
 
-        if (mcastCfg->numMacAddr <= CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN)
+        if (sharedMcastCfg->numMacAddr <= CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN)
         {
-            hProxyServer->sharedMcastTbl.len = mcastCfg->numMacAddr;
+            hProxyServer->sharedMcastTbl.len = sharedMcastCfg->numMacAddr;
         }
         else
         {
@@ -2381,11 +2405,23 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         {
             entry = &hProxyServer->sharedMcastTbl.entry[i];
             entry->refCnt = 0U;
-            EnetUtils_copyMacAddr(&entry->macAddr[0U], &mcastCfg->macAddrList[i][0U]);
+            EnetUtils_copyMacAddr(&entry->macAddr[0U], &sharedMcastCfg->macAddrList[i][0U]);
         }
 
-        hProxyServer->filterAddMacSharedCb = mcastCfg->filterAddMacSharedCb;
-        hProxyServer->filterDelMacSharedCb = mcastCfg->filterDelMacSharedCb;
+        hProxyServer->filterAddMacSharedCb = sharedMcastCfg->filterAddMacSharedCb;
+        hProxyServer->filterDelMacSharedCb = sharedMcastCfg->filterDelMacSharedCb;
+    }
+
+    if (status == CPSWPROXYSERVER_SOK)
+    {
+        rsvdMcastCfg = &cfg->rsvdMcastCfg;
+
+        memcpy(&hProxyServer->rsvdMcastTbl, rsvdMcastCfg, sizeof(hProxyServer->rsvdMcastTbl));
+
+        if (rsvdMcastCfg->numMacAddr > CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN)
+        {
+            hProxyServer->rsvdMcastTbl.numMacAddr = CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN;
+        }
     }
 
     if (status == CPSWPROXYSERVER_SOK)

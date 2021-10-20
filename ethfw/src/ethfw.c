@@ -208,7 +208,10 @@ typedef struct EthFw_Obj_s
     TimeSyncPtp_Handle timeSyncPtp;
 
     /* Shared multicast configuration */
-    EthFw_SharedMcastCfg mcastCfg;
+    EthFw_SharedMcastCfg sharedMcastCfg;
+
+    /* Reserved multicast configuration */
+    EthFw_RsvdMcastCfg rsvdMcastCfg;
 } EthFw_Obj;
 
 /* ========================================================================== */
@@ -650,14 +653,14 @@ static int32_t EthFw_getSharedMcast(const EthFw_Config *config)
 
     if (status == ENET_SOK)
     {
-        memset(&gEthFwObj.mcastCfg.macAddrList[0U], 0, sizeof(gEthFwObj.mcastCfg.macAddrList));
+        memset(&gEthFwObj.sharedMcastCfg.macAddrList[0U], 0, sizeof(gEthFwObj.sharedMcastCfg.macAddrList));
 
         for (i = 0U; i < mcastCfg->numMacAddr; i++)
         {
             macAddr = &mcastCfg->macAddrList[i][0U];
             if (EnetUtils_isMcastAddr(macAddr))
             {
-                EnetUtils_copyMacAddr(&gEthFwObj.mcastCfg.macAddrList[i][0U], macAddr);
+                EnetUtils_copyMacAddr(&gEthFwObj.sharedMcastCfg.macAddrList[i][0U], macAddr);
             }
             else
             {
@@ -669,9 +672,56 @@ static int32_t EthFw_getSharedMcast(const EthFw_Config *config)
             }
         }
 
-        gEthFwObj.mcastCfg.numMacAddr = mcastCfg->numMacAddr;
-        gEthFwObj.mcastCfg.filterAddMacSharedCb = mcastCfg->filterAddMacSharedCb;
-        gEthFwObj.mcastCfg.filterDelMacSharedCb = mcastCfg->filterDelMacSharedCb;
+        gEthFwObj.sharedMcastCfg.numMacAddr = mcastCfg->numMacAddr;
+        gEthFwObj.sharedMcastCfg.filterAddMacSharedCb = mcastCfg->filterAddMacSharedCb;
+        gEthFwObj.sharedMcastCfg.filterDelMacSharedCb = mcastCfg->filterDelMacSharedCb;
+    }
+
+    return status;
+}
+
+static int32_t EthFw_getRsvdMcast(const EthFw_Config *config)
+{
+    const EthFw_RsvdMcastCfg *mcastCfg = &config->rsvdMcastCfg;
+    const uint8_t *macAddr;
+    uint32_t i;
+    int32_t status = ENET_SOK;
+
+    if (mcastCfg->numMacAddr > ETHFW_RSVD_MCAST_LIST_LEN)
+    {
+        appLogPrintf("ETHFW: Invalid number of multicast addresses (%u), must be <= %u\n",
+                     mcastCfg->numMacAddr, ETHFW_RSVD_MCAST_LIST_LEN);
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if ((status == ENET_SOK) &&
+        (mcastCfg->numMacAddr > 0U))
+    {
+        memset(&gEthFwObj.rsvdMcastCfg.macAddrList[0U], 0, sizeof(gEthFwObj.rsvdMcastCfg.macAddrList));
+
+        appLogPrintf("ETHFW: Reserved multicasts:\n");
+
+        for (i = 0U; i < mcastCfg->numMacAddr; i++)
+        {
+            macAddr = &mcastCfg->macAddrList[i][0U];
+            if (EnetUtils_isMcastAddr(macAddr))
+            {
+                appLogPrintf("  %02x:%02x:%02x:%02x:%02x:%02x\n",
+                             macAddr[0U], macAddr[1U], macAddr[2U],
+                             macAddr[3U], macAddr[4U], macAddr[5U]);
+                EnetUtils_copyMacAddr(&gEthFwObj.rsvdMcastCfg.macAddrList[i][0U], macAddr);
+            }
+            else
+            {
+                appLogPrintf("ETHFW: Addr %02x:%02x:%02x:%02x:%02x:%02x is not mcast\n",
+                             macAddr[0U], macAddr[1U], macAddr[2U],
+                             macAddr[3U], macAddr[4U], macAddr[5U]);
+                status = ENET_EINVALIDPARAMS;
+                break;
+            }
+        }
+
+        gEthFwObj.rsvdMcastCfg.numMacAddr = mcastCfg->numMacAddr;
     }
 
     return status;
@@ -704,6 +754,9 @@ void EthFw_initConfigParams(Enet_Type enetType,
     config->sharedMcastCfg.numMacAddr = 0U;
     config->sharedMcastCfg.filterAddMacSharedCb = NULL;
     config->sharedMcastCfg.filterDelMacSharedCb = NULL;
+
+    /* Reserved multicast config */
+    config->rsvdMcastCfg.numMacAddr = 0U;
 
     /* Start with CPSW LLD's default configuration */
     Enet_initCfg(enetType, 0U, cpswCfg, sizeof (*cpswCfg));
@@ -771,6 +824,16 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         if (status != ENET_SOK)
         {
             appLogPrintf("ETHFW: incorrect shared mcast configuration: %d\n", status);
+        }
+    }
+
+    /* Get reserved multicast table from app's config */
+    if (status == ENET_SOK)
+    {
+        status = EthFw_getRsvdMcast(config);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("ETHFW: incorrect reserved mcast configuration: %d\n", status);
         }
     }
 
@@ -920,12 +983,18 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 
     /* Set CPSW Proxy shared multicast config.
      * All parameters have already been checked. */
-    cfg.sharedMcastCfg.filterAddMacSharedCb = (CpswProxyServer_FilterAddMacSharedCb)gEthFwObj.mcastCfg.filterAddMacSharedCb;
-    cfg.sharedMcastCfg.filterDelMacSharedCb = (CpswProxyServer_FilterDelMacSharedCb)gEthFwObj.mcastCfg.filterDelMacSharedCb;
-    cfg.sharedMcastCfg.numMacAddr = gEthFwObj.mcastCfg.numMacAddr;
+    cfg.sharedMcastCfg.filterAddMacSharedCb = (CpswProxyServer_FilterAddMacSharedCb)gEthFwObj.sharedMcastCfg.filterAddMacSharedCb;
+    cfg.sharedMcastCfg.filterDelMacSharedCb = (CpswProxyServer_FilterDelMacSharedCb)gEthFwObj.sharedMcastCfg.filterDelMacSharedCb;
+    cfg.sharedMcastCfg.numMacAddr = gEthFwObj.sharedMcastCfg.numMacAddr;
     memcpy(&cfg.sharedMcastCfg.macAddrList[0U][0U],
-           &gEthFwObj.mcastCfg.macAddrList[0U][0U],
+           &gEthFwObj.sharedMcastCfg.macAddrList[0U][0U],
            cfg.sharedMcastCfg.numMacAddr * ENET_MAC_ADDR_LEN);
+
+    /* Set CPSW Proxy reserved multicast config */
+    cfg.rsvdMcastCfg.numMacAddr = gEthFwObj.rsvdMcastCfg.numMacAddr;
+    memcpy(&cfg.rsvdMcastCfg.macAddrList[0U][0U],
+           &gEthFwObj.rsvdMcastCfg.macAddrList[0U][0U],
+           cfg.rsvdMcastCfg.numMacAddr * ENET_MAC_ADDR_LEN);
 
     status = CpswProxyServer_init(&cfg);
     if (status != ENET_SOK)

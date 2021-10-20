@@ -132,6 +132,9 @@ extern "C" {
 /*! Size of shared multicast address table */
 #define ETHFW_SHARED_MCAST_LIST_LEN       (8U)
 
+/*! Size of reserved multicast address table */
+#define ETHFW_RSVD_MCAST_LIST_LEN         (4U)
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
@@ -234,6 +237,22 @@ typedef struct EthFw_SharedMcastCfg_s
 } EthFw_SharedMcastCfg;
 
 /*!
+ * \brief Ethernet Firmware reserved multicast configuration.
+ *
+ * Ethernet Firmware configuration parameters for reserved multicast addresses, that is,
+ * multicast addresses that are restricted to Ethernet Firmware only.
+ */
+typedef struct EthFw_RsvdMcastCfg_s
+{
+    /*! Reserved multicast address table */
+    uint8_t macAddrList[ETHFW_RSVD_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
+
+    /*! Number of multicast address actually populated in the reserved address table.
+     *  Must be < \ref ETHFW_RSVD_MCAST_LIST_LEN */
+    uint32_t numMacAddr;
+} EthFw_RsvdMcastCfg;
+
+/*!
  * \brief Ethernet Firmware configuration
  *
  * Ethernet Firmware configuration parameters.
@@ -267,6 +286,9 @@ typedef struct EthFw_Config_s
 
     /*! Shared multicast fanout configuration. */
     EthFw_SharedMcastCfg sharedMcastCfg;
+
+    /*! Reserved multicast configuration which are exclusive to EthFw. */
+    EthFw_RsvdMcastCfg rsvdMcastCfg;
 } EthFw_Config;
 
 /*!
