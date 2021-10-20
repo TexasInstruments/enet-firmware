@@ -359,6 +359,22 @@ static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
 #endif
 #endif
 
+/* List of multicast addresses reserved for EthFw. Currently, this list is populated
+ * only with PTP related multicast addresses which are used by the test PTP stack
+ * used by EthFw.
+ * Note: Must not exceed ETHFW_RSVD_MCAST_LIST_LEN */
+static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
+{
+    /* PTP - Peer delay messages */
+    {
+        0x01, 0x80, 0xc2, 0x00, 0x00, 0x0E,
+    },
+    /* PTP - Non peer delay messages */
+    {
+        0x01, 0x1b, 0x19, 0x00, 0x00, 0x00,
+    },
+};
+
 void EthApp_traceBufCacheWb(void);
 
 /* ========================================================================== */
@@ -799,6 +815,26 @@ static int32_t EthApp_initEthFw(void)
         ethFwCfg.sharedMcastCfg.filterDelMacSharedCb = EthApp_filterDelMacSharedCb;
     }
 #endif
+
+    if (status == ETHAPP_OK)
+    {
+        if (ARRAY_SIZE(gEthApp_rsvdMcastAddrTable) > ETHFW_RSVD_MCAST_LIST_LEN)
+        {
+            appLogPrintf("ETHFW error: No. of rsvd mcast addr cannot exceed %d\n",
+                         ETHFW_RSVD_MCAST_LIST_LEN);
+            status = ETHAPP_ERROR;
+        }
+        else
+        {
+            for (i = 0U; i < ARRAY_SIZE(gEthApp_rsvdMcastAddrTable); i++)
+            {
+                EnetUtils_copyMacAddr(&ethFwCfg.rsvdMcastCfg.macAddrList[i][0],
+                                      &gEthApp_rsvdMcastAddrTable[i][0]);
+            }
+
+            ethFwCfg.rsvdMcastCfg.numMacAddr = ARRAY_SIZE(gEthApp_rsvdMcastAddrTable);
+        }
+    }
 
     /* Initialize the EthFw */
     if (status == ETHAPP_OK)
