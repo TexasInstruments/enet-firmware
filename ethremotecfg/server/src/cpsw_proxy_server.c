@@ -2309,7 +2309,7 @@ static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *v
              isSwitchPort ? "switch" : "mac",
              portNum);
 
-    appLogPrintf("%s <-> %s port %u: %s\n",
+    appLogPrintf("  %s <-> %s port %u: %s\n",
                  coreName[virtPortCfg->remoteCoreId],
                  isSwitchPort ? "Switch" : "MAC",
                  portNum,
@@ -2471,6 +2471,8 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
         EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(remote_ethswitch_init_prm.inst_prm));
         EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(cfg->virtPortCfg));
+
+        appLogPrintf("CpswProxyServer: Virtual port configuration:\n");
 
         for (i = 0U; i < cfg->numVirtPorts; i++)
         {
