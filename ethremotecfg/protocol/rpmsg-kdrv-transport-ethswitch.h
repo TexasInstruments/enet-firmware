@@ -591,6 +591,13 @@ enum rpmsg_kdrv_ethswitch_client_notify_type
 /*  @} */
 
 /*!
+ * Indicates to the Ethernet Firmware to use the default VLAN id for
+ * the type of port associated with the caller, i.e. virtual MAC or virtual
+ * switch.
+ */
+#define RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT      (0xFFFF)
+
+/*!
  * Number of octets in year
  */
 #define RPMSG_KDRV_TP_ETHSWITCH_YEARLEN             (4)
@@ -1251,7 +1258,9 @@ struct rpmsg_kdrv_ethswitch_filter_add_mac_request
     struct rpmsg_kdrv_ethswitch_common_request_info info;
     /*! Multicast MAC address to be added to receive filter */
     u8 mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-    /* VLAN id */
+    /* VLAN id. Pass \ref RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT to let
+     * Ethernet Firmware use the default VLAN id for the port type
+     * (virtual MAC or virtual switch) */
     u16 vlan_id;
     /*! Flow's index associated with the MAC address to be registered in ALE */
     u32 flow_idx;

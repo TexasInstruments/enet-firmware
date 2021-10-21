@@ -137,6 +137,15 @@
 /*! AUTOSAR Eth driver endpoint number */
 #define AUTOSAR_ETHDRIVER_DEVICE_ENDPT                (28U)
 
+/*! Max VLAN id as per standard */
+#define ETHFW_VLAN_ID_MAX                             (4094U)
+
+/*! VLAN id used for all MAC ports in MAC-only mode */
+#define ETHFW_MAC_ONLY_PORTS_VLAN_ID                  (0U)
+
+/*! VLAN id used for all MAC ports in switch mode (non MAC-only mode) */
+#define ETHFW_SWITCH_PORTS_VLAN_ID                    (1U)
+
 /*! Max number of CPSW MAC ports supported */
 #if defined(SOC_J721E)
 #define ETHFW_MAC_PORT_MAX                            (8U)
@@ -201,6 +210,12 @@ typedef struct EthFw_Obj_s
     /* Number of valid AUTOSAR virtual port configuration entries */
     uint32_t numAutosarVirtPorts;
 
+    /*! Default VLAN id to be used for MAC ports configured in MAC-only mode */
+    uint16_t dfltVlanIdMacOnlyPorts;
+
+    /*! Default VLAN id to be used for MAC ports configured in switch mode (non MAC-only) */
+    uint16_t dfltVlanIdSwitchPorts;
+
     /* Multiclient Manager (MCM) handle */
     EnetMcm_CmdIf mcmCmdIf;
 
@@ -217,6 +232,8 @@ typedef struct EthFw_Obj_s
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
+
+static bool EthFw_isMacOnlyPort(Enet_MacPort macPort);
 
 static int32_t EthFw_initMcm(void);
 
@@ -349,6 +366,40 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 }
 
+static int32_t EthFw_getDfltVlanId(const EthFw_Config *config)
+{
+    int32_t status = ENET_SOK;
+
+    if (config->dfltVlanIdMacOnlyPorts > ETHFW_VLAN_ID_MAX)
+    {
+        appLogPrintf("ETHFW: default VLAN id %u for MAC-only ports is out-of-range\n",
+                     config->dfltVlanIdMacOnlyPorts);
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if (config->dfltVlanIdSwitchPorts > ETHFW_VLAN_ID_MAX)
+    {
+        appLogPrintf("ETHFW: default VLAN id %u for switch ports is out-of-range\n",
+                     config->dfltVlanIdSwitchPorts);
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if (config->dfltVlanIdMacOnlyPorts == config->dfltVlanIdSwitchPorts)
+    {
+        appLogPrintf("ETHFW: default VLAN Id should not be same for MAC-only and switch ports (%u)\n",
+                     config->dfltVlanIdSwitchPorts);
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if (status == ENET_SOK)
+    {
+        gEthFwObj.dfltVlanIdMacOnlyPorts = config->dfltVlanIdMacOnlyPorts;
+        gEthFwObj.dfltVlanIdSwitchPorts  = config->dfltVlanIdSwitchPorts;
+    }
+
+    return status;
+}
+
 static int32_t EthFw_getPortConfig(const EthFw_Config *config)
 {
     EthRemoteCfg_VirtPort virtPort;
@@ -451,65 +502,25 @@ static void EthFw_setPortVlan(void)
     EnetPort_VlanCfg *vlanCfg;
     uint32_t i;
 
-    /* Set VLAN id 0 for virtual ports in MAC-only mode  */
-    for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
+    for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
-        virtPort = gEthFwObj.virtPortCfg[i].portId;
+        macPort = gEthFwObj.ports[i].macPort;
 
-        if (EthRemoteCfg_isMacPort(virtPort))
+        ethFwPort = EthFw_getMacPortConfig(macPort);
+        if (ethFwPort != NULL)
         {
-            macPort = EthRemoteCfg_getMacPort(virtPort);
-            ethFwPort = EthFw_getMacPortConfig(macPort);
+            vlanCfg = &ethFwPort->vlanCfg;
 
-            if (ethFwPort != NULL)
+            if (EthFw_isMacOnlyPort(macPort))
             {
-                vlanCfg = &ethFwPort->vlanCfg;
-
-                if ((vlanCfg->portVID != 0U) ||
-                    (vlanCfg->portPri != 0U) ||
-                    (vlanCfg->portCfi != 0U))
-                {
-                    appLogPrintf("ETHFW: overwriting MAC port %u VLAN to 0 (was VID=%u PCP=%u CFI=%u)\n",
-                                 ENET_MACPORT_ID(macPort),
-                                 vlanCfg->portVID,
-                                 vlanCfg->portPri,
-                                 vlanCfg->portCfi);
-                    vlanCfg->portVID = 0U;
-                    vlanCfg->portPri = 0U;
-                    vlanCfg->portCfi = 0U;
-                }
+                vlanCfg->portVID = gEthFwObj.dfltVlanIdMacOnlyPorts;
             }
-        }
-    }
-
-    /* Set VLAN id for AUTOSAR virtual MAC ports in MAC-only mode */
-    for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
-    {
-        virtPort = gEthFwObj.autosarVirtPortCfg[i].portId;
-
-        if (EthRemoteCfg_isMacPort(virtPort))
-        {
-            macPort = EthRemoteCfg_getMacPort(virtPort);
-            ethFwPort = EthFw_getMacPortConfig(macPort);
-
-            if (ethFwPort != NULL)
+            else
             {
-                vlanCfg = &ethFwPort->vlanCfg;
-
-                if ((vlanCfg->portVID != 0U) ||
-                    (vlanCfg->portPri != 0U) ||
-                    (vlanCfg->portCfi != 0U))
-                {
-                    appLogPrintf("ETHFW: overwriting MAC port %u VLAN to 0 (was VID=%u PCP=%u CFI=%u)\n",
-                                 ENET_MACPORT_ID(macPort),
-                                 vlanCfg->portVID,
-                                 vlanCfg->portPri,
-                                 vlanCfg->portCfi);
-                    vlanCfg->portVID = 0U;
-                    vlanCfg->portPri = 0U;
-                    vlanCfg->portCfi = 0U;
-                }
+                vlanCfg->portVID = gEthFwObj.dfltVlanIdSwitchPorts;
             }
+            vlanCfg->portPri = 0U;
+            vlanCfg->portCfi = 0U;
         }
     }
 }
@@ -533,6 +544,7 @@ static void EthFw_setPortMode(void)
     CpswAle_PortVlanCfg *pvidCfg;
     CpswAle_PortMacModeCfg *macModeCfg;
     CpswAle_PortLearningSecurityCfg *learningCfg;
+    uint32_t aleSwitchPortMask = 0U;
     uint32_t aleMacOnlyPortMask = 0U;
     uint32_t alePort;
     uint32_t i;
@@ -548,6 +560,7 @@ static void EthFw_setPortMode(void)
         learningCfg = &aleCfg->portCfg[alePort].learningCfg;
         pvidCfg     = &aleCfg->portCfg[alePort].pvidCfg;
 
+        aleSwitchPortMask  = (gEthFwObj.switchPortMask << 1U);
         aleMacOnlyPortMask = (gEthFwObj.macOnlyPortMask << 1U);
 
         if (EthFw_isMacOnlyPort(macPort))
@@ -557,10 +570,10 @@ static void EthFw_setPortMode(void)
             learningCfg->noLearn = true;
 
             pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
-            pvidCfg->vlanIdInfo.vlanId   = 0U;
+            pvidCfg->vlanIdInfo.vlanId   = gEthFwObj.dfltVlanIdMacOnlyPorts;
             pvidCfg->vlanMemberList      = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
-            pvidCfg->unregMcastFloodMask = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
             pvidCfg->regMcastFloodMask   = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
+            pvidCfg->unregMcastFloodMask = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
             pvidCfg->forceUntaggedEgressMask = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
             pvidCfg->noLearnMask     = 0U;
             pvidCfg->vidIngressCheck = 0U;
@@ -573,10 +586,16 @@ static void EthFw_setPortMode(void)
             macModeCfg->macOnlyEn = false;
             learningCfg->noLearn = false;
 
-            pvidCfg->vlanMemberList      &= ~aleMacOnlyPortMask;
-            pvidCfg->unregMcastFloodMask &= ~aleMacOnlyPortMask;
-            pvidCfg->regMcastFloodMask   &= ~aleMacOnlyPortMask;
-            pvidCfg->forceUntaggedEgressMask &= ~aleMacOnlyPortMask;
+            pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
+            pvidCfg->vlanIdInfo.vlanId   = gEthFwObj.dfltVlanIdSwitchPorts;
+            pvidCfg->vlanMemberList      = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+            pvidCfg->regMcastFloodMask   = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+            pvidCfg->unregMcastFloodMask = 0U;
+            pvidCfg->forceUntaggedEgressMask = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+            pvidCfg->noLearnMask     = 0U;
+            pvidCfg->vidIngressCheck = 0U;
+            pvidCfg->limitIPNxtHdr   = false;
+            pvidCfg->disallowIPFrag  = false;
         }
     }
 }
@@ -758,6 +777,10 @@ void EthFw_initConfigParams(Enet_Type enetType,
     /* Reserved multicast config */
     config->rsvdMcastCfg.numMacAddr = 0U;
 
+    /* Default VLAN ids */
+    config->dfltVlanIdMacOnlyPorts = ETHFW_MAC_ONLY_PORTS_VLAN_ID;
+    config->dfltVlanIdSwitchPorts  = ETHFW_SWITCH_PORTS_VLAN_ID;
+
     /* Start with CPSW LLD's default configuration */
     Enet_initCfg(enetType, 0U, cpswCfg, sizeof (*cpswCfg));
     cpswCfg->dmaCfg = NULL;
@@ -795,11 +818,17 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
 
+    /* Get default VLAN ids for MAC-only and switch ports */
+    status = EthFw_getDfltVlanId(config);
+
     /* Save hardware and virtual port configuration */
-    status = EthFw_getPortConfig(config);
-    if (status != ENET_SOK)
+    if (status == ENET_SOK)
     {
-        appLogPrintf("ETHFW: incorrect port configuration: %d\n", status);
+        status = EthFw_getPortConfig(config);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("ETHFW: incorrect port configuration: %d\n", status);
+        }
     }
 
     /* Set MAC port's default VLAN id */
@@ -995,6 +1024,9 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     memcpy(&cfg.rsvdMcastCfg.macAddrList[0U][0U],
            &gEthFwObj.rsvdMcastCfg.macAddrList[0U][0U],
            cfg.rsvdMcastCfg.numMacAddr * ENET_MAC_ADDR_LEN);
+
+    cfg.dfltVlanIdMacOnlyPorts = gEthFwObj.dfltVlanIdMacOnlyPorts;
+    cfg.dfltVlanIdSwitchPorts  = gEthFwObj.dfltVlanIdSwitchPorts;
 
     status = CpswProxyServer_init(&cfg);
     if (status != ENET_SOK)

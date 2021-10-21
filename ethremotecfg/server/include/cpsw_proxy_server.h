@@ -338,6 +338,12 @@ typedef struct CpswProxyServer_Config_s
     /*! Number of MAC ports being enabled */
     uint32_t numMacPorts;
 
+    /*! Default VLAN id to be used for MAC ports configured in MAC-only mode */
+    uint16_t dfltVlanIdMacOnlyPorts;
+
+    /*! Default VLAN id to be used for MAC ports configured in switch mode (non MAC-only) */
+    uint16_t dfltVlanIdSwitchPorts;
+
     /*! Shared multicast configuration */
     CpswProxyServer_SharedMcastCfg sharedMcastCfg;
 

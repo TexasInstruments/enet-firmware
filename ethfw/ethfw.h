@@ -289,6 +289,12 @@ typedef struct EthFw_Config_s
 
     /*! Reserved multicast configuration which are exclusive to EthFw. */
     EthFw_RsvdMcastCfg rsvdMcastCfg;
+
+    /*! Default VLAN id to be used for MAC ports configured in MAC-only mode */
+    uint16_t dfltVlanIdMacOnlyPorts;
+
+    /*! Default VLAN id to be used for MAC ports configured in switch mode (non MAC-only) */
+    uint16_t dfltVlanIdSwitchPorts;
 } EthFw_Config;
 
 /*!

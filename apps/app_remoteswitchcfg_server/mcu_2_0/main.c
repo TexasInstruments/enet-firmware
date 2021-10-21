@@ -856,8 +856,11 @@ static int32_t EthApp_initEthFw(void)
         appLogPrintf("ETHFW Commit SHA: %s\n\n", ver.commitHash);
     }
 
-    /* Post semaphore so that NDK/NIMU can continue with their initialization */
-    SemaphoreP_post(gEthAppObj.hInitSem);
+    /* Post semaphore so that lwip or NIMU/NDK can continue with their initialization */
+    if (status == ETHAPP_OK)
+    {
+        SemaphoreP_post(gEthAppObj.hInitSem);
+    }
 
     return status;
 }

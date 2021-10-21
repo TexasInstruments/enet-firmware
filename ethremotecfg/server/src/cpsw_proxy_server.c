@@ -203,6 +203,8 @@ typedef struct CpswProxyServer_Obj_s
     CpswProxyServer_FilterDelMacSharedCb  filterDelMacSharedCb;
     uint32_t alePortMask;
     uint32_t aleMacOnlyPortMask;
+    uint16_t dfltVlanIdMacOnlyPorts;
+    uint16_t dfltVlanIdSwitchPorts;
 } CpswProxyServer_Obj;
 
 /* ========================================================================== */
@@ -2018,7 +2020,14 @@ static int32_t CpswProxyServer_filterAddMacShared(CpswProxyServer_Obj *hProxySer
     /* Add multicast entry in ALE table */
     if (entry->refCnt == 0U)
     {
-        mcastInArgs.addr.vlanId = vlan_id;
+        if (vlan_id == RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT)
+        {
+            mcastInArgs.addr.vlanId = hProxyServer->dfltVlanIdSwitchPorts;
+        }
+        else
+        {
+            mcastInArgs.addr.vlanId = vlan_id;
+        }
         EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], &entry->macAddr[0U]);
 
         mcastInArgs.info.super    = false;
@@ -2062,7 +2071,14 @@ static int32_t CpswProxyServer_filterDelMacShared(CpswProxyServer_Obj *hProxySer
     /* Remove mcast address from ALE table */
     if (entry->refCnt == 1U)
     {
-        macAddrInfo.vlanId = vlan_id;
+        if (vlan_id == RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT)
+        {
+            macAddrInfo.vlanId = hProxyServer->dfltVlanIdSwitchPorts;
+        }
+        else
+        {
+            macAddrInfo.vlanId = vlan_id;
+        }
         EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], &entry->macAddr[0U]);
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
@@ -2378,6 +2394,9 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
     hProxyServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == false));
+
+    hProxyServer->dfltVlanIdMacOnlyPorts = cfg->dfltVlanIdMacOnlyPorts;
+    hProxyServer->dfltVlanIdSwitchPorts  = cfg->dfltVlanIdSwitchPorts;
 
     CpswProxyServer_getMacPortMask(hProxyServer, cfg);
 
