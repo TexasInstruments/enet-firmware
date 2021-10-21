@@ -175,20 +175,6 @@ typedef struct EthFw_Version_s
 } EthFw_Version;
 
 /*!
- * \brief Ethernet Firmware port configuration
- *
- * Ethernet Firmware port configuration parameters.
- */
-typedef struct EthFw_Port_s
-{
-    /*! MAC port number */
-    Enet_MacPort portNum;
-
-    /*! Port VLAN config */
-    EnetPort_VlanCfg vlanCfg;
-} EthFw_Port;
-
-/*!
  * \brief Ethernet Firmware virtual port configuration.
  *
  * Ethernet Firmware configuration parameters for virtual ports on remote cores.
@@ -258,8 +244,8 @@ typedef struct EthFw_Config_s
     Cpsw_Cfg cpswCfg;
 
     /*! MAC ports owned by EthFw. It must be provided as an array of
-     *  MAC port ids and their VLAN configuration */
-    EthFw_Port *ports;
+     *  MAC port ids */
+    Enet_MacPort *ports;
 
     /*! Number of MAC ports owned by EthFw, that is, the size of
      *  EthFw_Config::ports array */

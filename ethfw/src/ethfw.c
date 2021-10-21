@@ -137,9 +137,25 @@
 /*! AUTOSAR Eth driver endpoint number */
 #define AUTOSAR_ETHDRIVER_DEVICE_ENDPT                (28U)
 
+/*! Max number of CPSW MAC ports supported */
+#if defined(SOC_J721E)
+#define ETHFW_MAC_PORT_MAX                            (8U)
+#else
+#define ETHFW_MAC_PORT_MAX                            (4U)
+#endif
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
+
+typedef struct EthFw_Port_s
+{
+    /*! MAC port number */
+    Enet_MacPort macPort;
+
+    /*! Port VLAN config */
+    EnetPort_VlanCfg vlanCfg;
+} EthFw_Port;
 
 typedef struct EthFw_Obj_s
 {
@@ -157,6 +173,15 @@ typedef struct EthFw_Obj_s
 
     /* Firmware version */
     EthFw_Version version;
+
+    /* Port mask of all enabled MAC ports */
+    uint32_t enabledPortMask;
+
+    /* Port mask of all MAC-only ports */
+    uint32_t macOnlyPortMask;
+
+    /* Port mask of all non MAC-only ports */
+    uint32_t switchPortMask;
 
     /* MAC ports owned by EthFw */
     EthFw_Port ports[ENET_MAC_PORT_NUM];
@@ -321,10 +346,19 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 }
 
-static int32_t EthFw_getVirtPortConfig(const EthFw_Config *config)
+static int32_t EthFw_getPortConfig(const EthFw_Config *config)
 {
+    EthRemoteCfg_VirtPort virtPort;
+    Enet_MacPort macPort;
     uint32_t i;
     int32_t status = ENET_SOK;
+
+    if (config->numPorts > ETHFW_MAC_PORT_MAX)
+    {
+        appLogPrintf("ETHFW: Too many MAC ports requested (%u), max is %u\n",
+                     config->numPorts, ETHFW_MAC_PORT_MAX);
+        status = ENET_EINVALIDPARAMS;
+    }
 
     if (config->numVirtPorts > ETHFW_REMOTE_CLIENT_MAX)
     {
@@ -342,19 +376,48 @@ static int32_t EthFw_getVirtPortConfig(const EthFw_Config *config)
 
     if (status == ENET_SOK)
     {
-        gEthFwObj.numVirtPorts = config->numVirtPorts;
+        /* Get the port mask of all enabled MAC ports */
+        gEthFwObj.numPorts = config->numPorts;
+        for (i = 0U; i < gEthFwObj.numPorts; i++)
+        {
+            gEthFwObj.ports[i].macPort = config->ports[i];
+            macPort = gEthFwObj.ports[i].macPort;
 
-        for (i = 0U; i < config->numVirtPorts; i++)
+            gEthFwObj.enabledPortMask |= ENET_MACPORT_MASK(macPort);
+        }
+
+        /* Get the port mask of all ports in MAC-only mode */
+        gEthFwObj.numVirtPorts = config->numVirtPorts;
+        for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
         {
             gEthFwObj.virtPortCfg[i] = config->virtPortCfg[i];
+            virtPort = gEthFwObj.virtPortCfg[i].portId;
+
+            if (EthRemoteCfg_isMacPort(virtPort))
+            {
+                macPort = EthRemoteCfg_getMacPort(virtPort);
+
+                gEthFwObj.macOnlyPortMask |= ENET_MACPORT_MASK(macPort);
+            }
         }
 
+        /* Get the port mask of all AUTOSAR ports in MAC-only mode */
         gEthFwObj.numAutosarVirtPorts = config->numAutosarVirtPorts;
-
-        for (i = 0U; i < config->numAutosarVirtPorts; i++)
+        for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
         {
             gEthFwObj.autosarVirtPortCfg[i] = config->autosarVirtPortCfg[i];
+            virtPort = gEthFwObj.autosarVirtPortCfg[i].portId;
+
+            if (EthRemoteCfg_isMacPort(virtPort))
+            {
+                macPort = EthRemoteCfg_getMacPort(virtPort);
+
+                gEthFwObj.macOnlyPortMask |= ENET_MACPORT_MASK(macPort);
+            }
         }
+
+        gEthFwObj.switchPortMask = (gEthFwObj.enabledPortMask &
+                                    ~gEthFwObj.macOnlyPortMask);
     }
 
     return status;
@@ -367,7 +430,7 @@ static EthFw_Port *EthFw_getMacPortConfig(Enet_MacPort macPort)
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
-        if (gEthFwObj.ports[i].portNum == macPort)
+        if (gEthFwObj.ports[i].macPort == macPort)
         {
             port = &gEthFwObj.ports[i];
             break;
@@ -448,15 +511,25 @@ static void EthFw_setPortVlan(void)
     }
 }
 
+static bool EthFw_isMacOnlyPort(Enet_MacPort macPort)
+{
+    bool isMacOnly = false;
+
+    if ((gEthFwObj.macOnlyPortMask & ENET_MACPORT_MASK(macPort)) != 0U)
+    {
+        isMacOnly = true;
+    }
+
+    return isMacOnly;
+}
+
 static void EthFw_setPortMode(void)
 {
-    EthRemoteCfg_VirtPort virtPort;
     Enet_MacPort macPort;
     CpswAle_Cfg *aleCfg = &gEthFwObj.cpswCfg.aleCfg;
     CpswAle_PortVlanCfg *pvidCfg;
     CpswAle_PortMacModeCfg *macModeCfg;
     CpswAle_PortLearningSecurityCfg *learningCfg;
-    uint32_t macOnlyPortMask = 0U;
     uint32_t aleMacOnlyPortMask = 0U;
     uint32_t alePort;
     uint32_t i;
@@ -465,69 +538,21 @@ static void EthFw_setPortMode(void)
      * overwritten as needed right after */
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
-        macPort = gEthFwObj.ports[i].portNum;
+        macPort = gEthFwObj.ports[i].macPort;
         alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
 
-        macModeCfg = &aleCfg->portCfg[alePort].macModeCfg;
-        macModeCfg->macOnlyCafEn = false;
-        macModeCfg->macOnlyEn = false;
-
+        macModeCfg  = &aleCfg->portCfg[alePort].macModeCfg;
         learningCfg = &aleCfg->portCfg[alePort].learningCfg;
-        learningCfg->noLearn = false;
-    }
+        pvidCfg     = &aleCfg->portCfg[alePort].pvidCfg;
 
-    /* Set CPSW ports in MAC-only mode for remote_device-based virtual MAC ports */
-    for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
-    {
-        virtPort = gEthFwObj.virtPortCfg[i].portId;
+        aleMacOnlyPortMask = (gEthFwObj.macOnlyPortMask << 1U);
 
-        if (EthRemoteCfg_isMacPort(virtPort))
+        if (EthFw_isMacOnlyPort(macPort))
         {
-            macPort = EthRemoteCfg_getMacPort(virtPort);
-            alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-
-            macModeCfg = &aleCfg->portCfg[alePort].macModeCfg;
             macModeCfg->macOnlyCafEn = false;
             macModeCfg->macOnlyEn = true;
-
-            learningCfg = &aleCfg->portCfg[alePort].learningCfg;
             learningCfg->noLearn = true;
 
-            macOnlyPortMask |= ENET_MACPORT_MASK(macPort);
-        }
-    }
-
-    /* Set CPSW ports in MAC-only mode for AUTOSAR virtual MAC ports */
-    for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
-    {
-        virtPort = gEthFwObj.autosarVirtPortCfg[i].portId;
-
-        if (EthRemoteCfg_isMacPort(virtPort))
-        {
-            macPort = EthRemoteCfg_getMacPort(virtPort);
-            alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-
-            macModeCfg = &aleCfg->portCfg[alePort].macModeCfg;
-            macModeCfg->macOnlyCafEn = false;
-            macModeCfg->macOnlyEn = true;
-
-            learningCfg = &aleCfg->portCfg[alePort].learningCfg;
-            learningCfg->noLearn = true;
-
-            macOnlyPortMask |= ENET_MACPORT_MASK(macPort);
-        }
-    }
-
-    aleMacOnlyPortMask = (macOnlyPortMask << 1U);
-
-    for (i = 0U; i < gEthFwObj.numPorts; i++)
-    {
-        macPort = gEthFwObj.ports[i].portNum;
-        alePort = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-        pvidCfg = &aleCfg->portCfg[alePort].pvidCfg;
-
-        if ((ENET_MACPORT_MASK(macPort) & macOnlyPortMask) != 0U)
-        {
             pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
             pvidCfg->vlanIdInfo.vlanId   = 0U;
             pvidCfg->vlanMemberList      = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
@@ -541,6 +566,10 @@ static void EthFw_setPortMode(void)
         }
         else
         {
+            macModeCfg->macOnlyCafEn = false;
+            macModeCfg->macOnlyEn = false;
+            learningCfg->noLearn = false;
+
             pvidCfg->vlanMemberList      &= ~aleMacOnlyPortMask;
             pvidCfg->unregMcastFloodMask &= ~aleMacOnlyPortMask;
             pvidCfg->regMcastFloodMask   &= ~aleMacOnlyPortMask;
@@ -712,16 +741,12 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
-    gEthFwObj.numPorts = config->numPorts;
-    memcpy(&gEthFwObj.ports[0U],
-           config->ports,
-           gEthFwObj.numPorts * sizeof(EthFw_Port));
 
-    /* Save virtual port configuration */
-    status = EthFw_getVirtPortConfig(config);
+    /* Save hardware and virtual port configuration */
+    status = EthFw_getPortConfig(config);
     if (status != ENET_SOK)
     {
-        appLogPrintf("ETHFW: incorrect virtual port configuration: %d\n", status);
+        appLogPrintf("ETHFW: incorrect port configuration: %d\n", status);
     }
 
     /* Set MAC port's default VLAN id */
@@ -871,7 +896,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.numMacPorts = gEthFwObj.numPorts;
     for (i = 0U; i < cfg.numMacPorts; i++)
     {
-        cfg.macPort[i] = gEthFwObj.ports[i].portNum;
+        cfg.macPort[i] = gEthFwObj.ports[i].macPort;
     }
 
     /* Remote cores which use remote_device framework */
@@ -964,7 +989,7 @@ static int32_t EthFw_initMcm(void)
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
-        mcmCfg.macPortList[i] = gEthFwObj.ports[i].portNum;
+        mcmCfg.macPortList[i] = gEthFwObj.ports[i].macPort;
     }
 
     if ((mcmCfg.enetType != ENET_CPSW_5G) &&
@@ -1035,10 +1060,9 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
         linkCfg->duplexity = ENET_DUPLEX_AUTO;
     }
 
-    /* Use VLAN config from parameters given to EthFw */
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
-        if (gEthFwObj.ports[i].portNum == macPort)
+        if (gEthFwObj.ports[i].macPort == macPort)
         {
             macCfg->vlanCfg = gEthFwObj.ports[i].vlanCfg;
         }

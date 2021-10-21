@@ -386,65 +386,29 @@ static EthAppObj gEthAppObj =
     .hUdmaDrv = NULL,
 };
 
-static EthFw_Port gEthAppPorts[] =
+static Enet_MacPort gEthAppPorts[] =
 {
 #if defined(SOC_J721E)
     /* On J721E EVM to use all 8 ports simultaneously, we use below configuration
        RGMII Ports - 1,3,4,8. QSGMII ports - 2,5,6,7 */
-    {
-        .portNum    = ENET_MAC_PORT_1,
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U },
-    },
-    {
-        .portNum    = ENET_MAC_PORT_3, /* RGMII */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_4, /* RGMII */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_8, /* RGMII */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-#if defined(ENABLE_QSGMII_PORTS) //kept it disabled for 6.2
-    {
-        .portNum    = ENET_MAC_PORT_2, /* QSGMII main */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_5, /* QSGMII sub */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_6, /* QSGMII sub */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_7, /* QSGMII sub */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
+    ENET_MAC_PORT_1, /* RGMII */
+    ENET_MAC_PORT_3, /* RGMII */
+    ENET_MAC_PORT_4, /* RGMII */
+    ENET_MAC_PORT_8, /* RGMII */
+#if defined(ENABLE_QSGMII_PORTS)
+    ENET_MAC_PORT_2, /* QSGMII main */
+    ENET_MAC_PORT_5, /* QSGMII sub */
+    ENET_MAC_PORT_6, /* QSGMII sub */
+    ENET_MAC_PORT_7, /* QSGMII sub */
 #endif
 #endif
 #if defined(SOC_J7200)
     /* On J7200 to use all 4 ports simultaneously, we use below configuration
      * QSGMII ports - 0, 1, 2, 3 */
-    {
-        .portNum    = ENET_MAC_PORT_1, /* QSGMII main */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_2, /* QSGMII sub */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_3, /* QSGMII sub */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
-    {
-        .portNum    = ENET_MAC_PORT_4, /* QSGMII sub */
-        .vlanCfg = { .portPri = 0U, .portCfi = 0U, .portVID = 0U }
-    },
+    ENET_MAC_PORT_1, /* QSGMII main */
+    ENET_MAC_PORT_2, /* QSGMII sub */
+    ENET_MAC_PORT_3, /* QSGMII sub */
+    ENET_MAC_PORT_4, /* QSGMII sub */
 #endif
 };
 
@@ -815,13 +779,6 @@ static int32_t EthApp_initEthFw(void)
     /* Overwrite config params with those for hardware interVLAN */
     EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswCfg);
 
-    /* Set MAC port VLAN for ports used in HW interVLAN demo */
-    for (i = 0U; i < ethFwCfg.numPorts; i++)
-    {
-        EthHwInterVlan_setVlanConfig(&ethFwCfg.ports[i].vlanCfg,
-                                     ethFwCfg.ports[i].portNum);
-    }
-
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
     if (ARRAY_SIZE(gEthApp_sharedMcastAddrTable) > ETHAPP_MAX_SHARED_MCAST_ADDR)
     {
@@ -941,7 +898,7 @@ bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
     {
         linked = EnetAppUtils_isPortLinkUp(hEnet,
                                            gEthAppObj.coreId,
-                                           gEthAppPorts[i].portNum);
+                                           gEthAppPorts[i]);
     }
 
     return linked;
