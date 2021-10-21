@@ -833,9 +833,6 @@ static void CpswRemoteApp_initTask(void* a0,
     /* Step1 : Initialize the multiproc */
     status = Ipc_mpSetConfig(selfProcId, numProc, &gRemoteProc[0]);
 
-    System_printf("IPC_echo_test (core : %s) .....\r\n",
-                  Ipc_mpGetSelfName());
-
     /* Initialize params with defaults */
     IpcInitPrms_init(0U, &initPrms);
 

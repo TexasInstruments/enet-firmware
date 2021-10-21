@@ -642,8 +642,6 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     /* Step 1: Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gEthAppRemoteProc[0]);
 
-    appLogPrintf("IPC_echo_test (core : %s) .....\r\n", Ipc_mpGetSelfName());
-
 #if defined(FREERTOS)
     /* Task to flush IPC traceBuf */
     TaskP_Params_init(&taskParams);
