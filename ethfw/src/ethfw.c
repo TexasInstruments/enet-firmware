@@ -674,11 +674,16 @@ static int32_t EthFw_getSharedMcast(const EthFw_Config *config)
     {
         memset(&gEthFwObj.sharedMcastCfg.macAddrList[0U], 0, sizeof(gEthFwObj.sharedMcastCfg.macAddrList));
 
+        appLogPrintf("ETHFW: Shared multicasts (software fanout):\n");
+
         for (i = 0U; i < mcastCfg->numMacAddr; i++)
         {
             macAddr = &mcastCfg->macAddrList[i][0U];
             if (EnetUtils_isMcastAddr(macAddr))
             {
+                appLogPrintf("  %02x:%02x:%02x:%02x:%02x:%02x\n",
+                             macAddr[0U], macAddr[1U], macAddr[2U],
+                             macAddr[3U], macAddr[4U], macAddr[5U]);
                 EnetUtils_copyMacAddr(&gEthFwObj.sharedMcastCfg.macAddrList[i][0U], macAddr);
             }
             else
