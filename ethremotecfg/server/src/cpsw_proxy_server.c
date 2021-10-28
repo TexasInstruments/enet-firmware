@@ -2020,14 +2020,7 @@ static int32_t CpswProxyServer_filterAddMacShared(CpswProxyServer_Obj *hProxySer
     /* Add multicast entry in ALE table */
     if (entry->refCnt == 0U)
     {
-        if (vlan_id == RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT)
-        {
-            mcastInArgs.addr.vlanId = hProxyServer->dfltVlanIdSwitchPorts;
-        }
-        else
-        {
-            mcastInArgs.addr.vlanId = vlan_id;
-        }
+        mcastInArgs.addr.vlanId = vlan_id;
         EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], &entry->macAddr[0U]);
 
         mcastInArgs.info.super    = false;
@@ -2071,14 +2064,7 @@ static int32_t CpswProxyServer_filterDelMacShared(CpswProxyServer_Obj *hProxySer
     /* Remove mcast address from ALE table */
     if (entry->refCnt == 1U)
     {
-        if (vlan_id == RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT)
-        {
-            macAddrInfo.vlanId = hProxyServer->dfltVlanIdSwitchPorts;
-        }
-        else
-        {
-            macAddrInfo.vlanId = vlan_id;
-        }
+        macAddrInfo.vlanId = vlan_id;
         EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], &entry->macAddr[0U]);
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
@@ -2194,6 +2180,11 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(EthRemoteCfg_VirtPort virtP
     {
         CpswProxyServer_SharedMcastEntry *sharedMcastEntry;
 
+        if (vlan_id == RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT)
+        {
+            vlan_id = hProxyServer->dfltVlanIdSwitchPorts;
+        }
+
         sharedMcastEntry = CpswProxyServer_getSharedMcastEntry(hProxyServer, mac_address);
         if (sharedMcastEntry != NULL)
         {
@@ -2259,6 +2250,11 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(EthRemoteCfg_VirtPort virtP
         !CpswProxyServer_isRsvdMcast(hProxyServer, mac_address))
     {
         CpswProxyServer_SharedMcastEntry *sharedMcastEntry;
+
+        if (vlan_id == RPMSG_KDRV_TP_ETHSWITCH_VLAN_USE_DFLT)
+        {
+            vlan_id = hProxyServer->dfltVlanIdSwitchPorts;
+        }
 
         sharedMcastEntry = CpswProxyServer_getSharedMcastEntry(hProxyServer, mac_address);
         if (sharedMcastEntry != NULL)
