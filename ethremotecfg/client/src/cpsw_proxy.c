@@ -402,6 +402,7 @@ typedef struct CpswProxy_rdevCmdNotifyReq_s
 {
     uint64_t id;
     uint32_t core_key;
+    uint8_t notify_id;
     uint8_t *notify_info;
     uint32_t notify_len;
 } CpswProxy_rdevCmdNotifyReq_t;
@@ -964,8 +965,12 @@ static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
             }
             case CPSWPROXY_RDEVCMD_NOTIFY:
             {
-                System_printf("%s: sending message\n", __func__);
-                msg.res.retVal = rdevEthSwitchClient_sendNotify(deviceId, msg.req.u.notify.id, msg.req.u.notify.core_key, RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM, msg.req.u.notify.notify_info, msg.req.u.notify.notify_len);
+                msg.res.retVal = rdevEthSwitchClient_sendNotify(deviceId,
+                                                                msg.req.u.notify.id,
+                                                                msg.req.u.notify.core_key,
+                                                                msg.req.u.notify.notify_id,
+                                                                msg.req.u.notify.notify_info,
+                                                                msg.req.u.notify.notify_len);
                 break;
             }
             case CPSWPROXY_RDEVCMD_EXIT:
@@ -1931,6 +1936,7 @@ int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
                           Enet_Handle hEnet,
                           uint32_t coreKey,
+                          uint8_t notifyId,
                           uint8_t *notifyInfo,
                           uint32_t notifyInfoLength)
 {
@@ -1938,6 +1944,7 @@ void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
 
     msg.req.u.notify.id = (uint64_t)hEnet;
     msg.req.u.notify.core_key = coreKey;
+    msg.req.u.notify.notify_id = notifyId;
     msg.req.u.notify.notify_info = notifyInfo;
     msg.req.u.notify.notify_len = notifyInfoLength;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_NOTIFY, &msg);

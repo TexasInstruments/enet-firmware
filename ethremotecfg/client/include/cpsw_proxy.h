@@ -868,12 +868,14 @@ bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy,
  *                  CpswProxy_attachExtended()
  * \param coreKey   Unique core_key returned by CpswProxy_attach() or
  *                  CpswProxy_attachExtended()
+ * \param notifyId         Notify id
  * \param notifyInfo       Notify info to be sent to server
  * \param notifyInfoLength Notify info length
  */
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
                           Enet_Handle hEnet,
                           uint32_t coreKey,
+                          uint8_t notifyId,
                           uint8_t *notifyInfo,
                           uint32_t notifyInfoLength);
 
