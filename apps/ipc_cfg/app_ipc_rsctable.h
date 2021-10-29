@@ -87,25 +87,25 @@ extern "C" {
 
 const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(".resource_table"), aligned(4096))) =
 {
-    1,                                     /* we're the first version that implements this */
-    NUM_ENTRIES,                           /* number of entries in the table */
-    0,                                  0, /* reserved, must be zero */
+    1,            /* we're the first version that implements this */
+    NUM_ENTRIES,  /* number of entries in the table */
+    0, 0,         /* reserved, must be zero */
 
     /* offsets to entries */
     {
-        offsetof(Ipc_ResourceTable,     rpmsg_vdev),
-        offsetof(Ipc_ResourceTable,     trace),
+        offsetof(Ipc_ResourceTable, rpmsg_vdev),
+        offsetof(Ipc_ResourceTable, trace),
     },
 
     /* rpmsg vdev entry */
     {
-        TYPE_VDEV,                      VIRTIO_ID_RPMSG,0,
+        TYPE_VDEV, VIRTIO_ID_RPMSG, 0,
 #if defined(CPU_c6x_1) || defined(CPU_c6x_2)
-        RPMSG_C66_DSP_FEATURES,         0,              0,                  0,  2,            {0, 0},
+        RPMSG_C66_DSP_FEATURES, 0, 0, 0, 2, { 0, 0 },
 #elif defined(CPU_c7x_1)
-        RPMSG_C7X_DSP_FEATURES,         0,              0,                  0,  2,            {0, 0},
+        RPMSG_C7X_DSP_FEATURES, 0, 0, 0, 2, { 0, 0 },
 #else
-        RPMSG_R5F_C0_FEATURES,          0,              0,                  0,  2,            {0, 0},
+        RPMSG_R5F_C0_FEATURES,  0, 0, 0, 2, { 0, 0 },
 #endif
         /* no config data */
     },
@@ -143,9 +143,9 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(
 
     {
 #ifdef CPU_c7x_1
-        (TRACE_INTS_VER1 | TYPE_TRACE), TRACEBUFADDR,   IPC_TRACE_BUFFER_MAX_SIZE,            0,  "trace:r5f0",
+        (TRACE_INTS_VER1 | TYPE_TRACE), TRACEBUFADDR, IPC_TRACE_BUFFER_MAX_SIZE, 0, "trace:r5f0",
 #else
-        (TRACE_INTS_VER0 | TYPE_TRACE), TRACEBUFADDR,   IPC_TRACE_BUFFER_MAX_SIZE,            0,  "trace:r5f0",
+        (TRACE_INTS_VER0 | TYPE_TRACE), TRACEBUFADDR, IPC_TRACE_BUFFER_MAX_SIZE, 0, "trace:r5f0",
 #endif
     },
 };
