@@ -57,8 +57,6 @@ extern "C" {
   #include <apps/ipc_cfg/ipc_trace.h>
 #endif
 
-#include <apps/ipc_cfg/app_mem_map.h>
-
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,
  * and must be power of 2)
