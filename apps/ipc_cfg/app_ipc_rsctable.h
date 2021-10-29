@@ -59,27 +59,6 @@ extern "C" {
 
 #include <apps/ipc_cfg/app_mem_map.h>
 
-#define RPMSG_VRING_SIZE   (0x10000)
-
-#define MCU1_0_R5F_MEM_RPMSG_VRING0    (DDR_MCU1_0_IPC_ADDR)
-#define MCU1_0_R5F_MEM_RPMSG_VRING1    (DDR_MCU1_0_IPC_ADDR + RPMSG_VRING_SIZE)
-#define MCU1_1_R5F_MEM_RPMSG_VRING0    (DDR_MCU1_1_IPC_ADDR)
-#define MCU1_1_R5F_MEM_RPMSG_VRING1    (DDR_MCU1_1_IPC_ADDR + RPMSG_VRING_SIZE)
-#define MCU2_0_R5F_MEM_RPMSG_VRING0    (DDR_MCU2_0_IPC_ADDR)
-#define MCU2_0_R5F_MEM_RPMSG_VRING1    (DDR_MCU2_0_IPC_ADDR + RPMSG_VRING_SIZE)
-#define MCU2_1_R5F_MEM_RPMSG_VRING0    (DDR_MCU2_1_IPC_ADDR)
-#define MCU2_1_R5F_MEM_RPMSG_VRING1    (DDR_MCU2_1_IPC_ADDR + RPMSG_VRING_SIZE)
-#define MCU3_0_R5F_MEM_RPMSG_VRING0    (DDR_MCU3_0_IPC_ADDR)
-#define MCU3_0_R5F_MEM_RPMSG_VRING1    (DDR_MCU3_0_IPC_ADDR + RPMSG_VRING_SIZE)
-#define MCU3_1_R5F_MEM_RPMSG_VRING0    (DDR_MCU3_1_IPC_ADDR)
-#define MCU3_1_R5F_MEM_RPMSG_VRING1    (DDR_MCU3_1_IPC_ADDR + RPMSG_VRING_SIZE)
-#define C66X_1_MEM_RPMSG_VRING0        (DDR_C66x_1_IPC_ADDR)
-#define C66X_1_MEM_RPMSG_VRING1        (DDR_C66x_1_IPC_ADDR + RPMSG_VRING_SIZE)
-#define C66X_2_MEM_RPMSG_VRING0        (DDR_C66x_2_IPC_ADDR)
-#define C66X_2_MEM_RPMSG_VRING1        (DDR_C66x_2_IPC_ADDR + RPMSG_VRING_SIZE)
-#define C7X_1_MEM_RPMSG_VRING0         (DDR_C7x_1_IPC_ADDR)
-#define C7X_1_MEM_RPMSG_VRING1         (DDR_C7x_1_IPC_ADDR + RPMSG_VRING_SIZE)
-
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,
  * and must be power of 2)
@@ -103,6 +82,8 @@ extern "C" {
 #elif defined (FREERTOS)
   #define TRACEBUFADDR ((uintptr_t)&Ipc_traceBuffer)
 #endif
+
+#define RPMSG_VRING_ADDR_ANY FW_RSC_ADDR_ANY
 
 const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(".resource_table"), aligned(4096))) =
 {
@@ -130,32 +111,32 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(
     },
     /* the two vrings */
 #if defined(CPU_mcu1_0)
-    {MCU1_0_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
-    {MCU1_0_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_mcu1_1)
-    {MCU1_1_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
-    {MCU1_1_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_mcu2_0)
-    {MCU2_0_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
-    {MCU2_0_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_mcu2_1)
-    {MCU2_1_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
-    {MCU2_1_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_mcu3_0)
-    {MCU3_0_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
-    {MCU3_0_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_mcu3_1)
-    {MCU3_1_R5F_MEM_RPMSG_VRING0,       4096,           R5F_RPMSG_VQ0_SIZE, 1,  0},
-    {MCU3_1_R5F_MEM_RPMSG_VRING1,       4096,           R5F_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_c6x_1)
-    {C66X_1_MEM_RPMSG_VRING0,           4096,           C66_RPMSG_VQ0_SIZE, 1,  0},
-    {C66X_1_MEM_RPMSG_VRING1,           4096,           C66_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, C66_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, C66_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_c6x_2)
-    {C66X_2_MEM_RPMSG_VRING0,           4096,           C66_RPMSG_VQ0_SIZE, 1,  0},
-    {C66X_2_MEM_RPMSG_VRING1,           4096,           C66_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, C66_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, C66_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_c7x_1)
-    {C7X_1_MEM_RPMSG_VRING0,            4096,           C7X_RPMSG_VQ0_SIZE, 1,  0},
-    {C7X_1_MEM_RPMSG_VRING1,            4096,           C7X_RPMSG_VQ1_SIZE, 2,  0},
+    { RPMSG_VRING_ADDR_ANY, 4096, C7X_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, C7X_RPMSG_VQ1_SIZE, 2, 0 },
 #else
 #error CPU_<cpu name> not defined
 #endif
