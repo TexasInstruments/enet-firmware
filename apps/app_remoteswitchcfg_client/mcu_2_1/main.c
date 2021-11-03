@@ -1235,8 +1235,8 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
 
         /* Add all network interfaces to the bridge */
-        bridgeif_add_port(&netif_bridge, netif);
-        bridgeif_add_port(&netif_bridge, &netif_ic);
+        bridgeif_add_port(&netif_bridge, netif, BRIDGEIF_PORT_CPSW);
+        bridgeif_add_port(&netif_bridge, &netif_ic, BRIDGEIF_PORT_VIRTUAL);
 
         /* Set bridge interface as the default */
         netif_set_default(&netif_bridge);
