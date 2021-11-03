@@ -1051,13 +1051,13 @@ static void EthApp_initNetif(void)
     netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
 
     /* Add all netifs to the bridge and create coreId to bridge portId map */
-    bridgeif_add_port(&netif_bridge, &netif, BRIDGEIF_PORT_NO_OPTS);
+    bridgeif_add_port(&netif_bridge, &netif);
     gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = ETHAPP_BRIDGEIF_CPU_PORT_ID;
 
-    bridgeif_add_port(&netif_bridge, &netif_ic[0], BRIDGEIF_PORT_NO_OPTS);
+    bridgeif_add_port(&netif_bridge, &netif_ic[0]);
     gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = ETHAPP_BRIDGEIF_PORT1_ID;
 
-    bridgeif_add_port(&netif_bridge, &netif_ic[1], BRIDGEIF_PORT_NO_OPTS);
+    bridgeif_add_port(&netif_bridge, &netif_ic[1]);
     gEthApp_lwipBridgePortIdMap[IPC_MPU1_0] = ETHAPP_BRIDGEIF_PORT2_ID;
 
     /* Set bridge interface as the default */
