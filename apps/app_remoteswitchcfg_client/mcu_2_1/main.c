@@ -127,8 +127,7 @@
 #include <ti/drv/enet/lwipif/inc/default_netif.h>
 #include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
 
-#define ETHAPP_ENABLE_INTERCORE_ETH 1
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 #include <ti/drv/enet/lwipific/inc/netif_ic.h>
 #include <ti/drv/enet/lwipific/inc/lwip2enet_ic.h>
 #include <ti/drv/enet/lwipific/inc/lwip2lwipif_ic.h>
@@ -267,7 +266,7 @@ static uint32_t gRemoteProc[] =
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 
 #if defined(FREERTOS)
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 static struct netif netif_ic;
 static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
 {
@@ -375,6 +374,9 @@ typedef struct CpswRemoteApp_VirtNetif_s
      * on all other interfaces */
     CpswCpts_HwPush hwPushNum;
 
+    /* Whether CPTS sync timer has been initialized */
+    bool syncTimerInitDone;
+
     /* PHY link status */
     bool isPhyLinked;
 
@@ -460,6 +462,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .macPorts    = gRemoteAppMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteAppMacPorts),
             .hwPushNum   = CPSW_CPTS_HWPUSH_2,
+            .syncTimerInitDone = false,
 #if defined (FREERTOS)
             .isDfltNetif = true,
 #endif
@@ -473,6 +476,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .macPorts    = gRemoteApp_virtualMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteApp_virtualMacPorts),
             .hwPushNum   = CPSW_CPTS_HWPUSH_INVALID,
+            .syncTimerInitDone = false,
 #if defined (FREERTOS)
             .isDfltNetif = false,
 #endif
@@ -683,6 +687,9 @@ static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
 
     /* Enable GTC */
     CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
+
+    /* Set sync timer init status */
+    virtNetif->syncTimerInitDone = true;
 }
 
 static uint64_t CpswRemoteApp_getLocalTime(void)
@@ -1221,7 +1228,7 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
         /* Create Enet LLD ethernet interface */
         netif_add(netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
 
@@ -1258,7 +1265,7 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         dhcp_set_struct(netif_default, &virtNetif->dhcpNetif);
 
         netif_set_up(netif);
-#if ETHAPP_ENABLE_INTERCORE_ETH
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
         netif_set_up(&netif_ic);
         netif_set_up(&netif_bridge);
 #endif
@@ -1342,7 +1349,8 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
         }
 
         /* Init time synchronization */
-        if (virtNetif->hwPushNum != CPSW_CPTS_HWPUSH_INVALID)
+        if ((virtNetif->hwPushNum != CPSW_CPTS_HWPUSH_INVALID) &&
+                (virtNetif->syncTimerInitDone == false))
         {
             CpswRemoteApp_initSyncTimer(virtNetif);
         }
