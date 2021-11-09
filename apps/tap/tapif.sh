@@ -107,13 +107,13 @@ do
         if [[ "$NUMBER" -eq 1 ]];
         then
                 REGION_NAME="$(echo "$(cut -d'@' -f1 <<<$NAME)")"
-                if [[ "$REGION_NAME" == "r5f-virt-net-shared-mem1" ]];
+                if [[ "$REGION_NAME" == "r5f-virtual-eth-queues" ]];
                 then
                         ICQ_BASE_ADDR="$(echo 0x"$(cut -d'@' -f2 <<<$NAME)")"
                         echo "Discovered Queue Base Address at $ICQ_BASE_ADDR from device tree"
                         ICQ_MEM_LEN="0x$(xxd -p -s 12 $memory/reg)"
                         echo "And the Queue region length is $ICQ_MEM_LEN"
-                elif [[ "$REGION_NAME" == "r5f-virt-net-shared-mem2" ]];
+                elif [[ "$REGION_NAME" == "r5f-virtual-eth-buffers" ]];
                 then
                         BUFPOOL_BASE_ADDR="$(echo 0x"$(cut -d'@' -f2 <<<$NAME)")"
                         echo "Discovered Bufpool Base Address at $BUFPOOL_BASE_ADDR from device tree"
