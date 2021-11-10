@@ -89,7 +89,11 @@ endif
 # Inter-core virtual ethernet support
 # Supported Values: yes | no
 ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1)))
-  ETHFW_INTERCORE_ETH_SUPPORT=yes
+  ifeq ($(BUILD_QNX_A72),yes)
+    ETHFW_INTERCORE_ETH_SUPPORT?=no
+  else
+    ETHFW_INTERCORE_ETH_SUPPORT?=yes
+  endif
 endif
 
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)
