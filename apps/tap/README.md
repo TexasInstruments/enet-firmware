@@ -26,12 +26,20 @@ The second approach is to compile on PC for the EVM.
 An SD card is assumed to be used for booting the EVM.  
 In the directory containing the following files on the PC:  
 J7ic.conf    launch_tap.service    Makefile    tapfirmware.c    tapfirmware.h    tapif.c    tapif.sh  
-Run:  
+
+Run:
 ```shell
-    $ make CROSS_COMPILE=aarch64-none-linux-gnu- install DESTDIR=<Path to the root file system on SD card>
+    $ ./setuptools.sh
+    $ make CROSS_COMPILE=<aarch64-none-linux-gnu install dir>/bin/aarch64-none-linux-gnu- install DESTDIR=<Path to the root file system on SD card>
 ```
-Here, \<Path to the root file system on SD card> is the path to the SD card's root file system when mounted on the PC.  
-For example, if the SD card is mounted at:  
+Here,\<aarch64-none-linux-gnu install dir> is the absolute path where the ARM64 A72 Linux compiler was installed using setuptools.sh.
+For example,
+if the ARM64 A72 Linux compiler was installed in \<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu then the CROSS_COMPILE argument should be set as following
+make CROSS_COMPILE=\<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu
+
+and \<Path to the root file system on SD card> is the path to the SD card's root file system when mounted on the PC.  
+For example,
+ if the SD card is mounted at:  
 ```
     /media/username
 ```
