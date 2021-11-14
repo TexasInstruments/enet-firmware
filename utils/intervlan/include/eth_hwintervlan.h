@@ -100,9 +100,6 @@ void EthHwInterVlan_setupRouting(Enet_Type enetType,
 
 void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg);
 
-void EthHwInterVlan_setVlanConfig(EnetPort_VlanCfg *vlanCfg,
-                                  uint32_t portNum);
-
 /* ========================================================================== */
 /*                       Static Function Definitions                          */
 /* ========================================================================== */
