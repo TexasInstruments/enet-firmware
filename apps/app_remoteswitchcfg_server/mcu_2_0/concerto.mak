@@ -149,17 +149,12 @@ endif
 
 ifeq ($(TARGET_PLATFORM),J7200)
   DEFS += ENABLE_QSGMII_PORTS
-  ifeq ($(TARGET_OS),SYSBIOS)
-    ENET_APPUTILS_LIB = enet_example_utils_full_tirtos
-  else ifeq ($(TARGET_OS),FREERTOS)
-    ENET_APPUTILS_LIB = enet_example_utils_full_freertos
-  endif
-else
-  ifeq ($(TARGET_OS),SYSBIOS)
-    ENET_APPUTILS_LIB = enet_example_utils_tirtos
-  else ifeq ($(TARGET_OS),FREERTOS)
-    ENET_APPUTILS_LIB = enet_example_utils_freertos
-  endif
+endif
+
+ifeq ($(TARGET_OS),SYSBIOS)
+  ENET_APPUTILS_LIB = enet_example_utils_full_tirtos
+else ifeq ($(TARGET_OS),FREERTOS)
+  ENET_APPUTILS_LIB = enet_example_utils_full_freertos
 endif
 
 ifeq ($(TARGET_OS),FREERTOS)
