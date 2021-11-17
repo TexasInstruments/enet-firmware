@@ -214,7 +214,7 @@ int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
     uint32_t i;
     bool done = false;
 
-    if (IS_BIT_SET(hwAddr->addr[0], 1))
+    if (IS_BIT_SET(hwAddr->addr[0], 0))
     {
         appLogPrintf("EthFwArpUtils_addAddr() mcast MAC address cannot be added\n");
         status = ETHFW_LWIP_UTILS_EINVALIDPARAMS;
