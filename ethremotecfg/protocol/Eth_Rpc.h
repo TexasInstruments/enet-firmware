@@ -76,7 +76,7 @@
 #define ETH_RPC_REMOTE_SERVICE  "ti.autosar.ethdevice"
 
 /*! Ethernet Switch Remote Device max msg size  */
-#define ETH_RPC_MSG_SIZE           (512U)
+#define ETH_RPC_MSG_SIZE           (496U)
 
 /*!
  * \brief Ethernet RPC commands
