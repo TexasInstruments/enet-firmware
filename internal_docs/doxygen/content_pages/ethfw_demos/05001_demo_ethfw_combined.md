@@ -32,6 +32,7 @@ Below are top-level features demonstrated:
  - MAC address based rate limiting
  - Time-synchronization using PTP
  - Multi-core time-synchronization with RTOS client
+ - Software based inter-core virtual Ethernet communication
 
 The Ethernet Firmware demo application is in charge of:
 
@@ -772,6 +773,92 @@ of other protocols in the VLAN network.
 [Back To Top](@ref demo_ethfw_combined_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## Inter-core Virtual Ethernet communication {#ethfw_intercore_communication}
+
+### RTOS client test {#intercore_rtos_client_test}
+
+Inter-core virtual Ethernet is enabled by default on RTOS cores (unless disabled using
+build flags). As such it is always used for incoming and outgoing broadcast messages,
+as well as unicast messages between cores.
+
+Examples of broadcast data flows exercised in this demo are given below.
+
+<b>RTOS remote client DHCP procedure:</b> Main R5F core1 starts DHCP procedure by sending a DHCP
+discover broadcast packet, which is forwarded by the main R5F core1 bridge to main R5F core0 bridge
+over inter-core interface. The main R5F core0 bridge also broadcasts this packet thus sending
+it out to the external DHCP server via the Enet LLD interface. Outgoing broadcast
+packets follow this data path:
+
+<b>Main R5F core1 network stack &rarr; Main R5F core1 bridge &rarr; Main R5F core0 bridge (over intercore)
+&rarr; Main R5F core0 Enet LLD netif &rarr; Linux PC (DHCP server)</b>
+
+<b>Incoming ARP broadcast from PC:</b> Ping Main R5F core1 remote client from Linux PC.
+This results in the PC sending an ARP broadcast to resolve the MAC address of the remote
+core. Incoming broadcast packets follow this data path:
+
+<b>Broadcast form PC &rarr; Main R5F core0 Enet LLD netif &rarr; Main R5F core0 bridge &rarr;
+Main R5F core1 bridge (over intercore) &rarr; Main R5F core1 network stack</b>
+
+![](Intercore_rtos_rtos_path.png "Inter-core Virtual Ethernet - RTOS client test")
+
+### Linux client test {#intercore_linux_client_test}
+
+The broadcast data flows shown in @ref intercore_rtos_client_test apply to the Linux
+remote client as well with a few minor differences:
+
+-# Users need to manually run the <b>Tap</b> demo application under Linux on the A72
+core to use inter-core virtual Ethernet. Please refer to the instructions provided in
+the Tap demo application user guide.
+
+-# Users need to manually configure a bridge in Linux to bridge the Enet LLD and TAP
+network interfaces. If the network interfaces are not bridged then the user will need
+to ensure that inter-core traffic is sent to the TAP network interface.
+
+In addition to the broadcast data flows listed above, users can also run network
+utilities such as ping and iperf from the Linux client to run network tests with
+Main R5F core0 master and/or Main R5F core1 client cores as the destination. For
+instance, the A72 shell log below shows an iperf test originated from the A72 remote
+client with main R5F core0 master as the server. The IP address assignments are listed below:
+
+<b>A72 client:</b> 192.168.1.201 <br>
+<b>Main R5F core0 server:</b> 192.168.1.200
+
+![](Intercore_rtos_linux_path.png "Inter-core Virtual Ethernet - A72 Linux client test")
+
+```
+sh-5.0# ./tap_e2e.out &
+[1] 788
+[  128.629977] IPv6: ADDRCONF(NETDEV_CHANGE): tap0: link becomes ready
+Opened TAP Device successfully
+Queue Mapping Succeeded
+Bufpool Mapping Succeeded
+Assigned Queue Handles
+Queues have been initialized
+Assigned Bufpool Handle
+Bufpool Init: Values Initialized
+sh-5.0# Bufpool Init: Cleared Buffers
+Initialized Bufpool
+Initialization complete
+-------------------------------------------------------------------------
+Starting TX and RX Tasks
+Started TX Task
+Started RX Task
+sh-5.0# iperf -c 192.168.1.200
+------------------------------------------------------------
+Client connecting to 192.168.1.200, TCP port 5001
+TCP window size: 85.0 KByte (default)
+------------------------------------------------------------
+[  3] local 192.168.1.201 port 46830 connected with 192.168.1.200 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-10.1 sec  12.9 MBytes  10.7 Mbits/sec
+
+```
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 ## Sample output {#demo_ethfw_combined_output}
 
 Below is a sample log from the execution of this demo application.
@@ -967,3 +1054,4 @@ Revision | Date          | Author                 | Description
 1.0      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
 1.1      | 10 Nov 2020   | Misael Lopez           | Updates for v.7.01.00
 1.2      | 08 Jul 2021   | Misael Lopez           | Updates for v.8.00.00
+1.2      | 03 Dec 2021   | Nitin Sakhuja          | Updates for v.8.01.00

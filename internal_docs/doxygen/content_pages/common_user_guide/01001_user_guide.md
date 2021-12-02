@@ -68,13 +68,368 @@ Feature         | Comments
 L2 switching    | Support for configuration of the Ethernet Switch to enable L2 switching between external ports with VLAN, multi-cast
 Inter-VLAN routing | Inter-VLAN routing configuration in hardware with software fall-back support
 lwIP integration | Integration of TCP/IP stack enabling TCP, UDP.
+Intercore Virtual Ethernet |  TCP/IP communication between cores using inter-core virtual Ethernet driver
+Broadcast and Multicast support | Ability to send broadcast and multicast traffic to multiple cores
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Inter-core Virtual Ethernet {#ethfw_intercore_eth}
+
+Starting with SDK 8.1, the EthFw integrates Inter-core Virtual Ethernet driver which allows TCP/IP
+ communication between Ethernet firmware server and client cores. 
+
+-# @ref ethfw_intercore_topology
+-# @ref ethfw_intercore_r5server
+-# @ref ethfw_intercore_r5client
+-# @ref ethfw_intercore_a72client
+
+[Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+##  Topology and Design overview {#ethfw_intercore_topology}
+
+The topology diagram below shows the integration of inter-core virtual Ethernet in Ethernet
+firmware.
+
+Inter-core virtual network uses a star topology with the R5F_0 master core (EthFw server)
+acting as the central hub. Each node (core) in the network communicates directly with the
+master while communication between other nodes (A72 and R5F_1) is routed through the
+master. In addition to the Enet LLD network interfaces used to communicate with the CPSW
+switch, each participating core creates an inter-core network interface, which allows it
+to communicate with another core using standard TCP/IP protocol suite.
+
+![](Intercore_eth_topology_overview.png "Inter-core Virtual Ethernet Topology")
+
+The main entities shown in this diagram are listed below:
+
+-# <b>R5F_0 master</b>: EthFw server core which forms the central hub of the inter-core
+network. Both client cores have a direct inter-core link to the R5F_0 master, as shown
+with <span style="color:green"><b>green arrows</b></span>. Inter-core communication between
+client cores e.g. A72 Linux client trying to ping R5F_1 client, goes through the R5F_0 master.
+
+-# <b>R5F_1 client</b>: This is the EthFw RTOS remote client.
+-# <b>A72 Linux client</b>: This is the EthFw Linux remote client.
+-# <b>Shared memory transport</b>: The software based packet transport used by inter-core
+network driver to exchange Ethernet packets. There is a dedicated set of shared queues and
+shared buffer pools for each pair of directly connected nodes. Please refer to the Enet LLD
+user guide for more details on the inter-core virtual Ethernet driver.
+-# <b>Multicast replication manager</b>: This software component on R5F_0 master (EthFw server)
+manages the fanout of shared multicast packets to the interested cores. It does so by dynamically
+updating the lwIP bridge FDB database to add/remove cores to/from the given multicast MAC address
+in response to the
+[<b>multicast filter API</b>](../api_guide/html_/group__CPSW__PROXY__API.html#ga89c45e9fcf6a7927ed1ee4079e4ee9c7)
+commands from the remote cores.
+-# <b>Data paths/flows</b>: Different data paths are used to route packets according to the type
+of traffic (Unicast, Broadcast and Multicast). The <b>black</b> arrows show core specific dedicated
+hardware flows which are used for unicast traffic originating from or bound to a given core as well
+as incoming [exclusive multicast](@ref ethfw_exclusive_mcast) traffic for a given core. Please refer
+to @ref ethfw_mcast_support for details on [shared multicast](@ref ethfw_shared_mcast) and
+[exclusive_multicast](@ref ethfw_exclusive_mcast) traffic.
+
+Broadcast and shared multicast packets are always sent to the R5F_0 master core using the
+default flow shown by the <span style="color:red"><b>red arrow</b></span>. The master core
+creates copies of such packets in software which is shown by the <span style="color:blue">
+<b>blue arrows</b></span> and sends them out to other cores using the inter-core Ethernet
+links shown by <span style="color:green"><b>green arrows</b></span>. 
+
+
+On RTOS cores, the inter-core virtual Ethernet driver provides a standard lwIP netif
+(network interface) to the application using which the application can exchange Ethernet
+packets with another core. The inter-core netifs are seamlessly integrated in EthFw
+(client and server) using lwIP bridgeif interface which allows the inter-core netifs to
+co-exist along-side the Enet LLD native or virtual client interface on the server and
+client respectively. The bridgeif provides a single unified network interface using which
+the application communicates with the CPSW switch or other cores without worrying about
+which netif to use for sending and receiving packets.
+
+![](Intercore_virt_eth_rtos.png "Inter-core virtual Ethernet architecture: RTOS <-> RTOS")
+
+Inter-core virtual Ethernet can also be used on Linux through a user space demo application
+provided in the SDK. This demo application creates a Linux TAP networking device and passes
+Ethernet packets back and forth between the TAP device and the inter-core transport shared
+queues to communicate with the inter-core netif on EthFw server. The TAP network interface
+can be bridged with the Enet LLD client driver interface to provide a single unified network
+interface to the network stack, just like the R5F cores. The bridge will automatically select
+the correct interface to send the packets based on the destination IP address.
+
+![](Intercore_virt_eth_linux.png "Inter-core virtual Ethernet architecture: RTOS <-> Linux")
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## EthFw Server integration {#ethfw_intercore_r5server}
+
+The EthFw server acts as the central hub of the inter-core virtual network, therefore it
+instantiates two inter-core netifs, one to communicate with the EthFw R5F remote client
+and another for the A72 (Linux) remote client. The inter-core netifs, along-with the Enet
+LLD netif are all added to the lwIP bridgeif which provides a single unified interface to
+the network stack/application. Refer to @ref ethfw_intercore_topology diagram which shows
+the various netifs, including the lwIP bridge, created on the R5F_0 server core.
+
+<b>Note</b>: The network stack / application sees only a single set of IP and MAC addresses
+which belong to the bridgeif. The individual netifs, including the Enet LLD netif, are neither
+visible to the network stack / application, nor do they get IP or MAC addresses.
+ 
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`
+to understand how these netifs are instantiated and added to the bridge:
+
+```C
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
+    /* Create Enet LLD ethernet interface */
+    netif_add(&netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
+
+    /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU2_1 */
+    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], NULL, NULL, NULL,
+              (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_MCU2_1],
+              LWIPIF_LWIP_IC_init, tcpip_input);
+
+    /* Create inter-core virtual ethernet interface: MCU2_0 <-> A72 */
+    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX], NULL, NULL, NULL,
+              (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_A72],
+              LWIPIF_LWIP_IC_init, tcpip_input);
+
+    /* Create bridge interface */
+    bridge_initdata.max_ports = ETHAPP_LWIP_BRIDGE_MAX_PORTS;
+    bridge_initdata.max_fdb_dynamic_entries = ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES;
+    bridge_initdata.max_fdb_static_entries = ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES;
+    EnetUtils_copyMacAddr(&bridge_initdata.ethaddr.addr[0U], &gEthAppObj.hostMacAddr[0U]);
+
+    netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
+
+    /* Add all netifs to the bridge and create coreId to bridge portId map */
+    bridgeif_add_port(&netif_bridge, &netif);
+    gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = ETHAPP_BRIDGEIF_CPU_PORT_ID;
+
+    bridgeif_add_port(&netif_bridge, &netif_ic[0]);
+    gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = ETHAPP_BRIDGEIF_PORT1_ID;
+
+    bridgeif_add_port(&netif_bridge, &netif_ic[1]);
+    gEthApp_lwipBridgePortIdMap[IPC_MPU1_0] = ETHAPP_BRIDGEIF_PORT2_ID;
+
+    /* Set bridge interface as the default */
+    netif_set_default(&netif_bridge);
+#else
+```
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## EthFW Client integration {#ethfw_intercore_r5client}
+
+The EthFw client on R5F_1 instantiates only one inter-core netif to communicate directly
+with the EthFw server on R5F_0. Similar to the EthFW server, an lwIP bridgeif is created and
+both the inter-core netif and the Enet LLD virtual netif are added to the bridge to provide a
+unified network interface to the application.
+
+Refer to @ref ethfw_intercore_topology diagram which shows the various netifs, including the
+lwIP bridge, created on the R5F_1 client core.
+
+<b>Note</b>: The network stack / application sees only a single set of IP and MAC addresses
+which belong to the bridgeif. The individual netifs, including the Enet LLD netif, are neither
+visible to the network stack / application, nor do they get IP or MAC addresses.
+
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_client/mcu_2_1/main.c`
+to understand how these netifs are instantiated and added to the bridge:
+
+```C
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH)
+    /* Create Enet LLD ethernet interface */
+    netif_add(netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
+
+    /* Create inter-core virtual ethernet interface: MCU2_1 <-> MCU2_0 */
+    netif_add(&netif_ic, NULL, NULL, NULL,
+              (void*)&netif_ic_state[IC_ETH_IF_MCU2_1_MCU2_0],
+              LWIPIF_LWIP_IC_init, tcpip_input);
+
+    /* Create bridge interface */
+    bridge_initdata.max_ports = ETHAPP_LWIP_BRIDGE_MAX_PORTS;
+    bridge_initdata.max_fdb_dynamic_entries = ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES;
+    bridge_initdata.max_fdb_static_entries = ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES;
+    EnetUtils_copyMacAddr(&bridge_initdata.ethaddr.addr[0U], &virtNetif->macAddr[0U]);
+
+    netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
+
+    /* Add all network interfaces to the bridge */
+    bridgeif_add_port_with_opts(&netif_bridge, netif, BRIDGEIF_PORT_CPSW);
+    bridgeif_add_port_with_opts(&netif_bridge, &netif_ic, BRIDGEIF_PORT_VIRTUAL);
+
+    /* Set bridge interface as the default */
+    netif_set_default(&netif_bridge);
+    netif_set_status_callback(&netif_bridge, EthApp_lwipNetifStatusCb);
+#else
+```
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## A72 Linux Client integration {#ethfw_intercore_a72client}
+
+Inter-core virtual Ethernet can also be used on the A72 Linux remote client, however lwIP is
+not used on Linux so we cannot use the inter-core virtual driver directly. Instead, the
+adaptation layer between the Linux network stack and the inter-core transport is implemented
+in a user space demo application called <b>Tap</b>, which is provided under `<ethfw>/apps/tap/`.
+This user space application creates a Linux TAP networking device and passes Ethernet packets
+back and forth between the TAP device and the inter-core transport shared queues to communicate
+with the inter-core netif on EthFw server. Further, the TAP network interface can be bridged
+with the Enet LLD client interface to provide a single unified interface to the network stack,
+just like the R5F cores.
+
+Please refer to the following code in `<ethfw>/apps/tap/tapif.c`:
+
+```C
+    /* Open TAP device and get TAP device descriptor */
+    tap_fd = tap_open(tap_device_name);
+    if (tap_fd < 0) {
+        perror("Allocating interface");
+        assert(tap_fd >= 0);
+    }
+    printf("Opened TAP Device successfully\n");
+    fflush(stdout);
+
+    /* Try to open the memory and fetch its file descriptor */
+    mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+    if (mem_fd == -1) {
+        printf("Failed to open /dev/mem\n");
+        fflush(stdout);
+        assert(0 && "Failed to access shared memory");
+    }
+
+    /*Create a mapping between the physical addresses and virtual addresses */
+    /* for the Queue Region using mmap*/
+    IcQ_globalQTable_Handle =
+                (IcQ_Handle)mmap(NULL, q_len, PROT_READ | PROT_WRITE,
+                MAP_SHARED, mem_fd, q_base_addr);
+    /* Check for failure in mapping */
+    assert(IcQ_globalQTable_Handle != MAP_FAILED && "Queue Mapping Failed");
+    printf("Queue Mapping Succeeded\n");
+    fflush(stdout);
+
+    /*Create a mapping between the physical addresses and virtual addresses */
+    /* for the Buffer Region using mmap*/
+    BufpoolTable_Handle = (Bufpool_Handle)mmap(NULL, bufpool_len,
+                                PROT_READ | PROT_WRITE, MAP_SHARED,
+                                mem_fd, bufpool_base_addr);
+    /* Check for failure in mapping */
+    assert(BufpoolTable_Handle != MAP_FAILED && "Bufpool Mapping Failed");
+    printf("Bufpool Mapping Succeeded\n");
+    fflush(stdout);
+
+    /* Define txQ_Handle and rxQ_Handle */
+    txQ_Handle =
+        (IcQ_Handle)&(IcQ_globalQTable_Handle[tx_q_id]);
+    rxQ_Handle =
+        (IcQ_Handle)&(IcQ_globalQTable_Handle[rx_q_id]);
+
+    printf("Assigned Queue Handles\n");
+```
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Multicast and Broadcast Support {#ethfw_mcast_support}
+
+Starting with SDK 8.1, the Ethernet firmware supports client cores to receive multicast and broadcast traffic.
+
+Broadcast support is automatically enabled through inter-core virtual Ethernet
+mechanism which allows sending broadcast traffic to all the client cores, provided
+that inter-core virtual Ethernet is enabled on that client.
+
+For multicast support, a new
+[<b>multicast filter API</b>](../api_guide/html_/group__CPSW__PROXY__API.html#ga89c45e9fcf6a7927ed1ee4079e4ee9c7)
+is provided by EthFw which allows client cores to subscribe-to/unsubscribe-from multicast
+addresses. The Ethernet firmware differentiates between two types of multicast addresses:
+
+-# @ref ethfw_shared_mcast
+-# @ref ethfw_exclusive_mcast
+
+Note that the cores requesting a multicast address do not need to know if a particular
+multicast address is shared or exclusive. This accounting is handled by the EthFw server
+and is completely transparent to the requesting client core.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## Shared Multicast {#ethfw_shared_mcast}
+
+Shared multicast allows multiple client cores to subscribe to the same multicast address.
+To support this, EthFw maintains a list of pre-defined multicast addresses which are treated as <b>shared</b>.
+
+-# More than one core can request these multicast addresses through the
+[<b>multicast filter API</b>](../api_guide/html_/group__CPSW__PROXY__API.html#ga89c45e9fcf6a7927ed1ee4079e4ee9c7).
+-# Traffic for these multicast addresses is always routed to the EthFw server from where
+it is fanned out to all the client cores that requested that particular multicast address.
+-# Shared multicast fanout is performed in software using inter-core virtual Ethernet
+mechanism, therefore it is suited for low to medium bandwidth multicast traffic only.
+-# The <b>shared multicast address list</b> is defined in source as shown below so the user
+will need to modify and rebuild the EthFw binaries if they need to change these addresses:
+
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`:
+
+```C
+/* Must not exceed ETHAPP_MAX_SHARED_MCAST_ADDR entries */
+static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
+{
+    {
+        /* MCast IP ADDR: 224.0.0.1 */
+        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0x01},
+        .portMask= 0U,
+    },
+    {
+        /* MCast IP ADDR: 224.0.0.251 */
+        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFB},
+        .portMask= 0U,
+    },
+    {
+        /* MCast IP ADDR: 224.0.0.252 */
+        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFC},
+        .portMask= 0U,
+    },
+    {
+        .macAddr = {0x33,0x33,0x00,0x00,0x00,0x01},
+        .portMask= 0U,
+    },
+    {
+        .macAddr = {0x33,0x33,0xFF,0x1D,0x92,0xC2},
+        .portMask= 0U,
+    },
+    {
+        .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x00},
+        .portMask= 0U,
+    },
+    {
+        .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x03},
+        .portMask= 0U,
+    },
+};
+```
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## Exclusive Multicast {#ethfw_exclusive_mcast}
+
+Exclusive multicast addresses are allocated to only one core at any given time and the
+corresponding multicast traffic is routed to that core directly using a dedicated hardware flow.
+
+-# Any multicast addresses that do not belong to the shared multicast address list are
+considered exclusive and ownership of such multicast addresses is granted to the first
+requesting core. Any other cores requesting the same exclusive multicast address after
+it has already been allocated, will get a failure.
+-# Exclusive multicast traffic is routed directly to the allocated core through a dedicated
+hardware flow therefore it is suitable for high bandwidth single-core multicast traffic.
+
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 # Dependencies {#ethfw_instal_top}
 
 Dependencies can be categorized as follows:
@@ -481,25 +836,27 @@ Please refer to the Ethernet Firmware Release Notes.
 
 ## Demo Application - Profile: Debug {#ethfw_cflag_debug}
 
-Flag                       | Description
----------------------------|------------
-`-g`                       | Default behavior. Enables symbolic debugging. The generation of debug information do not impact optimizations. Therefore, generating debug information is enabled by default.
-`--endian=little`          | Little Endian
-`-mv=7R5`                  | Processor Architecture Cortex-R5
-`--abi=eabi`               | Application binary interface - ELF
-`-eo=.obj`                 | Output Object file extension
-`--float_support=vfpv3d16` | VFP co-processor is enabled
-`--preproc_with_compile`   | Continue compilation after using -pp`<X>` options
-`-D=TARGET_BUILD=2`        | Identifies the build profile as 'debug'
-`-D_DEBUG_=1`              | Identifies as debug build
-`-D=SOC_J721E`             | Identifies the J721E SoC type
-`-D=J721E`                 | Identifies the J721E device type
-`-D=SOC_J7200`             | Identifies the J7200 SoC type
-`-D=J7200`                 | Identifies the J7200 device type
-`-D=R5F="R5F"`             | Identifies the core type as ARM R5F
-`-D=ARCH_32`               | Identifies the architecture as 32-bit
-`-D=SYSBIOS`               | Identifies as TI RTOS operating system build
-`-D=FREERTOS`              | Identifies as FreeRTOS operating system build
+Flag                             | Description
+---------------------------------|------------
+`-g`                             | Default behavior. Enables symbolic debugging. The generation of debug information do not impact optimizations. Therefore, generating debug information is enabled by default.
+`--endian=little`                | Little Endian
+`-mv=7R5`                        | Processor Architecture Cortex-R5
+`--abi=eabi`                     | Application binary interface - ELF
+`-eo=.obj`                       | Output Object file extension
+`--float_support=vfpv3d16`       | VFP co-processor is enabled
+`--preproc_with_compile`         | Continue compilation after using -pp`<X>` options
+`-D=TARGET_BUILD=2`              | Identifies the build profile as 'debug'
+`-D_DEBUG_=1`                    | Identifies as debug build
+`-D=SOC_J721E`                   | Identifies the J721E SoC type
+`-D=J721E`                       | Identifies the J721E device type
+`-D=SOC_J7200`                   | Identifies the J7200 SoC type
+`-D=J7200`                       | Identifies the J7200 device type
+`-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
+`-D=ARCH_32`                     | Identifies the architecture as 32-bit
+`-D=SYSBIOS`                     | Identifies as TI RTOS operating system build
+`-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
+`-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
+`-D=ETHFW_INTERCORE_ETH_SUPPORT` | Enable Intercore Ethernet support (disabled if BUILD_QNX_A72 is defined)
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -507,26 +864,28 @@ Flag                       | Description
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Demo Application - Profile: Release {#ethfw_cflag_release}
 
-Flag                       | Description
----------------------------|------------
-`--endian=little`          | Little Endian
-`-mv=7R5`                  | Processor Architecture Cortex-R5
-`--abi=eabi`               | Application binary interface - ELF
-`-eo=.obj`                 | Output Object file extension
-`--float_support=vfpv3d16` | VFP co-processor is enabled
-`--preproc_with_compile`   | Continue compilation after using -pp`<X>` options
-`--opt_level=3`            | Optimization level 3
-`--gen_opt_info=2`         | Generate optimizer information file at level 2
-`-D=TARGET_BUILD=1`        | Identifies the build profile as 'release'
-`-DNDEBUG`                 | Disable standard-C assertions
-`-D=SOC_J721E`             | Identifies the J721E SoC type
-`-D=J721E`                 | Identifies the J721E device type
-`-D=SOC_J7200`             | Identifies the J7200 SoC type
-`-D=J7200`                 | Identifies the J7200 device type
-`-D=R5F="R5F"`             | Identifies the core type as ARM R5F
-`-D=ARCH_32`               | Identifies the architecture as 32-bit
-`-D=SYSBIOS`               | Identifies as TI RTOS operating system build
-`-D=FREERTOS`              | Identifies as FreeRTOS operating system build
+Flag                             | Description
+---------------------------------|------------
+`--endian=little`                | Little Endian
+`-mv=7R5`                        | Processor Architecture Cortex-R5
+`--abi=eabi`                     | Application binary interface - ELF
+`-eo=.obj`                       | Output Object file extension
+`--float_support=vfpv3d16`       | VFP co-processor is enabled
+`--preproc_with_compile`         | Continue compilation after using -pp`<X>` options
+`--opt_level=3`                  | Optimization level 3
+`--gen_opt_info=2`               | Generate optimizer information file at level 2
+`-D=TARGET_BUILD=1`              | Identifies the build profile as 'release'
+`-DNDEBUG`                       | Disable standard-C assertions
+`-D=SOC_J721E`                   | Identifies the J721E SoC type
+`-D=J721E`                       | Identifies the J721E device type
+`-D=SOC_J7200`                   | Identifies the J7200 SoC type
+`-D=J7200`                       | Identifies the J7200 device type
+`-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
+`-D=ARCH_32`                     | Identifies the architecture as 32-bit
+`-D=SYSBIOS`                     | Identifies as TI RTOS operating system build
+`-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
+`-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
+`-D=ETHFW_INTERCORE_ETH_SUPPORT` | Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
 
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -559,6 +918,7 @@ Revision | Date          | Author                 | Description
 1.0      | 28 Jan 2020   | Misael Lopez           | Updates for SDK 6.02.00
 1.1      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
 1.2      | 02 Nov 2020   | Misael Lopez           | Updated for Enet LLD migration
+1.3      | 01 Dec 2021   | Nitin Sakhuja          | Adedd Inter-core Ethernet support for SDK 8.1
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)
