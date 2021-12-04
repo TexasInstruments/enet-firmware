@@ -1708,7 +1708,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(EthRemoteCfg_VirtPor
                                                             uint8_t timer_id,
                                                             uint8_t hwPushNum)
 {
-    int32_t status;
+    int32_t status = ENET_SOK;
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     Enet_IoctlPrms prms;
     CpswCpts_RegisterHwPushCbInArgs hwPushCbInArgs;
@@ -1724,22 +1724,34 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(EthRemoteCfg_VirtPor
                  name,
                  timer_id,
                  hwPushNum);
-    hProxyServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
+
+    if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
+    {
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if (status == ENET_SOK)
+    {
+        hProxyServer = CpswProxyServer_getHandle();
+        EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+        status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
+    }
 
     /* Register hardware push callback */
-    hwPushCbInArgs.hwPushNum = (CpswCpts_HwPush)hwPushNum;
-    hwPushCbInArgs.hwPushNotifyCb = CpswProxyServer_hwPushNotifyFxn;
-    hwPushCbInArgs.hwPushNotifyCbArg = (void *)hProxyServer;
-    ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushCbInArgs);
-    status = Enet_ioctl(hEnet,
-                        host_id,
-                        CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK,
-                        &prms);
-    if (status != ENET_SOK)
+    if (status == ENET_SOK)
     {
-        appLogPrintf("Failed Enet_ioctl CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK : %d\n", status);
+        hwPushCbInArgs.hwPushNum = (CpswCpts_HwPush)hwPushNum;
+        hwPushCbInArgs.hwPushNotifyCb = CpswProxyServer_hwPushNotifyFxn;
+        hwPushCbInArgs.hwPushNotifyCbArg = (void *)hProxyServer;
+        ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushCbInArgs);
+        status = Enet_ioctl(hEnet,
+                            host_id,
+                            CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK,
+                            &prms);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed Enet_ioctl CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK : %d\n", status);
+        }
     }
 
     /* Configure timesync router */
@@ -1765,23 +1777,35 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtP
                                                               uint32_t core_key,
                                                               uint8_t hwPushNum)
 {
-    int32_t status;
+    int32_t status = ENET_SOK;
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     Enet_IoctlPrms prms;
     Enet_Type enetType;
     CpswProxyServer_Obj *hProxyServer;
+    uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
 
-    hProxyServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
-    status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
+    if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
+    {
+        status = ENET_EINVALIDPARAMS;
+    }
+
+    if (status == ENET_SOK)
+    {
+        hProxyServer = CpswProxyServer_getHandle();
+        EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
+        status = CpswProxyServer_getCpswType(&hProxyServer->handleTbl, hEnet, &enetType);
+    }
 
     /* Unregister hardware push callback */
-    hwPushNum = (CpswCpts_HwPush)hwPushNum;
-    ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushNum);
-    status = Enet_ioctl(hEnet,
-                        host_id,
-                        CPSW_CPTS_IOCTL_UNREGISTER_HWPUSH_CALLBACK,
-                        &prms);
+    if (status == ENET_SOK)
+    {
+        hwPushNum = (CpswCpts_HwPush)hwPushNum;
+        ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushNum);
+        status = Enet_ioctl(hEnet,
+                            host_id,
+                            CPSW_CPTS_IOCTL_UNREGISTER_HWPUSH_CALLBACK,
+                            &prms);
+    }
 
     /* Clear timesync router configuration for hardware push,
      * Note: This assumes input signal is stopped */
@@ -1789,14 +1813,13 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtP
     {
         status = EnetAppUtils_setTimeSyncRouter(enetType,
                                                 0U,
-                                                CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum) +
-                                                CPSWPROXY_CPSW9G_HWPUSH_BASE);
+                                                hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
     }
 
     if (status == ENET_SOK)
     {
         /* Use IPC_MAX_PROCS as invalid core id */
-        hProxyServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNum] = IPC_MAX_PROCS;
+        hProxyServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNorm] = IPC_MAX_PROCS;
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);

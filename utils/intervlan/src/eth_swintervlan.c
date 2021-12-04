@@ -714,6 +714,7 @@ static void CpswApp_pktRxTx(void)
     SemaphoreP_Status semStatus;
     uint32_t iterationCount = 0;
     volatile bool testDone = false;
+    TaskP_Handle hTask;
 
     /*  The packet handling loop is structured as described below
      *  The outer loop waits for semaphore notification from RX completion
@@ -727,7 +728,12 @@ static void CpswApp_pktRxTx(void)
      *  is reclaimed we then add it back to Rx Free Q (this implicitly acts SW flow control)
      */
     EnetQueue_initQ(&gCpswInterVlanAppObj.rxReadyQ);
-    TaskP_setPrio(TaskP_self(), 5);
+
+    hTask = TaskP_self();
+    if (hTask != NULL)
+    {
+        TaskP_setPrio(hTask, 5);
+    }
 
     do
     {

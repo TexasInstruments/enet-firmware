@@ -807,7 +807,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
 EthFw_Handle EthFw_init(Enet_Type enetType,
                         const EthFw_Config *config)
 {
-    EnetUdma_Cfg *udmaCfg = (EnetUdma_Cfg *)config->cpswCfg.dmaCfg;
+    EnetUdma_Cfg *udmaCfg;
     char *date = __DATE__;
     char *time = __TIME__;
     int32_t status = ENET_SOK;
@@ -815,6 +815,8 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     EnetAppUtils_assert(config != NULL);
     EnetAppUtils_assert(config->ports != NULL);
     EnetAppUtils_assert(config->numPorts <= ENET_MAC_PORT_NUM);
+
+    udmaCfg = (EnetUdma_Cfg *)config->cpswCfg.dmaCfg;
     EnetAppUtils_assert(udmaCfg != NULL);
     EnetAppUtils_assert(udmaCfg->hUdmaDrv != NULL);
 
