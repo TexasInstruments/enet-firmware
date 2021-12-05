@@ -68,12 +68,281 @@ Feature         | Comments
 L2 switching    | Support for configuration of the Ethernet Switch to enable L2 switching between external ports with VLAN, multi-cast
 Inter-VLAN routing | Inter-VLAN routing configuration in hardware with software fall-back support
 lwIP integration | Integration of TCP/IP stack enabling TCP, UDP.
+MAC-only         | MAC port configuration in MAC-only mode for traffic exclusively forwarded to host port
 Intercore Virtual Ethernet |  TCP/IP communication between cores using inter-core virtual Ethernet driver
 Broadcast and Multicast support | Ability to send broadcast and multicast traffic to multiple cores
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
 
 [Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# MAC-only {#ethfw_maconly}
+
+CPSW switch supports a feature called MAC-only mode which allows all incoming traffic from
+a given MAC port to be transferred only to the host port.  This effectively excludes the
+MAC ports configured in this mode for rest of packet switching happening in the CPSW switch.
+
+Starting with SDK 8.1, Ethernet Firmware has enabled MAC-only mode on selected MAC ports.
+To better understand the physical and logical entities involved in a system where MAC-only
+mode has been enabled, let's start by defining key concepts:
+
+- \ref ethfw_mac_port - The CPSW switch MAC ports.
+- *Logical switch ports* - Defined based on packet header match criteria, typically created
+  based on destination MAC address, VLAN IDs, etc.  Two possible types:
+
+   - \ref ethfw_local_switch_port - owned exclusively by Ethernet Firmware.
+   - \ref ethfw_virtual_switch_port - owned by remote clients (Linux, QNX, MCAL, RTOS).
+
+- *Logical MAC-only ports* - Defined with 1-to-1 correspondence to physical ports (port
+  configured in MAC-only mode), owned by remote clients.
+
+   - \ref ethfw_virtual_mac_port - owned by remote clients (Linux, RTOS).
+
+![](EthFw_PortCfg_generic.png "Ethernet Firmware logical ports and hardware ports")
+
+The default port configuration for J721E and J7200 are shown in \ref ethfw_j721e_port_cfg
+and \ref ethfw_j7200_port_cfg subsections, respectively.
+
+The port's default VLAN for MAC ports configured in MAC-only mode is `0`, and for MAC ports
+configured in switch mode is `1`. They can be changed via `EthFw_Config::dfltVlanIdMacOnlyPorts`
+and `EthFw_Config::dfltVlanIdSwitchPorts`, respectively.
+
+## Hardware physical ports {#ethfw_mac_port}
+
+These are the actual hardware MAC ports of the CPSW switch.  They can be configured in MAC-only
+or switch (non MAC-only) mode.
+
+The MAC ports which are to be enabled by the Ethernet Firmware as passed as a parameter
+of `EthFw_Config` structure.  For example, below code snippet shows a configuration which
+enables all 8 MAC ports in J721E CPSW9G.
+
+```C
+static Enet_MacPort gEthAppPorts[] =
+{
+    ENET_MAC_PORT_1, /* RGMII */
+    ENET_MAC_PORT_3, /* RGMII */
+    ENET_MAC_PORT_4, /* RGMII */
+    ENET_MAC_PORT_8, /* RGMII */
+#if defined(ENABLE_QSGMII_PORTS)
+    ENET_MAC_PORT_2, /* QSGMII main */
+    ENET_MAC_PORT_5, /* QSGMII sub */
+    ENET_MAC_PORT_6, /* QSGMII sub */
+    ENET_MAC_PORT_7, /* QSGMII sub */
+#endif
+};
+
+static int32_t EthApp_initEthFw(void)
+{
+    EthFw_Config ethFwCfg;
+
+    ...
+
+    ethFwCfg.ports    = &gEthAppPorts[0];
+    ethFwCfg.numPorts = ARRAY_SIZE(gEthAppPorts);
+
+    ...
+}
+```
+
+## Local switch port {#ethfw_local_switch_port}
+
+This is a logical port owned by the Ethernet Firmware.
+
+Ethernet packets are exchanged with the CPSW switch through its *host port* using a UDMA
+RX flow and a TX channel.
+
+CPSW's default thread is set to this port's UDMA RX flow, also called *default RX flow*.
+Traffic which is not matched by any CPSW classifier gets routed to this port.
+
+
+## Virtual switch port {#ethfw_virtual_switch_port}
+
+This is the traditional logical port owned by remote client cores, controlled via Ethernet
+Firmware's IPC-based remote API.
+
+Ethernet packets are also exchanged with the CPSW switch through its *host port* using a
+UDMA RX flow and a TX channel.
+
+RX traffic (to remote core) is segregated via CPSW ALE classifier with *unicast MAC address*
+match criteria. TX traffic (from remote core) is sent as *non-directed* packets.
+
+It's worth noting that virtual switch ports are not directly associated with any specific
+hardware MAC port, as these virtual ports can received traffic from any MAC port as long as
+the packets match the unicast MAC address classification criteria.
+
+SDK 8.0 or older supported only this type of virtual port.
+
+Virtual port (*virtual switch* or *virtual MAC*) are allocated to a specific core.
+For example, below code snippet shows a configuration where *virtual switch 0* is allocated
+for A72 core, and *virtual switch port 1* is allocated for Main R5F 0 Core 1.
+
+```C
+static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
+{
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_0,
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_MAC_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_MAC_PORT_4,
+    },
+};
+
+static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
+{
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+};
+
+static int32_t EthApp_initEthFw(void)
+{
+    EthFw_Config ethFwCfg;
+
+    ...
+
+    /* Set virtual port configuration parameters */
+    ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
+    ethFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
+
+    /* Set AUTOSAR virtual port configuration parameters */
+    ethFwCfg.autosarVirtPortCfg  = &gEthApp_autosarVirtPortCfg[0];
+    ethFwCfg.numAutosarVirtPorts = ARRAY_SIZE(gEthApp_autosarVirtPortCfg);
+
+   ...
+}
+```
+
+## Virtual MAC port {#ethfw_virtual_mac_port}
+
+This is also a logical port owned by remote clients and controlled via Ethernet Firmware's
+IPC-based remote API.
+
+Ethernet packets are also exchanged with the CPSW switch through its *host port* using a
+UDMA RX flow and a TX channel.
+
+RX traffic (to remote core) is segregated via CPSW ALE classifier with *port* match criteria.
+TX traffic (from remote core) is sent as *directed* packets.
+
+These virtual ports are directly associated with a hardware MAC port which is configured in
+MAC-only mode.
+
+Below code snippet (which is same as shown in previous section for \ref ethfw_virtual_switch_port)
+shows a configuration where *virtual MAC port 1* is allocated for A72, and *virtual MAC port 2*
+is allocated for Main R5F 0 Core 1. It's worth noting that virtual MAC ports are only supported
+in Linux and RTOS client, hence no virtual MAC ports are allocated for AUTOSAR client.
+
+```C
+static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
+{
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_0,
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_MAC_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_MAC_PORT_4,
+    },
+};
+
+static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
+{
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+};
+
+static int32_t EthApp_initEthFw(void)
+{
+    EthFw_Config ethFwCfg;
+
+    ...
+
+    /* Set virtual port configuration parameters */
+    ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
+    ethFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
+
+    /* Set AUTOSAR virtual port configuration parameters */
+    ethFwCfg.autosarVirtPortCfg  = &gEthApp_autosarVirtPortCfg[0];
+    ethFwCfg.numAutosarVirtPorts = ARRAY_SIZE(gEthApp_autosarVirtPortCfg);
+
+   ...
+}
+```
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+# Default Port Configuration {#ethfw_port_cfg}
+
+## J721E Port Configuration {#ethfw_j721e_port_cfg}
+
+There are four MAC ports enabled by default in Ethernet Firmware for J721E SoC.  These
+are the RGMII MAC ports in GESI board.
+
+Two MAC ports are configured in MAC-only mode and allocated for A72 (Linux) and Main R5F
+Core 1 (RTOS) usage.  The remaining two MAC ports are configured in switch mode.
+
+![](EthFw_PortCfg_j721e_evm.png "J721E default port configuration")
+
+The following table shows the full list of MAC ports in J721E EVM, the board they are
+located and their MAC mode.  It's worth noting that the MAC ports in QSGMII daughter
+board are not enabled by default.
+
+| MAC Port    | PHY Addr | Board  | MAC mode
+|:------------|:--------:|:------:|:------------
+| MAC Port 1  |   12     | GESI   | MAC-only
+| <span style="color:gray">MAC Port 2 |   16     | QSGMII | Switch Port</span>
+| MAC Port 3  |    0     | GESI   | Switch Port
+| MAC Port 4  |    3     | GESI   | MAC-only
+| <span style="color:gray">MAC Port 5  |   17     | QSGMII | Switch Port</span>
+| <span style="color:gray">MAC Port 6  |   18     | QSGMII | Switch Port</span>
+| <span style="color:gray">MAC Port 7  |   19     | QSGMII | Switch Port</span>
+| MAC Port 8  |   15     | GESI   | Switch Port
+
+
+## J7200 Port Configuration {#ethfw_j7200_port_cfg}
+
+All the four MAC ports of CPSW5G are enabled by default in Ethernet Firmware for J7200 SoC.
+These are the four QSGMII MAC ports in QSGMII (QpENet) daughter board.
+
+Two MAC ports are configured in MAC-only mode and allocated for A72 (Linux) and Main R5F
+Core 1 (RTOS) usage.  The remaining two MAC ports are configured in switch mode.
+
+![](EthFw_PortCfg_j7200_evm.png "J7200 default port configuration")
+
+The following table shows the full list of MAC ports in J7200 EVM, the board they are
+located and their MAC mode.
+
+| MAC Port    | PHY Addr | Board  | MAC mode
+|:------------|:--------:|:------:|:------------
+| MAC Port 1  |   16     | QSGMII | MAC-only
+| MAC Port 2  |   17     | QSGMII | Switch Port
+| MAC Port 3  |   18     | QSGMII | Switch Port
+| MAC Port 4  |   19     | QSGMII | MAC-only
+
+[Back To Top](@ref ethfw_c_ug_top)
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Inter-core Virtual Ethernet {#ethfw_intercore_eth}
