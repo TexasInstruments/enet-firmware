@@ -272,7 +272,7 @@ to understand how these netifs are instantiated and added to the bridge:
 Inter-core virtual Ethernet can also be used on the A72 Linux remote client, however lwIP is
 not used on Linux so we cannot use the inter-core virtual driver directly. Instead, the
 adaptation layer between the Linux network stack and the inter-core transport is implemented
-in a user space demo application called <b>Tap</b>, which is provided under `<ethfw>/apps/tap/`.
+in a user space demo application called <b>TAP</b>, which is provided under `<ethfw>/apps/tap/`.
 This user space application creates a Linux TAP networking device and passes Ethernet packets
 back and forth between the TAP device and the inter-core transport shared queues to communicate
 with the inter-core netif on EthFw server. Further, the TAP network interface can be bridged
@@ -347,6 +347,7 @@ addresses. The Ethernet firmware differentiates between two types of multicast a
 
 -# @ref ethfw_shared_mcast
 -# @ref ethfw_exclusive_mcast
+-# @ref ethfw_reserved_mcast
 
 Note that the cores requesting a multicast address do not need to know if a particular
 multicast address is shared or exclusive. This accounting is handled by the EthFw server
@@ -425,6 +426,32 @@ it has already been allocated, will get a failure.
 -# Exclusive multicast traffic is routed directly to the allocated core through a dedicated
 hardware flow therefore it is suitable for high bandwidth single-core multicast traffic.
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## Reserved Multicast {#ethfw_reserved_mcast}
+
+Reserved multicast addresses are exclusive multicast addresses that are allocated only
+to the core running Ethernet Firmware.  Any other core requesting for a reserved multicast
+address will get a failure.
+
+PTP-related multicast addresses are defined as reserved multicast addresses in Ethernet
+Firmware's default configuration.  This is needed because Ethernet Firmware runs the
+PTP stack and is the sole destination of PTP packets.
+
+```C
+/* Note: Must not exceed ETHFW_RSVD_MCAST_LIST_LEN */
+static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
+{
+    /* PTP - Peer delay messages */
+    {
+        0x01, 0x80, 0xc2, 0x00, 0x00, 0x0E,
+    },
+    /* PTP - Non peer delay messages */
+    {
+        0x01, 0x1b, 0x19, 0x00, 0x00, 0x00,
+    },
+};
+```
 
 [Back To Top](@ref ethfw_c_ug_top)
 
