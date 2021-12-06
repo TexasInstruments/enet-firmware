@@ -4,8 +4,6 @@ This user guide presents the list of features supported by the Ethernet Firmware
 (EthFw) and describes the steps required to build and run the EthFw demo
 applications.
 
-For additional information about EthFw refer to [EthFw Introduction](@ref ethfw_c_ug_switch).
-
 [TOC]
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -451,15 +449,15 @@ Starting with SDK 8.1, the EthFw integrates Inter-core Virtual Ethernet driver w
 
 ##  Topology and Design overview {#ethfw_intercore_topology}
 
-The topology diagram below shows the integration of inter-core virtual Ethernet in Ethernet
-firmware.
-
 Inter-core virtual network uses a star topology with the R5F_0 master core (EthFw server)
 acting as the central hub. Each node (core) in the network communicates directly with the
 master while communication between other nodes (A72 and R5F_1) is routed through the
 master. In addition to the Enet LLD network interfaces used to communicate with the CPSW
 switch, each participating core creates an inter-core network interface, which allows it
 to communicate with another core using standard TCP/IP protocol suite.
+
+The topology diagram below shows the integration of inter-core virtual Ethernet in Ethernet
+Firmware.
 
 ![](Intercore_eth_topology_overview.png "Inter-core Virtual Ethernet Topology")
 
@@ -578,7 +576,7 @@ to understand how these netifs are instantiated and added to the bridge:
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-## EthFW Client integration {#ethfw_intercore_r5client}
+## R5F RTOS Client integration {#ethfw_intercore_r5client}
 
 The EthFw client on R5F_1 instantiates only one inter-core netif to communicate directly
 with the EthFw server on R5F_0. Similar to the EthFW server, an lwIP bridgeif is created and
@@ -848,8 +846,8 @@ EthFw is supported on the boards/EVM listed below
 ![](GESI_Board.png "J721E EVM GESI Board Top View")
 
 There are four RGMII PHYs in the J721E GESI board as shown in the following image.
-They will be referred to as **MAC Port 0**, **MAC Port 1**, **MAC Port 2** and
-**MAC Port 3** throughout this document.
+They will be referred to as **MAC Port 1**, **MAC Port 3**, **MAC Port 4** and
+**MAC Port 8** throughout this document.
 
 ![](GESI_RJ45_SideView.png "GESI Board connections")
 
