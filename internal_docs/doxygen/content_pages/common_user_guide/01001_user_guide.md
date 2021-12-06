@@ -290,6 +290,96 @@ static int32_t EthApp_initEthFw(void)
 }
 ```
 
+## Configuring additional ports in MAC-only mode {#ethfw_additional_maconly}
+
+The default port configuration of Ethernet Firmware can be changed to fit the specific
+architecture requirements of each system.
+
+If additional ports need to be configured in MAC-only mode, one needs to follow these steps:
+
+-# Add the new *MAC port* to the port array passed via `EthFw_Config::port` config parameter.
+-# Add a new *virtual MAC port* corresponding to the hardware *MAC port* of interest.
+   The virtual port configuration is passed via `EthFw_Config::virtPortCfg` config parameter.
+   The virtual port mode must be set to `ETHREMOTECFG_MAC_PORT_<n>` which is an enum of
+   type `EthRemoteCfg_VirtPort`.
+
+```C
+static Enet_MacPort gEthAppPorts[] =
+{
+    ...
+    ENET_MAC_PORT_5, /* new MAC port being added */
+};
+
+static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
+{
+    ...
+    {
+        .remoteCoreId = IPC_MCU2_1,              /* new MAC port allocated for MCU2_1 RTOS usage */
+        .portId       = ETHREMOTECFG_MAC_PORT_5, /* new MAC port in MAC-only mode */
+    },
+};
+
+static int32_t EthApp_initEthFw(void)
+{
+    EthFw_Config ethFwCfg;
+
+    ...
+
+    ethFwCfg.ports        = &gEthAppPorts[0];
+    ethFwCfg.numPorts     = ARRAY_SIZE(gEthAppPorts);
+    ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
+    ethFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
+
+    ...
+}
+```
+
+On the other hand, if the new MAC port or an existing one needs to be changed from MAC-only mode
+to switch mode, one can simply remove it from the `EthFw_VirtPortCfg` array.
+
+Resource availability and allocation must be taken into account when adding additional virtual
+ports, not only in MAC-only mode but also in switch mode.  Each virtual port will require one
+UDMA TX channel and one UDMA RX flow, both are resources partitioned for each core in the SoC,
+hence repartitioning might be needed.  Additionally, each virtual port will require a MAC address
+which is also a limited resource.
+
+Ethernet Firmware relies on Enet LLD's utils library to populate its MAC address pool
+(see `EnetAppUtils_initResourceConfig()`).  The MAC address pool is populated with addresses
+read from EEPROMs located in the different daughter boards in TI EVM.  Note that a static
+MAC address pool is used as a workaround in TI EVMs for cases where I2C bus contention could
+happen (i.e. when integrating with Linux).  It's expected that the MAC address pool population
+mechanism is adapted when integrating Ethernet Firmware to different platforms.
+
+The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is as follows:
+
+| Resource    | Count  | EthFw Usage (mcu2_0)
+|:------------|:------:|:-----------------------------------
+| TX channel  |   3    | <ul><li>lwIP netif (1)</li><li>PTP (1)</li><li>SW interVLAN (1)</li></ul>
+| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>Proxy ARP (1)</li><li>PTP (1)</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
+| MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
+
+UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
+available.  So, there are 5 TX channels to be shared among the differrent remote client cores
+and their virtual ports.
+
+With Ethernet Firmware's default port configuration, the following resources will be used by
+Linux remote client on A72 core.
+
+| Resource    | Count  | Linux Client Usage
+|:------------|:------:|:-----------------------------------
+| TX channel  |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
+| RX flow     |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
+| MAC address |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
+
+With Ethernet Firmware's default port configuration, the following resources will be used by
+RTOS remote client on Main R5F 0 Core 1.
+
+| Resource    | Count  | RTOS Client Usage
+|:------------|:------:|:-----------------------------------
+| TX channel  |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
+| RX flow     |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
+| MAC address |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 
