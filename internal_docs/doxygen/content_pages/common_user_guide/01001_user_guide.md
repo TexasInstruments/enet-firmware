@@ -1,62 +1,17 @@
 # User Guide {#ethfw_c_ug_top}
 
+Ethernet Firmware enables multiple client drivers to run independently on the
+remaining cores in the system. For instance, A-cores can run HLOS like Linux
+or QNX, and other R5F cores can run FreeRTOS or AUTOSAR software.
+Client drivers communicate through the central Ethernet Firmware module for
+any necessary switch configuration. Once setup packet are directly steered to
+the designated cores based on the flow steered criteria described before.
+
 This user guide presents the list of features supported by the Ethernet Firmware
-(EthFw) and describes the steps required to build and run the EthFw demo
+(EthFw), and describes the steps required to build and run the EthFw demo
 applications.
 
 [TOC]
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# EthFw Demos {#ethfw_c_ug_ethfw_demos}
-
-The EthFw demos showcase the integration and usage of the Ethernet Firmware
-which provides a high-level interface for applications to configure and use the
-integrated Ethernet switch peripheral (CPSW9G).
-
-The following sample applications are key to demonstrate the capabilities of the
-CPSW9G/CPSW5G hardware as well as the EthFw stack.
-
-Demo                               | Comments
------------------------------------|--------------
-L2 Switching | Configures CPSW9G switch to enable switching between its external ports
-L2/L3 address based classification | Illustrates traffic steering to A72 (Linux) and R5F (RTOS) based on Layer-2 Ethernet header. iperf tool and web servers are used to demonstrate traffic steering to/from PCs connected to the switch
-Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of Enet LLD
-Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW5G/CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load
-
-
-## EthFw Switching & TCP/IP Apps Demo {#ethfw_switching_demo}
-
-This demo showcases switching capabilities of the integrated Ethernet Switch
-(CPSW9G or CPSW5G) found in J721E or J7200 devices for features like VLAN,
-Multicast, etc.  It also demonstrates lwIP (TCP/IP stack) integration into
-the EthFw.
-
-
-## Inter-VLAN Routing Demo {#ethfw_intervlan_demo}
-
-This demo illustrates hardware and software based inter-VLAN routing.  The
-hardware inter-VLAN routing makes use of the CPSW9G/CPSW5G hardware features
-which enable line-rate inter-VLAN routing without any additional CPU load on
-the EthFw core.  The software inter-VLAN routing is implemented as a
-fall-back alternative.
-
-The hardware inter-VLAN route demo exercises the CPSW ALE classifier feature,
-which is used per flow to characterize the route and configure the egress
-operation.
-
-Available egress operations:
-- Replace Destination (MAC) Address
-- Replace Source (MAC) Address
-- Replace VLAN ID
-- Optional decrement of Time To Live (TTL)
-- Supports IPv4 (TTL) and IPv6 (Hop Limit) fields
-- Packets with 0 or 1 TTL/Hop Limit are sent to the host for error processing
-
-For further information, please refer to the @ref demo_ethfw_combined_top demo
-application documentation.
-
-[Back To Top](@ref ethfw_c_ug_top)
-
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Supported Features {#ethfw_c_ug_features_list}
@@ -66,11 +21,189 @@ Feature         | Comments
 L2 switching    | Support for configuration of the Ethernet Switch to enable L2 switching between external ports with VLAN, multi-cast
 Inter-VLAN routing | Inter-VLAN routing configuration in hardware with software fall-back support
 lwIP integration | Integration of TCP/IP stack enabling TCP, UDP.
-MAC-only         | MAC port configuration in MAC-only mode for traffic exclusively forwarded to host port
+MAC-only         | Port configuration in MAC-only mode for traffic exclusively forwarded to host port, excludes the designated port(s) from switching logic
 Intercore Virtual Ethernet |  TCP/IP communication between cores using inter-core virtual Ethernet driver
 Broadcast and Multicast support | Ability to send broadcast and multicast traffic to multiple cores
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Master Core (EthFw) {#ethfw_master_core}
+
+The multiport CPSW switch present in devices of the Jacinto family is an Ethernet
+peripheral shared among the different processing cores within the SoC.  Ethernet
+Firmware acts as the owner of the CPSW switch and provides a remote configuration
+infrastructure for other processing cores running different operating systems.
+
+Ethernet Firmware enables TCP/IP stack and PTP test stack, includes software and
+hardware interVLAN demos, as well as helper utils libraries (i.e. network statistics).
+
+The following diagram shows the main components of the Ethernet Firmware software
+architecture.
+
+![](switch_software_stack.png "Ethernet Firmware software architecture")
+
+The TCP/IP stack integrated in the Ethernet Firmware is based on the open source lwIP
+stack enabled on top of Enet LLD.
+
+Ethernet Firmware sets up packet classifiers to route traffic to the different
+remote processing cores.  Routing criterias are based on the switch ingress port number
+or Layer-2 destination MAC address, depending on the virtual port type requested by
+the remote cores.  Packets which don't match any of the configured classifier criteria are
+routed to a default UDMA flow that is owned by Ethernet Firmware.
+
+For multicast, if the traffic is exclusively requested by a single core it can be directly
+steered to the designated core by programming the hardware classifier module through EthFw.
+When multiple cores need to receive the same multicast flow, then it is always steered to
+the Ethernet Firmware which plays the role of central hub that replicates and fans out.
+Refer to the \ref ethfw_mcast_support section for more information.
+
+Ethernet Firmware operates as a PTP clock slave and supports two-step mode with Layer-2
+encapsulation.  The integrated PTP stack is a TI implementation meant for testing and
+demonstration purposes.  **It must not be used for production**.  This PTP implementation
+sets up CPSW ALE classifiers with PTP multicast MAC addresses as match criteria to have
+PTP traffic routed to a dedicated UDMA RX flow.
+
+The remote configuration infrastructure provided by Ethernet Firmware is built on top
+of the *remote_device* framework.  Ethernet Firmware plays the role of a server which
+accepts and processes commands from the remote clients and carry out operations
+such as attaching/detaching, registering a MAC address or IP, etc, on the client's
+behalf.
+
+CPSW register configuration is carried out exclusively by Ethernet Firmware, remote
+cores are not expected/allowed to perform any CPSW5G/CPSW9G register access, though that
+is not enforced at the time of this writing.  Ethernet Firmware uses Enet LLD for
+low-level CPSW5G/CPSW9G driver support and for Ethernet PHY configuration.
+Enet LLD internally uses UDMA LLD for packet exchange with the CPSW switch.
+
+The following diagram shows a view of the Ethernet Firmware components and the
+expected ownership.
+
+![](building_block_owners.png "Component ownership in EthFw")
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Remote Core Clients {#ethfw_remote_clients}
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## RTOS Client {#ethfw_client_rtos}
+
+Ethernet Firmware component in SDK provides a FreeRTOS client example application
+running on Main R5F 0 core 1.  This application showcases lwIP TCP/IP stack and
+multicore time synchronization built on top of Ethernet Firmware's IPC-based
+remote config infrastructure.
+
+![](rtos_client.png "EthFw with RTOS client")
+
+The following lwIP netifs are enabled in the RTOS client application:
+
+  - CPSW client drivers:
+     - Virtual MAC port based netif - Dedicated MAC port from CPSW is excluded from
+       regular packet switching and allocated exclusive for this R5F core.
+     - Virtual switch port based netif - Virtual port which carries unicast RX traffic
+       from hardware MAC ports and TX traffic to hardware MAC ports.
+  - Shared memory virtual driver:
+     - Intercore based netif - Used for broadcast/multicast packet exchange with
+       R5F core running Ethernet Firmware. Refer to the \ref ethfw_intercore_eth section
+       for more details about intercore Ethernet.
+
+The two CPSW virtual port netifs reuse the same Enet LLD based lwIP implementation.
+
+The RTOS core attaches to the Ethernet Firmware server using the *Eth Remote Config
+Client* library which is built on top of *remote_device* framework.
+
+The multicore time synchronization mechanism implemented in RTOS client consists
+of a linear correction in software of a local timer owned by the RTOS core which
+is periodically synchronized with the CPTS clock via HW push event 3.
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Linux Client {#ethfw_client_linux}
+
+TI Linux kernel provides support for the two types of CPSW client drivers, *virtual MAC
+port* and *virtual switch port*, through the j721e-cpsw-virt-mac driver.  Both interfaces
+types are enabled by default in TI Processor SDK Linux.
+
+The following diagram presents a simplified view of the main components involved
+in the Linux client usecase.
+
+![](linux_client.png "EthFw with Linux client")
+
+The *rpmsg_kdrv_switch* client driver is compatible with the *remote_device* server
+side running on RTOS master core (Ethernet Firmware).  This driver is used to exchange
+control messages with Ethernet Firmware to establish a virtual port connection.
+
+It's important to note that the Ethernet packet exchange doesn't happen via IPC.
+Instead, it happens completely in hardware via UDMA TX channel and RX flow.
+
+For further information, please refer to [CPSWng_virt_mac](http://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-jacinto7/latest/exports/docs/linux/Foundational_Components/Kernel/Kernel_Drivers/Network/CPSWng_virt_mac.html)
+documentation in Processor SDK Linux.
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## QNX Client {#ethfw_client_qnx}
+
+TI's baseport for QNX provides support for *virtual switch port* network interface
+through its *devnp_cpsw9g* driver.  *Virtual MAC port* (MAC-only mode) is currently
+not supported by QNX client.
+
+The following diagram shows a simplified view of the main components involved in
+the QNX client's virtual port implementation.
+
+![](qnx_client.png "EthFw with QNX client")
+
+TI's *devnp_cpsw9g* driver implements the driver interface of the QNX networking stack
+(io-pkt), so the virtual MAC port network interface is exposed transparently to the user
+as any other native networking interface.
+
+*devnp_cpsw9g* driver uses Ethernet Firmware's remote configuration infrastructure
+in order to attach/detach the virtual port, register its MAC address, IP address, etc.
+This is the same remote configuration API used by other remote clients such as RTOS core,
+and consequently also sits on top of the *remote_device* framework. The lower level IPC
+functionality is provided by the *IPC RM* (QNX resmgr).
+
+Ethernet packet exchange with the CPSW switch happens in hardware through an UDMA TX
+channel and RX flow, completely independent of the Ethernet Firmware.  *devnp_cpsw9g*
+driver uses Enet LLD data path APIs natively to submit and retrieve Ethernet packets.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## AUTOSAR Client {#ethfw_client_autosar}
+
+Ethernet Firmware is also able to attach to a remote client running AUTOSAR.  The
+AUTOSAR client must use TI's MCAL Eth VirtMAC driver.  This is a MCAL Eth driver with
+TI customizations for virtual MAC functionality.
+
+A simplified view of the main entities involved in the AUTOSAR remote client usecase
+are shown in the following diagram.
+
+![](autosar_client.png "EthFw with AUTOSAR client")
+
+The remote core configuration is implemented on top of TI MCAL IPC CDD. The *remote_core*
+framework used for RTOS and Linux clients is not relevant in the AUTOSAR scenario.
+
+Ethernet packet exchange with the CPSW switch doesn't happen via IPC, but in hardware via
+UDMA TX channel and RX flow.
+
+In the current release, AUTOSAR client only supports *virtual switch port*. *Virtual MAC
+port* (MAC-only mode) is not supported.
+
+Note that the AUTOSAR client in the SDK has enabled only on Main R5F 0 core 1.
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Component Location {#ethfw_component_location}
+
+The location within the SDK directory structure of the software components which
+are relevant for Ethernet Firmware usecases is shown in the following figure.
+Note that this figure presents a consolidated view of the Ethernet Firmware and all
+the supported remote clients, but that doesn't mean that all clients can be supported
+simultaneously.
+
+![](EthFw_component_location.png "Location of the Ethernet Firmware related components in SDK")
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -700,7 +833,7 @@ that inter-core virtual Ethernet is enabled on that client.
 For multicast support, a new
 [<b>multicast filter API</b>](../api_guide/html_/group__CPSW__PROXY__API.html#ga89c45e9fcf6a7927ed1ee4079e4ee9c7)
 is provided by EthFw which allows client cores to subscribe-to/unsubscribe-from multicast
-addresses. The Ethernet firmware differentiates between two types of multicast addresses:
+addresses. The Ethernet Firmware differentiates between two types of multicast addresses:
 
 -# @ref ethfw_shared_mcast
 -# @ref ethfw_exclusive_mcast
@@ -813,7 +946,58 @@ static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
 [Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# EthFw Demos {#ethfw_c_ug_ethfw_demos}
 
+The EthFw demos showcase the integration and usage of the Ethernet Firmware
+which provides a high-level interface for applications to configure and use the
+integrated Ethernet switch peripheral (CPSW9G).
+
+The following sample applications are key to demonstrate the capabilities of the
+CPSW9G/CPSW5G hardware as well as the EthFw stack.
+
+Demo                               | Comments
+-----------------------------------|--------------
+L2 Switching | Configures CPSW9G switch to enable switching between its external ports
+L2/L3 address based classification | Illustrates traffic steering to A72 (Linux) and R5F (RTOS) based on Layer-2 Ethernet header. iperf tool and web servers are used to demonstrate traffic steering to/from PCs connected to the switch
+Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of Enet LLD
+Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW5G/CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load
+
+
+## EthFw Switching & TCP/IP Apps Demo {#ethfw_switching_demo}
+
+This demo showcases switching capabilities of the integrated Ethernet Switch
+(CPSW9G or CPSW5G) found in J721E or J7200 devices for features like VLAN,
+Multicast, etc.  It also demonstrates lwIP (TCP/IP stack) integration into
+the EthFw.
+
+
+## Inter-VLAN Routing Demo {#ethfw_intervlan_demo}
+
+This demo illustrates hardware and software based inter-VLAN routing.  The
+hardware inter-VLAN routing makes use of the CPSW9G/CPSW5G hardware features
+which enable line-rate inter-VLAN routing without any additional CPU load on
+the EthFw core.  The software inter-VLAN routing is implemented as a
+fall-back alternative.
+
+The hardware inter-VLAN route demo exercises the CPSW ALE classifier feature,
+which is used per flow to characterize the route and configure the egress
+operation.
+
+Available egress operations:
+- Replace Destination (MAC) Address
+- Replace Source (MAC) Address
+- Replace VLAN ID
+- Optional decrement of Time To Live (TTL)
+- Supports IPv4 (TTL) and IPv6 (Hop Limit) fields
+- Packets with 0 or 1 TTL/Hop Limit are sent to the host for error processing
+
+For further information, please refer to the @ref demo_ethfw_combined_top demo
+application documentation.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Dependencies {#ethfw_instal_top}
 
 Dependencies can be categorized as follows:
@@ -1303,6 +1487,7 @@ Revision | Date          | Author                 | Description
 1.1      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
 1.2      | 02 Nov 2020   | Misael Lopez           | Updated for Enet LLD migration
 1.3      | 01 Dec 2021   | Nitin Sakhuja          | Adedd Inter-core Ethernet support for SDK 8.1
+1.4      | 07 Dec 2021   | Misael Lopez           | Adedd MAC-only, server and client doc
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)
