@@ -1,0 +1,53 @@
+=============    EetlI p    ==============
+eetprpea ye
+:CS_G
+elc MACpot
+:EE_A_PR_  /GI bsdo hc or satce)2 NTMCPR_  GI0
+Eal TmSn T:0 N1 e0Ealn lcs
+P o: 10SatnglwP oa nterface IP is dhcp-enabled
+EnetMcm: CPSW_5G on MAIN NAVSS
+PHY 0 is alive
+PHY 3 is alive
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
+PHY 23 is alive
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+Host MAC address: 70:ff:76:1d:92:c2
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+status_callback==UP, local interface IP is 0.0.0.0
+CpswMacPort_checkSgmiiStatus: MAC 1: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+MAC Port 1: link up
+link_callback==UP
+status_callback==UP, local interface IP is 192.168.50.81
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.81
+Initializing apps
+UDP server listening on port 5001
+CPU Load: 16%
+CPU Load: 64%
+CPU Load: 61%
+CPU Load: 64%
+CPU Load: 58%
+CPU Load: 59%
+CPU Load: 58%
+CPU Load: 61%
+CPU Load: 63%
+CPU Load: 64%
+CPU Load: 58%
+CPU Load: 58%
+CPU Load: 49%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 17%
+CPU Load: 13%

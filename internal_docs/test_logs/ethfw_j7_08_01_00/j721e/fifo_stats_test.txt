@@ -1,0 +1,2166 @@
+ ===============
+ CPSW Test Select
+ ===============
+
+ Current/Default System Settings:
+ ------------------------
+ Uart timemout          : 10000 msec
+ Default Iteration count            : 1
+
+ 1: Manual testing (select specific test case to run)
+
+ s: System Settings
+
+ q: Quit
+
+ Enter Choice:
+
+ Manual testing
+
+ --------------------------------------
+ Select test to run as per below table:
+ --------------------------------------
+
+    1: CPSW9G Switching test
+    2: ALE auto learn test
+    3: ALE auto learn VLAN test
+    4: Mac speed test
+    5: Statistics test
+    6: VLAN test
+    8: CRC strip test
+    9: FIFO stats test
+   10: ALE source address update
+   11: ALE Table full
+   12: VLAN drop untagged
+   13: Multicast support
+   14: Policer test
+   15: Network security test
+   16: Host port Rx Filter
+   17: policer no match red drop enable test
+   18: policer no match yellow drop enable test
+   19: policer no match unregulated traffic test
+   20: Intervlan test
+   21: Default priority
+   22: Port VLAN ID
+   23: Sanity Test
+   24: Outer VLAN Test
+   25: Traffic shaping Test
+   26: 1-Gbps Full-Duplex Auto-Neg Test
+   27: 100-Mbps Full-Duplex Auto-Neg Test
+   28: 100-Mbps Half-Duplex Auto-Neg Test
+   29: DMA RxFlow Mtu Test
+   30: PHY Strap mode Test
+   31: Priority Regeneration
+   32: SGMII 1G Digital loopback
+   33: SGMII 1G FIFO Loopback
+   34: CPSW9G QSGMII Switching test
+   35: CPSW9G All ports Switching test
+   36: CPTS Event Test
+   37: BCAST MCAST Rate Limit
+   38: CPSW9G Directed packet test
+
+ Enter Test to Run (Use UART1 console for all cores or MCU_UART1 console for MCU)
+9
+9
+
+ |TEST START|:: 9 ::
+ |TEST NAME| :: FIFO stats test ::
+ |TEST INFO| :: Num Tasks         : 1 ::
+ |TEST INFO| :: Data Check        : Disabled ::
+ |TEST INFO| :: Profiling         : Disabled ::
+ |TEST INFO| :: Print             : Disabled ::
+ |TEST INFO| :: Run Instructions  : To be added ::
+
+
+ |TEST ITERATION NUMBER| ::       : 1 ::
+ENET_CPSW_9G Test on MAIN NAVSS
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 1024 pkts
+Host MAC address: 70:ff:76:1d:93:6c
+PHY 0 is alive
+
+
+----------------FIFO stats before RX TX----------------
+ --------FIFO Stats at Packet #:0------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+Waiting for PHY link on enabled ports mask:0x4
+Waiting for PORT link on enabled ports
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+MAC Port 3: link up
+Receive Complete:EnetTestCommon_recvTask,Id:0,Frame:10000
+Transmit Completed:EnetTestCommon_xmitTask,Id:0,Frame:10000
+
+Tx stack usage.Tx Cfg Id:0, Stack Used:0
+
+Rx stack usage.Rx Cfg Id:0, Stack Used:0
+ --------FIFO Stats at Packet #:0------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:0------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:1900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:2900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:3900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:4900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:5900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:6900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:7900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:8900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9000------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9100------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9200------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9300------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9400------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9500------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9600------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9700------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9800------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+ --------FIFO Stats at Packet #:9900------
+ --------Host Port------
+ RxThroughputRate:1
+FIFO Active status priority 0: 0
+FIFO Active status priority 1: 0
+FIFO Active status priority 2: 0
+FIFO Active status priority 3: 0
+FIFO Active status priority 4: 0
+FIFO Active status priority 5: 0
+FIFO Active status priority 6: 0
+FIFO Active status priority 7: 0
+
+
+--------Port 1------
+ RxThroughputRate:3
+ RxPreemptBlockCount:0
+ RxPreemptBlockCount:0
+ RxExpressBlockCount:2
+ TxBlockCount:0
+ RxMaxBlocks:4
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 10000
+  rxBcastFrames           = 10000
+  rxOctets                = 15180000
+  txGoodFrames            = 10000
+  txBcastFrames           = 10000
+  txOctets                = 15180000
+  octetsFrames1024        = 20000
+  netOctets               = 30360000
+  txPri[0]                = 10000
+  txPriBcnt[0]            = 15180000
+
+
+ External Port 2 Statistics
+-----------------------------------------
+  rxGoodFrames            = 10000
+  rxBcastFrames           = 10000
+  rxOctets                = 15180000
+  txGoodFrames            = 10000
+  txBcastFrames           = 10000
+  txOctets                = 15180000
+  octetsFrames1024        = 20000
+  netOctets               = 30360000
+  txPri[1]                = 10000
+  txPriBcnt[1]            = 15180000
+
+Cpsw_handleLinkDown: Port 3: Link down
+ |TEST DURATION|:: 0:01:00:065 ::
+ |TEST RESULT|PASS|9|
+ |TEST END|:: 9 ::
+ |TEST RESULT|:: CPSW Test Case 9 Successful!! ::

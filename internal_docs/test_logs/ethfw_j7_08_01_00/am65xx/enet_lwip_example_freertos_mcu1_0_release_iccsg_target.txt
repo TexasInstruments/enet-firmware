@@ -1,0 +1,34 @@
+==========================
+      Enet lwIP App       
+==========================
+Select peripheral type
+0: CPSW_2G
+3: ICSSG Dual MAC
+Select slice/port number
+0: ICSSG0 Slice0 (MAC port 1)
+1: ICSSG0 Slice1 (MAC port 2)
+2: ICSSG1 Slice0 (MAC port 1)
+3: ICSSG1 Slice1 (MAC port 2)
+4: ICSSG2 Slice0 (MAC port 1)
+5: ICSSG2 Slice1 (MAC port 2)
+Enable TimeSync PTP:
+0: No
+1: Yes
+Enabling clocks!
+CPU Load: 100%
+Starting lwIP, local interface IP is dhcp-enabled
+EnetMcm: ICSSG Dual MAC
+PHY 0 is alive
+PHY 3 is alive
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+Icssg_handleLinkUp: icssg0-1: Port 1: Link up: 1-Gbps Full-Duplex
+Host MAC address: 70:ff:76:1d:92:c1
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+status_callback==UP, local interface IP is 0.0.0.0
+link_callback==UP
+status_callback==UP, local interface IP is 192.168.50.53
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.53
+Initializing apps
+UDP server listening on port 5001
+CPU Load: 14%
+CPU Load: 5%

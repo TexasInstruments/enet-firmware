@@ -1,0 +1,154 @@
+ ===============
+ CPSW Test Select
+ ===============
+
+ Current/Default System Settings:
+ ------------------------
+ Uart timemout          : 10000 msec
+ Default Iteration count            : 1
+
+ 1: Manual testing (select specific test case to run)
+
+ s: System Settings
+
+ q: Quit
+
+ Enter Choice:
+
+ Manual testing
+
+ --------------------------------------
+ Select test to run as per below table:
+ --------------------------------------
+
+    1: CPSW9G Switching test
+    2: ALE auto learn test
+    3: ALE auto learn VLAN test
+    4: Mac speed test
+    5: Statistics test
+    6: VLAN test
+    8: CRC strip test
+    9: FIFO stats test
+   10: ALE source address update
+   11: ALE Table full
+   12: VLAN drop untagged
+   13: Multicast support
+   14: Policer test
+   15: Network security test
+   16: Host port Rx Filter
+   17: policer no match red drop enable test
+   18: policer no match yellow drop enable test
+   19: policer no match unregulated traffic test
+   20: Intervlan test
+   21: Default priority
+   22: Port VLAN ID
+   23: Sanity Test
+   24: Outer VLAN Test
+   25: Traffic shaping Test
+   26: 1-Gbps Full-Duplex Auto-Neg Test
+   27: 100-Mbps Full-Duplex Auto-Neg Test
+   28: 100-Mbps Half-Duplex Auto-Neg Test
+   29: DMA RxFlow Mtu Test
+   30: PHY Strap mode Test
+   31: Priority Regeneration
+   32: SGMII 1G Digital loopback
+   33: SGMII 1G FIFO Loopback
+   34: CPSW9G QSGMII Switching test
+   35: CPSW9G All ports Switching test
+   36: CPTS Event Test
+   37: BCAST MCAST Rate Limit
+   38: CPSW9G Directed packet test
+
+ Enter Test to Run (Use UART1 console for all cores or MCU_UART1 console for MCU)
+3
+3
+
+ |TEST START|:: 3 ::
+ |TEST NAME| :: ALE auto learn VLAN test ::
+ |TEST INFO| :: Num Tasks         : 1 ::
+ |TEST INFO| :: Data Check        : Disabled ::
+ |TEST INFO| :: Profiling         : Disabled ::
+ |TEST INFO| :: Print             : Disabled ::
+ |TEST INFO| :: Run Instructions  : To be added ::
+
+
+ |TEST ITERATION NUMBER| ::       : 1 ::
+ENET_CPSW_9G Test on MAIN NAVSS
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 1000 pkts
+Host MAC address: 70:ff:76:1d:93:6c
+PHY 0 is alive
+Waiting for PHY link on enabled ports mask:0x4
+Waiting for PORT link on enabled ports
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+MAC Port 3: link up
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+Transmitted & Received 500 packets & VLAN Entry modified
+VLAN Test Succes
+
+     0: Address: 70ff761d936c, Port: 000 Se=1 Bl=0 TOUCH=0 AGE=0 TRUNK=0 RAW:[1 100070ff 761d936c]
+     1: Address: 020102030405, Port: 000 Se=0 Bl=0 TOUCH=0 AGE=0 TRUNK=0 RAW:[0 10000201 02030405]
+     2: Vlanid: 0010, UTagged: 0, Mult: 9, UMult: 9, Member: 8 RAW:[0 20100090 00009008]
+     3: Address: 0180c2000002, Member:009 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[4 90000180 c2000002]
+     4: EtherType: 0800 RAW:[1 20000000 00000800]
+     5: IPv4: Address: 172:24:190:113, IGNBITS:0 RAW:[1 a0000000 ac18be71]
+     6: IPv6:     , Address: 10:20:30:40:50:60:70:80:90:00:01:02:03:04:05:06, IGNBITS:0 RAW:[1 e0000102 03040506]
+     7: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+     8: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+     9: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    10: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    11: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    12: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    13: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    14: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    15: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    16: Address: abcdef000000, Member:000 Su=0 FWDSTLVL=2 IGNMBITS=0 RAW:[0 9000abcd ef000000]
+    28: VlanId:010, Address: e8844cf4d755, Port: 003 Se=0 Bl=0 TOUCH=1 AGE=1 TRUNK=0 RAW:[c f010e884 4cf4d755]
+
+1005 Free Entries
+Transmitted & Received 10000 packets
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 10000
+  rxBcastFrames           = 10000
+  aleDrop                 = 10000
+  rxOctets                = 15180000
+  txGoodFrames            = 41190
+  txOctets                = 37857478
+  octetsFrames256to511    = 6957
+  octetsFrames512to1023   = 16603
+  octetsFrames1024        = 27630
+  netOctets               = 53037478
+  portMaskDrop            = 10000
+  aleVidIngressDrop       = 10000
+  txPri[0]                = 41177
+  txPriBcnt[0]            = 37846998
+
+
+ External Port 2 Statistics
+-----------------------------------------
+  rxGoodFrames            = 472810
+  aleDrop                 = 431634
+  rxOctets                = 425901734
+  octetsFrames256to511    = 87324
+  octetsFrames512to1023   = 196096
+  octetsFrames1024        = 189391
+  netOctets               = 425901734
+  portMaskDrop            = 431634
+  aleUnknownUcast         = 1
+  aleUnknownUcastBcnt     = 284
+
+Cpsw_handleLinkDown: Port 3: Link down
+ |TEST DURATION|:: 0:00:30:554 ::
+ |TEST RESULT|PASS|3|
+ |TEST END|:: 3 ::
+ |TEST RESULT|:: CPSW Test Case 3 Successful!! ::

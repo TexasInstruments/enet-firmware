@@ -1,0 +1,78 @@
+SBL Revision: 01.00.10.01 (Nov 23 2021 - 01:59:42)
+TIFS  ver: 21.9.1--v2021.09a (Terrific Lla
+==========================
+      Enet lwIP App       
+==========================
+Select peripheral type
+0: CPSW_2G
+
+0
+Select MAC port
+0: ENET_MAC_PORT_1 - RGMII
+
+0                                                                                                     
+Enabling clocks!                                                                                      
+CPU Load: 100%                                                                                        
+Starting lwIP, local interface IP is dhcp-enabled                                                     
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0         
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:4 From 1 To 0         
+EnetMcm: CPSW_2G on MCU NAVSS                                                                         
+PHY 0 is alive                                                                                        
+EnetBoard_setupPorts: 1 of 1 ports configurations found                                               
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                              
+Host MAC address: f4:84:4c:f7:a7:08                                                                   
+[LWIPIF_LWIP] Enet LLD netif initialized successfully                                                 
+status_callback==UP, local interface IP is 0.0.0.0                                                    
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex                                                
+MAC Port 1: link up                                                                                   
+link_callback==UP                                                                                     
+status_callback==UP, local interface IP is 192.168.50.96                                              
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.96                                        
+Initializing apps                                                                                     
+UDP server listening on port 5001                                                                     
+CPU Load: 2%                                                                                          
+CPU Load: 1%                                                                                          
+CPU Load: 1%                                                                                          
+CPU Load: 1%                                                                                          
+CPU Load: 1%                                                                                          
+CPU Load: 5%                                                                                          
+CPU Load: 83%                                                                                         
+CPU Load: 80%                                                                                         
+CPU Load: 79%                                                                                         
+CPU Load: 83%                                                                                         
+CPU Load: 81%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 81%                                                                                         
+CPU Load: 82%                                                                                         
+CPU Load: 83%                                                                                         
+CPU Load: 82%                                                                                         
+CPU Load: 80%                                                                                         
+CPU Load: 82%                                                                                         
+CPU Load: 80%                                                                                         
+CPU Load: 82%                                                                                         
+CPU Load: 82%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 83%                                                                                         
+CPU Load: 83%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 83%                                                                                         
+CPU Load: 83%                                                                                         
+CPU Load: 82%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 81%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 82%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 84%                                                                                         
+CPU Load: 75%                                                                                         
+CPU Load: 1%                                                                                          
+CPU Load: 1%                                                                                          
+CPU Load: 1%                                                                                          
+CPU Load: 1%   

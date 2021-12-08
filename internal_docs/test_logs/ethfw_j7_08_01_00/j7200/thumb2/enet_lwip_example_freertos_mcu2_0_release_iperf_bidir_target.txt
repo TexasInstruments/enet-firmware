@@ -1,0 +1,84 @@
+==========================
+      Enet lwIP App       
+==========================
+Select peripheral type
+1: CPSW_5G
+
+1
+Select MAC port
+0: ENET_MAC_PORT_1 - Q/SGMII (based on which board is attached)
+2: ENET_MAC_PORT_2 - RGMII
+
+0
+Enable TimeSync PTP:
+0: No
+1: Yes
+0
+Enabling clocks!
+CPU Load: 100%
+Starting lwIP, local interface IP is dhcp-enabled
+EnetMcm: CPSW_5G on MAIN NAVSS
+PHY 0 is alive
+PHY 3 is alive
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
+PHY 23 is alive
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+Host MAC address: 70:ff:76:1d:92:c2
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+status_callback==UP, local interface IP is 0.0.0.0
+CpswMacPort_checkSgmiiStatus: MAC 1: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+MAC Port 1: link up
+link_callback==UP
+status_callback==UP, local interface IP is 192.168.50.81
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.81
+Initializing apps
+UDP server listening on port 5001
+CPU Load: 5%
+CPU Load: 1%
+CPU Load: 1%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 71%
+CPU Load: 71%
+CPU Load: 71%
+CPU Load: 69%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 71%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 69%
+CPU Load: 71%
+CPU Load: 71%
+CPU Load: 71%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 70%
+CPU Load: 71%
+CPU Load: 71%
+CPU Load: 69%
+CPU Load: 1%
+CPU Load: 1%
+CPU Load: 1%
+CPU Load: 1%
+

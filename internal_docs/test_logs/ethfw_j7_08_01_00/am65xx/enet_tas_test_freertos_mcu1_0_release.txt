@@ -1,0 +1,124 @@
+Init Enet's OSAL and utils to use defaults                                       
+Init memory utils                                                                 
+Create clock and task for periodic tick                                           
+Create periodic tick task                                                         
+Create periodic tick clock                                                        
+Open Main UDMA driver                                                             
+                                                                                  
+Init all peripheral clocks                                                        
+----------------------------------------------                                    
+Enabling clocks!                                                                  
+Enabling clocks!                                                                  
+Enabling clocks!                                                                  
+Enabling clocks!                                                                  
+Enabling clocks!                                                                  
+                                                                                  
+Init all configs                                                                  
+----------------------------------------------                                    
+icssg0-p1: init config                                                            
+icssg0-p2: init config                                                            
+icssg1-p1: init config                                                            
+icssg1-p2: init config                                                            
+icssg2: init config                                                               
+                                                                                  
+Open all peripherals                                                              
+----------------------------------------------                                    
+icssg0-p1: Open enet                                                              
+icssg0-p1: Register async IOCTL callback                                          
+icssg0-p1: Register TX timestamp callback                                         
+icssg0-p2: Open enet                                                              
+Icssg_open: icssg0-2: TimeSync cannot be enabled, IEP0 already in use             
+icssg0-p2: Register async IOCTL callback                                          
+icssg0-p2: Register TX timestamp callback                                         
+icssg1-p1: Open enet                                                              
+icssg1-p1: Register async IOCTL callback                                          
+icssg1-p1: Register TX timestamp callback                                         
+icssg1-p2: Open enet                                                              
+Icssg_open: icssg1-2: TimeSync cannot be enabled, IEP0 already in use             
+icssg1-p2: Register async IOCTL callback                                          
+icssg1-p2: Register TX timestamp callback                                         
+icssg2: Open enet                                                                 
+icssg2: Register async IOCTL callback                                             
+icssg2: Register TX timestamp callback                                            
+                                                                                  
+Attach core id 1 on all peripherals                                               
+----------------------------------------------                                    
+icssg0-p1: Attach core                                                            
+icssg0-p2: Attach core                                                            
+icssg1-p1: Attach core                                                            
+icssg1-p2: Attach core                                                            
+icssg2: Attach core                                                               
+                                                                                  
+Create RX tasks                                                                   
+----------------------------------------------                                    
+icssg0-p1: Create RX task                                                         
+icssg0-p2: Create RX task                                                         
+icssg1-p1: Create RX task                                                         
+icssg1-p2: Create RX task                                                         
+icssg2: Create RX task                                                            
+icssg0-p1: Open port 1                                                            
+icssg0-p1: Open port 1 link                                                       
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK          
+icssg0-p1: Waiting for link up...                                                 
+icssg2: Open port 1                                                               
+icssg2: Open port 1 link                                                          
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK          
+icssg2: Open port 2                                                               
+icssg2: Open port 2 link                                                          
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK          
+icssg2: Waiting for link up...                                                    
+icssg1-p2: Open port 1                                                            
+icssg1-p2: Open port 1 link                                                       
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK          
+icssg1-p2: Waiting for link up...                                                 
+icssg0-p2: Open port 1                                                            
+icssg0-p2: Open port 1 link                                                       
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK          
+icssg0-p2: Waiting for link up...                                                 
+icssg1-p1: Open port 1                                                            
+icssg1-p1: Open port 1 link                                                       
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK          
+icssg1-p1: Waiting for link up...                                                 
+                                                                                  
+Enet Tas Test Menu:                                                               
+ 'T'  -  Start the TAS test with default config                                   
+ 's'  -  Print statistics                                                         
+ 'r'  -  Reset statistics                                                         
+ 'x'  -  Stop the test                                                            
+                                                                                  
+Icssg_handleLinkUp: icssg1-2: Port 1: Link up: 1-Gbps Full-Duplex                 
+icssg1-p2: Port 1 link is up                                                      
+icssg1-p2: Set port state to 'Forward'                                            
+icssg1-p2: Async IOCTL completed                                                  
+icssg1-p2: Open DMA                                                               
+initQs() txFreePktInfoQ initialized with 128 pkts                                 
+icssg1-p2: Set MAC addr: 70:ff:76:1d:92:c7                                        
+icssg0-p1: Skipping test due to link not UP                                       
+icssg0-p2: Skipping test due to link not UP                                       
+icssg1-p1: Skipping test due to link not UP                                       
+Success: IOCTL command sent for making MAC entry in FDB                           
+icssg1-p2: Async IOCTL completed                                                  
+Success: IOCTL command sent for making MAC entry in FDB                           
+icssg1-p2: Async IOCTL completed                                                  
+icssg1-p2: Async IOCTL completed                                                  
+icssg1-p2: Async IOCTL completed                                                  
+icssg1-p2: Async IOCTL completed                                                  
+Transmitting 16 packets                                                           
+Packet 0 is within window timestamp : 2320 window_start : 0 window_end : 62500    
+Packet 1 is within window timestamp : 1124 window_start : 0 window_end : 62500    
+Packet 2 is within window timestamp : 64392 window_start : 62500 window_end : 1250
+Packet 3 is within window timestamp : 63196 window_start : 62500 window_end : 1250
+Packet 4 is within window timestamp : 126864 window_start : 125000 window_end : 10
+Packet 5 is within window timestamp : 125672 window_start : 125000 window_end : 10
+Packet 6 is within window timestamp : 189280 window_start : 187500 window_end : 20
+Packet 7 is within window timestamp : 188088 window_start : 187500 window_end : 20
+Packet 8 is within window timestamp : 1812 window_start : 0 window_end : 62500    
+Packet 9 is within window timestamp : 560 window_start : 0 window_end : 62500     
+Packet 10 is within window timestamp : 64296 window_start : 62500 window_end : 120
+Packet 11 is within window timestamp : 63100 window_start : 62500 window_end : 120
+Packet 12 is within window timestamp : 126776 window_start : 125000 window_end : 0
+Packet 13 is within window timestamp : 125584 window_start : 125000 window_end : 0
+Packet 14 is within window timestamp : 189392 window_start : 187500 window_end : 0
+Packet 15 is within window timestamp : 188196 window_start : 187500 window_end : 0
+Enet TAS Test PASSED                                                              
+icssg2: Skipping test due to link not UP                                          

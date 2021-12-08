@@ -1,0 +1,79 @@
+==========================
+      Enet lwIP App       
+==========================
+Select peripheral type
+2: CPSW_9G
+
+2
+Select MAC port
+0: ENET_MAC_PORT_1 - RGMII
+1: ENET_MAC_PORT_2 - SGMII/QSGMII
+2: ENET_MAC_PORT_3 - RGMII
+3: ENET_MAC_PORT_4 - RGMII
+7: ENET_MAC_PORT_8 - RMII
+ 
+0
+Enable TimeSync PTP:
+0: No
+1: Yes
+0
+Enabling clocks!
+CPU Load: 100%
+Starting lwIP, local interface IP is dhcp-enabled
+EnetMcm: CPSW_9G on MAIN NAVSS
+PHY 0 is alive
+PHY 3 is alive
+PHY 12 is alive
+PHY 15 is alive
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
+PHY 23 is alive
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+Host MAC address: 70:ff:76:1d:a1:92
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+status_callback==UP, local interface IP is 0.0.0.0
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+MAC Port 1: link up
+link_callback==UP
+status_callback==UP, local interface IP is 192.168.50.73
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.73
+Initializing apps
+UDP server listening on port 5001
+CPU Load: 4%
+CPU Load: 2%
+CPU Load: 90%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 45%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 40%
+CPU Load: 5%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+CPU Load: 2%
+

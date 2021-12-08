@@ -1,0 +1,125 @@
+Init Enet's OSAL and utils to use defaults                                                                           
+Init memory utils                                                                                                      
+Create clock and task for periodic tick                                                                                
+Create periodic tick task                                                                                              
+Create periodic tick clock                                                                                             
+Open Main UDMA driver                                                                                                  
+Open MCU UDMA driver                                                                                                   
+                                                                                                                       
+Init all peripheral clocks                                                                                             
+----------------------------------------------                                                                         
+Enabling clocks!                                                                                                       
+Enabling clocks!                                                                                                       
+Enabling clocks!                                                                                                       
+Enabling clocks!                                                                                                       
+Enabling clocks!                                                                                                       
+Enabling clocks!                                                                                                       
+                                                                                                                       
+Init all configs                                                                                                       
+----------------------------------------------                                                                         
+cpsw-2g: init config                                                                                                   
+icssg0-p1: init config                                                                                                 
+icssg0-p2: init config                                                                                                 
+icssg1: init config                                                                                                    
+icssg2-p1: init config                                                                                                 
+icssg2-p2: init config                                                                                                 
+                                                                                                                       
+Open all peripherals                                                                                                   
+----------------------------------------------                                                                         
+cpsw-2g: Open enet                                                                                                     
+icssg0-p1: Open enet                                                                                                   
+icssg0-p1: Register async IOCTL callback                                                                               
+icssg0-p1: Register TX timestamp callback                                                                              
+icssg0-p2: Open enet                                                                                                   
+Icssg_open: icssg0-2: TimeSync cannot be enabled, IEP0 already in use                                                  
+icssg0-p2: Register async IOCTL callback                                                                               
+icssg0-p2: Register TX timestamp callback                                                                              
+icssg1: Open enet                                                                                                      
+icssg1: Register async IOCTL callback                                                                                  
+icssg1: Register TX timestamp callback                                                                                 
+icssg2-p1: Open enet                                                                                                   
+icssg2-p1: Register async IOCTL callback                                                                               
+icssg2-p1: Register TX timestamp callback                                                                              
+icssg2-p2: Open enet                                                                                                   
+Icssg_open: icssg2-2: TimeSync cannot be enabled, IEP0 already in use                                                  
+icssg2-p2: Register async IOCTL callback                                                                               
+icssg2-p2: Register TX timestamp callback                                                                              
+                                                                                                                       
+Attach core id 1 on all peripherals                                                                                    
+----------------------------------------------                                                                         
+cpsw-2g: Attach core                                                                                                   
+icssg0-p1: Attach core                                                                                                 
+icssg0-p2: Attach core                                                                                                 
+icssg1: Attach core                                                                                                    
+icssg2-p1: Attach core                                                                                                 
+icssg2-p2: Attach core                                                                                                 
+                                                                                                                       
+Create RX tasks                                                                                                        
+----------------------------------------------                                                                         
+cpsw-2g: Create RX task                                                                                                
+icssg0-p1: Create RX task                                                                                              
+icssg0-p2: Create RX task                                                                                              
+icssg1: Create RX task                                                                                                 
+icssg2-p1: Create RX task                                                                                              
+icssg2-p2: Create RX task                                                                                              
+cpsw-2g: Open port 1                                                                                                   
+cpsw-2g: Open port 1 link                                                                                              
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                                               
+cpsw-2g: Waiting for link up...                                                                                        
+icssg0-p2: Open port 1                                                                                                 
+icssg0-p2: Open port 1 link                                                                                            
+                                                                                                                       
+Enet Multiport Menu:                                                                                                   
+ 'p'  -  Toggle promiscuous mode                                                                                       
+ 'T'  -  Enable timestamp prints                                                                                       
+ 't'  -  Disable timestamp prints                                                                                      
+ 's'  -  Print statistics                                                                                              
+ 'r'  -  Reset statistics                                                                                              
+ 'm'  -  Show allocated MAC addresses                                                                                  
+ 'x'  -  Stop the test                                                                                                 
+                                                                                                                       
+icssg2-p1: Open port 1                                                                                                 
+icssg2-p1: Open port 1 link                                                                                            
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                                               
+icssg0-p2: Waiting for link up...                                                                                      
+icssg1: Open port 1                                                                                                    
+icssg1: Open port 1 link                                                                                               
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                                               
+icssg2-p1: Waiting for link up...                                                                                      
+icssg2-p2: Open port 1                                                                                                 
+icssg2-p2: Open port 1 link                                                                                            
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                                               
+icssg1: Open port 2                                                                                                    
+icssg1: Open port 2 link                                                                                               
+icssg0-p1: Open port 1                                                                                                 
+icssg0-p1: Open port 1 link                                                                                            
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                                               
+icssg2-p2: Waiting for link up...                                                                                      
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                                               
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK                                               
+icssg1: Waiting for link up...                                                                                         
+icssg0-p1: Waiting for link up...                                                                                      
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex                                                                 
+MAC Port 1: link up                                                                                                    
+cpsw-2g: Port 1 link is up                                                                                             
+cpsw-2g: Open DMA                                                                                                      
+initQs() txFreePktInfoQ initialized with 128 pkts                                                                      
+Cpsw_handleLinkDown: Port 1: Link down                                                                                 
+MAC Port 1: link down                                                                                                  
+Icssg_handleLinkUp: icssg1: Port 2: Link up: 1-Gbps Full-Duplex                                                        
+Icssg_handleLinkUp: icssg1: Port 1: Link up: 1-Gbps Full-Duplex                                                        
+icssg1: Port 1 link is up                                                                                              
+icssg1: Set port state to 'Forward'                                                                                    
+icssg1: Async IOCTL completed                                                                                          
+icssg1: Async IOCTL completed                                                                                          
+icssg1: Port 2 link is up                                                                                              
+icssg1: Set port state to 'Forward'                                                                                    
+icssg1: Async IOCTL completed                                                                                          
+icssg1: Async IOCTL completed                                                                                          
+icssg1: Open DMA                                                                                                       
+initQs() txFreePktInfoQ initialized with 255 pkts                                                                      
+icssg1: Set MAC addr: 70:ff:76:1d:92:c7                                                                                
+Icssg_handleLinkDown: icssg1: Port 2: Link down                                                                        
+Icssg_handleLinkDown: icssg1: Port 1: Link down                                                                        
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex                                                                 
+MAC Port 1: link up  

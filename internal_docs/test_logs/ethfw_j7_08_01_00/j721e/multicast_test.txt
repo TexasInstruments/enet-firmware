@@ -1,0 +1,146 @@
+ ===============
+ CPSW Test Select
+ ===============
+
+ Current/Default System Settings:
+ ------------------------
+ Uart timemout          : 10000 msec
+ Default Iteration count            : 1
+
+ 1: Manual testing (select specific test case to run)
+
+ s: System Settings
+
+ q: Quit
+
+ Enter Choice:
+
+ Manual testing
+
+ --------------------------------------
+ Select test to run as per below table:
+ --------------------------------------
+
+    1: CPSW9G Switching test
+    2: ALE auto learn test
+    3: ALE auto learn VLAN test
+    4: Mac speed test
+    5: Statistics test
+    6: VLAN test
+    8: CRC strip test
+    9: FIFO stats test
+   10: ALE source address update
+   11: ALE Table full
+   12: VLAN drop untagged
+   13: Multicast support
+   14: Policer test
+   15: Network security test
+   16: Host port Rx Filter
+   17: policer no match red drop enable test
+   18: policer no match yellow drop enable test
+   19: policer no match unregulated traffic test
+   20: Intervlan test
+   21: Default priority
+   22: Port VLAN ID
+   23: Sanity Test
+   24: Outer VLAN Test
+   25: Traffic shaping Test
+   26: 1-Gbps Full-Duplex Auto-Neg Test
+   27: 100-Mbps Full-Duplex Auto-Neg Test
+   28: 100-Mbps Half-Duplex Auto-Neg Test
+   29: DMA RxFlow Mtu Test
+   30: PHY Strap mode Test
+   31: Priority Regeneration
+   32: SGMII 1G Digital loopback
+   33: SGMII 1G FIFO Loopback
+   34: CPSW9G QSGMII Switching test
+   35: CPSW9G All ports Switching test
+   36: CPTS Event Test
+   37: BCAST MCAST Rate Limit
+   38: CPSW9G Directed packet test
+
+ Enter Test to Run (Use UART1 console for all cores or MCU_UART1 console for MCU)
+13
+13
+
+ |TEST START|:: 13 ::
+ |TEST NAME| :: Multicast support ::
+ |TEST INFO| :: Num Tasks         : 1 ::
+ |TEST INFO| :: Data Check        : Disabled ::
+ |TEST INFO| :: Profiling         : Disabled ::
+ |TEST INFO| :: Print             : Disabled ::
+ |TEST INFO| :: Run Instructions  : To be added ::
+
+
+ |TEST ITERATION NUMBER| ::       : 1 ::
+ENET_CPSW_9G Test on MAIN NAVSS
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 1000 pkts
+Host MAC address: 70:ff:76:1d:93:6c
+PHY 0 is alive
+Waiting for PHY link on enabled ports mask:0x4
+Waiting for PORT link on enabled ports
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+MAC Port 3: link up
+Transmit Completed:EnetTestCommon_xmitTask,Id:0,Frame:1000
+Receive Complete:EnetTestCommon_recvTask,Id:0,Frame:110
+
+Tx stack usage.Tx Cfg Id:0, Stack Used:0
+
+Rx stack usage.Rx Cfg Id:0, Stack Used:0
+Transmit untagged packets
+  VLAN will be inserted from port 0 settings:
+  - VLAN ID  = 100
+  - VLAN Pri = 3
+EnetTest_discardRxPkts() rxReadyQ has 100 packets, discarding all
+Test_transmit: transmitting 10 packets
+Add ALE entry to force untagged packets on VLAN ID 100
+Transmit untagged packets
+  VLAN will be inserted from port 0 settings, but shall be forced untagged by ALE
+Test_transmit: transmitting 10 packets
+Remove ALE entry for VLAN ID 100
+Transmit untagged packets
+  VLAN will be inserted from port 0 settings:
+  - VLAN ID  = 100
+  - VLAN Pri = 3
+Test_transmit: transmitting 10 packets
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 1030
+  rxBcastFrames           = 1000
+  rxMcastFrames           = 30
+  rxOctets                = 1533540
+  txGoodFrames            = 107754
+  txOctets                = 96972977
+  octetsFrames256to511    = 19983
+  octetsFrames512to1023   = 44728
+  octetsFrames1024        = 44074
+  netOctets               = 98506517
+  txPri[0]                = 107748
+  txPriBcnt[0]            = 96965265
+
+
+ External Port 2 Statistics
+-----------------------------------------
+  rxGoodFrames            = 175015
+  rxOctets                = 157604475
+  txGoodFrames            = 1030
+  txBcastFrames           = 1000
+  txMcastFrames           = 30
+  txOctets                = 1533540
+  octetsFrames256to511    = 32294
+  octetsFrames512to1023   = 72734
+  octetsFrames1024        = 71017
+  netOctets               = 159138015
+  aleUnknownUcast         = 1
+  aleUnknownUcastBcnt     = 366
+  ietRxSmdError           = 15
+  txPri[1]                = 1030
+  txPriBcnt[1]            = 1533540
+
+Cpsw_handleLinkDown: Port 3: Link down
+ |TEST DURATION|:: 0:00:07:083 ::
+ |TEST RESULT|PASS|13|
+ |TEST END|:: 13 ::
+ |TEST RESULT|:: CPSW Test Case 13 Successful!! ::

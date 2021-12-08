@@ -1,0 +1,237 @@
+Select Enet peripheral type:
+0: CPSW 2G
+0
+Select loopback type:
+0: Internal (MAC loopback)
+1: External (PHY loopback)
+2: External (Ext loopback)
+0
+Select MAC port:
+0: ENET_MAC_PORT_1 - RGMII
+0
+=============================
+ Enet Loopback: Iteration 1 
+=============================
+Enabling clocks!
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1
+ To 0                                                                                   
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:1 From 1
+ To 0                                                                                   
+CPSW_2G Test on MCU NAVSS                                                               
+EnetBoard_setupPorts: 1 of 1 ports configurations found                                 
+initQs() txFreePktInfoQ initialized with 128 pkts                                       
+Host MAC address: f4:84:4c:f7:a7:08                                                     
+PHY 0 is alive                                                                          
+Received 5000 packets                                                                   
+Transmitted 5000 packets                                                                
+                                                                                        
+ Port 0 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+                                                                                        
+                                                                                        
+ Port 1 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+  txPri[2]                = 5000                                                        
+  txPriBcnt[2]            = 2590000                                                     
+                                                                                        
+Cpsw_handleLinkDown: Port 1: Link down                                                  
+Disabling clocks for CPSW!                                                              
+EnetLpbk_deleteRxTxTasks() done..                                                       
+Test complete: PASS                                                                     
+=============================                                                           
+ Enet Loopback: Iteration 2                                                             
+=============================                                                           
+Enabling clocks!                                                                        
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1
+ To 0                                                                                   
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:1 From 1
+ To 0                                                                                   
+CPSW_2G Test on MCU NAVSS                                                               
+EnetBoard_setupPorts: 1 of 1 ports configurations found                                 
+initQs() txFreePktInfoQ initialized with 128 pkts                                       
+Host MAC address: f4:84:4c:f7:a7:08                                                     
+PHY 0 is alive                                                                          
+Received 5000 packets                                                                   
+Transmitted 5000 packets                                                                
+                                                                                        
+ Port 0 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+                                                                                        
+                                                                                        
+ Port 1 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+  txPri[2]                = 5000                                                        
+  txPriBcnt[2]            = 2590000                                                     
+                                                                                        
+Cpsw_handleLinkDown: Port 1: Link down                                                  
+Disabling clocks for CPSW!                                                              
+EnetLpbk_deleteRxTxTasks() done..                                                       
+Test complete: PASS                                                                     
+=============================                                                           
+ Enet Loopback: Iteration 3                                                             
+=============================                                                           
+Enabling clocks!                                                                        
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1
+ To 0                                                                                   
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:1 From 1
+ To 0                                                                                   
+CPSW_2G Test on MCU NAVSS                                                               
+EnetBoard_setupPorts: 1 of 1 ports configurations found                                 
+initQs() txFreePktInfoQ initialized with 128 pkts                                       
+Host MAC address: f4:84:4c:f7:a7:08                                                     
+PHY 0 is alive                                                                          
+Received 5000 packets                                                                   
+Transmitted 5000 packets                                                                
+                                                                                        
+ Port 0 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+                                                                                        
+                                                                                        
+ Port 1 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+  txPri[2]                = 5000                                                        
+  txPriBcnt[2]            = 2590000                                                     
+                                                                                        
+Cpsw_handleLinkDown: Port 1: Link down                                                  
+Disabling clocks for CPSW!                                                              
+EnetLpbk_deleteRxTxTasks() done..                                                       
+Test complete: PASS                                                                     
+=============================                                                           
+ Enet Loopback: Iteration 4                                                             
+=============================                                                           
+Enabling clocks!                                                                        
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1
+ To 0                                                                                   
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:1 From 1
+ To 0                                                                                   
+CPSW_2G Test on MCU NAVSS                                                               
+EnetBoard_setupPorts: 1 of 1 ports configurations found                                 
+initQs() txFreePktInfoQ initialized with 128 pkts                                       
+Host MAC address: f4:84:4c:f7:a7:08                                                     
+PHY 0 is alive                                                                          
+Received 5000 packets                                                                   
+Transmitted 5000 packets                                                                
+                                                                                        
+ Port 0 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+                                                                                        
+                                                                                        
+ Port 1 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+  txPri[2]                = 5000                                                        
+  txPriBcnt[2]            = 2590000                                                     
+                                                                                        
+Cpsw_handleLinkDown: Port 1: Link down                                                  
+Disabling clocks for CPSW!                                                              
+EnetLpbk_deleteRxTxTasks() done..                                                       
+Test complete: PASS                                                                     
+=============================                                                           
+ Enet Loopback: Iteration 5                                                             
+=============================                                                           
+Enabling clocks!                                                                        
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1
+ To 0                                                                                   
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:1 From 1
+ To 0                                                                                   
+CPSW_2G Test on MCU NAVSS                                                               
+EnetBoard_setupPorts: 1 of 1 ports configurations found                                 
+initQs() txFreePktInfoQ initialized with 128 pkts                                       
+Host MAC address: f4:84:4c:f7:a7:08                                                     
+PHY 0 is alive                                                                          
+Received 5000 packets                                                                   
+Transmitted 5000 packets                                                                
+                                                                                        
+ Port 0 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+                                                                                        
+                                                                                        
+ Port 1 Statistics                                                                      
+-----------------------------------------                                               
+  rxGoodFrames            = 5000                                                        
+  rxBcastFrames           = 5000                                                        
+  rxOctets                = 2590000                                                     
+  txGoodFrames            = 5000                                                        
+  txBcastFrames           = 5000                                                        
+  txOctets                = 2590000                                                     
+  octetsFrames512to1023   = 10000                                                       
+  netOctets               = 5180000                                                     
+  txPri[2]                = 5000                                                        
+  txPriBcnt[2]            = 2590000                                                     
+                                                                                        
+Cpsw_handleLinkDown: Port 1: Link down                                                  
+Disabling clocks for CPSW!                                                              
+EnetLpbk_deleteRxTxTasks() done..                                                       
+Test complete: PASS                                                                     
+Loopback application completed   

@@ -1,0 +1,114 @@
+iperf -c 192.168.50.53 -i5 -t120 -w 64K -d -e
+------------------------------------------------------------
+Server listening on TCP port 5001 with pid 25600
+Read buffer size: 1.44 KByte
+TCP window size:  128 KByte (WARNING: requested 64.0 KByte)
+------------------------------------------------------------
+------------------------------------------------------------
+Client connecting to 192.168.50.53, TCP port 5001 with pid 25600
+Write buffer size:  128 KByte
+TCP window size:  128 KByte (WARNING: requested 64.0 KByte)
+------------------------------------------------------------
+[  4] local 192.168.50.1 port 50042 connected with 192.168.50.53 port 5001
+[  5] local 192.168.50.1 port 5001 connected with 192.168.50.53 port 54911
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 0.00-5.00 sec  30.6 MBytes  51.4 Mbits/sec  245/0          0       22K/3144 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 0.00-5.00 sec  5.07 MBytes  8.50 Mbits/sec  3639    1:0:0:0:0:0:0:3637
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 5.00-10.00 sec  5.07 MBytes  8.51 Mbits/sec  3642    0:0:0:0:0:0:0:3642
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 5.00-10.00 sec  30.6 MBytes  51.4 Mbits/sec  245/0          0       22K/3123 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 10.00-15.00 sec  5.07 MBytes  8.50 Mbits/sec  3640    0:0:0:0:0:0:0:3640
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 10.00-15.00 sec  30.6 MBytes  51.4 Mbits/sec  245/0          0       22K/3453 us
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 15.00-20.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       22K/3017 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 15.00-20.00 sec  5.04 MBytes  8.46 Mbits/sec  3620    0:0:0:0:0:0:0:3620
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 20.00-25.00 sec  5.05 MBytes  8.47 Mbits/sec  3626    0:0:0:0:0:0:0:3626
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 20.00-25.00 sec  30.6 MBytes  51.4 Mbits/sec  245/0          0       22K/2812 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 25.00-30.00 sec  5.07 MBytes  8.50 Mbits/sec  3640    0:0:0:0:0:0:0:3640
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 25.00-30.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       37K/3222 us
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 30.00-35.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/3170 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 30.00-35.00 sec  5.04 MBytes  8.46 Mbits/sec  3620    0:0:0:0:0:0:0:3620
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 35.00-40.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       37K/3186 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 35.00-40.00 sec  5.01 MBytes  8.40 Mbits/sec  3596    0:0:0:0:0:0:0:3596
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 40.00-45.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/3033 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 40.00-45.00 sec  5.00 MBytes  8.38 Mbits/sec  3588    0:0:0:0:0:0:0:3588
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 45.00-50.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/3181 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 45.00-50.00 sec  5.06 MBytes  8.48 Mbits/sec  3632    0:0:0:0:0:0:0:3632
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 50.00-55.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/2940 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 50.00-55.00 sec  5.05 MBytes  8.47 Mbits/sec  3626    0:0:0:0:0:0:0:3626
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 55.00-60.00 sec  3.76 MBytes  6.32 Mbits/sec  2704    0:0:0:0:0:0:0:2704
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 55.00-60.00 sec  32.5 MBytes  54.5 Mbits/sec  260/0          0       37K/3233 us
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 60.00-65.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/2856 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 60.00-65.00 sec  4.98 MBytes  8.36 Mbits/sec  3578    0:0:0:0:0:0:0:3578
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 65.00-70.00 sec  5.02 MBytes  8.41 Mbits/sec  3602    0:0:0:0:0:0:0:3602
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 65.00-70.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       37K/3044 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 70.00-75.00 sec  5.04 MBytes  8.46 Mbits/sec  3620    0:0:0:0:0:0:0:3620
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 70.00-75.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/2914 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 75.00-80.00 sec  5.05 MBytes  8.47 Mbits/sec  3624    0:0:0:0:0:0:0:3624
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 75.00-80.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       37K/3256 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 80.00-85.00 sec  4.98 MBytes  8.36 Mbits/sec  3580    0:0:0:0:0:0:0:3580
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 80.00-85.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       37K/2886 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 85.00-90.00 sec  5.02 MBytes  8.41 Mbits/sec  3602    0:0:0:0:0:0:0:3602
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 85.00-90.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/2991 us
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 90.00-95.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/3010 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 90.00-95.00 sec  4.98 MBytes  8.36 Mbits/sec  3578    0:0:0:0:0:0:0:3578
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 95.00-100.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/2945 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 95.00-100.00 sec  5.08 MBytes  8.52 Mbits/sec  3648    0:0:0:0:0:0:0:3648
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 100.00-105.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       37K/2856 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 100.00-105.00 sec  5.08 MBytes  8.52 Mbits/sec  3646    0:0:0:0:0:0:0:3646
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 105.00-110.00 sec  5.00 MBytes  8.40 Mbits/sec  3594    0:0:0:0:0:0:0:3594
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 105.00-110.00 sec  30.5 MBytes  51.2 Mbits/sec  244/0          0       37K/3103 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 110.00-115.00 sec  5.00 MBytes  8.40 Mbits/sec  3594    0:0:0:0:0:0:0:3594
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 110.00-115.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/3018 us
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 115.00-120.00 sec  30.4 MBytes  51.0 Mbits/sec  243/0          0       37K/3103 us
+[ ID] Interval        Transfer    Bandwidth       Write/Err  Rtry    Cwnd/RTT
+[  4] 0.00-120.00 sec   733 MBytes  51.2 Mbits/sec  5865/0          0       37K/3103 us
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 115.00-120.00 sec  5.01 MBytes  8.40 Mbits/sec  3598    0:0:0:0:0:0:0:3598
+[ ID] Interval        Transfer    Bandwidth       Reads   Dist(bin=0.2K)
+[  5] 0.00-120.00 sec   120 MBytes  8.35 Mbits/sec  85838    2:0:0:0:0:0:0:85836
+[SUM] 0.00-120.00 sec   125 MBytes  8.71 Mbits/sec  89477    3:0:0:0:0:0:0:89473

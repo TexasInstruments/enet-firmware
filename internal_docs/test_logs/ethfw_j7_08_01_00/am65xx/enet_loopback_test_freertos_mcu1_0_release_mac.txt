@@ -1,0 +1,189 @@
+Select Enet peripheral type:
+0: CPSW 2G
+Select loopback type:
+0: Internal (MAC loopback)
+1: External (PHY loopback)
+2: External (Ext loopback)
+Select MAC port:
+0: ENET_MAC_PORT_1 - RGMII
+=============================
+ Enet Loopback: Iteration 1 
+=============================
+Enabling clocks!
+CPSW_2G Test on MCU NAVSS
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: 64:69:4e:18:bd:f9
+PHY 0 is alive
+Received 5000 packets
+Transmitted 5000 packets 
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[2]                = 5000
+  txPriBcnt[2]            = 2590000
+Cpsw_handleLinkDown: Port 1: Link down
+Disabling clocks for CPSW!
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 2 
+=============================
+Enabling clocks!
+CPSW_2G Test on MCU NAVSS
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: 64:69:4e:18:bd:f9
+PHY 0 is alive
+Received 5000 packets
+Transmitted 5000 packets 
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[2]                = 5000
+  txPriBcnt[2]            = 2590000
+Cpsw_handleLinkDown: Port 1: Link down
+Disabling clocks for CPSW!
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 3 
+=============================
+Enabling clocks!
+CPSW_2G Test on MCU NAVSS
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: 64:69:4e:18:bd:f9
+PHY 0 is alive
+Received 5000 packets
+Transmitted 5000 packets 
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[2]                = 5000
+  txPriBcnt[2]            = 2590000
+Cpsw_handleLinkDown: Port 1: Link down
+Disabling clocks for CPSW!
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 4 
+=============================
+Enabling clocks!
+CPSW_2G Test on MCU NAVSS
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: 64:69:4e:18:bd:f9
+PHY 0 is alive
+Received 5000 packets
+Transmitted 5000 packets 
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[2]                = 5000
+  txPriBcnt[2]            = 2590000
+Cpsw_handleLinkDown: Port 1: Link down
+Disabling clocks for CPSW!
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 5 
+=============================
+Enabling clocks!
+CPSW_2G Test on MCU NAVSS
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: 64:69:4e:18:bd:f9
+PHY 0 is alive
+Received 5000 packets
+Transmitted 5000 packets 
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[2]                = 5000
+  txPriBcnt[2]            = 2590000
+Cpsw_handleLinkDown: Port 1: Link down
+Disabling clocks for CPSW!
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+Loopback application completed
