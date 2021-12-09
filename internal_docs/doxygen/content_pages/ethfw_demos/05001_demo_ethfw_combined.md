@@ -767,32 +767,82 @@ as well as unicast messages between cores.
 
 Examples of broadcast data flows exercised in this demo are given below.
 
-<b>RTOS remote client DHCP procedure:</b> Main R5F core1 starts DHCP procedure by sending a DHCP
+- <b>RTOS remote client DHCP procedure:</b> Main R5F core1 starts DHCP procedure by sending a DHCP
 discover broadcast packet, which is forwarded by the main R5F core1 bridge to main R5F core0 bridge
 over inter-core interface. The main R5F core0 bridge also broadcasts this packet thus sending
 it out to the external DHCP server via the Enet LLD interface. Outgoing broadcast
 packets follow this data path:
 
-<b>Main R5F core1 network stack &rarr; Main R5F core1 bridge &rarr; Main R5F core0 bridge (over intercore)
-&rarr; Main R5F core0 Enet LLD netif &rarr; Linux PC (DHCP server)</b>
+  <b>Main R5F core1 network stack &rarr; Main R5F core1 bridge &rarr; Main R5F core0 bridge (over intercore)
+  &rarr; Main R5F core0 Enet LLD netif &rarr; Linux PC (DHCP server)</b>
 
-<b>Incoming ARP broadcast from PC:</b> Ping Main R5F core1 remote client from Linux PC.
+- <b>Incoming ARP broadcast from PC:</b> Ping Main R5F core1 remote client from Linux PC.
 This results in the PC sending an ARP broadcast to resolve the MAC address of the remote
 core. Incoming broadcast packets follow this data path:
 
-<b>Broadcast form PC &rarr; Main R5F core0 Enet LLD netif &rarr; Main R5F core0 bridge &rarr;
-Main R5F core1 bridge (over intercore) &rarr; Main R5F core1 network stack</b>
+  <b>Broadcast form PC &rarr; Main R5F core0 Enet LLD netif &rarr; Main R5F core0 bridge &rarr;
+  Main R5F core1 bridge (over intercore) &rarr; Main R5F core1 network stack</b>
 
 ![](Intercore_rtos_rtos_path.png "Inter-core Virtual Ethernet - RTOS client test")
 
 ### Linux client test {#intercore_linux_client_test}
 
+#### TAP User-space Application {#intercore_linux_tap_app}
+
+The user-space application serves as a medium to facilitate the exchange of Ethernet frames
+between different cores on the SoC, R5 and A72 as of now. To achieve this, a TAP device is
+used to read from and write to the Linux network stack.  Ethernet frames are copied from/to
+the shared memory region to allow other cores to access it.
+
+##### Compiling and installing TAP application {#intercore_linux_tap_compilation}
+
+The TAP application is provided as part of the Ethernet Firmware software component in
+the Processor SDK, it can be found at `ethfw/apps/tap`.  The TAP application needs to
+be cross-compiled using Linux toolchain and then installed to the Linux filesystem.
+The steps listed below assume that an SD card is used for Linux booting of the TI EVM.
+
+-# Download the Linux toolchain via `setuptools.sh` helper script.
+
+       $ ./setuptools.sh
+
+-# Cross-compile the TAP application and install in SD card. Here,`<aarch64-none-linux-gnu install dir>`
+   is the absolute path where the ARM64 A72 Linux compiler was installed using `setuptools.sh`
+   in previous step.
+
+       $ make CROSS_COMPILE=<aarch64-none-linux-gnu install dir>/bin/aarch64-none-linux-gnu- install DESTDIR=<Path to the root file system on SD card>
+
+   For example, if the ARM64 A72 Linux compiler was installed in `<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu`,
+   and the SD card is mounted at `/media/username` and the file system is at `/media/username/root`,
+   then the make command should be:
+
+       $ make CROSS_COMPILE=<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu install DESTDIR=/media/username/root
+
+-# Boot the TI EVM from SD card as usual, and run below command to ensure that the systemd service
+   `launch_tap.service` starts up automatically on boot.  With this, on the next boot, the user-space
+   application should be running automatically in the background.
+
+       $ systemctl enable launch_tap.service
+
+##### Debugging {#intercore_linux_tap_debugging}
+
+By default, the systemd service `launch_tap.service` will run the shell script `tapif.sh` during boot up.
+However, it is possible to manually relaunch the application either for testing purposes or in case of errors
+during automatic startup:
+
+-# Navigate to the directory containing the `tapif.sh` file and the `tapif` executable.
+   Both `tapif.sh` and `tapif` should be present in the same directory as per the installation.
+-# Run below shell script which shall initialize the TAP device and launch the user-space application.
+
+       $ bash tapif.sh
+
+#### Running the test {#intercore_running_linux_client_test}
+
 The broadcast data flows shown in @ref intercore_rtos_client_test apply to the Linux
 remote client as well with a few minor differences:
 
--# Users need to manually run the <b>Tap</b> demo application under Linux on the A72
+-# Users need to run the <b>TAP</b> demo application under Linux on the A72
 core to use inter-core virtual Ethernet. Please refer to the instructions provided in
-the Tap demo application user guide.
+\ref intercore_linux_tap_app section.
 
 -# Users need to manually configure a bridge in Linux to bridge the Enet LLD and TAP
 network interfaces. If the network interfaces are not bridged then the user will need

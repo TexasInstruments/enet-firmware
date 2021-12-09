@@ -22,8 +22,9 @@ L2 switching    | Support for configuration of the Ethernet Switch to enable L2 
 Inter-VLAN routing | Inter-VLAN routing configuration in hardware with software fall-back support
 lwIP integration | Integration of TCP/IP stack enabling TCP, UDP.
 MAC-only         | Port configuration in MAC-only mode for traffic exclusively forwarded to host port, excludes the designated port(s) from switching logic
-Intercore Virtual Ethernet |  TCP/IP communication between cores using inter-core virtual Ethernet driver
-Broadcast and Multicast support | Ability to send broadcast and multicast traffic to multiple cores
+Intercore Virtual Ethernet |  Shared memory-based virtual Ethernet adapter communication between cores
+Multi-core broadcast an multicast support | Multi-core concurrent reception of broadcast and multicast traffic using SW based fan-out
+Ability to send broadcast and multicast traffic to multiple cores
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
 
@@ -568,8 +569,9 @@ located and their MAC mode.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Inter-core Virtual Ethernet {#ethfw_intercore_eth}
 
-Starting with SDK 8.1, the EthFw integrates Inter-core Virtual Ethernet driver which allows TCP/IP
- communication between Ethernet firmware server and client cores. 
+Starting with SDK 8.1, the EthFw integrates Inter-core Virtual Ethernet driver which allows
+shared memory based Ethernet frame exchange between cores.  This is modelled as virtual
+Ethernet adapter at each end.
 
 -# @ref ethfw_intercore_topology
 -# @ref ethfw_intercore_r5server
@@ -587,7 +589,10 @@ acting as the central hub. Each node (core) in the network communicates directly
 master while communication between other nodes (A72 and R5F_1) is routed through the
 master. In addition to the Enet LLD network interfaces used to communicate with the CPSW
 switch, each participating core creates an inter-core network interface, which allows it
-to communicate with another core using standard TCP/IP protocol suite.
+to communicate with another core using standard TCP/IP protocol suite. This is aimed at
+modeling Ethernet-like communication between software running on-chip processing cores
+(R5Fs, A72). Traffic external to the SoC is handled through CPSW hardware IP that can
+steer traffic based on traffic flows directly to the respective cores.
 
 The topology diagram below shows the integration of inter-core virtual Ethernet in Ethernet
 Firmware.
@@ -768,6 +773,10 @@ back and forth between the TAP device and the inter-core transport shared queues
 with the inter-core netif on EthFw server. Further, the TAP network interface can be bridged
 with the Enet LLD client interface to provide a single unified interface to the network stack,
 just like the R5F cores.
+
+**Note**: The TAP driver implementation is provided as a reference only to demonstrate
+and test the intercore functionality in Linux.  It comes with limited feature support,
+such as polling  mode operation only, basic packet handling.
 
 Please refer to the following code in `<ethfw>/apps/tap/tapif.c`:
 
