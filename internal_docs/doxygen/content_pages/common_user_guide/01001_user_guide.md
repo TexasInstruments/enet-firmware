@@ -528,18 +528,17 @@ Core 1 (RTOS) usage.  The remaining two MAC ports are configured in switch mode.
 ![](EthFw_PortCfg_j721e_evm.png "J721E default port configuration")
 
 The following table shows the full list of MAC ports in J721E EVM, the board they are
-located and their MAC mode.  It's worth noting that the MAC ports in QSGMII daughter
-board are not enabled by default.
+located and their MAC mode.
 
 | MAC Port    | PHY Addr | Board  | MAC mode
 |:------------|:--------:|:------:|:------------
 | MAC Port 1  |   12     | GESI   | MAC-only
-| <span style="color:gray">MAC Port 2 |   16     | QSGMII | Switch Port</span>
+| MAC Port 2  |   16     | QSGMII | Switch Port
 | MAC Port 3  |    0     | GESI   | Switch Port
 | MAC Port 4  |    3     | GESI   | MAC-only
-| <span style="color:gray">MAC Port 5  |   17     | QSGMII | Switch Port</span>
-| <span style="color:gray">MAC Port 6  |   18     | QSGMII | Switch Port</span>
-| <span style="color:gray">MAC Port 7  |   19     | QSGMII | Switch Port</span>
+| MAC Port 5  |   17     | QSGMII | Switch Port
+| MAC Port 6  |   18     | QSGMII | Switch Port
+| MAC Port 7  |   19     | QSGMII | Switch Port
 | MAC Port 8  |   15     | GESI   | Switch Port
 
 
