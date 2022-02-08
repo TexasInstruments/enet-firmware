@@ -89,9 +89,9 @@ $(_MODULE)_COPT += -O3
 endif
 
 ifeq ($(TARGET_CPU),R5F)
-TARGET_CPU_FLAGS := -mfloat-abi=hard -mfpu=vfpv3-d16 -mcpu=cortex-r5 -march=armv7-r -marm
+TARGET_CPU_FLAGS := -mfloat-abi=hard -mfpu=vfpv3-d16 -mcpu=cortex-r5 -march=armv7-r -marm -fno-strict-aliasing
 else ifeq ($(TARGET_CPU),R5Ft)
-TARGET_CPU_FLAGS := -mfloat-abi=hard -mfpu=vfpv3-d16 -mcpu=cortex-r5 -march=armv7-r -mthumb
+TARGET_CPU_FLAGS := -mfloat-abi=hard -mfpu=vfpv3-d16 -mcpu=cortex-r5 -march=armv7-r -mthumb -fno-strict-aliasing
 endif
 
 $(_MODULE)_COPT += $(TARGET_CPU_FLAGS)
