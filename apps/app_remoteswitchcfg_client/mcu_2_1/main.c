@@ -140,7 +140,7 @@
 #define System_vprintf vprintf
 #endif
 
-#if defined(FREERTOS)
+#if defined(FREERTOS) &&  defined(ENABLE_MAC_ONLY_PORTS)
 #define CPSW_REMOTE_APP_REMOTE_NETIF_MAX      (2U)
 #else
 #define CPSW_REMOTE_APP_REMOTE_NETIF_MAX      (1U)
@@ -431,7 +431,7 @@ static Enet_MacPort gRemoteAppMacPorts[] =
     ENET_MAC_PORT_3,
 };
 
-#if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2)
+#if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2)  && defined(ENABLE_MAC_ONLY_PORTS)
 /* Link status on these ports will be used to determine link up on virtual MAC port */
 static Enet_MacPort gRemoteApp_virtualMacPorts[] =
 {
@@ -469,7 +469,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .isPhyLinked = false,
             .pollingIntvl= 0,
         },
-#if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2)
+#if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2) && defined(ENABLE_MAC_ONLY_PORTS)
         {
             .hCpswProxy  = NULL,
             .virtPort    = ETHREMOTECFG_MAC_PORT_4,

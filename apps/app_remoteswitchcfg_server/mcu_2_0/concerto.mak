@@ -66,6 +66,11 @@ endif
 # Comment out to use RMII port instead of QSGMII ports in J721E EVM
 DEFS += ENABLE_QSGMII_PORTS
 
+# MAC-only ports are not supported in QNX virtual MAC driver
+ifneq ($(BUILD_QNX_A72), yes)
+  DEFS += ENABLE_MAC_ONLY_PORTS
+endif
+
 ifeq ($(TARGET_OS),SYSBIOS)
   ENET_APPUTILS_LIB = enet_example_utils_tirtos
 else ifeq ($(TARGET_OS),FREERTOS)
@@ -148,6 +153,11 @@ endif
 
 # Comment out to use RMII port instead of QSGMII ports in J721E EVM
 DEFS += ENABLE_QSGMII_PORTS
+
+# MAC-only ports are not supported in QNX virtual MAC driver
+ifneq ($(BUILD_QNX_A72), yes)
+  DEFS += ENABLE_MAC_ONLY_PORTS
+endif
 
 ifeq ($(TARGET_OS),SYSBIOS)
   ENET_APPUTILS_LIB = enet_example_utils_full_tirtos

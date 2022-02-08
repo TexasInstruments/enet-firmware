@@ -446,6 +446,7 @@ static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
         .remoteCoreId = IPC_MCU2_1,
         .portId       = ETHREMOTECFG_SWITCH_PORT_1,
     },
+#if defined(ENABLE_MAC_ONLY_PORTS)
     {
         .remoteCoreId = IPC_MPU1_0,
         .portId       = ETHREMOTECFG_MAC_PORT_1,
@@ -454,6 +455,7 @@ static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
         .remoteCoreId = IPC_MCU2_1,
         .portId       = ETHREMOTECFG_MAC_PORT_4,
     },
+#endif
 };
 
 static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =

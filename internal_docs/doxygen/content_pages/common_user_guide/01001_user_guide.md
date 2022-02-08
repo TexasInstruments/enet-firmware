@@ -541,6 +541,9 @@ located and their MAC mode.
 | MAC Port 7  |   19     | QSGMII | Switch Port
 | MAC Port 8  |   15     | GESI   | Switch Port
 
+**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_A72=yes)
+because QNX virtual MAC driver does not support MAC-only mode.
+
 
 ## J7200 Port Configuration {#ethfw_j7200_port_cfg}
 
@@ -561,6 +564,9 @@ located and their MAC mode.
 | MAC Port 2  |   17     | QSGMII | Switch Port
 | MAC Port 3  |   18     | QSGMII | Switch Port
 | MAC Port 4  |   19     | QSGMII | MAC-only
+
+**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_A72=yes)
+because QNX virtual MAC driver does not support MAC-only mode.
 
 [Back To Top](@ref ethfw_c_ug_top)
 

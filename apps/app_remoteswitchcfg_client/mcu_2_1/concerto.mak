@@ -47,6 +47,11 @@ ifeq ($(TARGET_PLATFORM),J7200)
   DEFS += ENABLE_QSGMII_PORTS
 endif
 
+# MAC-only ports are not supported in QNX virtual MAC driver
+ifneq ($(BUILD_QNX_A72), yes)
+  DEFS += ENABLE_MAC_ONLY_PORTS
+endif
+
 ifeq ($(TARGET_OS),SYSBIOS)
   DEFS += SYSBIOS
 else ifeq ($(TARGET_OS),FREERTOS)
