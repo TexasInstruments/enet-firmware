@@ -49,12 +49,12 @@ pdk_build:
 
 pdk:
 	$(foreach soc, $(sort ${SOC_LIST}),\
-	$(MAKE) pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs" &&\
+	$(MAKE) pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs pdk_app_libs" &&\
 	) $(NOP)
 
 pdk_clean:
 	$(foreach soc, $(sort ${SOC_LIST}),\
-	$(MAKE) pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs_clean" &&\
+	$(MAKE) pdk_build PDK_BOARD=${${soc}_BOARD} PDK_BUILD_TARGET_LIST_ALL="pdk_libs_clean pdk_app_libs_clean" &&\
 	) $(NOP)
 
 .SILENT:pdk_custom_libs pdk_custom_libs_clean

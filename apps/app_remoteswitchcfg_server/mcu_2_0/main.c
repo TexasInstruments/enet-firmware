@@ -98,8 +98,8 @@
 #include <ethfw/ethfw.h>
 
 /* Timesync header files */
-#include <ti/transport/timeSync/v2/include/timeSync.h>
-#include <ti/transport/timeSync/v2/protocol/ptp/include/timeSync_ptp.h>
+#include <ti/drv/enet/examples/timesync/timeSync.h>
+#include <ti/drv/enet/examples/timesync/protocol/ptp/include/timeSync_ptp.h>
 
 /* EthFw utils header files */
 #include <utils/remote_service/include/app_remote_service.h>

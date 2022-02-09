@@ -106,8 +106,8 @@
 #include <utils/profile/include/app_profile.h>
 
 /* Timesync header files */
-#include <ti/transport/timeSync/v2/include/timeSync.h>
-#include <ti/transport/timeSync/v2/protocol/ptp/include/timeSync_ptp.h>
+#include <ti/drv/enet/examples/timesync/timeSync.h>
+#include <ti/drv/enet/examples/timesync/protocol/ptp/include/timeSync_ptp.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -1284,9 +1284,11 @@ static void EthFw_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
 #if defined(SOC_J721E)
     ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
     ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
+    ptpConfig->socConfig.instId     = 0U;
 #elif defined(SOC_J7200)
     ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J7200;
     ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_5G;
+    ptpConfig->socConfig.instId     = 0U;
 #endif
     ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
     ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;

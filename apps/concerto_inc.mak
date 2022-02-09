@@ -99,13 +99,12 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/enet/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_
 LDIRS += $(PDK_PATH)/packages/ti/drv/enet/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/enet/lib/${TARGET_BOARD_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/enet/lib/${TARGET_OS_FOLDER}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(PDK_PATH)/packages/ti/drv/enet/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/udma/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/sciclient/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/pm/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/ipc/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(REMOTE_DEVICE_PATH)/out/${TARGET_PLATFORM}/${REMOTE_DEVICE_TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
-LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
-LDIRS += $(PDK_PATH)/packages/ti/transport/timeSync/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 
 ifeq ($(TARGET_OS),SYSBIOS)
     STATIC_LIBS += app_utils_profile
@@ -121,8 +120,8 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     # Same extension is kept for R5F or R5Ft (Thumb mode)
     # in PDK build system for backwards compatibility reasons
     TARGET_CPU_SUFFIX=r5f
-    ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.ae$(TARGET_CPU_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += ti.timesync.hal.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += enet_timesync_ptp.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += enet_timesync_hal.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enet_cfgserver.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enetsoc.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += $(ENET_APPUTILS_LIB).ae$(TARGET_CPU_SUFFIX)
@@ -163,6 +162,8 @@ else
     ifneq (,$(filter ${TARGET_CPU},A72 A53))
         ADDITIONAL_STATIC_LIBS += ti.board.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += nimuenet.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += enet_timesync_hal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += enet_timesync_ptp.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += enet_cfgserver.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += $(ENET_APPUTILS_LIB).a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += enet.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
@@ -175,8 +176,6 @@ else
         ADDITIONAL_STATIC_LIBS += ti.csl.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += ti.osal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += pm_lib.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += ti.timesync.hal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += ti.timesync.ptp.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
     endif
 endif
 
@@ -209,5 +208,5 @@ PDK_LIB_RULES += uart
 PDK_LIB_RULES += gpio
 PDK_LIB_RULES += board
 PDK_LIB_RULES += ipc
-PDK_LIB_RULES += timeSync_hal
-PDK_LIB_RULES += timeSync_ptp
+PDK_LIB_RULES += enet_timesync_hal
+PDK_LIB_RULES += enet_timesync_ptp
