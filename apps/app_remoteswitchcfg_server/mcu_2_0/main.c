@@ -733,10 +733,14 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     /* Create the VRing now ... */
     if (status == ENET_SOK)
     {
-        status = Ipc_lateVirtioCreate(IPC_MPU1_0);
-        if (status != IPC_SOK)
+        /* Create virtio if one hasn't been created already */
+        if(!Ipc_isRemoteVirtioCreated(IPC_MPU1_0))
         {
-            appLogPrintf("EthApp_initIpcTask: Ipc_lateVirtioCreate failed: %d\n", status);
+            status = Ipc_lateVirtioCreate(IPC_MPU1_0);
+            if (status != IPC_SOK)
+            {
+                appLogPrintf("EthApp_initIpcTask: Ipc_lateVirtioCreate failed: %d\n", status);
+            }
         }
     }
 

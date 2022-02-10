@@ -793,10 +793,13 @@ static void rpmsg_vdevMonitorFxn(void* arg0,
     }
 
     /* Create the VRing now ... */
-    status = Ipc_lateVirtioCreate(IPC_MPU1_0);
-    if (status != IPC_SOK)
+    if(!Ipc_isRemoteVirtioCreated(IPC_MPU1_0))
     {
-        System_printf("%s: Ipc_lateVirtioCreate failed\n", __func__);
+        status = Ipc_lateVirtioCreate(IPC_MPU1_0);
+        if (status != IPC_SOK)
+        {
+            System_printf("%s: Ipc_lateVirtioCreate failed\n", __func__);
+        }
     }
 
     if (status == IPC_SOK)
