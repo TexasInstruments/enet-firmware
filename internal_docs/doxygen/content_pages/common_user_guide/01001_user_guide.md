@@ -122,6 +122,48 @@ of a linear correction in software of a local timer owned by the RTOS core which
 is periodically synchronized with the CPTS clock via HW push event 3.
 
 
+### Porting RTOS client to Main R5F 1 Core 0 {#ethfw_client_rtos_mcu30}
+
+Ethernet Firmware provides RTOS client support only on Main R5F 0 core 1 (*mcu2_1*) in
+J721E and J7200 SoCs.  Consequently, it's recommended to use *mcu2_1* processing core
+if virtual network interface support is required on an RTOS core.
+
+However, in SoCs with multiple R5F cores, like J721E, system design may require virtual
+network support on a different R5F core, instead of Main R5F 0 Core 1.  This requires
+porting effort on top of Enet LLD and Ethernet Firmware provided in standard TI SDK.
+The scope of the required porting changes will be discussed next, in the context of
+Main R5F 1 core 0 (*mcu3_0*) in J721E.
+
+  - Enet LLD:
+     - Add *mcu3_0* core in driver's CORELIST.  This will be enable core Enet LLD
+       support on Main R5F 1 core 0.
+     - Replace *mcu2_1* with *mcu3_0* in intercore and lwipific libraries.  Mainly
+       renaming MCU2_1 macros to MCU3_0, but more importantly, updating the IPC
+       core id (IPC_MCU2_1 -> IPC_MCU3_0).
+
+  - Ethernet Firmware (server application):
+     - Replace IPC core id of the RTOS client (IPC_MCU2_1 -> IPC_MCU3_0) in EthFw
+       library, CpswProxy server and client, as well as EthFw server application.
+     - Update the IPC core id where virtual switch port and virtual MAC port
+       interfaces are enabled on.
+     - Update memory addresses used for MCU3_0 IPC (0xA3000000 -> 0xA4000000).
+
+  - RTOS client application:
+     - Update IPC multiproc configuration to exclude *mcu3_0* and include *mcu2_1*.
+     - Update memory addresses used for MCU3_0 IPC (0xA3000000 -> 0xA4000000).
+     - Rename Enet LLD intercore macros as per corresponding changes in Enet LLD
+       for mcu3_0 support.
+
+It's worth noting that above list summarizes the software changes needed for running
+RTOS client on *mcu3_0* instead of *mcu2_1*.  It must not be confused with adding
+*mcu3_0* support in addition to *mcu2_1*, which is not in the scope of this discussion.
+
+The following Enet LLD and Ethernet Firmware [patches](j721e_mcu3_0_rtos_client.zip)
+are provided as reference to illustrate the actual software changes corresponding to
+the summary shown earlier. These changes are meant as reference for prototyping, and
+are provided as is.
+
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Linux Client {#ethfw_client_linux}
 
