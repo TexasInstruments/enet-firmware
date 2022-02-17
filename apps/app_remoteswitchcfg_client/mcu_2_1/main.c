@@ -773,7 +773,7 @@ static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
 static void rpmsg_vdevMonitorFxn(void* arg0,
                                  void* arg1)
 {
-    int32_t status;
+    int32_t status = IPC_SOK;
 
     /* Wait for Linux VDev ready... */
     while (!Ipc_isRemoteReady(IPC_MPU1_0))
@@ -782,7 +782,7 @@ static void rpmsg_vdevMonitorFxn(void* arg0,
     }
 
     /* Create the VRing now ... */
-    if(!Ipc_isRemoteVirtioCreated(IPC_MPU1_0))
+    if (!Ipc_isRemoteVirtioCreated(IPC_MPU1_0))
     {
         status = Ipc_lateVirtioCreate(IPC_MPU1_0);
         if (status != IPC_SOK)
