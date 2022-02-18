@@ -1100,8 +1100,12 @@ static int32_t CpswProxyServer_ioctlHandlerCb(EthRemoteCfg_VirtPort virtPort,
     uint64_t inArgsBuf[(RPMSG_KDRV_TP_ETHSWITCH_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
     uint64_t outArgsBuf[(RPMSG_KDRV_TP_ETHSWITCH_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
 
-    appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Cmd:%x,InArgsLen:%u, OutArgsLen:%u\n",
-                 __func__, host_id, hEnet, core_key, cmd, inargs_len, outargs_len);
+    /* Skip PHY link status check prints as they happen too often */
+    if (cmd != ENET_PER_IOCTL_IS_PORT_LINK_UP)
+    {
+        appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Cmd:%x,InArgsLen:%u, OutArgsLen:%u\n",
+                     __func__, host_id, hEnet, core_key, cmd, inargs_len, outargs_len);
+    }
 
     CpswProxyServer_validateHandle(hEnet);
 
