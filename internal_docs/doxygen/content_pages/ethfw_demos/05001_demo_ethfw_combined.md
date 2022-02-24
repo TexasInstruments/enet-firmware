@@ -42,16 +42,22 @@ The Ethernet Firmware demo application is in charge of:
    or the QpENet expansion board in J7200 EVM.
  - Initializing lwIP stack
 
-This application runs on the GESI (Gateway/Ethernet Switch/Industrial Expansion
-Board) board in J721E devices and on the QPENet (Quad Port Eth Expansion Board)
-board in the J7200 devices.  The demo requires two PCs running Ubuntu connected
-to the GESI board in order to demonstrate the L2 switching capabilities as well
-as to generate and monitor Ethernet traffic at different stages of the demo.
-The connection diagram is shown below.
+This application runs with the GESI (Gateway/Ethernet Switch/Industrial Expansion
+Board) board on J721E EVM and with the QPENet (Quad Port Eth Expansion Board)
+board on J7200 EVM. The demo requires two PCs running Ubuntu connected to the GESI
+or QPEnet board in order to demonstrate the L2 switching capabilities as well as
+to generate and monitor Ethernet traffic at different stages of the demo.
+The connection diagrams for the respective EVMs are shown below.
 
-![](demo_l2_switching_connections.png "EthFw demo connections diagram")
+###Connection diagram for J721E EVM with GESI Daughter Card
 
-> **Note:** The IP addresses in above diagram can change based on your network
+![](demo_l2_switching_connections_j721e.png "EthFw demo connections diagram - J721E EVM")
+
+###Connection diagram for J7200 EVM with QPEnet Daughter Card
+
+![](demo_l2_switching_connections_j7200.png "EthFw demo connections diagram - J7200 EVM")
+
+> **Note:** The IP addresses shown in above diagram are only for example and can change based on your network
 > configuration.
 
 A GUI-based control interface to enable/disable/configure features like VLAN,
@@ -357,7 +363,7 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
 -# Connect the laptops/PCs as per demo connections diagram above.
    * **Important:** DHCP server (if required) must be connected to
-     **MAC Port 2**.
+     **MAC Port 3**.
    * **Note:** Do not connect any device to **MAC Port 1** if using J721E/J7200 EVM alpha
      version as it may not be functional, please refer to the
      @ref ethfw_known_issues sections for further details
@@ -462,7 +468,7 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
        [J721E EVM GESI Expansion Board](@ref ethfw_depend_evm_gesi_j721e)
        section to find the right RJ-45 connector.
 
-    -# Connect **PC 2** to MAC port 2 of GESI board.
+    -# Connect **PC 2** to MAC port 8 of GESI board.
 
 -# For J7200 EVM:
 
