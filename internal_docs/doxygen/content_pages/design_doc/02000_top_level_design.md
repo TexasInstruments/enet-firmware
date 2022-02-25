@@ -11,12 +11,12 @@ The directory structure of the Ethernet Firmware is shown below::
     ├── apps                                # Ethernet firmware applications
     │   ├── app_remoteswitchcfg_client      # Remote core client application
     │   │   └── mcu_2_1
-    │   │       └── webdata                 # NDK/NIMU webserver content
     │   ├── app_remoteswitchcfg_server      # Ethernet Firmware server application
     │   │   └── mcu_2_0
-    │   │       └── webdata                 # NDK/NIMU webserver content
-    │   ├── bios_cfg                        # Common BIOS configuration
-    │   └── ipc_cfg                         # Common IPC configuration
+    │   ├── common                          # Common MPU settings for J721E/J7200
+    │   ├── bios_cfg                        # Common BIOS configuration (deprecated)
+    │   ├── ipc_cfg                         # Common IPC configuration
+    │   └── tap                             # Linux user-space demo app for intercore interface
     ├── concerto                            # Makefile-based build system common files
     │   └── compilers                       # Compiler specific common options
     ├── docs                                # User documentation
@@ -40,7 +40,13 @@ The directory structure of the Ethernet Firmware is shown below::
     ├── ethfw                               # Ethernet firmware library
     │   └── src
     └── utils                               # Helper utilities
-        ├── ethfw_callbacks                 # Frequently used NDK and NIMU callbacks
+        ├── ethfw_callbacks                 # Frequently used lwIP callbacks
+        │   ├── include
+        │   └── src
+        ├── ethfw_lwip                      # Emulated Proxy ARP callbacks
+        │   ├── include
+        │   └── src
+        ├── ethfw_stats                     # Networking statistics services
         │   ├── include
         │   └── src
         ├── intervlan                       # Hardware and software interVLAN demo utils
@@ -67,7 +73,7 @@ and Rx and Tx data transfers.  The Ethernet Firmware also configures and makes
 use of the TCP/IP stack enabled by Enet LLD by the means of NDK/NIMU.
 
 The *Ethernet Firmware* on the *master core* interacts with *remote cores*
-running virtual network device interfaces (Linux or TI-RTOS) via *Ethernet
+running virtual network device interfaces (Linux or FreeRTOS) via *Ethernet
 Switch Remote Device* which allows remote cores to communicate with the master
 core via IPC.
 
@@ -76,7 +82,7 @@ teardown data paths for Ethernet packet transfer towards CPSW. It's worth noting
 that once the DMA channels/flows have been setup, no further interaction with
 the Ethernet Firmware is required.
 
-For further details on remote core integration in Linux and TI-RTOS, please
+For further details on remote core integration in Linux and FreeRTOS, please
 refer to the [Remote Core Integration](@ref ethfw_remotecore_top) section.
 
 [Back To Top](@ref ethfw_tldesign_top)

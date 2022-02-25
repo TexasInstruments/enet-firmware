@@ -5,8 +5,8 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Introduction {#ethfw_design_intro}
 
-The Ethernet Firmware (EthFw) is the TI-RTOS based application for configuration
-of Ethernet switch peripheral (CPSW9G) present in the Jacinto 7 devices.
+The Ethernet Firmware (EthFw) is the FreeRTOS based application for configuration
+of Ethernet switch peripheral (CPSW5G or CPSW9G) present in the Jacinto 7 devices.
 
 The Ethernet Firwmare contains remote configuration server, resource management
 library, switch resident protocols, proxy layers to handle local and remote API
@@ -25,9 +25,10 @@ peripherals like UDMA, UART, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Functional Overview {#ethfw_design_func_overview}
 
-- *Ethernet Firmware* is integrated into the Processor SDK RTOS Automotive
-  (PSDKRA) and Processor SDK Linux Automotive (PSDKLA) software products.
-- *Ethernet Firmware* is an application based on the TI-RTOS operating system
+- *Ethernet Firmware* is integrated into the RTOS SDK, Linux SDK and QNX SDK
+  software products for [J721E](https://www.ti.com/tool/PROCESSOR-SDK-J721E)
+  and [J7200](https://www.ti.com/tool/PROCESSOR-SDK-J7200) devices.
+- *Ethernet Firmware* is an application based on the FreeRTOS operating system
   in charge of configuring the Ethernet switch peripheral and setting up data
   paths to processing cores internal of the Jacinto 7 devices.
 - *Ethernet Firmware* enables automotive use-cases like I/O hub, central
@@ -35,7 +36,7 @@ peripherals like UDMA, UART, etc.
 - *Ethernet Firmware* enables multi-core architectures where network data can
   be steered towards processing cores by means of classification of network
   traffic based on packet characteristics like L2/L3 header.
-- *Ethernet Firmware* offers switch resident protocols via NDK.
+- *Ethernet Firmware* offers switch resident protocols via lwIP stack.
 - *Ethernet Firmware* is configurable programmatically via software API from
   remote client cores or runtime via network with a GUI host application.
 - *Ethernet Firmware* offers a debug infrastructure to dump DMA statistics,
@@ -51,8 +52,8 @@ peripherals like UDMA, UART, etc.
 - MISRA-C guidelines are followed, with certain waivers approved by TI Embedded
   Processors software group.
 - Ethernet Firmware application is loaded by another software entity. For
-  instance, remoteproc in Linux or SBL in TI-RTOS.
-- TCP/IP stack integration is done using the TI Network Development Kit (NDK).
+  instance, remoteproc in Linux, SPL or SBL.
+- TCP/IP stack integration is done using the lwIP TCP/IP stack.
 
 [Back To Top](@ref ethfw_design_top)
 
@@ -68,9 +69,9 @@ peripherals like UDMA, UART, etc.
 - Clause-45 register read/write APIs
 - Host port (CPPI) packet Tx/Rx
 - IPC-based switch configuration from remote client cores
-- Linux integration on Cortex-A72 remote core (PSDKLA)
-- RTOS integration on Cortex-R5F remote core (PSDKRA)
-- AUTOSAR integration on MCU Cortex-R5F remote core (PSDKRA)
+- Linux integration on Cortex-A72 remote core (Linux SDK)
+- FreeRTOS integration on Cortex-R5F remote core (RTOS SDK)
+- AUTOSAR integration on MCU Cortex-R5F remote core (RTOS SDK)
 - TCP/IP stack
 - Multicast switching
 - InterVLAN routing
@@ -88,7 +89,6 @@ peripherals like UDMA, UART, etc.
 
 The following features are not supported in the current release:
 
-- Time synchronization (gPTP)
 - Time-aware scheduling
 - QNX integration
 - Port mirroring
@@ -107,3 +107,4 @@ Revision | Date          | Author         | Description              | Status
 ---------|---------------|----------------|--------------------------|-------
 0.1      | 22 Oct 2019   | Misael Lopez   | First version            | Draft
 1.0      | 28 Jan 2020   | Misael Lopez   | Updates for SDK 06.02.00 | Approved
+1.1      | 25 Feb 2022   | Misael Lopez   | Updates for SDK 08.02.00 | Approved

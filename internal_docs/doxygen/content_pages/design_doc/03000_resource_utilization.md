@@ -19,10 +19,10 @@
     <td>Board I/O expander configuration for RMII and MDIO on GESI board
 <tr>
     <td rowspan="2">DMTimer
-    <td>DMTimer12
-    <td>SYS/BIOS (TI-RTOS) tick
+    <td>-
+    <td>FreeRTOS tick
 <tr>
-    <td>DMTimer13
+    <td>Abstracted by PDK OSAL
     <td>CPSW interrupt pacing
 <tr>
     <td>UART
@@ -32,6 +32,10 @@
     <td>Mailbox
     <td>Abstracted by RPMSG
     <td>IPC with remote cores
+<tr>
+    <td>SerDes
+    <td>Sierra SerDes 0 Lane 1<br>Torrent SerDes 0 Lane 2
+    <td>QSGMII (J721E)<br>QSGMII (J7200)
 <tr>
     <td rowspan="3">Control Module
     <td>ENET_CTRL
@@ -58,23 +62,23 @@
 <tr>
     <td rowspan="2">Transmit
     <td>Channels
-    <td>2 (1 for EthFw, 1 for SW interVLAN)
+    <td>3 (1 for EthFw/lwIP, 1 for PTP, 1 for software interVLAN)
 <tr>
     <td>Ring Acc
-    <td>6 (rings per channel: 1 for FQ, 1 for CQ, 1 for TDCQ)
+    <td>9 (rings per channel: 1 for FQ, 1 for CQ, 1 for TDCQ)
 <tr>
     <td rowspan="4">Receive
     <td>Channels
     <td>1
 <tr>
     <td>Flows
-    <td>3 (1 for EthFw, 1 for dropFlow, 1 for SW interVLAN)
+    <td>5 (1 for EthFw/lwIP, 1 for Proxy ARP, 1 for PTP, 1 for software interVLAN, 1 default flow (drop flow))
 <tr>
     <td>Ring Acc
-    <td>12 (rings per flow: 1 for FQ, 1 for CQ, 1 for TDCQ, 1 for dropRing)
+    <td>20 (rings per flow: 1 for FQ, 1 for CQ, 1 for TDCQ, 1 for dropRing)
 <tr>
     <td>Proxy Rings
-    <td>2 (1 for EthFw, 1 for SW interVLAN)
+    <td>4 (1 for EthFw/lwIP, 1 for Proxy ARP, 1 for PTP, 1 for software interVLAN)
 </table>
 
 [Back To Top](@ref ethfw_resource_top)

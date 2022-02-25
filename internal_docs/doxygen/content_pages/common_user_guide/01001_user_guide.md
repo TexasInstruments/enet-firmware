@@ -119,7 +119,7 @@ Client* library which is built on top of *remote_device* framework.
 
 The multicore time synchronization mechanism implemented in RTOS client consists
 of a linear correction in software of a local timer owned by the RTOS core which
-is periodically synchronized with the CPTS clock via HW push event 3.
+is periodically synchronized with the CPTS clock via HW push event 2.
 
 
 ### Porting RTOS client to Main R5F 1 Core 0 {#ethfw_client_rtos_mcu30}
@@ -1006,14 +1006,14 @@ static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
 
 The EthFw demos showcase the integration and usage of the Ethernet Firmware
 which provides a high-level interface for applications to configure and use the
-integrated Ethernet switch peripheral (CPSW9G).
+integrated Ethernet switch peripheral (CPSW5G/CPSW9G).
 
 The following sample applications are key to demonstrate the capabilities of the
 CPSW9G/CPSW5G hardware as well as the EthFw stack.
 
 Demo                               | Comments
 -----------------------------------|--------------
-L2 Switching | Configures CPSW9G switch to enable switching between its external ports
+L2 Switching | Configures CPSW5G/CPSW9G switch to enable switching between its external ports
 L2/L3 address based classification | Illustrates traffic steering to A72 (Linux) and R5F (RTOS) based on Layer-2 Ethernet header. iperf tool and web servers are used to demonstrate traffic steering to/from PCs connected to the switch
 Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of Enet LLD
 Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW5G/CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load

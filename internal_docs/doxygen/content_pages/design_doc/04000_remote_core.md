@@ -61,14 +61,14 @@ in the following call sequence diagram.
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# TI-RTOS {#ethfw_remotecore_tirtos}
+# RTOS {#ethfw_remotecore_rtos}
 
 The `app_remoteswitchcfg_client` application demonstrates direct data path to 
-remote cores running TI-RTOS.  The application uses Ethernet Switch remote device
+remote cores running FreeRTOS.  The application uses Ethernet Switch remote device
 client APIs to communicate with the master core.
 
-The remote core runs standard TI NDK stack.  The NDK/NIMU layer invokes an
-application callback at open time.  The callback opens Rx Flow and Tx Channel
+The remote core runs standard lwIP TCP/IP stack.  The lwIP adaptation layer invokes
+an application callback at open time.  The callback opens Rx Flow and Tx Channel
 handles.  The resources required to open a Tx channel and Rx flow such as Tx DMA
 channel, CPSW PSIL destination thread, Rx flow Id, destination MAC address are
 allocated by invoking the Ethernet Switch remote device client API.  The client
