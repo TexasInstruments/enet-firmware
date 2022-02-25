@@ -907,6 +907,8 @@ Below is a sample log from the execution of this demo application.
 #### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart_j721e}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+GESI board detected
+QSGMII board detected
 Enabling clocks!
 =======================================================
             CPSW Ethernet Firmware                     
@@ -926,18 +928,28 @@ EnetMcm: CPSW_9G on MAIN NAVSS
 PHY 0 is alive
 PHY 3 is alive
 PHY 12 is alive
+PHY 15 is alive
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
 PHY 23 is alive
 EnetPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
 EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
 EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 17: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 18: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 19: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
 
 ETHFW Version   : 0.02.00
-ETHFW Build Date: Dec  6, 2021
-ETHFW Build Time: 03:13:55
-ETHFW Commit SHA: cbf58ea0
+ETHFW Build Date: Feb 26, 2022
+ETHFW Build Time: 17:57:45
+ETHFW Commit SHA: d067b817
 
 Starting lwIP, local interface IP is dhcp-enabled
-Host MAC address: 70:ff:76:1d:92:c3
+Host MAC address: 70:ff:76:1d:a1:93
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 [LWIPIF_LWIP_IC] Interface started successfully
 [LWIPIF_LWIP_IC] NETIF INIT SUCCESS
@@ -951,20 +963,18 @@ CpswProxyServer: Virtual port configuration:
   mcu_2_1 <-> MAC port 4: mcu_2_1_ethmac-device-4
 CpswProxyServer: initialization completed (core: mcu2_0)
 Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:6
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
-Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a492a4,CoreKey:38acb976, Cmd:1010401,InArg4
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a492a4,CoreKey:38acb976, Cmd:1010201,InArg4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a492a4,CoreKey:38acb976, MacAddress:7
+Cpsw_ioctlInternal: CPSW: Registered MAC address. ALE entry:6, Policer Entry:1
+Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2a492a4,CoreKey:38acb976, Nam2
 Cpsw_handleLinkUp: Port 4: Link up: 1-Gbps Full-Duplex
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c4, FlowIdx:179, FlowIdxOffset:7
-Cpsw_ioctlInternal: CPSW: Registered MAC address. ALE entry:11, Policer Entry:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-1, Timer:1, PushNum:2
 Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:6
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c5, FlowIdx:180, FlowIdxOffset:8
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a7c1c4,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Added interface 'br4', IP is 192.168.50.87
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a492a4,CoreKey:38acb976, Cmd:1010401,InArg4
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a492a4,CoreKey:38acb976, Cmd:1010201,InArg4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a492a4,CoreKey:38acb976, MacAddress:8
+Added interface 'br4', IP is 192.168.50.45
 EthFw: TimeSync PTP enabled
 Rx Flow for Software Inter-VLAN Routing is up
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -973,34 +983,36 @@ Rx Flow for Software Inter-VLAN Routing is up
 #### CCS Console Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j721e}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[MAIN_Cortex_R5_0_1] Remote device (core : mcu2_1) .....
+Remote device (core : mcu2_1) .....
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
 Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
 Connecting to 'mcu_2_1_ethswitch-device-1'
 Connecting to 'mcu_2_1_ethmac-device-4'
+Connecting to 'mcu_2_1_ethmac-device-4'
 Registered a device name = mcu_2_1_ethswitch-device-1, id = 0, type = 3
 ETHFW Version: 0. 2. 0
-ETHFW Version: 0. 2. 0
+ETHFW Build Date (YYYY/MMM/DD):2022/Feb/26
+ETHFW Commit SHA:d067b817
+ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:2
 Registered a device name = mcu_2_1_ethmac-device-4, id = 1, type = 3
 ETHFW Version: 0. 2. 0
-ETHFW Build Date (YYYY/MMM/DD):2021/Dec/ 6
-ETHFW Commit SHA:cbf58ea0
-ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:2
-ETHFW Build Date (YYYY/MMM/DD):2021/Dec/ 6
-ETHFW Commit SHA:cbf58ea0
+ETHFW Build Date (YYYY/MMM/DD):2022/Feb/26
+ETHFW Commit SHA:d067b817
 ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:2
 Starting lwIP, local interface IP is dhcp-enabled
-Function:CpswProxy_cmdHandler,Handle:a2a7c1c4,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:0
+Function:CpswProxy_cmdHandler,Handle:a2a492a4,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 [LWIPIF_LWIP_IC] Interface started successfully
 [LWIPIF_LWIP_IC] NETIF INIT SUCCESS
 Added interface 'ti1', IP is 0.0.0.0
 Added interface 'br3', IP is 0.0.0.0
 Starting lwIP, local interface IP is dhcp-enabled
-Function:CpswProxy_cmdHandler,Handle:a2a7c1c4,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:4
+Function:CpswProxy_cmdHandler,Handle:a2a492a4,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:4
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 Added interface 'ti4', IP is 0.0.0.0
-Added interface 'br3', IP is 192.168.50.88
-Added interface 'ti4', IP is 192.168.1.138
+Added interface 'br3', IP is 192.168.50.47
+Added interface 'ti4', IP is 192.168.1.124
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Back To Top](@ref demo_ethfw_combined_top)
@@ -1040,9 +1052,9 @@ EnetPhy_bindDriver: PHY 18: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
 EnetPhy_bindDriver: PHY 19: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
 
 ETHFW Version   : 0.02.00
-ETHFW Build Date: Nov 23, 2021
-ETHFW Build Time: 01:42:35
-ETHFW Commit SHA: f8820f7c
+ETHFW Build Date: Feb 25, 2022
+ETHFW Build Time: 05:48:48
+ETHFW Commit SHA: ec3f4e22
 
 Starting lwIP, local interface IP is dhcp-enabled
 Host MAC address: 70:ff:76:1d:92:c3
@@ -1059,27 +1071,26 @@ CpswProxyServer: Virtual port configuration:
   mcu_2_1 <-> MAC port 4: mcu_2_1_ethmac-device-4
 CpswProxyServer: initialization completed (core: mcu2_0)
 Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:5
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c4, FlowIdx:91, FlowIdxOffset:7
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a75cd8,CoreKey:38acb976, Cmd:1010401,InArgs
+Len:0, OutArgsLen:4
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a75cd8,CoreKey:38acb976, Cmd:1010201,InArgs
+Len:24, OutArgsLen:4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a75cd8,CoreKey:38acb976, MacAddress:7
+0:ff:76:1d:92:c4, FlowIdx:91, FlowIdxOffset:7
 Cpsw_ioctlInternal: CPSW: Registered MAC address. ALE entry:6, Policer Entry:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Name:mcu_2_1_ethswitch-device-1, Timer:1, PushNum:2
-Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:5
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1010401,InArgsLen:0, OutArgsLen:4
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1010201,InArgsLen:24, OutArgsLen:4
-Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, MacAddress:70:ff:76:1d:92:c5, FlowIdx:92, FlowIdxOffset:8
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-CpswMacPort_checkSgmiiStatus: MAC 3: SGMII link parter config port: link up: 1-Gbps Full-Duplex
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
-Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_registerRemoteTimerHandlerCb,HostId:4,Handle:a2a75cd8,CoreKey:38acb976, Name
+:mcu_2_1_ethswitch-device-1, Timer:1, PushNum:2
 CpswMacPort_checkSgmiiStatus: MAC 4: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_attachExtHandlerCb,HostId:4,CpswType:5
 Cpsw_handleLinkUp: Port 4: Link up: 1-Gbps Full-Duplex
-Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a5aec8,CoreKey:38acb976, Cmd:1000104,InArgsLen:1, OutArgsLen:1
+CpswMacPort_checkSgmiiStatus: MAC 3: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a75cd8,CoreKey:38acb976, Cmd:1010401,InArgs
+Len:0, OutArgsLen:4
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+Function:CpswProxyServer_ioctlHandlerCb,HostId:4,Handle:a2a75cd8,CoreKey:38acb976, Cmd:1010201,InArgs
+Len:24, OutArgsLen:4
+Function:CpswProxyServer_registerMacHandlerCb,HostId:4,Handle:a2a75cd8,CoreKey:38acb976, MacAddress:7
+0:ff:76:1d:92:c5, FlowIdx:92, FlowIdxOffset:8
 Added interface 'br4', IP is 192.168.50.87
 EthFw: TimeSync PTP enabled
 Rx Flow for Software Inter-VLAN Routing is up
@@ -1089,34 +1100,40 @@ Rx Flow for Software Inter-VLAN Routing is up
 #### CCS Console Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j7200}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[MAIN_Cortex_R5_0_1] Remote device (core : mcu2_1) .....
+Remote device (core : mcu2_1) .....
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
 Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
 Connecting to 'mcu_2_1_ethswitch-device-1'
 Connecting to 'mcu_2_1_ethmac-device-4'
 Registered a device name = mcu_2_1_ethswitch-device-1, id = 0, type = 3
 ETHFW Version: 0. 2. 0
-ETHFW Build Date (YYYY/MMM/DD):2021/Dec/ 5
-ETHFW Commit SHA:019cae0f
-ETHFW Commit SHA:019cae0f
+ETHFW Build Date (YYYY/MMM/DD):2022/Feb/25
+ETHFW Commit SHA:ec3f4e22
+ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:3
 Registered a device name = mcu_2_1_ethmac-device-4, id = 1, type = 3
 ETHFW Version: 0. 2. 0
-ETHFW Build Date (YYYY/MMM/DD):2021/Dec/ 5
-ETHFW Commit SHA:019cae0f
-ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:3
+ETHFW Build Date (YYYY/MMM/DD):2022/Feb/25
+ETHFW Commit SHA:ec3f4e22
 ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:3
 Starting lwIP, local interface IP is dhcp-enabled
-Function:CpswProxy_cmdHandler,Handle:a2a5aec8,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:0
+Function:CpswProxy_cmdHandler,Handle:a2a75cd8,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 [LWIPIF_LWIP_IC] Interface started successfully
 [LWIPIF_LWIP_IC] NETIF INIT SUCCESS
 Added interface 'ti1', IP is 0.0.0.0
 Added interface 'br3', IP is 0.0.0.0
 Starting lwIP, local interface IP is dhcp-enabled
-Function:CpswProxy_cmdHandler,Handle:a2a5aec8,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:4
+Function:CpswProxy_cmdHandler,Handle:a2a75cd8,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:4
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 Added interface 'ti4', IP is 0.0.0.0
 Added interface 'br3', IP is 192.168.50.88
-Added interface 'ti4', IP is 192.168.1.138
+Added interface 'ti4', IP is 192.168.1.139
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Back To Top](@ref demo_ethfw_combined_top)
@@ -1136,4 +1153,5 @@ Revision | Date          | Author                 | Description
 1.0      | 31 Aug 2020   | Misael Lopez           | Added J7200 support for SDK 7.01 EA
 1.1      | 10 Nov 2020   | Misael Lopez           | Updates for v.7.01.00
 1.2      | 08 Jul 2021   | Misael Lopez           | Updates for v.8.00.00
-1.2      | 03 Dec 2021   | Nitin Sakhuja          | Updates for v.8.01.00
+1.3      | 03 Dec 2021   | Nitin Sakhuja          | Updates for v.8.01.00
+1.4      | 27 Feb 2022   | Misael Lopez           | Updates for v.8.02.00 (Updated logs)
