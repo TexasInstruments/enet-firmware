@@ -1,0 +1,94 @@
+SBL Revision: 01.00.10.01 (Feb 23 2022 - 08:59:15)
+TIFS  ver: 22.1.1--v2022.01 (Terrific Llam
+==========================
+      Enet lwIP App
+==========================
+Select peripheral type
+0: CPSW_2G
+Select MAC port
+0: ENET_MAC_PORT_1 - RGMII
+Enabling clocks!
+CPU Load: 100%
+Starting lwIP, local interface IP is dhcp-enabled
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:4 From 1 To 0
+EnetMcm: CPSW_2G on MCU NAVSS
+PHY 0 is alive
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+Host MAC address: f4:84:4c:f7:a7:08
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+status_callback==UP, local interface IP is 0.0.0.0
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+MAC Port 1: link up
+link_callback==UP
+status_callback==UP, local interface IP is 192.168.50.96
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.96
+Initializing apps
+UDP server listening on port 5001
+CPU Load: 15%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+CPU Load: 74%
+[  1]  0.0-120.0 sec  2.05 GBytes   147 Mbits/sec     0/1497967 (0%)
+UDP test passed Successfully
+CPU Load: 58%
+CPU Load: 1%
+CPU Load: 17%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+CPU Load: 79%
+[  2]  0.0-120.0 sec  2.20 GBytes   157 Mbits/sec     0/1604965 (0%)
+UDP test passed Successfully
+CPU Load: 62%
+CPU Load: 1%
+CPU Load: 20%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+CPU Load: 85%
+[  3]  0.0-120.0 sec  2.34 GBytes   168 Mbits/sec     0/1711962 (0%)
+UDP test passed Successfully
+CPU Load: 64%
+CPU Load: 1%
+CPU Load: 23%
+CPU Load: 94%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+[  4]  0.0-120.0 sec  2.27 GBytes   163 Mbits/sec  160341/1818959 (8.8%)
+UDP test passed Successfully
+CPU Load: 74%
+CPU Load: 1%
+CPU Load: 1%
+CPU Load: 1%

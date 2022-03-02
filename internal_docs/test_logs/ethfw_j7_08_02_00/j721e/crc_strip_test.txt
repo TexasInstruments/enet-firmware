@@ -1,0 +1,125 @@
+ ===============
+ CPSW Test Select
+ ===============
+
+ Current/Default System Settings:
+ ------------------------
+ Uart timemout          : 10000 msec
+ Default Iteration count            : 1
+
+ 1: Manual testing (select specific test case to run)
+
+ s: System Settings
+
+ q: Quit
+
+ Enter Choice:
+1
+
+ Manual testing
+
+ --------------------------------------
+ Select test to run as per below table:
+ --------------------------------------
+
+    1: CPSW9G Switching test
+    2: ALE auto learn test
+    3: ALE auto learn VLAN test
+    4: Mac speed test
+    5: Statistics test
+    6: VLAN test
+    8: CRC strip test
+    9: FIFO stats test
+   10: ALE source address update
+   11: ALE Table full
+   12: VLAN drop untagged
+   13: Multicast support
+   14: Policer test
+   15: Network security test
+   16: Host port Rx Filter
+   17: policer no match red drop enable test
+   18: policer no match yellow drop enable test
+   19: policer no match unregulated traffic test
+   20: Intervlan test
+   21: Default priority
+   22: Port VLAN ID
+   23: Sanity Test
+   24: Outer VLAN Test
+   25: Traffic shaping Test
+   26: 1-Gbps Full-Duplex Auto-Neg Test
+   27: 100-Mbps Full-Duplex Auto-Neg Test
+   28: 100-Mbps Half-Duplex Auto-Neg Test
+   29: DMA RxFlow Mtu Test
+   30: PHY Strap mode Test
+   31: Priority Regeneration
+   32: SGMII 1G Digital loopback
+   33: SGMII 1G FIFO Loopback
+   34: CPSW9G QSGMII Switching test
+   35: CPSW9G All ports Switching test
+   36: CPTS Event Test
+   37: BCAST MCAST Rate Limit
+   38: CPSW9G Directed packet test
+
+ Enter Test to Run (Use UART1 console for all cores or MCU_UART1 console for MCU)
+8
+8
+
+ |TEST START|:: 8 ::
+ |TEST NAME| :: CRC strip test ::
+ |TEST INFO| :: Num Tasks         : 1 ::
+ |TEST INFO| :: Data Check        : Disabled ::
+ |TEST INFO| :: Profiling         : Disabled ::
+ |TEST INFO| :: Print             : Disabled ::
+ |TEST INFO| :: Run Instructions  : To be added ::
+
+
+ |TEST ITEARATION NUMBER| ::      : 1 ::
+Enabling clocks!
+ENET_CPSW_9G Test on MAIN NAVSS
+initQs() txFreePktInfoQ initialized with 1000 pkts
+Host MAC address: 70:ff:76:1d:a1:92
+PHY 12 is alive
+Waiting for PHY link on enabled ports mask:0x0
+Waiting for PORT link on enabled ports
+MAC Port 0: link up
+Receive Complete:EnetTestCommon_recvTask,Id:0,Frame:1000
+Transmit Completed:EnetTestCommon_xmitTask,Id:0,Frame:1000
+
+Tx stack usage.Tx Cfg Id:0, Stack Used:0
+
+Rx stack usage.Rx Cfg Id:0, Stack Used:0
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 1000
+  rxBcastFrames           = 1000
+  rxOctets                = 1518000
+  txGoodFrames            = 1000
+  txBcastFrames           = 1000
+  txOctets                = 1518000
+  octetsFrames1024        = 2000
+  netOctets               = 3036000
+  txPri[0]                = 1000
+  txPriBcnt[0]            = 1518000
+
+
+ External Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 1000
+  rxBcastFrames           = 1000
+  rxOctets                = 1518000
+  txGoodFrames            = 1000
+  txBcastFrames           = 1000
+  txOctets                = 1518000
+  octetsFrames1024        = 2000
+  netOctets               = 3036000
+  txPri[1]                = 1000
+  txPriBcnt[1]            = 1518000
+
+Cpsw_handleLinkDown: Port 1: Link down
+ |TEST DURATION|:: 0:00:01:592 ::
+ |TEST RESULT|PASS|8|
+ |TEST END|:: 8 ::
+ |TEST RESULT|:: CPSW Test Case 8 Successful!! ::
+
+

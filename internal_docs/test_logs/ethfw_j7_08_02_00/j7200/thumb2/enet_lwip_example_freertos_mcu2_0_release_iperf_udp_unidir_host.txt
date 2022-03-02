@@ -1,0 +1,136 @@
+iperf -c 192.168.50.70 -i5 -t120 -u -b 140M
+------------------------------------------------------------
+Client connecting to 192.168.50.70, UDP port 5001
+Sending 1470 byte datagrams, IPG target: 80.11 us (kalman adjust)
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 192.168.50.1 port 39263 connected with 192.168.50.70 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 5.0 sec  87.5 MBytes   147 Mbits/sec
+[  3]  5.0-10.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 10.0-15.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 15.0-20.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 20.0-25.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 25.0-30.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 30.0-35.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 35.0-40.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 40.0-45.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 45.0-50.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 50.0-55.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 55.0-60.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 60.0-65.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 65.0-70.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 70.0-75.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 75.0-80.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 80.0-85.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 85.0-90.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 90.0-95.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 95.0-100.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 100.0-105.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 105.0-110.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 110.0-115.0 sec  87.5 MBytes   147 Mbits/sec
+[  3] 115.0-120.0 sec  87.5 MBytes   147 Mbits/sec
+[  3]  0.0-120.0 sec  2.05 GBytes   147 Mbits/sec
+[  3] Sent 1497967 datagrams
+iperf -c 192.168.50.70 -i5 -t120 -u -b 150M
+------------------------------------------------------------
+Client connecting to 192.168.50.70, UDP port 5001
+Sending 1470 byte datagrams, IPG target: 74.77 us (kalman adjust)
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 192.168.50.1 port 43381 connected with 192.168.50.70 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 5.0 sec  93.8 MBytes   157 Mbits/sec
+[  3]  5.0-10.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 10.0-15.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 15.0-20.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 20.0-25.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 25.0-30.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 30.0-35.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 35.0-40.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 40.0-45.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 45.0-50.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 50.0-55.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 55.0-60.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 60.0-65.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 65.0-70.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 70.0-75.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 75.0-80.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 80.0-85.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 85.0-90.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 90.0-95.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 95.0-100.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 100.0-105.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 105.0-110.0 sec  93.7 MBytes   157 Mbits/sec
+[  3] 110.0-115.0 sec  93.8 MBytes   157 Mbits/sec
+[  3] 115.0-120.0 sec  93.7 MBytes   157 Mbits/sec
+[  3]  0.0-120.0 sec  2.20 GBytes   157 Mbits/sec
+[  3] Sent 1604964 datagrams
+iperf -c 192.168.50.70 -i5 -t120 -u -b 160M
+------------------------------------------------------------
+Client connecting to 192.168.50.70, UDP port 5001
+Sending 1470 byte datagrams, IPG target: 70.10 us (kalman adjust)
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 192.168.50.1 port 45165 connected with 192.168.50.70 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 5.0 sec   100 MBytes   168 Mbits/sec
+[  3]  5.0-10.0 sec   100 MBytes   168 Mbits/sec
+[  3] 10.0-15.0 sec   100 MBytes   168 Mbits/sec
+[  3] 15.0-20.0 sec   100 MBytes   168 Mbits/sec
+[  3] 20.0-25.0 sec   100 MBytes   168 Mbits/sec
+[  3] 25.0-30.0 sec   100 MBytes   168 Mbits/sec
+[  3] 30.0-35.0 sec   100 MBytes   168 Mbits/sec
+[  3] 35.0-40.0 sec   100 MBytes   168 Mbits/sec
+[  3] 40.0-45.0 sec   100 MBytes   168 Mbits/sec
+[  3] 45.0-50.0 sec   100 MBytes   168 Mbits/sec
+[  3] 50.0-55.0 sec   100 MBytes   168 Mbits/sec
+[  3] 55.0-60.0 sec   100 MBytes   168 Mbits/sec
+[  3] 60.0-65.0 sec   100 MBytes   168 Mbits/sec
+[  3] 65.0-70.0 sec   100 MBytes   168 Mbits/sec
+[  3] 70.0-75.0 sec   100 MBytes   168 Mbits/sec
+[  3] 75.0-80.0 sec   100 MBytes   168 Mbits/sec
+[  3] 80.0-85.0 sec   100 MBytes   168 Mbits/sec
+[  3] 85.0-90.0 sec   100 MBytes   168 Mbits/sec
+[  3] 90.0-95.0 sec   100 MBytes   168 Mbits/sec
+[  3] 95.0-100.0 sec   100 MBytes   168 Mbits/sec
+[  3] 100.0-105.0 sec   100 MBytes   168 Mbits/sec
+[  3] 105.0-110.0 sec   100 MBytes   168 Mbits/sec
+[  3] 110.0-115.0 sec   100 MBytes   168 Mbits/sec
+[  3] 115.0-120.0 sec   100 MBytes   168 Mbits/sec
+[  3]  0.0-120.0 sec  2.34 GBytes   168 Mbits/sec
+[  3] Sent 1711962 datagrams
+iperf -c 192.168.50.70 -i5 -t120 -u -b 170M
+------------------------------------------------------------
+Client connecting to 192.168.50.70, UDP port 5001
+Sending 1470 byte datagrams, IPG target: 65.97 us (kalman adjust)
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 192.168.50.1 port 52985 connected with 192.168.50.70 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 5.0 sec   106 MBytes   178 Mbits/sec
+[  3]  5.0-10.0 sec   106 MBytes   178 Mbits/sec
+[  3] 10.0-15.0 sec   106 MBytes   178 Mbits/sec
+[  3] 15.0-20.0 sec   106 MBytes   178 Mbits/sec
+[  3] 20.0-25.0 sec   106 MBytes   178 Mbits/sec
+[  3] 25.0-30.0 sec   106 MBytes   178 Mbits/sec
+[  3] 30.0-35.0 sec   106 MBytes   178 Mbits/sec
+[  3] 35.0-40.0 sec   106 MBytes   178 Mbits/sec
+[  3] 40.0-45.0 sec   106 MBytes   178 Mbits/sec
+[  3] 45.0-50.0 sec   106 MBytes   178 Mbits/sec
+[  3] 50.0-55.0 sec   106 MBytes   178 Mbits/sec
+[  3] 55.0-60.0 sec   106 MBytes   178 Mbits/sec
+[  3] 60.0-65.0 sec   106 MBytes   178 Mbits/sec
+[  3] 65.0-70.0 sec   106 MBytes   178 Mbits/sec
+[  3] 70.0-75.0 sec   106 MBytes   178 Mbits/sec
+[  3] 75.0-80.0 sec   106 MBytes   178 Mbits/sec
+[  3] 80.0-85.0 sec   106 MBytes   178 Mbits/sec
+[  3] 85.0-90.0 sec   106 MBytes   178 Mbits/sec
+[  3] 90.0-95.0 sec   106 MBytes   178 Mbits/sec
+[  3] 95.0-100.0 sec   106 MBytes   178 Mbits/sec
+[  3] 100.0-105.0 sec   106 MBytes   178 Mbits/sec
+[  3] 105.0-110.0 sec   106 MBytes   178 Mbits/sec
+[  3] 110.0-115.0 sec   106 MBytes   178 Mbits/sec
+[  3] 115.0-120.0 sec   106 MBytes   178 Mbits/sec
+[  3]  0.0-120.0 sec  2.49 GBytes   178 Mbits/sec
+[  3] Sent 1818959 datagrams

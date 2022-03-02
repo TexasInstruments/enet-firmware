@@ -1,0 +1,46 @@
+============   Ee wPAp
+=============
+eetprpea ye
+:CS_G
+0eetMCpr0EETMCPR_ MI
+Ealn lcs
+P od:1%SaiglP clitrc Pi hpenld
+neAUtseuCrMalctn edcdM drssAlcto orCoed rm1 o0
+ntpUtl_eueoecllco:Rue a drssAlcato oCrI: rm1 o0EeMmCS2 nMUASPY saie
+EeBadstprs  f ot ofgrain on
+netPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+Host MAC address: f4:84:4c:f7:a7:08
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+status_callback==UP, local interface IP is 0.0.0.0
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+MAC Port 1: link up
+link_callback==UP
+status_callback==UP, local interface IP is 192.168.50.96
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.96
+Initializing apps
+UDP server listening on port 5001
+CPU Load: 6%
+CPU Load: 49%
+CPU Load: 56%
+CPU Load: 48%
+CPU Load: 50%
+CPU Load: 50%
+CPU Load: 52%
+CPU Load: 55%
+CPU Load: 53%
+CPU Load: 55%
+CPU Load: 51%
+CPU Load: 51%
+CPU Load: 48%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 13%
+CPU Load: 12%

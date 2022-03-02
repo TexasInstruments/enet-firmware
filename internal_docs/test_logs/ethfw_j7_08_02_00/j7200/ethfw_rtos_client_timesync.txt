@@ -1,0 +1,159 @@
+Remote device (core : mcu2_1) .....
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint locate failed. Retrying !!!
+Remote Device Framework Endpoint located. Remote Core Id:3, Remote End Point:26
+Connecting to 'mcu_2_1_ethswitch-device-1'
+Connecting to 'mcu_2_1_ethmac-device-4'
+Registered a device name = mcu_2_1_ethswitch-device-1, id = 0, type = 3
+ETHFW Version: 0. 2. 0
+ETHFW Build Date (YYYY/MMM/DD):2022/Feb/25
+ETHFW Commit SHA:ec3f4e22
+ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:3
+ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:3
+Registered a device name = mcu_2_1_ethmac-device-4, id = 1, type = 3
+ETHFW Version: 0. 2. 0
+ETHFW Build Date (YYYY/MMM/DD):2022/Feb/25
+ETHFW Commit SHA:ec3f4e22
+ETHFW PermissionFlag:0x3fffffff, UART Connected:true,UART Id:3
+Starting lwIP, local interface IP is dhcp-enabled
+Function:CpswProxy_cmdHandler,Handle:a2a75cd8,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:0
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+[LWIPIF_LWIP_IC] Interface started successfully
+[LWIPIF_LWIP_IC] NETIF INIT SUCCESS
+Added interface 'ti1', IP is 0.0.0.0
+Added interface 'br3', IP is 0.0.0.0
+Starting lwIP, local interface IP is dhcp-enabled
+Function:CpswProxy_cmdHandler,Handle:a2a75cd8,CoreKey:38acb976, RxMtu:1522, TxMtu:2024:2024:2024:2024:2024:2024:2024:2024, TxCsum:enabled, MacOnly:4
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+Added interface 'ti4', IP is 0.0.0.0
+Added interface 'ti4', IP is 192.168.1.139
+Added interface 'br3', IP is 192.168.50.88
+Current Synchronized time via HWPUSH_2 in Epoch format: 11416862158
+Current Synchronized time via HWPUSH_2 in Epoch format: 42620439010
+Current Synchronized time via HWPUSH_2 in Epoch format: 64095275340
+Current Synchronized time via HWPUSH_2 in Epoch format: 85570116820
+Current Synchronized time via HWPUSH_2 in Epoch format: 107044946530
+Current Synchronized time via HWPUSH_2 in Epoch format: 128519783230
+Current Synchronized time via HWPUSH_2 in Epoch format: 149994636110
+Current Synchronized time via HWPUSH_2 in Epoch format: 171469465070
+Current Synchronized time via HWPUSH_2 in Epoch format: 192944305070
+Current Synchronized time via HWPUSH_2 in Epoch format: 214419136980
+Current Synchronized time via HWPUSH_2 in Epoch format: 235893976990
+Current Synchronized time via HWPUSH_2 in Epoch format: 257368817980
+Current Synchronized time via HWPUSH_2 in Epoch format: -1
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646034915651188224
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646034937126187520
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646034958601443072
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646034980076439296
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035001551610624
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035023026771712
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035044501933824
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035065977078528
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035087452219904
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035108927404800
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035130402545920
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035151877738752
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035173352880128
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035194828076032
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035216303294720
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035237778406400
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035259253593088
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035280728751872
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035302203953664
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035323679129600
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035345154264064
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035366629466112
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035388104662272
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035409579812864
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035431054981632
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035452530215680
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035474005415680
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035495480566016
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035516955686400
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035538430923008
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035559906120960
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035581381254400
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035602856439040
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035624331704576
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035645806872320
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035667282068992
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035688757212672
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035710232520960
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035731707643904
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035753182886144
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035774658051840
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035796133235968
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035817608483840
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035839083643136
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035860558844416
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035882034137600
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035903509201664
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035924984475904
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035946459678720
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035967934817536
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646035989410140928
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036010885222656
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036032360462080
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036053835691520
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036075310854656
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036096786118912
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036118261266176
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036139736564736
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036161211706880
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036182686910208
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036204162088448
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036225637328384
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036247112538880
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036268587712768
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036290062945536
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036311538133504
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036333013373696
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036354488574208
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036375963710976
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036397438970112
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036418914111232
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036440389312512
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036461864609792
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036483339855872
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036504814956544
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036526290162432
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036547765431808
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036569240614400
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036590715737856
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036612191044096
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036633666319872
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036655141440512
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036676616604928
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036698091851776
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036719567087104
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036741042235904
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036762517416960
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036783992893440
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036805468059136
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036826942958336
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036848418380032
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036869893633024
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036891368646400
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036912843919616
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036934319151104
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036955794534400
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036977269402624
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646036998745024768
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037020219951360
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037041695065600
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037063170063616
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037084645175040
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037106129841152
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037127588663296
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037149070141696
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037170546331136
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037192021544192
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037213497780224
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037234972262912
+Current Synchronized time via HWPUSH_2 in Epoch format: 1646037256447418880

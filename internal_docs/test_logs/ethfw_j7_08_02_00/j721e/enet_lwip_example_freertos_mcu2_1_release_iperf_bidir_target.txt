@@ -1,0 +1,39 @@
+==========================
+      Enet lwIP App
+==========================
+Select peripheral type
+0: CPSW_2G
+Select MAC port
+0: ENET_MAC_PORT_1 - RGMII
+Enabling clocks!
+CPU Load: 100%
+Starting lwIP, local interface IP is dhcp-enabled
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:1 From 1 To 0
+EnetMcm: CPSW_2G on MCU NAVSS
+PHY 0 is alive
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+Host MAC address: 50:51:a9:fc:65:7e
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+status_callback==UP, local interface IP is 0.0.0.0
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+MAC Port 1: link up
+link_callback==UP
+status_callback==UP, local interface IP is 192.168.50.71
+Enet lwIP App: Added Network IP address I/F ti1: 192.168.50.71
+Initializing apps
+UDP server listening on port 5001
+CPU Load: 22%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 100%
+CPU Load: 80%

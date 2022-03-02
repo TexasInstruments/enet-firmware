@@ -1,0 +1,124 @@
+EnetBoard_setupPorts: 8 of 8 ports configurations found
+
+
+ ===============
+ CPSW Test Select
+ ===============
+
+ Current/Default System Settings:
+ ------------------------
+ Uart timemout          : 10000 msec
+ Default Iteration count            : 1
+
+ 1: Manual testing (select specific test case to run)
+
+ s: System Settings
+
+ q: Quit
+
+ Enter Choice:
+1
+
+ Manual testing
+
+ --------------------------------------
+ Select test to run as per below table:
+ --------------------------------------
+
+    1: CPSW9G Switching test
+    2: ALE auto learn test
+    3: ALE auto learn VLAN test
+    4: Mac speed test
+    5: Statistics test
+    6: VLAN test
+    8: CRC strip test
+    9: FIFO stats test
+   10: ALE source address update
+   11: ALE Table full
+   12: VLAN drop untagged
+   13: Multicast support
+   14: Policer test
+   15: Network security test
+   16: Host port Rx Filter
+   17: policer no match red drop enable test
+   18: policer no match yellow drop enable test
+   19: policer no match unregulated traffic test
+   20: Intervlan test
+   21: Default priority
+   22: Port VLAN ID
+   23: Sanity Test
+   24: Outer VLAN Test
+   25: Traffic shaping Test
+   26: 1-Gbps Full-Duplex Auto-Neg Test
+   27: 100-Mbps Full-Duplex Auto-Neg Test
+   28: 100-Mbps Half-Duplex Auto-Neg Test
+   29: DMA RxFlow Mtu Test
+   30: PHY Strap mode Test
+   31: Priority Regeneration
+   32: SGMII 1G Digital loopback
+   33: SGMII 1G FIFO Loopback
+   34: CPSW9G QSGMII Switching test
+   35: CPSW9G All ports Switching test
+   36: CPTS Event Test
+   37: BCAST MCAST Rate Limit
+   38: CPSW9G Directed packet test
+
+ Enter Test to Run (Use UART1 console for all cores or MCU_UART1 console for MCU)
+11
+11
+
+ |TEST START|:: 11 ::
+ |TEST NAME| :: ALE Table full ::
+ |TEST INFO| :: Num Tasks         : 1 ::
+ |TEST INFO| :: Data Check        : Disabled ::
+ |TEST INFO| :: Profiling         : Disabled ::
+ |TEST INFO| :: Print             : Disabled ::
+ |TEST INFO| :: Run Instructions  : To be added ::
+
+
+ |TEST ITERATION NUMBER| ::       : 1 ::
+Enabling clocks!
+ENET_CPSW_9G Test on MAIN NAVSS
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: 70:ff:76:1d:a1:92
+PHY 0 is alive
+Waiting for PHY link on enabled ports mask:0x4
+Waiting for PORT link on enabled ports
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+MAC Port 3: link up
+Transmitted 1280 packets
+Transmitted 1280 packets
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 2560
+  rxBcastFrames           = 1280
+  rxOctets                = 3886080
+  octetsFrames1024        = 2560
+  netOctets               = 3886080
+  portMaskDrop            = 1044
+  aleUnknownUcast         = 206
+  aleUnknownUcastBcnt     = 312708
+  aleUnknownBcast         = 1243
+  aleUnknownBcastBcnt     = 1886874
+
+
+ External Port 2 Statistics
+-----------------------------------------
+  txGoodFrames            = 1516
+  txBcastFrames           = 1240
+  txMcastFrames           = 40
+  txOctets                = 2301288
+  octetsFrames1024        = 1516
+  netOctets               = 2301288
+  txPri[1]                = 1516
+  txPriBcnt[1]            = 2301288
+
+Cpsw_handleLinkDown: Port 3: Link down
+ |TEST DURATION|:: 0:00:13:407 ::
+ |TEST RESULT|PASS|11|
+ |TEST END|:: 11 ::
+ |TEST RESULT|:: CPSW Test Case 11 Successful!! ::
+
+
