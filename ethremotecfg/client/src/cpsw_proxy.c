@@ -1174,7 +1174,7 @@ static void CpswProxy_remoteDeviceInit(uint32_t masterCoreId,
     appRemoteDeviceInit(&remote_dev_init_prm);
 
 #ifdef QNX_OS
-    System_printf("Remote device (core : mcu1_0) .....\r\n");
+    System_printf("Remote device (core : mpu1_0) .....\r\n");
 #else
     System_printf("Remote device (core : mcu2_1) .....\r\n");
 #endif
