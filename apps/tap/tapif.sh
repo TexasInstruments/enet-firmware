@@ -102,18 +102,26 @@ display_help() {
 # device-tree8
 for memory in /proc/device-tree/reserved-memory/*
 do
+        if [[ -f $memory/status ]];
+        then
+                region_status=`tr -d '\0' < $memory/status`
+                if [[ "$region_status" -eq "disabled" ]];
+                then
+                    continue;
+                fi
+        fi
         NAME="$(cut -d'/' -f5 <<<$memory)"
         NUMBER="$(echo "$NAME" | tr -cd '@' | awk '{ print length; }')"
         if [[ "$NUMBER" -eq 1 ]];
         then
                 REGION_NAME="$(echo "$(cut -d'@' -f1 <<<$NAME)")"
-                if [[ "$REGION_NAME" == "r5f-virtual-eth-queues" ]];
+                if [[ "$REGION_NAME" == "r5f-virtual-eth-queues" || "$REGION_NAME" == "vision-apps-r5f-virtual-eth-queues" ]];
                 then
                         ICQ_BASE_ADDR="$(echo 0x"$(cut -d'@' -f2 <<<$NAME)")"
                         echo "Discovered Queue Base Address at $ICQ_BASE_ADDR from device tree"
                         ICQ_MEM_LEN="0x$(xxd -p -s 12 $memory/reg)"
                         echo "And the Queue region length is $ICQ_MEM_LEN"
-                elif [[ "$REGION_NAME" == "r5f-virtual-eth-buffers" ]];
+                elif [[ "$REGION_NAME" == "r5f-virtual-eth-buffers" || "$REGION_NAME" == "vision-apps-r5f-virtual-eth-buffers" ]];
                 then
                         BUFPOOL_BASE_ADDR="$(echo 0x"$(cut -d'@' -f2 <<<$NAME)")"
                         echo "Discovered Bufpool Base Address at $BUFPOOL_BASE_ADDR from device tree"
