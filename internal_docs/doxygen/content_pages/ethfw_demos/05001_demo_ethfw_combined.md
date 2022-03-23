@@ -795,10 +795,10 @@ core. Incoming broadcast packets follow this data path:
 
 #### TAP User-space Application {#intercore_linux_tap_app}
 
-The user-space application serves as a medium to facilitate the exchange of Ethernet frames
-between different cores on the SoC, R5 and A72 as of now. To achieve this, a TAP device is
-used to read from and write to the Linux network stack.  Ethernet frames are copied from/to
-the shared memory region to allow other cores to access it.
+The `tap` user-space application serves as a medium to facilitate the exchange of Ethernet frames
+between the A72 Linux and R5_0 (MCU2_0) master cores. To achieve this, a TAP device is used to read
+from and write to the Linux network stack.  Ethernet frames are copied from/to the shared memory
+region to allow other cores to access it.
 
 ##### Compiling and installing TAP application {#intercore_linux_tap_compilation}
 
@@ -821,7 +821,7 @@ The steps listed below assume that an SD card is used for Linux booting of the T
    and the SD card is mounted at `/media/username` and the file system is at `/media/username/root`,
    then the make command should be:
 
-       $ make CROSS_COMPILE=<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu install DESTDIR=/media/username/root
+       $ make CROSS_COMPILE=<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu- install DESTDIR=/media/username/root
 
 -# Boot the TI EVM from SD card as usual, and run below command to ensure that the systemd service
    `launch_tap.service` starts up automatically on boot.  With this, on the next boot, the user-space
@@ -829,17 +829,83 @@ The steps listed below assume that an SD card is used for Linux booting of the T
 
        $ systemctl enable launch_tap.service
 
+-# On successfull startup of the tap service, a new network interface called `tap0` will be created and it will get an IP address assigned using DHCP. The network interface `tap0` should also show up in the list of available network interfaces using the `ifconfig` command:
+
+       $ ifconfig tap0
+         tap0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500  metric 1
+                 inet 192.168.1.220  netmask 255.255.255.0  broadcast 192.168.1.255
+                 inet6 fe80::201:2ff:fe04:506  prefixlen 64  scopeid 0x20<link>
+                 ether 00:01:02:04:05:06  txqueuelen 1000  (Ethernet)
+                 RX packets 82  bytes 6932 (6.7 KiB)
+                 RX errors 0  dropped 0  overruns 0  frame 0
+                 TX packets 44  bytes 5534 (5.4 KiB)
+                 TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
 ##### Debugging {#intercore_linux_tap_debugging}
 
 By default, the systemd service `launch_tap.service` will run the shell script `tapif.sh` during boot up.
 However, it is possible to manually relaunch the application either for testing purposes or in case of errors
 during automatic startup:
 
--# Navigate to the directory containing the `tapif.sh` file and the `tapif` executable.
-   Both `tapif.sh` and `tapif` should be present in the same directory as per the installation.
--# Run below shell script which shall initialize the TAP device and launch the user-space application.
+-# Navigate to the directory containing `tapif.sh` file and the `tapif` executable (typically /usr/bin).
+-# Execute the shell script `tapif.sh` which shall initialize the TAP device and launch the user-space application.
 
-       $ bash tapif.sh
+       $ cd /usr/bin
+       $ ls -la tap*
+       -rwxr-xr-x 1 root root 29216 Feb 27 05:08 tapif
+       -rwxr-xr-x 1 root root  9846 Feb 27 05:07 tapif.sh
+       $
+       $ bash tapif.sh&
+       [1] 2615
+       Discovered Bufpool Base Address at 0xfb800000 from device tree
+       And the Bufpool region length is 0x01800000
+       Discovered Queue Base Address at 0xfb000000 from device tree
+       And the Queue region length is 0x00800000
+       ------------------------------------------------
+       Selected Configuration:
+       ------------------------------------------------
+       TAP Device name tap0
+       RX Queue Id 2
+       TX Queue Id 3
+       Maximum number of queues 4
+       Queue Base 0xfb000000
+       Queue Len 0x00[  385.548282] IPv6: ADDRCONF(NETDEV_CHANGE): tap0: link becomes ready
+       800000
+       Polling interval 1000
+       Maximum number of bufpools 4
+       Bufpool base 0xfb800000
+       Bufpool len 0x01800000
+       TX Bufpool ID 2
+       TAP IP
+       TAP MAC 00:01:02:04:05:06
+       MAX TX 64
+       MAX RX 64
+       ------------------------------------------------
+       Opened TAP Device successfully
+       Queue Mapping Succeeded
+       Bufpool Mapping Succeeded
+       Assigned Queue Handles
+       Queues have been initialized
+       Assigned Bufpool Handle
+       Bufpool Init: Values Initialized
+       Bufpool Init: Cleared Buffers
+       Initialized Bufpool
+       Initialization complete
+       -------------------------------------------------------------------------
+       Starting TX and RX Tasks
+       Started TX Task
+       Started RX Task
+       Fetching IP address from DHCP server
+       udhcpc: started, v1.31.1
+       udhcpc: sending discover
+       udhcpc: sending select for 192.168.1.220
+       udhcpc: lease of 192.168.1.220 obtained, lease time 534
+
+-# The inter-core virtual Ethernet interface and `tapif` user-space application can be shutdown if needed by executing the script `cleantapif.sh` which is provided in the same directory.
+
+       $ cd /usr/bin
+       $ bash ./cleantapif.sh        
 
 #### Running the test {#intercore_running_linux_client_test}
 
@@ -866,24 +932,7 @@ client with main R5F core0 master as the server. The IP address assignments are 
 ![](Intercore_rtos_linux_path.png "Inter-core Virtual Ethernet - A72 Linux client test")
 
 ```
-sh-5.0# ./tap_e2e.out &
-[1] 788
-[  128.629977] IPv6: ADDRCONF(NETDEV_CHANGE): tap0: link becomes ready
-Opened TAP Device successfully
-Queue Mapping Succeeded
-Bufpool Mapping Succeeded
-Assigned Queue Handles
-Queues have been initialized
-Assigned Bufpool Handle
-Bufpool Init: Values Initialized
-sh-5.0# Bufpool Init: Cleared Buffers
-Initialized Bufpool
-Initialization complete
--------------------------------------------------------------------------
-Starting TX and RX Tasks
-Started TX Task
-Started RX Task
-sh-5.0# iperf -c 192.168.1.200
+$ iperf -c 192.168.1.200
 ------------------------------------------------------------
 Client connecting to 192.168.1.200, TCP port 5001
 TCP window size: 85.0 KByte (default)
@@ -891,7 +940,6 @@ TCP window size: 85.0 KByte (default)
 [  3] local 192.168.1.201 port 46830 connected with 192.168.1.200 port 5001
 [ ID] Interval       Transfer     Bandwidth
 [  3]  0.0-10.1 sec  12.9 MBytes  10.7 Mbits/sec
-
 ```
 
 [Back To Top](@ref demo_ethfw_combined_top)
