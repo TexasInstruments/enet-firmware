@@ -759,6 +759,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
     Cpsw_VlanCfg *vlanCfg = &cpswCfg->vlanCfg;
     CpswHostPort_Cfg *hostPortCfg = &cpswCfg->hostPortCfg;
     EnetRm_ResCfg *resCfg = &cpswCfg->resCfg;
+    uint32_t instId = 0U;
 
     memset(config, 0, sizeof(*config));
 
@@ -787,9 +788,9 @@ void EthFw_initConfigParams(Enet_Type enetType,
     config->dfltVlanIdSwitchPorts  = ETHFW_SWITCH_PORTS_VLAN_ID;
 
     /* Start with CPSW LLD's default configuration */
-    Enet_initCfg(enetType, 0U, cpswCfg, sizeof (*cpswCfg));
+    Enet_initCfg(enetType, instId, cpswCfg, sizeof (*cpswCfg));
     cpswCfg->dmaCfg = NULL;
-    EnetAppUtils_initResourceConfig(enetType, EnetSoc_getCoreId(), resCfg);
+    EnetAppUtils_initResourceConfig(enetType, instId, EnetSoc_getCoreId(), resCfg);
 
     /* VLAN configuration */
     vlanCfg->vlanAware = true;

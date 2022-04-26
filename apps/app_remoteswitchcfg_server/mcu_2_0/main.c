@@ -1126,7 +1126,7 @@ static void EthApp_netifStatusCb(struct netif *netif)
             EnetCfgServer_fxn_table[10] = &EthApp_startHwInterVlan;
 
             /* Start Configuration server */
-            status = EnetCfgServer_init(gEthAppObj.enetType);
+            status = EnetCfgServer_init(gEthAppObj.enetType, gEthAppObj.instId);
             EnetAppUtils_assert(ENET_SOK == status);
 
             /* Start the software-based interVLAN routing */
@@ -1238,7 +1238,7 @@ void EthApp_ipAddrHookFxn(uint32_t IPAddr,
     EnetCfgServer_fxn_table[10] = &EthApp_startHwInterVlan;
 
     /* Start Configuration server */
-    status = EnetCfgServer_init(gEthAppObj.enetType);
+    status = EnetCfgServer_init(gEthAppObj.enetType, gEthAppObj.instId);
     EnetAppUtils_assert(ENET_SOK == status);
 
     /* Start the software-based interVLAN routing */
