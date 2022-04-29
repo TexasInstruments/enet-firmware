@@ -1719,6 +1719,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(EthRemoteCfg_VirtPor
     Enet_Type enetType;
     CpswProxyServer_Obj *hProxyServer;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
+    uint32_t instId = 0U;
 
     appLogPrintf("Function:%s,HostId:%u,Handle:%p,CoreKey:%x, Name:%s, Timer:%d, PushNum:%u\n",
                  __func__,
@@ -1762,6 +1763,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(EthRemoteCfg_VirtPor
     if (status == ENET_SOK)
     {
         status = EnetAppUtils_setTimeSyncRouter(enetType,
+                                                instId,
                                                 timer_id,
                                                 hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
     }
@@ -1787,6 +1789,7 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtP
     Enet_Type enetType;
     CpswProxyServer_Obj *hProxyServer;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
+    uint32_t instId = 0U;
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
@@ -1816,6 +1819,7 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(EthRemoteCfg_VirtP
     if (status == ENET_SOK)
     {
         status = EnetAppUtils_setTimeSyncRouter(enetType,
+                                                instId,
                                                 0U,
                                                 hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
     }
