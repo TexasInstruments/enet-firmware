@@ -63,13 +63,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#if defined(FREERTOS)
 #include <ti/osal/LoadP.h>
 #include <ti/osal/TaskP.h>
-#else
-#include <ti/sysbios/utils/Load.h>
-#include <ti/sysbios/knl/Task.h>
-#endif
 #include <ti/osal/HwiP.h>
 
 #include <ti/osal/SemaphoreP.h>
@@ -137,12 +132,8 @@ void appPerfStatsResetLoadCalcAll(app_perf_stats_obj_t *obj)
 
     appPerfStatsLock(obj);
 
-#if defined(FREERTOS)
     /* LoadP_reset() currently supported only for FreeRTOS */
     LoadP_reset();
-#else
-    Load_reset();
-#endif
 
     appPerfStatsResetLoadCalc(&obj->idleLoad);
     for(i=0; i<APP_PERF_STATS_TASK_MAX; i++)
@@ -192,12 +183,8 @@ int32_t appPerfStatsHandler(char *service_name, uint32_t cmd, void *prm, uint32_
 
                 appPerfStatsLock(obj);
 
-#if defined(FREERTOS)
                 /* LoadP_getCPULoad() currently supported only for FreeRTOS */
                 cpu_load->cpu_load = LoadP_getCPULoad();
-#else
-                cpu_load->cpu_load = 10000u - appPerfStatsLoadCalc(&obj->idleLoad);
-#endif
 
                 appPerfStatsUnLock(obj);
             }
@@ -279,15 +266,10 @@ int32_t appPerfStatsDeInit()
 
 void appPerfStatsTaskLoadUpdate(TaskP_Handle task, app_perf_stats_load_t *load)
 {
-#if defined(FREERTOS)
     /* LoadP_getTaskLoad() currently supported only for FreeRTOS */
     LoadP_Stats rtos_load_stat;
-    LoadP_getTaskLoad(task, &rtos_load_stat);
-#else
-    Load_Stat rtos_load_stat;
-    Load_getTaskLoad(task, &rtos_load_stat);
-#endif
 
+    LoadP_getTaskLoad(task, &rtos_load_stat);
     load->total_time += rtos_load_stat.totalTime;
     load->thread_time += rtos_load_stat.threadTime;
 }
@@ -295,22 +277,11 @@ void appPerfStatsTaskLoadUpdate(TaskP_Handle task, app_perf_stats_load_t *load)
 void appPerfStatsTaskLoadUpdateAll(app_perf_stats_obj_t *obj)
 {
     uint32_t i;
-#if defined(FREERTOS)
+
     for(i=0; i< obj->num_tasks; i++)
     {
         appPerfStatsTaskLoadUpdate((TaskP_Handle)obj->task_handle[i], &obj->taskLoad[i]);
     }
-#else
-    Task_Handle task;
-
-    task = Task_getIdleTaskHandle(0u);
-    appPerfStatsTaskLoadUpdate(task, &obj->idleLoad);
-
-    for(i=0; i< obj->num_tasks; i++)
-    {
-        appPerfStatsTaskLoadUpdate((Task_Handle)obj->task_handle[i], &obj->taskLoad[i]);
-    }
-#endif
 }
 
 void appPerfStatsRtosLoadUpdate(void)

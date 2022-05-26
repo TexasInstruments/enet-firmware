@@ -87,7 +87,7 @@ extern "C" {
  * \brief This section contains Ethernet Firmware library APIs.
  *
  * The Ethernet Firmware library APIs in this module provide a simple interface
- * for TI-RTOS applications to enable Ethernet switch functionality.
+ * for RTOS applications to enable Ethernet switch functionality.
  *
  *  @{
  */

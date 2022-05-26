@@ -118,7 +118,7 @@ typedef struct {
 /**
  * \brief Initialize perf statistics collector module
  *
- *        TI-RTOS only API
+ *        RTOS only API
  *        MUST be called before any other API
  */
 int32_t appPerfStatsInit();
@@ -126,7 +126,7 @@ int32_t appPerfStatsInit();
 /**
  * \brief Initialize perf statistics collector module
  *
- *        TI-RTOS only API
+ *        RTOS only API
  *        MUST be called after IPC init
  */
 int32_t appPerfStatsRemoteServiceInit();
@@ -134,9 +134,9 @@ int32_t appPerfStatsRemoteServiceInit();
 /**
  * \brief Register a task for task load calculation
  *
- *        Linux, TI-RTOS only API
+ *        Linux, RTOS only API
  *        For linux, this API does nothing as of now
- *        For TI-RTOS, task_handle MUST point to BIOS Task_Handle
+ *        For RTOS, task_handle MUST point to TaskP_Handle
  *
  * \return 0 on success
  */
@@ -145,7 +145,7 @@ int32_t appPerfStatsRegisterTask(void *task_handle, char *name);
 /**
  * \brief De-Initialize perf statistics collector module
  *
- *        TI-RTOS only API
+ *        RTOS only API
  *
  * \return 0 on success
  */

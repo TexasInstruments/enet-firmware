@@ -13,65 +13,7 @@ TARGET_OS_FOLDER    := $(call lowercase,$(TARGET_OS))
 
 DEFS+=CPU_$(CPU_ID)
 
-ifeq ($(TARGET_OS),SYSBIOS)
-    XDC_INCLUDE_PACKAGES_PATH    += $(NDK_PATH)/packages
-    XDC_INCLUDE_PACKAGES_PATH    += $(NS_PATH)/source
-    #Include posix header file from sysbios package for TI compilers
-    ifneq (,$(filter $(HOST_COMPILER),TIARMCGT CGT6X CGT7X TMS470 ARP32CGT))
-        XDC_INCLUDE_PACKAGES_PATH    += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages/ti/posix/ccs
-    endif
-    XDC_INCLUDE_PACKAGES_PATH    += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
-
-    ifeq ($(TARGET_PLATFORM),J721E)
-        ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
-            ifneq (,$(filter ${CPU_ID},mcu_1_0 mcu_1_1))
-                XDC_PLATFORM = ti.platforms.cortexR:J7ES_MCU
-            else
-                XDC_PLATFORM = ti.platforms.cortexR:J7ES_MAIN
-            endif
-        else
-            ifeq (${TARGET_CPU},A72)
-                XDC_PLATFORM = ti.platforms.cortexA:J7ES
-            endif
-        endif
-    endif
-
-    ifeq ($(TARGET_PLATFORM),J7200)
-        ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
-            ifneq (,$(filter ${CPU_ID},mcu_1_0 mcu_1_1))
-                XDC_PLATFORM = ti.platforms.cortexR:J7200_MCU
-            else
-                XDC_PLATFORM = ti.platforms.cortexR:J7200_MAIN
-            endif
-        else
-            ifeq (${TARGET_CPU},A72)
-                XDC_PLATFORM = ti.platforms.cortexA:J7200
-            endif
-        endif
-    endif
-
-    ifeq ($(TARGET_PLATFORM),AM65XX)
-        ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
-        XDC_PLATFORM = ti.platforms.cortexR:AM65X
-        else
-            ifeq (${TARGET_CPU},A53)
-                XDC_PLATFORM = ti.platforms.cortexA:AM65X
-            endif
-        endif
-    endif
-endif
-
-ifeq ($(TARGET_OS),SYSBIOS)
-    #Include posix header file from sysbios package for TI compilers
-    ifneq (,$(filter $(HOST_COMPILER),TIARMCGT CGT6X CGT7X TMS470 ARP32CGT))
-        IDIRS += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages/ti/posix/ccs
-    endif
-    IDIRS += $(NDK_PATH)/packages
-    IDIRS += $(XDCTOOLS_PATH)/packages
-    IDIRS += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
-    IDIRS += $(NS_PATH)/source
-    IDIRS += $(NS_PATH)/source/ti/net/bsd
-else ifeq ($(TARGET_OS),FREERTOS)
+ifeq ($(TARGET_OS),FREERTOS)
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/freertos/include
 endif
@@ -79,11 +21,7 @@ IDIRS += $(PDK_PATH)/packages
 IDIRS += $(REMOTE_DEVICE_PATH)
 IDIRS += $(ETHFW_PATH)
 
-ifeq ($(TARGET_OS),SYSBIOS)
-    LDIRS += $(PDK_PATH)/packages/ti/osal/lib/tirtos/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
-    LDIRS += $(NS_PATH)/source/ti/net/lib/ccs/r5f/
-    LDIRS += $(NS_PATH)/source/ti/net/http/lib/ccs/r5f/
-else ifeq ($(TARGET_OS),FREERTOS)
+ifeq ($(TARGET_OS),FREERTOS)
     LDIRS += $(PDK_PATH)/packages/ti/osal/lib/freertos/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/kernel/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/lib/${TARGET_OS_FOLDER}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
@@ -106,10 +44,6 @@ LDIRS += $(PDK_PATH)/packages/ti/drv/pm/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FO
 LDIRS += $(PDK_PATH)/packages/ti/drv/ipc/lib/${TARGET_SOC_FOLDER}/${CPU_ID_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(REMOTE_DEVICE_PATH)/out/${TARGET_PLATFORM}/${REMOTE_DEVICE_TARGET_CPU}/${TARGET_OS}/$(TARGET_BUILD)/
 
-ifeq ($(TARGET_OS),SYSBIOS)
-    STATIC_LIBS += app_utils_profile
-else ifeq ($(TARGET_OS),FREERTOS)
-endif
 STATIC_LIBS += app_utils_console_io
 STATIC_LIBS += app_utils_mem
 STATIC_LIBS += app_ethfw_stats
@@ -135,11 +69,7 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.gpio.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += pm_lib.ae$(TARGET_CPU_SUFFIX)
-    ifeq ($(TARGET_OS),SYSBIOS)
-        ADDITIONAL_STATIC_LIBS += nimuenet.ae$(TARGET_CPU_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += slnetsock_$(TARGET_BUILD).a
-        ADDITIONAL_STATIC_LIBS += httpserver_$(TARGET_BUILD).a
-    else ifeq ($(TARGET_OS),FREERTOS)
+    ifeq ($(TARGET_OS),FREERTOS)
         ADDITIONAL_STATIC_LIBS += lwipstack_freertos.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipcontrib_freertos.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipport_freertos.ae$(TARGET_CPU_SUFFIX)
@@ -183,10 +113,7 @@ endif
 PDK_SOC_LIST += $(TARGET_PLATFORM)
 PDK_LIB_RULES += i2c
 PDK_LIB_RULES += pm_lib
-ifeq ($(TARGET_OS),SYSBIOS)
-    PDK_LIB_RULES += osal_tirtos
-    PDK_LIB_RULES += nimuenet
-else ifeq ($(TARGET_OS),FREERTOS)
+ifeq ($(TARGET_OS),FREERTOS)
     PDK_LIB_RULES += osal_freertos
     PDK_LIB_RULES += freertos
     PDK_LIB_RULES += lwipstack_freertos

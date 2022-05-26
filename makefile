@@ -15,10 +15,10 @@ DIRECTORIES += ethfw
 TARGET_COMBOS :=
 
 SOC_LIST := J721E J7200 AM65XX
-OS_LIST  := SYSBIOS LINUX FREERTOS
+OS_LIST  := LINUX FREERTOS
 ISA_LIST := R5F R5Ft A72 A53 C66 C71
 PROFILE_LIST := debug release
-CGT_LIST := TIARMCGT_LLVM GCC_SYSBIOS_ARM CGT6X CGT7X GCC_LINUX_ARM
+CGT_LIST := TIARMCGT_LLVM CGT6X CGT7X GCC_LINUX_ARM
 
 # Uncomment to enable TI ARM CGT build
 #CGT_LIST += TIARMCGT
@@ -67,10 +67,6 @@ ifeq ($(BUILD_TARGET_MODE),yes)
     OS_LIST := $(filter-out LINUX,$(OS_LIST))
   endif
 
-  ifneq ($(BUILD_APP_TIRTOS),yes)
-    OS_LIST := $(filter-out SYSBIOS,$(OS_LIST))
-  endif
-
   ifneq ($(BUILD_APP_FREERTOS),yes)
     OS_LIST := $(filter-out FREERTOS,$(OS_LIST))
   endif
@@ -100,11 +96,7 @@ include $(CONCERTO_ROOT)/rules.mak
 
 # Additional make targets to build various related components
 include makerules/makefile_pdk.mak
-include makerules/makefile_ndk.mak
 
-#Due to bug in NDK needs patch to build .
-#DIsabling NDK build for now
-#Add ndk and ndk_clean dependent rules for ethfw_all/ethfw_all_clean once NDK bug is fixed
 .NOTPARALLEL:
 ethfw_server: pdk remotedevicefw app_remoteswitchcfg_server
 
@@ -112,10 +104,6 @@ ethfw_all: pdk remotedevicefw all
 ifeq ($(BUILD_APP_FREERTOS),yes)
 remoteswitchcfg_all: | pdk remotedevicefw app_remoteswitchcfg_client app_remoteswitchcfg_server
 endif
-ifeq ($(BUILD_APP_TIRTOS),yes)
-remoteswitchcfg_all: | pdk remotedevicefw ndk app_remoteswitchcfg_client app_remoteswitchcfg_server
-endif
-
 ethfw_all_clean: pdk_clean remotedevicefw_clean clean scrub
 remoteswitchcfg_all_clean: | pdk_clean remotedevicefw_clean clean scrub
 

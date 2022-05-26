@@ -21,8 +21,6 @@ else
   ETHFW_PATH ?= $(abspath .)
 endif
 
-
-
 #CCS Path needed for CCS project build
 CCS_PATH ?= D:/ccs_v8_3/ccsv8
 TIARMCGT_ROOT_AM65XX ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
@@ -31,25 +29,10 @@ TIARMCGT_ROOT_J7200 ?= $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
 TIARMCGT_LLVM_ROOT_AM65XX ?= $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
 TIARMCGT_LLVM_ROOT_J721E ?= $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
 TIARMCGT_LLVM_ROOT_J7200 ?= $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
-
-ifneq (,$(filter $(HOST_OS),Windows_NT CYGWIN))
-  GCC_SYSBIOS_ARM_ROOT ?= $(PSDK_PATH)/gcc-linaro-9.2-2019.12-mingw-w64-i686_aarch64-elf
-else
-  GCC_SYSBIOS_ARM_ROOT ?= $(PSDK_PATH)/gcc-linaro-9.2-2019.12-x86_64_aarch64-elf
-endif
-
-BIOS_PATH_AM65XX ?= $(PSDK_PATH)/bios_6_83_02_07
-BIOS_PATH_J721E ?= $(PSDK_PATH)/bios_6_83_02_07
-BIOS_PATH_J7200 ?= $(PSDK_PATH)/bios_6_83_02_07
-XDCTOOLS_PATH ?= $(PSDK_PATH)/xdctools_3_61_04_40_core
-NDK_PATH ?= $(PSDK_PATH)/ndk_3_80_00_19
-NS_PATH  ?= $(PSDK_PATH)/ns_2_80_00_17
-CTOOLSLIB_PATH ?= $(PSDK_PATH)/ctoolslib
-REMOTE_DEVICE_PATH ?= $(PSDK_PATH)/remote_device
-
 TIARMCGT_ROOT = $(PSDK_PATH)/ti-cgt-arm_20.2.0.LTS
 TIARMCGT_LLVM_ROOT = $(PSDK_PATH)/ti-cgt-armllvm_1.3.0.LTS
-BIOS_PATH = $(PSDK_PATH)/bios_6_83_00_18
+
+REMOTE_DEVICE_PATH ?= $(PSDK_PATH)/remote_device
 
 PDK_PATH ?= $(PSDK_PATH)/pdk
 

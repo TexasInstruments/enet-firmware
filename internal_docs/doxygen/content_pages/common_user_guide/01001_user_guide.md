@@ -1477,7 +1477,6 @@ Flag                             | Description
 `-D=J7200`                       | Identifies the J7200 device type
 `-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
-`-D=SYSBIOS`                     | Identifies as TI RTOS operating system build
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
 `-D=ETHFW_INTERCORE_ETH_SUPPORT` | Enable Intercore Ethernet support (disabled if BUILD_QNX_A72 is defined)
@@ -1506,7 +1505,6 @@ Flag                             | Description
 `-D=J7200`                       | Identifies the J7200 device type
 `-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
-`-D=SYSBIOS`                     | Identifies as TI RTOS operating system build
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
 `-D=ETHFW_INTERCORE_ETH_SUPPORT` | Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)

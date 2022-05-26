@@ -106,22 +106,6 @@
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
 
-#if defined (SYSBIOS)
-#include <utils/ethfw_callbacks/include/ethfw_callbacks_nimu.h>
-#include <utils/ethfw_callbacks/include/ethfw_callbacks_ndk.h>
-
-/* NS headers */
-#include <ti/ndk/inc/socket.h>
-#include <ti/ndk/slnetif/slnetifndk.h>
-#include <ti/net/slnet.h>
-#include <ti/net/slnetif.h>
-#include <ti/net/slnetutils.h>
-
-/* HTTP webpage server header files */
-#include "webdata/webpage.h"
-#endif
-
-#if defined (FREERTOS)
 #define System_printf  Ipc_Trace_printf
 #define System_vprintf Ipc_Trace_vprintf
 
@@ -151,7 +135,6 @@
 #endif
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
-#endif
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -184,7 +167,6 @@
 
 #define ARRAY_SIZE(x)                           (sizeof((x)) / sizeof(x[0U]))
 
-#if defined (FREERTOS)
 #define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
 
 #define ETHAPP_TRACEBUF_TASK_STACKSIZE          (1U * 1024U)
@@ -228,8 +210,6 @@
 /* Max length of shared mcast address list */
 #define ETHAPP_MAX_SHARED_MCAST_ADDR        (8U)
 
-#endif
-
 /* Define A72_QNX_OS if A72 is running Qnx. Qnx doesn't load resource table. */
 /* #define A72_QNX_OS */
 
@@ -254,9 +234,6 @@ typedef struct
     /* UDMA driver handle */
     Udma_DrvHandle hUdmaDrv;
 
-    /* Semaphore for synchronizing EthFw and NDK initialization */
-    SemaphoreP_Handle hInitSem;
-
     /* Host MAC address */
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
@@ -272,10 +249,8 @@ typedef struct
     /* Timestamp of last IPC trace buffer flush */
     uint64_t traceBufLastFlushTicksInUsecs;
 
-#if defined(FREERTOS)
     /* DHCP network interface */
     struct dhcp dhcpNetif;
-#endif
 } EthAppObj;
 
 /* ========================================================================== */
@@ -298,7 +273,6 @@ static void EthApp_startSwInterVlan(char *recvBuff,
 static void EthApp_startHwInterVlan(char *recvBuff,
                                     char *sendBuff);
 
-#if defined(FREERTOS)
 static void EthApp_lwipMain(void *a0,
                             void *a1);
 
@@ -365,7 +339,6 @@ static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
     },
 };
 #endif
-#endif
 
 /* List of multicast addresses reserved for EthFw. Currently, this list is populated
  * only with PTP related multicast addresses which are used by the test PTP stack
@@ -389,9 +362,7 @@ void EthApp_traceBufCacheWb(void);
 /*                          Extern variables                                  */
 /* ========================================================================== */
 
-#if defined(FREERTOS)
 extern char Ipc_traceBuffer[IPC_TRACEBUF_SIZE];
-#endif
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -468,11 +439,9 @@ static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
 
 static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 
-#if defined(FREERTOS)
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(32)));
 
 static uint8_t gEthAppTraceBufFlushBuf[ETHAPP_TRACEBUF_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(32)));
-#endif
 
 static uint8_t gEthAppIpcInitStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 
@@ -497,7 +466,6 @@ static uint32_t gEthAppRemoteProc[] =
 };
 #endif
 
-#if defined(FREERTOS)
 static struct netif netif;
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 static struct netif netif_ic[ETHAPP_NETIF_IC_MAX_IDX];
@@ -512,7 +480,6 @@ static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
 static struct netif netif_bridge;
 bridgeif_initdata_t bridge_initdata;
 #endif /* ETHAPP_ENABLE_INTERCORE_ETH */
-#endif /* FREERTOS */
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -532,16 +499,6 @@ int main(void)
     /* Board related initialization */
     EnetBoard_initEthFw();
     EnetAppUtils_enableClocks(gEthAppObj.enetType, gEthAppObj.instId);
-
-    /* Create semaphore used to synchronize EthFw and NDK init.
-     * EthFw opens the CPSW driver which is required by NDK during NIMU
-     * initialization, hence EthFw init must complete first.
-     * Currently, there is no control over NDK initialization time and its
-     * task runs right away after OS_start() hence causing a race
-     * condition with EthFw init */
-    SemaphoreP_Params_init(&semParams);
-    semParams.mode = SemaphoreP_Mode_BINARY;
-    gEthAppObj.hInitSem = SemaphoreP_create(0, &semParams);
 
     /* Create initialization task */
     TaskP_Params_init(&taskParams);
@@ -610,7 +567,6 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
         status = EthApp_initEthFw();
     }
 
-#if defined(FREERTOS)
     /* Initialize lwIP */
     if (status == ENET_SOK)
     {
@@ -622,7 +578,6 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
 
         TaskP_create(EthApp_lwipMain, &taskParams);
     }
-#endif
 
     /* Create IPC initialization task */
     if (status == ENET_SOK)
@@ -645,14 +600,11 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
     int32_t status;
-#if defined(FREERTOS)
     TaskP_Params taskParams;
-#endif
 
     /* Step 1: Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gEthAppRemoteProc[0]);
 
-#if defined(FREERTOS)
     /* Task to flush IPC traceBuf */
     TaskP_Params_init(&taskParams);
     taskParams.priority  = 0;
@@ -661,7 +613,6 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     taskParams.name      = "IPC tracebuf flush";
 
     TaskP_create(EthApp_traceBufFlush, &taskParams);
-#endif
 
     /* Initialize params with defaults */
     IpcInitPrms_init(0U, &initPrms);
@@ -682,11 +633,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     if (status == ENET_SOK)
     {
         /* Trace buffer */
-#if defined(FREERTOS)
         gEthAppObj.traceBufAddr = (uint8_t *)Ipc_traceBuffer;
-#else
-        gEthAppObj.traceBufAddr = Ipc_getResourceTraceBufPtr();
-#endif
         gEthAppObj.traceBufSize = IPC_TRACEBUF_SIZE;
         gEthAppObj.traceBufLastFlushTicksInUsecs = 0ULL;
     }
@@ -868,12 +815,6 @@ static int32_t EthApp_initEthFw(void)
         appLogPrintf("ETHFW Commit SHA: %s\n\n", ver.commitHash);
     }
 
-    /* Post semaphore so that lwip or NIMU/NDK can continue with their initialization */
-    if (status == ETHAPP_OK)
-    {
-        SemaphoreP_post(gEthAppObj.hInitSem);
-    }
-
     return status;
 }
 
@@ -888,28 +829,6 @@ static int32_t EthApp_initRemoteServices(void)
     {
         appLogPrintf("Remote service init failed: %d !!!\n", status);
     }
-
-#if defined (SYSBIOS)
-    if (status == ENET_SOK)
-    {
-        status = appPerfStatsInit();
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Perf stats init failed: %d !!!\n", status);
-        }
-    }
-
-    if (status == ENET_SOK)
-    {
-        status = appPerfStatsRemoteServiceInit();
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Perf stats remote service init failed: %d !!!\n", status);
-        }
-    }
-#elif defined(FREERTOS)
-    // TODO : need to add support here for freertos
-#endif
 
     if (status == ENET_SOK)
     {
@@ -932,14 +851,8 @@ static int32_t EthApp_initRemoteServices(void)
     return status;
 }
 
-/* NIMU callbacks (exact name required) */
-
-#if defined (FREERTOS)
 bool EthFwCallbacks_isPortLinked(struct netif *netif,
                                  Enet_Handle hEnet)
-#else
-bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
-#endif
 {
     bool linked = false;
     uint32_t i;
@@ -955,19 +868,14 @@ bool EthFwCallbacks_isPortLinked(Enet_Handle hEnet)
     return linked;
 }
 
-#if defined (FREERTOS)
 void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
-    /* Wait for EthFw to be initialized */
-    SemaphoreP_pend(gEthAppObj.hInitSem, SemaphoreP_WAIT_FOREVER);
-
     EthFwCallbacks_lwipifCpswGetHandle(inArgs, outArgs);
 
     /* Save host port MAC address */
     EnetUtils_copyMacAddr(&gEthAppObj.hostMacAddr[0U],
                           &outArgs->rxInfo[0U].macAddr[0U]);
-
 }
 
 void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
@@ -1147,107 +1055,6 @@ static void EthApp_traceBufFlush(void* arg0, void* arg1)
         EthApp_traceBufCacheWb();
     }
 }
-
-#else /* !FREERTOS */
-void NimuEnetAppCb_getHandle(NimuEnetAppIf_GetHandleInArgs *inArgs,
-                             NimuEnetAppIf_GetHandleOutArgs *outArgs)
-{
-    /* Wait for EthFw to be initialized */
-    SemaphoreP_pend(gEthAppObj.hInitSem, SemaphoreP_WAIT_FOREVER);
-
-    EthFwCallbacks_nimuCpswGetHandle(inArgs, outArgs);
-
-    /* Save host port MAC address */
-    memcpy(&gEthAppObj.hostMacAddr[0U],
-           &outArgs->rxInfo.macAddr[0U],
-           ENET_MAC_ADDR_LEN);
-}
-
-void NimuEnetAppCb_releaseHandle(NimuEnetAppIf_ReleaseHandleInfo *releaseInfo)
-{
-    EthFwCallbacks_nimuCpswReleaseHandle(releaseInfo);
-}
-
-/* This generated function must be called after the network stack(s) are
- * initialized.
- */
-int32_t ti_net_SlNet_initConfig()
-{
-    int32_t status = ENET_SOK;
-
-    status = SlNetIf_init(0);
-
-    if (status == ENET_SOK)
-    {
-        status = SlNetSock_init(0);
-    }
-
-    if (status == ENET_SOK)
-    {
-        SlNetUtil_init(0);
-    }
-
-    /* add CONFIG_SLNET_0 interface */
-    if (status == ENET_SOK)
-    {
-        status = SlNetIf_add(SLNETIF_ID_2,
-                             "eth0",
-                             (const SlNetIf_Config_t *)&SlNetIfConfigNDK,
-                             5);
-    }
-
-    return status;
-}
-
-/* NDK hooks */
-
-void EthApp_ipAddrHookFxn(uint32_t IPAddr,
-                          uint32_t IfIdx,
-                          uint32_t fAdd)
-{
-    volatile uint32_t ipAddrHex = 0U;
-    Enet_MacPort macPort = ENET_MAC_PORT_1;
-    int32_t status;
-
-    /* Use default/generic hook function */
-    EthFwCallbacks_ipAddrHookFxn(IPAddr, IfIdx, fAdd);
-
-    /* initialize SlNet interface(s) */
-    status = ti_net_SlNet_initConfig();
-    if (status < ENET_SOK)
-    {
-        appLogPrintf("Failed to initialize SlNet interface(s) - status (%d)\n", status);
-    }
-
-    /* Save host port IP address */
-    ipAddrHex = NDK_ntohl(IPAddr);
-    gEthAppObj.hostIpAddr = ipAddrHex;
-
-    /* MAC port used for PTP */
-    macPort = ENET_MAC_PORT_3;
-
-    /* Initialize and enable PTP stack */
-    EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
-                          &gEthAppObj.hostMacAddr[0U],
-                          ENET_BIT(ENET_MACPORT_NORM(macPort)));
-
-    /* Assign functions that are to be called based on actions in GUI.
-     * These cannot be dynamically pushed to function pointer array, as the
-     * index is used in GUI as command */
-    EnetCfgServer_fxn_table[9] = &EthApp_startSwInterVlan;
-    EnetCfgServer_fxn_table[10] = &EthApp_startHwInterVlan;
-
-    /* Start Configuration server */
-    status = EnetCfgServer_init(gEthAppObj.enetType, gEthAppObj.instId);
-    EnetAppUtils_assert(ENET_SOK == status);
-
-    /* Start the software-based interVLAN routing */
-    EthSwInterVlan_setupRouting(gEthAppObj.enetType,
-                                ETH_SWINTERVLAN_TASK_PRI);
-
-    AddWebFiles();
-}
-#endif /* !FREERTOS */
 
 /* Functions called from Config server library based on selection from GUI */
 

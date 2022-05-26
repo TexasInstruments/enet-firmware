@@ -66,7 +66,7 @@
 #include <stdint.h>
 
 /**
- * \defgroup apps_utils_remote_service Remote Service APIs (TI-RTOS only)
+ * \defgroup apps_utils_remote_service Remote Service APIs (FreeRTOS only)
  *
  * \brief These APIs allows user to invoke functions or services on remote cores by abstracting the
  *        low level IPC details.

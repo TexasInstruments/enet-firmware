@@ -100,10 +100,9 @@
 
 #include <server-rtos/remote-device.h>
 
-#if defined(FREERTOS)
+#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
 #endif
-#include <utils/profile/include/app_profile.h>
 
 /* Timesync header files */
 #include <ti/drv/enet/examples/timesync/timeSync.h>
@@ -923,18 +922,16 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
     }
 
-#if defined(FREERTOS)
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* Initialize lwIP ARP helper */
     if (status == ENET_SOK)
     {
         status = EthFwArpUtils_init();
         if (status != ETHFW_LWIP_UTILS_SOK)
         {
-            appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
+            appLogPrintf("ETHFW: failed to init ARP utils: %d\n", status);
         }
     }
-#endif
 #endif
 
     /* Initialize MCM */
@@ -963,11 +960,9 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 {
     EnetAppUtils_assert(hEthFw != NULL);
 
-#if defined(FREERTOS)
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
     EthFwArpUtils_deinit();
-#endif
 #endif
 
     /* De-initialize MCM */
@@ -1254,27 +1249,7 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len)
 {
-    appProfileAvgLoadInfo *info = (appProfileAvgLoadInfo *)notify_info;
-    uint32_t i;
-
-    EnetAppUtils_assert(Enet_getHandle(enetType, 0U) == hEnet);
-    EnetAppUtils_assert(notifyid == RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM);
-    EnetAppUtils_assert(notify_info_len == sizeof(appProfileAvgLoadInfo));
-
-    appLogPrintf("\n***********************************\n");
-    appLogPrintf(" CPU Load         : %d\n", info->cpuLoad);
-    appLogPrintf(" Packet count     : %d\n", info->packetCount);
-    appLogPrintf(" ISR              : %d\n", info->isr);
-    appLogPrintf(" SWI              : %d\n", info->swi);
-    appLogPrintf(" Total task count : %d\n", info->totalTaskCount);
-    appLogPrintf(" Active task count: %d\n", info->activeTaskCount);
-
-    for (i = 0U; i < info->activeTaskCount; i++)
-    {
-        appLogPrintf(" Task: %s: %d %%\n", info->tskLoad[i].tskName, info->tskLoad[i].load);
-    }
-
-    appLogPrintf("***********************************\n");
+    /* Nothing to do */
 }
 
 /* PTP related functions */

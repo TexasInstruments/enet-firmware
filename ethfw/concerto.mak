@@ -9,11 +9,7 @@ TARGETTYPE := library
 CSOURCES := src/ethfw.c
 
 IDIRS := ${ETHFW_PATH}
-ifeq ($(TARGET_OS),SYSBIOS)
-  IDIRS += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages/ti/posix/ccs
-  IDIRS += ${BIOS_PATH_$(TARGET_PLATFORM)}/packages
-  IDIRS += $(XDCTOOLS_PATH)/packages
-else ifeq ($(TARGET_OS),FREERTOS)
+ifeq ($(TARGET_OS),FREERTOS)
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/freertos/include
 endif
@@ -21,9 +17,7 @@ IDIRS += $(REMOTE_DEVICE_PATH)
 IDIRS += $(NDK_PATH)/packages
 IDIRS += $(PDK_PATH)/packages
 
-ifeq ($(TARGET_OS),SYSBIOS)
-  DEFS += SYSBIOS
-else ifeq ($(TARGET_OS),FREERTOS)
+ifeq ($(TARGET_OS),FREERTOS)
   DEFS += MAKEFILE_BUILD FREERTOS
 endif
 

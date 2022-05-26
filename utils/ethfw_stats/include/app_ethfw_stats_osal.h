@@ -60,8 +60,8 @@
  *
  */
 
-#ifndef __APP_ETHFW_STATS_SYSBIOS_H__
-#define __APP_ETHFW_STATS_SYSBIOS_H__
+#ifndef __APP_ETHFW_STATS_OSAL_H__
+#define __APP_ETHFW_STATS_OSAL_H__
 
 #include <stdint.h>
 #include <stdio.h>
@@ -86,7 +86,7 @@
 /*!
  * \brief Initialize Ethfw statistics collector module
  *
- * TI-RTOS only API
+ * RTOS only API
  * MUST be called before any other API
  *
  * \param enetType     [IN] Enet instance type
@@ -99,7 +99,7 @@ int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId);
 /*!
  * \brief Initialize Ethfw remote service
  *
- * TI-RTOS only API
+ * RTOS only API
  *  MUST be called after IPC init
  *
  * \return \ref Cpsw_ErrorCodes
@@ -109,7 +109,7 @@ int32_t appEthfwStatsRemoteServiceInit(void);
 /*!
  * \brief De-Initialize Ethfw statistics collector module
  *
- * TI-RTOS only API
+ * RTOS only API
  */
 void appEthfwStatsDeInit(void);
 

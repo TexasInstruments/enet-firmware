@@ -86,18 +86,7 @@
 #include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
-
-#if defined (SYSBIOS)
-/* NDK headers */
-#include <ti/ndk/inc/netmain.h>
-#include <ti/ndk/inc/stkmain.h>
-#include <ti/ndk/inc/socket.h>
-#include <ti/ndk/inc/_stack.h>
-#include <ti/ndk/inc/tools/servers.h>
-#include <ti/ndk/inc/tools/console.h>
-#else
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
-#endif
 
 #include <ethremotecfg/protocol/Eth_Rpc.h>
 #include <ethremotecfg/protocol/cpsw_remote_notify_service.h>
@@ -1166,45 +1155,6 @@ static int32_t CpswProxyServer_regrdHandlerCb(EthRemoteCfg_VirtPort virtPort,
     return RPMSG_KDRV_TP_ETHSWITCH_CMDSTATUS_OK;
 }
 
-#if defined (SYSBIOS)
-static void CpswProxyServer_printLliEntry(uint32_t entryIdx,
-                                          LLI_INFO *entry)
-{
-    char str[40];
-
-    NtIPN2Str(entry->IPAddr, str);
-    appLogPrintf("%d ", entryIdx);
-    appLogPrintf("        %-15s  ", str);
-    appLogPrintf("  %02X:%02X:%02X:%02X:%02X:%02X",
-                 entry->MacAddr[0], entry->MacAddr[1], entry->MacAddr[2],
-                 entry->MacAddr[3], entry->MacAddr[4], entry->MacAddr[5]);
-    appLogPrintf("\n");
-}
-
-static void CpswProxyServer_dumpLliTable(LLI_INFO *llitable,
-                                         uint32_t numEntries)
-{
-    LLI_INFO *entry;
-    uint32_t entryIdx;
-
-    appLogPrintf("\n================LLI Table entries=========== \n");
-    appLogPrintf("\nNumber of Static ARP Entries: %d \n", numEntries);
-    appLogPrintf("\nSNo.      IP Address         MAC Address  \n");
-    appLogPrintf("------    -------------      --------------- \n");
-
-    entry = (LLI_INFO *)list_get_head((NDK_LIST_NODE **)&llitable);
-    /* start with 1 as when table is printed via telnet it is indexed with 1 */
-    entryIdx = 1U;
-    while (entry != NULL)
-    {
-        CpswProxyServer_printLliEntry(entryIdx, entry);
-        /* Get the next LLI Entry. */
-        entry = (LLI_INFO *)list_get_next((NDK_LIST_NODE *)entry);
-        entryIdx++;
-    }
-}
-#endif
-
 static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort virtPort,
                                                         uint32_t host_id,
                                                         uint64_t handle,
@@ -1215,14 +1165,9 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
     int32_t status = 0;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
-#if defined(SYSBIOS)
-    uint32_t numEntries;
-    LLI_INFO *llitable = NULL;
-#elif defined(FREERTOS)
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
     struct eth_addr hwAddr;
-#endif
 #endif
     bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
@@ -1247,31 +1192,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
 
         CpswProxyServer_validateHandle(hEnet);
 
-#if defined(SYSBIOS)
-        ConCmdRoute(1, "print", NULL, NULL, NULL);
-
-        status = LLIAddStaticEntryWithFlags(ipaddr,
-                                            mac_address,
-                                            (FLG_RTE_HOST|FLG_RTE_STATIC|FLG_RTE_PROXYPUB));
-        if (status != 0)
-        {
-            status = LLIAddStaticEntryWithFlags(ipaddr,
-                                                mac_address,
-                                                (FLG_RTE_HOST|FLG_RTE_STATIC|FLG_RTE_PROXYPUB));
-        }
-
-        if (status != 0)
-        {
-            appLogPrintf("Failed to add Static ARP Entry \n");
-        }
-
-        LLIGetStaticARPTable(&numEntries,
-                             &llitable);
-
-        CpswProxyServer_dumpLliTable(llitable, numEntries);
-        LLIFreeStaticARPTable(llitable);
-#elif defined(FREERTOS)
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
         SMEMCPY(&hwAddr, mac_address, ETH_HWADDR_LEN);
 
@@ -1284,7 +1205,6 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
         {
             EthFwArpUtils_printTable();
         }
-#endif
 #endif
     }
     else
@@ -1305,13 +1225,8 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
     int32_t status = 0;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
-#if defined(SYSBIOS)
-    uint32_t numEntries;
-    LLI_INFO *llitable = NULL;
-#elif defined(FREERTOS)
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
-#endif
 #endif
     bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
 
@@ -1330,20 +1245,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
 
         CpswProxyServer_validateHandle(hEnet);
 
-#if defined (SYSBIOS)
-        status = LLIRemoveStaticEntry(ipaddr);
-        if (status != 0)
-        {
-            appLogPrintf("Failed to add Static ARP Entry \n");
-        }
-
-        LLIGetStaticARPTable(&numEntries,
-                             &llitable);
-
-        CpswProxyServer_dumpLliTable(llitable, numEntries);
-        LLIFreeStaticARPTable(llitable);
-#elif defined(FREERTOS)
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
 
         status = EthFwArpUtils_delAddr(&ip4Addr);
@@ -1355,7 +1257,6 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
         {
             EthFwArpUtils_printTable();
         }
-#endif
 #endif
     }
     else

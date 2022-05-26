@@ -51,11 +51,7 @@ extern "C" {
 #endif
 
 #include <ti/drv/ipc/include/ipc_rsctypes.h>
-#if defined (SYSBIOS)
-  #include <xdc/runtime/System.h>
-#elif defined (FREERTOS)
-  #include <apps/ipc_cfg/ipc_trace.h>
-#endif
+#include <apps/ipc_cfg/ipc_trace.h>
 
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,
@@ -73,13 +69,7 @@ extern "C" {
 #define RPMSG_C66_DSP_FEATURES  1
 #define RPMSG_C7X_DSP_FEATURES  1
 
-#if defined (SYSBIOS)
-  #define IPC_TRACE_BUFFER_MAX_SIZE     (0x80000)
-  extern xdc_Char xdc_runtime_SysMin_Module_State_0_outbuf__A[];
-  #define TRACEBUFADDR ((uintptr_t)&xdc_runtime_SysMin_Module_State_0_outbuf__A)
-#elif defined (FREERTOS)
-  #define TRACEBUFADDR ((uintptr_t)&Ipc_traceBuffer)
-#endif
+#define TRACEBUFADDR ((uintptr_t)&Ipc_traceBuffer)
 
 #define RPMSG_VRING_ADDR_ANY FW_RSC_ADDR_ANY
 
