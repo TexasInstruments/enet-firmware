@@ -252,6 +252,14 @@ typedef struct EthFw_RsvdMcastCfg_s
     uint32_t numMacAddr;
 } EthFw_RsvdMcastCfg;
 
+/*! Callback function for application to set port link parameters
+ *  (MII, PHY, speed, duplexity, etc) */
+typedef int32_t (*EthFw_setPortCfg)(Enet_MacPort macPort,
+                                    CpswMacPort_Cfg *macCfg,
+                                    EnetMacPort_Interface *mii,
+                                    EnetPhy_Cfg *phyCfg,
+                                    EnetMacPort_LinkCfg *linkCfg);
+
 /*!
  * \brief Ethernet Firmware configuration
  *
@@ -295,6 +303,10 @@ typedef struct EthFw_Config_s
 
     /*! Default VLAN id to be used for MAC ports configured in switch mode (non MAC-only) */
     uint16_t dfltVlanIdSwitchPorts;
+
+    /*! Callback function for application to set port link parameters
+     *  (MII, PHY, speed, duplexity, etc) */
+    EthFw_setPortCfg setPortCfg;
 } EthFw_Config;
 
 /*!

@@ -225,6 +225,9 @@ typedef struct EthFw_Obj_s
 
     /* Reserved multicast configuration */
     EthFw_RsvdMcastCfg rsvdMcastCfg;
+
+    /*! Callback function for application to set port link parameters */
+    EthFw_setPortCfg setPortCfg;
 } EthFw_Obj;
 
 /* ========================================================================== */
@@ -405,6 +408,12 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
     uint32_t i;
     int32_t status = ENET_SOK;
 
+    if (config->setPortCfg == NULL)
+    {
+        appLogPrintf("ETHFW: Invalid setPortCfg callback\n");
+        status = ENET_EINVALIDPARAMS;
+    }
+
     if (config->numPorts > ETHFW_MAC_PORT_MAX)
     {
         appLogPrintf("ETHFW: Too many MAC ports requested (%u), max is %u\n",
@@ -428,6 +437,8 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
 
     if (status == ENET_SOK)
     {
+        gEthFwObj.setPortCfg = config->setPortCfg;
+
         /* Get the port mask of all enabled MAC ports */
         gEthFwObj.numPorts = config->numPorts;
         for (i = 0U; i < gEthFwObj.numPorts; i++)
@@ -1141,26 +1152,14 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
     EnetMacPort_LinkCfg *linkCfg = &linkArgs->linkCfg;
     EnetMacPort_Interface *mii = &linkArgs->mii;
     uint32_t i;
+    int32_t status;
 
-    CpswMacPort_initCfg(macCfg);
-    EnetPhy_initCfg(phyCfg);
-
-    /* PHY parameters from board specific code */
-    EnetBoard_setPhyConfig(gEthFwObj.enetType,
-                                   macPort,
-                                   macCfg,
-                                   mii,
-                                   phyCfg);
-
-    if (phyCfg->phyAddr == ENETPHY_INVALID_PHYADDR)
+    /* Port link config is set by app */
+    status = gEthFwObj.setPortCfg(macPort, macCfg, mii, phyCfg, linkCfg);
+    if (status != ENET_SOK)
     {
-        linkCfg->speed = ENET_SPEED_1GBIT;
-        linkCfg->duplexity = ENET_DUPLEX_FULL;
-    }
-    else
-    {
-        linkCfg->speed = ENET_SPEED_AUTO;
-        linkCfg->duplexity = ENET_DUPLEX_AUTO;
+        appLogPrintf("EthFw_initLinkArgs() Failed to set MAC port %u config: %d\n",
+                     ENET_MACPORT_ID(macPort), status);
     }
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
