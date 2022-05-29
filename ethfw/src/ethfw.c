@@ -333,6 +333,20 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
 #endif
 };
 
+/* EthFw IOCTLs: allow all on all cores */
+static const EnetRm_IoctlPermissionTable gEthFw_rmIoctlPerm =
+{
+    .defaultPermittedCoreMask = (ENET_BIT(IPC_MPU1_0) |
+                                 ENET_BIT(IPC_MCU2_0) |
+                                 ENET_BIT(IPC_MCU2_1) |
+#if defined(SOC_J721E)
+                                 ENET_BIT(IPC_MCU3_0) |
+                                 ENET_BIT(IPC_MCU3_1) |
+#endif
+                                 ENET_BIT(IPC_MCU1_0)),
+    .numEntries = 0,
+};
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -629,7 +643,9 @@ static EnetRm_ResourceInfo *EthFw_getRmInfo(uint32_t coreId)
 static void EthFw_updateEnetRm(void)
 {
     EnetRm_ResCfg *resCfg = &gEthFwObj.cpswCfg.resCfg;
+    EnetRm_ResPrms *rmPrms = &resCfg->resPartInfo;
     EnetRm_ResourceInfo *rmInfo;
+    uint32_t req = 0U;
     uint32_t coreId;
     uint32_t i;
 
@@ -663,6 +679,31 @@ static void EthFw_updateEnetRm(void)
 
     /* Overwriting RM with our own */
     resCfg->resPartInfo = gEthFw_rmResPrms;
+
+    /* Compute the MAC address pool size for the virtual port allocation */
+    for (i = 0U; i < rmPrms->numCores; i++)
+    {
+        req += rmPrms->coreDmaResInfo[i].numMacAddress;
+    }
+
+    /* Limit pool size to the size of MAC address array */
+    if (resCfg->macList.numMacAddress > ENET_ARRAYSIZE(resCfg->macList.macAddress))
+    {
+        resCfg->macList.numMacAddress = ENET_ARRAYSIZE(resCfg->macList.macAddress);
+    }
+
+    /* Pool size provided by application is too small, warn user about it */
+    if (resCfg->macList.numMacAddress == 0U)
+    {
+        appLogPrintf("ETHFW: Empty MAC address pool\n");
+        EnetAppUtils_assert(false);
+    }
+    else if (resCfg->macList.numMacAddress < req)
+    {
+        appLogPrintf("ETHFW: MAC address pool size is too small (req=%u alloc=%u)\n"
+                     "       may not be sufficient depending on concurrent usage\n",
+                     req, resCfg->macList.numMacAddress);
+    }
 }
 
 static int32_t EthFw_getSharedMcast(const EthFw_Config *config)
@@ -799,7 +840,9 @@ void EthFw_initConfigParams(Enet_Type enetType,
     /* Start with CPSW LLD's default configuration */
     Enet_initCfg(enetType, instId, cpswCfg, sizeof (*cpswCfg));
     cpswCfg->dmaCfg = NULL;
-    EnetAppUtils_initResourceConfig(enetType, instId, EnetSoc_getCoreId(), resCfg);
+    resCfg->ioctlPermissionInfo = gEthFw_rmIoctlPerm;
+    resCfg->selfCoreId = EnetSoc_getCoreId();
+    resCfg->macList.numMacAddress = 0U;
 
     /* VLAN configuration */
     vlanCfg->vlanAware = true;
