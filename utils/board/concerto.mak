@@ -15,6 +15,8 @@ ifeq ($(TARGET_OS),FREERTOS)
     CSOURCES    += src/j721e/board_pinmux_data.c
   else ifeq ($(TARGET_PLATFORM),J7200)
     CSOURCES    += src/j7200/board_j7200_evm.c
+  else ifeq ($(TARGET_PLATFORM),J784S4)
+    CSOURCES    += src/j784s4/board_j784s4_evm.c
   endif
 endif
 

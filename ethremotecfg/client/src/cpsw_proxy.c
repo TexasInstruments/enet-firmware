@@ -1002,7 +1002,7 @@ static void CpswProxy_setRemoteParams(EthRemoteCfg_VirtPort portId,
         [IPC_MCU1_1] = "mcu_1_1",
         [IPC_MCU2_0] = "mcu_2_0",
         [IPC_MCU2_1] = "mcu_2_1",
-#if defined (SOC_J721E)
+#if defined (SOC_J721E) || defined(SOC_J784S4)
         [IPC_MCU3_0] = "mcu_3_0",
         [IPC_MCU3_1] = "mcu_3_1",
 #endif
@@ -1473,7 +1473,7 @@ static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Enet_Type e
             break;
 #endif
 
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
         case ENET_CPSW_9G:
             rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
             break;

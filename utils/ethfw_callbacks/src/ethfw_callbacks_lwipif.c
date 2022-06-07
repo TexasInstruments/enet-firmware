@@ -167,7 +167,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetUdma_OpenTxChPrms cpswTxChCfg;
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
     EnetUdma_UdmaRingPrms *pFqRingPrms;
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
     Enet_Type enetType = ENET_CPSW_9G;
 #elif defined(SOC_J7200)
     Enet_Type enetType = ENET_CPSW_5G;
@@ -319,7 +319,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetMcm_CmdIf mcmCmdIf;
     EnetDma_PktQ fqPktInfoQ;
     EnetDma_PktQ cqPktInfoQ;
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
     Enet_Type enetType = ENET_CPSW_9G;
 #elif defined(SOC_J7200)
     Enet_Type enetType = ENET_CPSW_5G;

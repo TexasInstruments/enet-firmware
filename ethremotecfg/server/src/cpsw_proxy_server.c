@@ -321,7 +321,7 @@ static  int32_t CpswProxy_mapRdev2CpswType(enum rpmsg_kdrv_ethswitch_cpsw_type  
         case RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN:
 #if defined(SOC_J7200)
             *pCpswType = ENET_CPSW_5G;
-#elif defined(SOC_J721E)
+#elif defined(SOC_J721E) || defined(SOC_J784S4)
             *pCpswType = ENET_CPSW_9G;
 #else
             retVal = CPSWPROXYSERVER_EFAIL;
@@ -2218,7 +2218,7 @@ static void CpswProxyServer_setRemoteParams(const CpswProxyServer_VirtPortCfg *v
         [IPC_MCU1_1] = "mcu_1_1",
         [IPC_MCU2_0] = "mcu_2_0",
         [IPC_MCU2_1] = "mcu_2_1",
-#if defined (SOC_J721E)
+#if defined (SOC_J721E) || defined(SOC_J784S4)
         [IPC_MCU3_0] = "mcu_3_0",
         [IPC_MCU3_1] = "mcu_3_1",
 #endif

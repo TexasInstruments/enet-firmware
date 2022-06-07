@@ -149,7 +149,7 @@
 
 #define VQ_BUF_SIZE                             (2048U)
 
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
 #define IPC_VRING_MEM_SIZE                      (32U * 1024U * 1024U)
 #elif defined(SOC_J7200)
 #define IPC_VRING_MEM_SIZE                      (8U * 1024U * 1024U)
@@ -369,7 +369,7 @@ extern char Ipc_traceBuffer[IPC_TRACEBUF_SIZE];
 
 static EthAppObj gEthAppObj =
 {
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
     .enetType = ENET_CPSW_9G,
     .instId   = 0U,
 #elif defined(SOC_J7200)
@@ -396,8 +396,8 @@ static Enet_MacPort gEthAppPorts[] =
     ENET_MAC_PORT_7, /* QSGMII sub */
 #endif
 #endif
-#if defined(SOC_J7200)
-    /* On J7200 to use all 4 ports simultaneously, we use below configuration
+#if defined(SOC_J7200) || defined(SOC_J784S4)
+    /* On J7200/J784S4 to use all 4 ports simultaneously, we use below configuration
      * QSGMII ports - 0, 1, 2, 3 */
     ENET_MAC_PORT_1, /* QSGMII main */
     ENET_MAC_PORT_2, /* QSGMII sub */
@@ -453,17 +453,19 @@ static uint8_t gEthAppCntrlBuf[ETHAPP_IPC_DATA_SIZE] __attribute__ ((section("ip
 static uint8_t gEthAppVringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
 static uint32_t gEthAppRemoteProc[] =
-#if defined(SOC_J721E)
 {
+#if defined(SOC_J721E)
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
     IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2,
-    IPC_C7X_1
-};
+    IPC_C7X_1,
 #elif defined(SOC_J7200)
-{
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
-};
+#elif defined(SOC_J784S4)
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
+    IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
 #endif
+};
 
 static struct netif netif;
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
@@ -511,6 +513,13 @@ int main(void)
     flags |= ETHFW_BOARD_QENET_ENABLE;
 #if defined(ETHFW_CCS)
     flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_I2C_ALLOWED);
+#endif
+#endif
+
+#if defined(SOC_J784S4)
+    flags |= (ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_UART_ALLOWED);
+#if defined(ETHFW_CCS)
+    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_I2C_ALLOWED);
 #endif
 #endif
 

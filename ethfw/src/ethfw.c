@@ -144,7 +144,7 @@
 #define ETHFW_SWITCH_PORTS_VLAN_ID                    (1U)
 
 /*! Max number of CPSW MAC ports supported */
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
 #define ETHFW_MAC_PORT_MAX                            (8U)
 #else
 #define ETHFW_MAC_PORT_MAX                            (4U)
@@ -308,7 +308,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
         },
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
         [4] =
         {
             .coreId        = IPC_MCU3_0,
@@ -325,7 +325,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
         },
 #endif
     },
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
     .numCores = 6U,
 #else
     .numCores = 4U,
@@ -338,7 +338,7 @@ static const EnetRm_IoctlPermissionTable gEthFw_rmIoctlPerm =
     .defaultPermittedCoreMask = (ENET_BIT(IPC_MPU1_0) |
                                  ENET_BIT(IPC_MCU2_0) |
                                  ENET_BIT(IPC_MCU2_1) |
-#if defined(SOC_J721E)
+#if defined(SOC_J721E) || defined(SOC_J784S4)
                                  ENET_BIT(IPC_MCU3_0) |
                                  ENET_BIT(IPC_MCU3_1) |
 #endif
@@ -1303,6 +1303,10 @@ static void EthFw_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
 #elif defined(SOC_J7200)
     ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J7200;
     ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_5G;
+    ptpConfig->socConfig.instId     = 0U;
+#elif defined(SOC_J784S4)
+    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J784S4;
+    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
     ptpConfig->socConfig.instId     = 0U;
 #endif
     ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;

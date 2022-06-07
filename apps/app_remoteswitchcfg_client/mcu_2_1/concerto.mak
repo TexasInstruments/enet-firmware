@@ -17,6 +17,8 @@ ifeq ($(TARGET_OS),FREERTOS)
     CSOURCES    += ../../common/r5f_mpu_j721e_default.c
   else ifeq ($(TARGET_PLATFORM),J7200)
     CSOURCES    += ../../common/r5f_mpu_j7200_default.c
+  else ifeq ($(TARGET_PLATFORM),J784S4)
+    CSOURCES    += ../../common/r5f_mpu_j784s4_default.c
   endif
 endif
 

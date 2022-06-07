@@ -116,6 +116,12 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(
 #elif defined(CPU_mcu3_1)
     { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
     { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
+#elif defined(CPU_mcu4_0)
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
+#elif defined(CPU_mcu4_1)
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ0_SIZE, 1, 0 },
+    { RPMSG_VRING_ADDR_ANY, 4096, R5F_RPMSG_VQ1_SIZE, 2, 0 },
 #elif defined(CPU_c6x_1)
     { RPMSG_VRING_ADDR_ANY, 4096, C66_RPMSG_VQ0_SIZE, 1, 0 },
     { RPMSG_VRING_ADDR_ANY, 4096, C66_RPMSG_VQ1_SIZE, 2, 0 },

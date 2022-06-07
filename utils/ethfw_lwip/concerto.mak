@@ -3,7 +3,7 @@ include $(PRELUDE)
 TARGET      := ethfw_lwip
 TARGETTYPE  := library
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 AM65XX))
 ifeq ($(TARGET_OS),FREERTOS)
   CSOURCES := src/ethfw_lwip_utils.c
 

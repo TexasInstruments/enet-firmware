@@ -2,7 +2,7 @@ include $(PRELUDE)
 TARGET      := app_utils_mem
 TARGETTYPE  := library
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 AM65XX))
 ifeq ($(TARGET_OS),$(filter $(TARGET_OS), FREERTOS))
 ifeq ($(TARGET_CPU),$(filter $(TARGET_CPU), R5F R5Ft C66 C71))
   CSOURCES    := $(foreach cfile,$(call all-c-files-in,$($(_MODULE)_SDIR)/src),src/$(cfile))
