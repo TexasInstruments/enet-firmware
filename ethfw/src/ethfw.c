@@ -84,7 +84,6 @@
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/uart/UART_stdio.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_appboardutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
 /* EthFw utils header files */

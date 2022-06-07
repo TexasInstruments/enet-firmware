@@ -88,7 +88,6 @@
 #include <ti/drv/enet/include/dma/udma/enet_udma.h>
 #include <ti/drv/enet/include/core/enet_dma.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_appboardutils.h>
 
 /* EthFw header files */
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
@@ -104,6 +103,7 @@
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
+#include <utils/board/include/ethfw_board_utils.h>
 
 #define System_printf  Ipc_Trace_printf
 #define System_vprintf Ipc_Trace_vprintf
@@ -489,6 +489,7 @@ int main(void)
     TaskP_Handle task;
     TaskP_Params taskParams;
     SemaphoreP_Params semParams;
+    uint32_t flags = 0U;
 
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
@@ -496,8 +497,25 @@ int main(void)
     gEthAppObj.coreId = EnetSoc_getCoreId();
 
     /* Board related initialization */
-    EnetBoard_initEthFw();
-    EnetAppUtils_enableClocks(gEthAppObj.enetType, gEthAppObj.instId);
+#if defined(SOC_J721E)
+    flags |= (ETHFW_BOARD_GESI_ENABLE | ETHFW_BOARD_UART_ALLOWED);
+#if defined(ETHFW_CCS)
+    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_I2C_ALLOWED | ETHFW_BOARD_GPIO_ALLOWED);
+#endif
+#if defined(ENABLE_QSGMII_PORTS)
+    flags |= ETHFW_BOARD_QENET_ENABLE;
+#endif
+#endif
+
+#if defined(SOC_J7200)
+    flags |= ETHFW_BOARD_QENET_ENABLE;
+#if defined(ETHFW_CCS)
+    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_I2C_ALLOWED);
+#endif
+#endif
+
+    /* Board related initialization */
+    EthFwBoard_init(flags);
 
     /* Create initialization task */
     TaskP_Params_init(&taskParams);
@@ -719,14 +737,15 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
             appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
         }
     }
-
 }
 
 static int32_t EthApp_initEthFw(void)
 {
     EthFw_Version ver;
     EthFw_Config ethFwCfg;
+    Cpsw_Cfg *cpswCfg = &ethFwCfg.cpswCfg;
     EnetUdma_Cfg dmaCfg;
+    EnetRm_MacAddressPool *pool = &cpswCfg->resCfg.macList;
     int32_t status = ETHAPP_OK;
     uint32_t i;
 
@@ -736,11 +755,16 @@ static int32_t EthApp_initEthFw(void)
     /* Set UDMA handle to Enet LLD config */
     dmaCfg.hUdmaDrv = gEthAppObj.hUdmaDrv;
     dmaCfg.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
-    ethFwCfg.cpswCfg.dmaCfg = (void *)&dmaCfg;
+    cpswCfg->dmaCfg = (void *)&dmaCfg;
+
+    /* Populate MAC address pool */
+    pool->numMacAddress = EthFwBoard_getMacAddrPool(pool->macAddress,
+                                                    ENET_ARRAYSIZE(pool->macAddress));
 
     /* Set hardware port configuration parameters */
     ethFwCfg.ports    = &gEthAppPorts[0];
     ethFwCfg.numPorts = ARRAY_SIZE(gEthAppPorts);
+    ethFwCfg.setPortCfg = EthFwBoard_setPortCfg;
 
     /* Set virtual port configuration parameters */
     ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];

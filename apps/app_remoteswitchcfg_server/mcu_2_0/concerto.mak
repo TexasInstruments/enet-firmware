@@ -37,6 +37,7 @@ endif
 STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
+STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server
 STATIC_LIBS += lib_remote_device
 
@@ -48,7 +49,7 @@ ifeq ($(TARGET_OS),FREERTOS)
   DEFS += MAKEFILE_BUILD FREERTOS
 endif
 
-# Comment out to use RMII port instead of QSGMII ports in J721E EVM
+# Comment out to disable QSGMII ports in J721E EVM
 DEFS += ENABLE_QSGMII_PORTS
 
 # MAC-only ports are not supported in QNX virtual MAC driver
@@ -57,7 +58,11 @@ ifneq ($(BUILD_QNX_A72), yes)
 endif
 
 ifeq ($(TARGET_OS),FREERTOS)
-  ENET_APPUTILS_LIB = enet_example_utils_freertos
+  ifeq ($(TARGET_PLATFORM),J7200)
+    ENET_APPUTILS_LIB = enet_example_utils_freertos
+  else
+    ENET_APPUTILS_LIB = enet_example_utils_full_freertos
+  endif
 endif
 
 ifeq ($(TARGET_OS),FREERTOS)
@@ -88,6 +93,9 @@ include $(PRELUDE)
 TARGET      := app_remoteswitchcfg_server_ccs
 TARGETTYPE  := exe
 
+# Needed to identify the type of image being built
+DEFS        += ETHFW_CCS
+
 CSOURCES    := main.c
 ifeq ($(TARGET_OS),FREERTOS)
   CSOURCES    += ../../ipc_cfg/ipc_trace.c
@@ -108,6 +116,7 @@ endif
 STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
+STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server
 STATIC_LIBS += lib_remote_device
 
@@ -119,7 +128,7 @@ ifeq ($(TARGET_OS),FREERTOS)
   DEFS += MAKEFILE_BUILD FREERTOS
 endif
 
-# Comment out to use RMII port instead of QSGMII ports in J721E EVM
+# Comment out to disable QSGMII ports in J721E EVM
 DEFS += ENABLE_QSGMII_PORTS
 
 # MAC-only ports are not supported in QNX virtual MAC driver
