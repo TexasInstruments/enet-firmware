@@ -83,7 +83,6 @@
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>

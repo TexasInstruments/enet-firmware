@@ -89,7 +89,6 @@
 #include <ti/drv/enet/include/core/enet_dma.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_appboardutils.h>
-#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 
 /* EthFw header files */
 #include <apps/ipc_cfg/app_ipc_rsctable.h>

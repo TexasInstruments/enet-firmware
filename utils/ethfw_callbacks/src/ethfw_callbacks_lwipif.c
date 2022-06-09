@@ -81,7 +81,6 @@
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
 

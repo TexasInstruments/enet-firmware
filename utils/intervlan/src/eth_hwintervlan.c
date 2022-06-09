@@ -83,7 +83,6 @@
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 #include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 #include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>

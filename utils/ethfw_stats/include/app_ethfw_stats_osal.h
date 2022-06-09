@@ -73,7 +73,6 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 
 #include "app_ethfw_stats.h"
 

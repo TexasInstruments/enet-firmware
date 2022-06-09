@@ -86,7 +86,6 @@
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_appboardutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/examples/utils/include/enet_appsoc.h>
 
 /* EthFw utils header files */
 #include <utils/remote_service/include/app_remote_service.h>
