@@ -180,7 +180,7 @@ static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
         .linkCfg   = { ENET_SPEED_AUTO, ENET_DUPLEX_AUTO },
     },
     {   /* "P1" */
-        .macPort   = ENET_MAC_PORT_2,
+        .macPort   = ENET_MAC_PORT_3,
         .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_QUAD_SERIAL_SUB },
         .phyCfg    =
         {
@@ -194,7 +194,7 @@ static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
         .linkCfg   = { ENET_SPEED_AUTO, ENET_DUPLEX_AUTO },
     },
     {   /* "P2" */
-        .macPort   = ENET_MAC_PORT_3,
+        .macPort   = ENET_MAC_PORT_4,
         .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_QUAD_SERIAL_SUB },
         .phyCfg    =
         {
@@ -208,7 +208,7 @@ static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
         .linkCfg   = { ENET_SPEED_AUTO, ENET_DUPLEX_AUTO },
     },
     {   /* "P3" */
-        .macPort   = ENET_MAC_PORT_4,
+        .macPort   = ENET_MAC_PORT_5,
         .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_QUAD_SERIAL_SUB },
         .phyCfg    =
         {
