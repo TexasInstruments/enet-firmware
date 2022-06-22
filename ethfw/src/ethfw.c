@@ -1202,6 +1202,7 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
     {
         appLogPrintf("EthFw_initLinkArgs() Failed to set MAC port %u config: %d\n",
                      ENET_MACPORT_ID(macPort), status);
+        EnetAppUtils_assert(false);
     }
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
