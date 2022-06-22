@@ -380,6 +380,10 @@ static void EthFwBoard_configQenet(void)
 
     if (gEthFwBoard.i2cAllowed)
     {
+        /* Set MUX2 A <-> B2, needed for MDIO clock */
+        boardStatus = Board_control(BOARD_CTRL_CMD_SET_IO_MUX_PORTB2, NULL);
+        EnetAppUtils_assert(boardStatus == BOARD_SOK);
+
         /* Release PHY reset */
         boardStatus = Board_cpswEnetExpPhyReset(0U);
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
