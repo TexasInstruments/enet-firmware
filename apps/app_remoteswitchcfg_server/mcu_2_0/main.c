@@ -396,13 +396,17 @@ static Enet_MacPort gEthAppPorts[] =
     ENET_MAC_PORT_7, /* QSGMII sub */
 #endif
 #endif
-#if defined(SOC_J7200) || defined(SOC_J784S4)
-    /* On J7200/J784S4 to use all 4 ports simultaneously, we use below configuration
-     * QSGMII ports - 0, 1, 2, 3 */
+#if defined(SOC_J7200)
     ENET_MAC_PORT_1, /* QSGMII main */
     ENET_MAC_PORT_2, /* QSGMII sub */
     ENET_MAC_PORT_3, /* QSGMII sub */
     ENET_MAC_PORT_4, /* QSGMII sub */
+#endif
+#if defined(SOC_J784S4)
+    ENET_MAC_PORT_1, /* QSGMII main */
+    ENET_MAC_PORT_3, /* QSGMII sub */
+    ENET_MAC_PORT_4, /* QSGMII sub */
+    ENET_MAC_PORT_5, /* QSGMII sub */
 #endif
 };
 
