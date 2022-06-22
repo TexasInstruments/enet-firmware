@@ -417,8 +417,8 @@ static void EthFwBoard_configTorrentClks(void)
     uint32_t clkId;
     uint32_t clkRateHz;
 
-    moduleId  = TISCI_DEV_SERDES_10G1;
-    clkId     = TISCI_DEV_SERDES_10G1_CORE_REF_CLK;
+    moduleId  = TISCI_DEV_SERDES_10G2;
+    clkId     = TISCI_DEV_SERDES_10G2_CORE_REF_CLK;
     clkRateHz = 100000000U;
     EnetAppUtils_clkRateSet(moduleId, clkId, clkRateHz);
 
