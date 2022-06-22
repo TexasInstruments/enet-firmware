@@ -84,6 +84,9 @@ typedef struct EthFwBoard_Obj_s
 
     /* SerDes configuration allowed */
     bool serdesAllowed;
+
+    /* Use static MAC pool or populated from EEPROM */
+    bool staticMacPool;
 } EthFwBoard_Obj;
 
 /*!
@@ -236,6 +239,10 @@ int32_t EthFwBoard_init(uint32_t flags)
     gEthFwBoard.serdesAllowed = ENET_NOT_ZERO(flags & ETHFW_BOARD_SERDES_CONFIG);
     gEthFwBoard.uartAllowed   = ENET_NOT_ZERO(flags & ETHFW_BOARD_UART_ALLOWED);
     gEthFwBoard.i2cAllowed    = ENET_NOT_ZERO(flags & ETHFW_BOARD_I2C_ALLOWED);
+
+    /* Full virtual client concurrency requires 5 MAC addresses, but only 4 addresses
+     * are flashed in QSGMII expansion board's EEPROM, so use static pool instead */
+    gEthFwBoard.staticMacPool = true;
 
     /* Enable hardware block/modules that EthFw will need */
     EthFwBoard_enableMods();
@@ -439,7 +446,7 @@ uint32_t EthFwBoard_getMacAddrPool(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
 {
     uint32_t allocCnt;
 
-    if (gEthFwBoard.i2cAllowed)
+    if (gEthFwBoard.i2cAllowed && !gEthFwBoard.staticMacPool)
     {
         allocCnt = EthFwBoard_getMacAddrPoolEeprom(macAddr, poolSize);
     }
