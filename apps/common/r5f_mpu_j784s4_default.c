@@ -201,7 +201,7 @@ const CSL_ArmR5MpuRegionCfg  gCslR5MpuCfg[CSL_ARM_R5F_MPU_REGIONS_MAX] =
         .regionId         = 10U,
         .enable           = 1U,
         .baseAddr         = 0xAD000000,
-        .size             = CSL_ARM_R5_MPU_REGION_SIZE_16MB,
+        .size             = CSL_ARM_R5_MPU_REGION_SIZE_32MB,
         .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
         .exeNeverControl  = 1U,
         .accessPermission = CSL_ARM_R5_ACC_PERM_PRIV_USR_RD_WR,
@@ -248,7 +248,7 @@ const CSL_ArmR5MpuRegionCfg  gCslR5MpuCfg[CSL_ARM_R5F_MPU_REGIONS_MAX] =
          */
         .regionId         = 13U,
         .enable           = 1U,
-        .baseAddr         = 0xAE000000,
+        .baseAddr         = 0xAF000000,
         .size             = CSL_ARM_R5_MPU_REGION_SIZE_2MB,
         .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
         .exeNeverControl  = 1U,
@@ -264,7 +264,7 @@ const CSL_ArmR5MpuRegionCfg  gCslR5MpuCfg[CSL_ARM_R5F_MPU_REGIONS_MAX] =
          */
         .regionId         = 14U,
         .enable           = 1U,
-        .baseAddr         = 0xAE200000,
+        .baseAddr         = 0xAF200000,
         .size             = CSL_ARM_R5_MPU_REGION_SIZE_16MB,
         .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
         .exeNeverControl  = 1U,

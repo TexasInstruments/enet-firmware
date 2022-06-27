@@ -237,7 +237,7 @@ static uint32_t gRemoteProc[] =
 #elif defined(SOC_J7200)
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
 #elif defined(SOC_J784S4)
-    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
     IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
 #endif
