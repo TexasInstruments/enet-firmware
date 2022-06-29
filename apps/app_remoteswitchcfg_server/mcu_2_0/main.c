@@ -149,10 +149,12 @@
 
 #define VQ_BUF_SIZE                             (2048U)
 
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E)
 #define IPC_VRING_MEM_SIZE                      (32U * 1024U * 1024U)
 #elif defined(SOC_J7200)
 #define IPC_VRING_MEM_SIZE                      (8U * 1024U * 1024U)
+#elif defined(SOC_J784S4)
+#define IPC_VRING_MEM_SIZE                      (48U * 1024U * 1024U)
 #else
 #error "Unsupported device"
 #endif
