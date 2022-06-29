@@ -382,7 +382,6 @@ static void EthFwBoard_configUart(void)
 
 static void EthFwBoard_configQenet(void)
 {
-    EnetAppUtils_MmrLockState prevLockState;
     Board_STATUS boardStatus;
 
     if (gEthFwBoard.i2cAllowed)
@@ -405,16 +404,9 @@ static void EthFwBoard_configQenet(void)
         /* Configure SerDes clocks */
         EthFwBoard_configTorrentClks();
 
-        prevLockState = EnetAppUtils_mainMmrCtrl(ENETAPPUTILS_MMR_LOCK1, ENETAPPUTILS_UNLOCK_MMR);
-
         /* Configure SerDes for QSGMII functionality */
         boardStatus = Board_serdesCfgQsgmii();
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
-
-        if (prevLockState == ENETAPPUTILS_LOCK_MMR)
-        {
-            EnetAppUtils_mainMmrCtrl(ENETAPPUTILS_MMR_LOCK1, ENETAPPUTILS_LOCK_MMR);
-        }
     }
 }
 
