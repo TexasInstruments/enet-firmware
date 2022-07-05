@@ -23,8 +23,8 @@ Inter-VLAN routing | Inter-VLAN routing configuration in hardware with software 
 lwIP integration | Integration of TCP/IP stack enabling TCP, UDP.
 MAC-only         | Port configuration in MAC-only mode for traffic exclusively forwarded to host port, excludes the designated port(s) from switching logic
 Intercore Virtual Ethernet |  Shared memory-based virtual Ethernet adapter communication between cores
-Multi-core broadcast an multicast support | Multi-core concurrent reception of broadcast and multicast traffic using SW based fan-out
-Ability to send broadcast and multicast traffic to multiple cores
+Multi-core broadcast an multicast support | Multi-core concurrent reception of broadcast and multicast traffic using SW based fan-out 
+^ | Ability to send broadcast and multicast traffic to multiple cores
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
 
@@ -125,7 +125,7 @@ is periodically synchronized with the CPTS clock via HW push event 2.
 ### Porting RTOS client to Main R5F 1 Core 0 {#ethfw_client_rtos_mcu30}
 
 Ethernet Firmware provides RTOS client support only on Main R5F 0 core 1 (*mcu2_1*) in
-J721E and J7200 SoCs.  Consequently, it's recommended to use *mcu2_1* processing core
+all supported SoCs.  Consequently, it's recommended to use *mcu2_1* processing core
 if virtual network interface support is required on an RTOS core.
 
 However, in SoCs with multiple R5F cores, like J721E, system design may require virtual
@@ -276,7 +276,7 @@ mode has been enabled, let's start by defining key concepts:
 ![](EthFw_PortCfg_generic.png "Ethernet Firmware logical ports and hardware ports")
 
 The default port configuration for J721E and J7200 are shown in \ref ethfw_j721e_port_cfg
-and \ref ethfw_j7200_port_cfg subsections, respectively.
+\ref ethfw_j7200_port_cfg and \ref ethfw_j784s4_port_cfg subsections, respectively.
 
 The port's default VLAN for MAC ports configured in MAC-only mode is `0`, and for MAC ports
 configured in switch mode is `1`. They can be changed via `EthFw_Config::dfltVlanIdMacOnlyPorts`
@@ -519,7 +519,7 @@ which is also a limited resource.
 
 Ethernet Firmware relies on Enet LLD's utils library to populate its MAC address pool
 (see `EnetAppUtils_initResourceConfig()`).  The MAC address pool is populated with addresses
-read from EEPROMs located in the different daughter boards in TI EVM.  Note that a static
+read from EEPROMs located in the different expansion boards in TI EVM.  Note that a static
 MAC address pool is used as a workaround in TI EVMs for cases where I2C bus contention could
 happen (i.e. when integrating with Linux).  It's expected that the MAC address pool population
 mechanism is adapted when integrating Ethernet Firmware to different platforms.
@@ -590,7 +590,7 @@ because QNX virtual MAC driver does not support MAC-only mode.
 ## J7200 Port Configuration {#ethfw_j7200_port_cfg}
 
 All the four MAC ports of CPSW5G are enabled by default in Ethernet Firmware for J7200 SoC.
-These are the four QSGMII MAC ports in QSGMII (QpENet) daughter board.
+These are the four QSGMII MAC ports in QSGMII (QpENet) expansion board.
 
 Two MAC ports are configured in MAC-only mode and allocated for A72 (Linux) and Main R5F
 Core 1 (RTOS) usage.  The remaining two MAC ports are configured in switch mode.
@@ -612,6 +612,38 @@ because QNX virtual MAC driver does not support MAC-only mode.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+## J784S4 Port Configuration {#ethfw_j784s4_port_cfg}
+
+J784S4 EVM provides two *Enet* expansion connectors (`ENET-EXP-1` and `ENET-EXP-2`) where
+two expansion boards can be connected.  QSGMII (QpENet) board can be connected to either
+expansion connector, but two QSGMII boards cannot be connected simultaneously due to board
+limitation.
+
+Only four MAC ports of CPSW9G are enabled by default in Ethernet Firmware for J784S4 SoC.
+These are the four QSGMII MAC ports in QSGMII (QpENet) expansion board when connected in
+slot 1 (`ENET-EXP-1`).
+
+Two MAC ports are configured in MAC-only mode and allocated for A72 (Linux) and Main R5F
+Core 1 (RTOS) usage.  The remaining two MAC ports are configured in switch mode.
+
+![](EthFw_PortCfg_j784s4_evm.png "J784S4 default port configuration")
+
+The following table shows the full list of MAC ports in J784S4 EVM, the board they are
+located and their MAC mode.
+
+| MAC Port    | PHY Addr | Board  | MAC mode
+|:------------|:--------:|:------:|:------------
+| MAC Port 1  |   16     | QSGMII | MAC-only
+| MAC Port 3  |   17     | QSGMII | Switch Port
+| MAC Port 4  |   18     | QSGMII | MAC-only
+| MAC Port 5  |   19     | QSGMII | Switch Port
+
+MAC ports 2, 6, 7 and 8 are not enabled.
+
+**Note:** All enabled MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_A72=yes)
+because QNX virtual MAC driver does not support MAC-only mode.
+
+[Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Inter-core Virtual Ethernet {#ethfw_intercore_eth}
@@ -1022,7 +1054,7 @@ Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN ro
 ## EthFw Switching & TCP/IP Apps Demo {#ethfw_switching_demo}
 
 This demo showcases switching capabilities of the integrated Ethernet Switch
-(CPSW9G or CPSW5G) found in J721E or J7200 devices for features like VLAN,
+(CPSW9G or CPSW5G) found in J721E, J7200 and J784S4 devices for features like VLAN,
 Multicast, etc.  It also demonstrates lwIP (TCP/IP stack) integration into
 the EthFw.
 
@@ -1070,10 +1102,18 @@ vs running demo applications only).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Hardware Dependencies {#ethfw_depend_hw}
 
-EthFw is supported on the boards/EVM listed below
-- @ref ethfw_depend_evm_j721e
-- @ref ethfw_depend_evm_gesi_j721e (J721E only)
-- @ref ethfw_depend_evm_quadport_j7200 (J7200 only)
+EthFw is supported on the following EVMs and expansion boards listed below:
+
+SoC     | EVM                           | Expansion boards
+--------|-------------------------------|--------------------------------
+J721E   | \ref ethfw_depend_evm_j721e   | \ref ethfw_depend_evm_gesi_j721e
+^       | ^                             | \ref ethfw_depend_evm_quadport_j721e
+J7200   | \ref ethfw_depend_evm_j721e   | \ref ethfw_depend_evm_quadport_j7200
+J784S4  | \ref ethfw_depend_evm_j784s4  | \ref ethfw_depend_evm_quadport_j784s4
+
+
+**Note:** Quad-Port Eth expansion board is supported in all EVMs, but with different
+MAC port number assignments, hence they are listed in separate sections.
 
 
 ### J721E/J7200 EVM {#ethfw_depend_evm_j721e}
@@ -1101,20 +1141,52 @@ by default in the Ethernet Firmware for J7200.
 [Back To Top](@ref ethfw_c_ug_top)
 
 
+### J721E Quad-Port Eth Expansion Board {#ethfw_depend_evm_quadport_j721e}
+
+The Quad-Port Eth expansion board in J721E EVM provides four MAC ports in addition
+to the four MAC ports in GESI board.
+
+It enables four MAC ports: **MAC Port 2**, **MAC Port 5**, **MAC Port 6** and
+**MAC Port 7**.
+
+![](J721E_QPENet_Board.png "Quad Port Eth Board connections in J7200 EVM")
+
+Please refer to the SDK for more details about installation and getting started on
+J721E EVM.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
 ### J7200 Quad-Port Eth Expansion Board {#ethfw_depend_evm_quadport_j7200}
 
-There is one QSGMII PHY in the Quad Port Eth expansion board as shown in the
-following image.  It enables four MAC ports which will be referred to as
-**MAC Port 0**, **MAC Port 1**, **MAC Port 2** and **MAC Port 3** throughout
-this document.
+The Quad-Port Eth expansion board provides the connectivity to the four MAC ports
+in J7200's CPSW5G: **MAC Port 1**, **MAC Port 2**, **MAC Port 3** and **MAC Port 4**.
 
-![](QPENet_Board.png "Quad Port Eth Board connections")
+![](J7200_QPENet_Board.png "Quad Port Eth Board connections in J7200 EVM")
 
-Please refer to the SDK Description for details about installation and getting
-started of J7200 EVM.
+Please refer to the SDK for more details about installation and getting started on
+J7200 EVM.
 
-**Note:** Quad Port Eth expansion board is also available in J721E EVM, but it's
-not enabled by default in the Ethernet Firmware for J721E.
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+### J784S4 EVM {#ethfw_depend_evm_j784s4}
+
+![](J784S4EVM_CPSW_TopView.png "J784S4 EVM connections")
+
+
+### J784S4 Quad-Port Eth Expansion Board {#ethfw_depend_evm_quadport_j784s4}
+
+Currently, Ethernet Firmware supports only one Quad-Port Eth expansion board
+connected in expansion connectors labeled as `ENET-EXP-1`.
+
+It enables four MAC ports: **MAC Port 1**, **MAC Port 3**, **MAC Port 4** and
+**MAC Port 5**.
+
+![](J784S4_QPENet_Board.png "Quad Port Eth Board connections in J784S4 EVM")
+
+Please refer to the SDK for more details about installation and getting started on
+J784S4 EVM.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1187,7 +1259,7 @@ LwIP supports the following features:
 - ARP (Address Resolution Protocol)
 
 Starting in SDK 8.0, Ethernet Firmware has been migrated to lwIP stack.  The actual
-integration of lwIP into J721E/J7200 devices is done through Enet LLD, which
+integration of lwIP into J721E/J7200/J784S4 devices is done through Enet LLD, which
 implements the lwIP netif driver interface.
 
 The Enet LLD lwIP driver interface implementation can be located at:
@@ -1231,7 +1303,7 @@ for Ethernet Firmware itself fall into this processing category.
 ## IDE (CCS) {#ethfw_instal_ccs}
 
 -# Install Code Composer Studio and setup a <b>Target Configuration</b> for
-   use with J721E or J7200 EVM.
+   use with J721E, J7200 or J784S4 EVM.
 
 -# Refer to the instructions in @ref ccs_setup_top section for Code Code Composer
    and emulation packs installation as well as Target Configuration file creation.
@@ -1314,8 +1386,9 @@ makefile. The default paths in `ethfw_tools_path.mak` are defined based on the a
 that the EthFw package has been installed inside the Processor SDK main directory.
 
 Typically, the Processor SDK installation path is `~/ti` in Linux-based systems.
-So, a typical EthFw installation would be at `~/ti/ti-processor-sdk-rtos-j721e-evm-08_xx_yy_zz`.
-In this case, no additional environment setup steps are required.
+So, a typical EthFw installation would be at `~/ti/ti-processor-sdk-rtos-j721e-evm-08_xx_yy_zz`
+or similarly for other SoCs.  In this case, no additional environment setup steps
+are required.
 
 If either Processor SDK or EthFw have been installed at different locations that those
 mentioned in previous paragraph, the following variables can be passed to the make
@@ -1343,11 +1416,18 @@ The make commands listed below require the environment setup according to
 
 Build EthFw components as well as its dependencies, including PDK, lwIP, etc.
 
+For J721E:
+
     make ethfw_all BUILD_SOC_LIST=J721E
 
-or
+For J7200:
 
     make ethfw_all BUILD_SOC_LIST=J7200
+
+For J784S4:
+
+    make ethfw_all BUILD_SOC_LIST=J784S4
+
 
 Verbose build can be enabled by setting the **SHOW_COMMANDS** variable as
 shown below:
@@ -1382,7 +1462,7 @@ The make commands listed below require the environment setup according to
 
 Clean EthFw components as well as its dependencies:
 
-    make ethfw_all_clean
+    make ethfw_all_clean BUILD_SOC_LIST=<SOC>
 
 
 ### Remove build output {#ethfw_build_clean_binaries}
@@ -1475,6 +1555,8 @@ Flag                             | Description
 `-D=J721E`                       | Identifies the J721E device type
 `-D=SOC_J7200`                   | Identifies the J7200 SoC type
 `-D=J7200`                       | Identifies the J7200 device type
+`-D=SOC_J784S4                   | Identifies the J784S4 SoC type
+`-D=J784s4`                      | Identifies the J784S4 device type
 `-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
@@ -1503,6 +1585,8 @@ Flag                             | Description
 `-D=J721E`                       | Identifies the J721E device type
 `-D=SOC_J7200`                   | Identifies the J7200 SoC type
 `-D=J7200`                       | Identifies the J7200 device type
+`-D=SOC_J784S4                   | Identifies the J784S4 SoC type
+`-D=J784s4`                      | Identifies the J784S4 device type
 `-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
@@ -1517,9 +1601,11 @@ Flag                             | Description
 # Supported Device Families {#ethfw_supported_family}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Device Family | Variant          | Known by other names
---------------|------------------|--------------------
-Jacinto 7     | J721E, J7200     | -
+Device Family | Variant              | Known by other names
+--------------|----------------------|--------------------
+Jacinto 7     | J721E                | -
+^             | J7200                | -
+^             | J784S4               | -
 
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -1542,6 +1628,7 @@ Revision | Date          | Author                 | Description
 1.2      | 02 Nov 2020   | Misael Lopez           | Updated for Enet LLD migration
 1.3      | 01 Dec 2021   | Nitin Sakhuja          | Adedd Inter-core Ethernet support for SDK 8.1
 1.4      | 07 Dec 2021   | Misael Lopez           | Adedd MAC-only, server and client doc
+1.5      | 01 Jul 2021   | Misael Lopez           | Updates for J784S4 support and SDK 8.02.01
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)

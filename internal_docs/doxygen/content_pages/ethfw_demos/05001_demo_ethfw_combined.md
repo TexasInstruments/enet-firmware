@@ -53,9 +53,13 @@ The connection diagrams for the respective EVMs are shown below.
 
 ![](demo_l2_switching_connections_j721e.png "EthFw demo connections diagram - J721E EVM")
 
-###Connection diagram for J7200 EVM with QPEnet Daughter Card
+###Connection diagram for J7200 EVM with QpENet Daughter Card
 
 ![](demo_l2_switching_connections_j7200.png "EthFw demo connections diagram - J7200 EVM")
+
+###Connection diagram for J784S4 EVM with QpENet Daughter Card
+
+![](demo_l2_switching_connections_j784s4.png "EthFw demo connections diagram - J784S4 EVM")
 
 > **Note:** The IP addresses shown in above diagram are only for example and can change based on your network
 > configuration.
@@ -246,14 +250,14 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
    for suggested instructions about static IP configuration under a Windows
    environment.
 
-    Device                                    |  IP address
-    ----------------------------------------- | -------------
-    PC 1 (Plex server)                        | 192.168.1.202
-    J721E/J7200 Main R5F core (running EthFw) | 192.168.1.203
-    PC 2 (Plex client)                        | 192.168.1.204
-    J721E/J7200 A72 core (virtual net driver) | 192.168.1.205
-    Default Gateway                           | 192.168.1.1
-    Subnet Mask                               | 255.255.255.0
+    Device                                           |  IP address
+    ------------------------------------------------ | -------------
+    PC 1 (Plex server)                               | 192.168.1.202
+    J721E/J7200/J784S4 Main R5F core (running EthFw) | 192.168.1.203
+    PC 2 (Plex client)                               | 192.168.1.204
+    J721E/J7200/J784S4 A72 core (virtual net driver) | 192.168.1.205
+    Default Gateway                                  | 192.168.1.1
+    Subnet Mask                                      | 255.255.255.0
 
 > **Note:** Make sure that all IPs assigned manually are in the same subnet as the Ethernet Firmware.
 
@@ -267,6 +271,10 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
 
 > **Note:** **PC 2** should be connected to MAC port 3 in J7200. Refer to
 > @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J7200 EVM.
+> CPTS event lookup errors will be seen if connected to a different MAC port.
+
+> **Note:** **PC 2** should be connected to MAC port 3 in J784S4. Refer to
+> @ref ethfw_depend_evm_quadport_j784s4 for MAC port numbers in J784S4 EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
 PTP stack is required to run master clock and synchronize with the slave
@@ -318,11 +326,11 @@ where eth3 is the interface you want to check.
 
        sudo ptp4l -P -2 -S -i eth3 -m -q -p -l 7 /dev/ptp0
 
-   Replace -S with -H if your NIC supports hardware timestamping.
+   Replace `-S` with `-H` if your NIC supports hardware timestamping.
 
 -# Optional: PTP packets can be monitored using Wireshark from PC by setting
    `ptp` in Wireshark's display filter.  The timestamp sent from the
-   J721E/J7200 EVM should be updated to current time, i.e. responseOriginTimestamp
+   J721E/J7200/J784S4 EVM should be updated to current time, i.e. responseOriginTimestamp
    in TI EVM's Path_Delay_Resp_Follow_Up message.  The value from this field can
    be converted to a human-readable date using [epochconverter.com](http://www.epochconverter.com)
    or other tools.
@@ -335,16 +343,16 @@ where eth3 is the interface you want to check.
 ### Prerequisites {#demo_l2_switchin_CCS_prereqs}
 
 Install Code Composer Studio and setup a <b>Target Configuration</b> for use
-with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
+with J721E, J7200 or J784S4 EVM. Refer to @ref ethfw_instal_ccs.
 
 ### Steps {#demo_ethfw_combined_CCS_steps}
 
--# Connect a micro USB cable to JTAG port of J721E/J7200_EVM. The XDS110 JTAG
-   connector is labeled `XDS110` (J3).  Alternatively, XDS560v2 debugger can
-   be connected to the JTAG connected labeled `JTAG MIPI` (J16).
+-# Connect a micro USB cable to JTAG port of J721E/J7200/J784S4_EVM. The XDS110 JTAG
+   connector is labeled `XDS110`.  Alternatively, XDS560v2 debugger can
+   be connected to the JTAG connected labeled `JTAG MIPI`.
 
--# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM or J7200_EVM.
-   It's labeled `UART` (J44).
+-# Connect a micro USB cable to MAIN Domain UART port on J721E/J7200/J784S4 EVM.
+   It's labeled `UART`.
 
 -# Set EVM's DIP switches `SW8` and `SW9` for no-boot mode:
    * SW8 = 10001000
@@ -358,7 +366,7 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
    ![](demo_l2_switching_minicom.png "Serial Port Settings in Minicom")
 
--# Power on the J721E/J7200 EVM board. Ensure that SD card is not present or QSPI
+-# Power on the J721E/J7200/J784S4 EVM board. Ensure that SD card is not present or QSPI
    flashed.
 
 -# Connect the laptops/PCs as per demo connections diagram above.
@@ -373,7 +381,7 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
    * Load Main R5F core 1: app_remoteswitchcfg_client.xer5f
    * Run Main R5F core 1
    * Run Main R5F core 0
-   * **Note:** For loading demo application binaries through CCS on J721E/J7200,
+   * **Note:** For loading demo application binaries through CCS on J721E/J7200/J784S4,
      please refer to CCS setup section in SDK top level documentation.
 
 -# Start Runtime Object View (ROV) in CCS for the Main R5F core 1 and navigate
@@ -393,7 +401,7 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
    For details about SD card creation, refer to the Processor SDK Linux
    Automotive User's Guide.
 
--# Copy the demo application to the `ethfw` directory of Linux file system
+-# Copy the demo application to the `ethfw` directory of Linux filesystem
    in SD card.
 
    For J721E using FREERTOS:
@@ -432,8 +440,8 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
        cd <MOUNT>/rootfs/lib/firmware/
        ln -sf app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
 
--# Connect a micro USB cable to MAIN Domain UART port on J721E_EVM or J7200_EVM.
-   It's labeled `UART` (J44).
+-# Connect a micro USB cable to MAIN Domain UART port on J721E/J7200/J784S4 EVM.
+   It's labeled `UART`.
 
 -# Set EVM's DIP switches `SW8` and `SW9` for SD card boot:
    * SW8 = 10000010
@@ -451,7 +459,7 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
 
    ![](demo_l2_switching_minicom.png "Serial Port Settings in Minicom")
 
--# Insert SD card into slot labeled `MICRO SD` and power on the J721E/J7200 EVM board.
+-# Insert SD card into slot labeled `MICRO SD` and power on the J721E/J7200/J784S4 EVM board.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -477,6 +485,14 @@ with J721E or J7200 EVM. Refer to @ref ethfw_instal_ccs.
        section to find the right RJ-45 connector.
 
     -# Connect **PC 2** to MAC port 2 of QPENet board.
+
+-# For J784S4 EVM:
+
+    -# Connect **PC 1** to MAC port 3 of Quad Port Eth board. Refer to the
+       [J784S4 EVM QPENet Expansion Board](@ref ethfw_depend_evm_quadport_j784s4)
+       section to find the right RJ-45 connector.
+
+    -# Connect **PC 2** to MAC port 5 of QPENet board.
 
 > **Note:** The demo application in this release assumes that external devices,
 > **PC 1** and **PC 2**, are connected prior to starting the demo.  It's a
@@ -1203,3 +1219,4 @@ Revision | Date          | Author                 | Description
 1.2      | 08 Jul 2021   | Misael Lopez           | Updates for v.8.00.00
 1.3      | 03 Dec 2021   | Nitin Sakhuja          | Updates for v.8.01.00
 1.4      | 27 Feb 2022   | Misael Lopez           | Updates for v.8.02.00 (Updated logs)
+1.5      | 01 Jul 2022   | Misael Lopez           | Updates for v.8.02.01 (J784S4 support)
