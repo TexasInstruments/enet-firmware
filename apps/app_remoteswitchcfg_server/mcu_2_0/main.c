@@ -258,6 +258,8 @@ typedef struct
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
+void appLogPrintf(const char *format, ...);
+
 static void EthApp_waitForDebugger(void);
 
 static void EthApp_initTaskFxn(void* arg0, void* arg1);
@@ -498,6 +500,7 @@ int main(void)
     TaskP_Params taskParams;
     SemaphoreP_Params semParams;
     uint32_t flags = 0U;
+    int32_t status;
 
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
@@ -530,23 +533,30 @@ int main(void)
 #endif
 
     /* Board related initialization */
-    EthFwBoard_init(flags);
-
-    /* Create initialization task */
-    TaskP_Params_init(&taskParams);
-    taskParams.priority = 2;
-    taskParams.stack = &gEthAppStackBuf[0];
-    taskParams.stacksize = sizeof(gEthAppStackBuf);
-    taskParams.name = "EthFw Init Task";
-
-    task = TaskP_create(EthApp_initTaskFxn, &taskParams);
-    if (NULL == task)
+    status = EthFwBoard_init(flags);
+    if (status != ENET_SOK)
     {
-        OS_stop();
+        appLogPrintf("ETHFW: Board initialization failed\n");
     }
 
-    /* Does not return */
-    OS_start();
+    /* Create initialization task */
+    if (status == ENET_SOK)
+    {
+        TaskP_Params_init(&taskParams);
+        taskParams.priority = 2;
+        taskParams.stack = &gEthAppStackBuf[0];
+        taskParams.stacksize = sizeof(gEthAppStackBuf);
+        taskParams.name = "EthFw Init Task";
+
+        task = TaskP_create(EthApp_initTaskFxn, &taskParams);
+        if (NULL == task)
+        {
+            OS_stop();
+        }
+
+        /* Does not return */
+        OS_start();
+    }
 
     return(0);
 }
