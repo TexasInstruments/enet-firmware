@@ -85,6 +85,9 @@ typedef struct EthFwBoard_Obj_s
     /* SerDes configuration allowed */
     bool serdesAllowed;
 
+    /* QSGMII board detected */
+    bool qenetDetected;
+
     /* Use static MAC pool or populated from EEPROM */
     bool staticMacPool;
 } EthFwBoard_Obj;
@@ -264,12 +267,23 @@ int32_t EthFwBoard_init(uint32_t flags)
 
     /* Detect expansion boards attached to main board (CPB) */
     EthFwBoard_detectDBs();
+    if (!gEthFwBoard.qenetDetected)
+    {
+        appLogPrintf("Quad-Port Eth expansion board not detected\n");
+        boardStatus = ENET_EFAIL;
+    }
 
     /* Configure QSGMII expansion board */
-    EthFwBoard_configQenet();
+    if (boardStatus == BOARD_SOK)
+    {
+        EthFwBoard_configQenet();
+    }
 
     /* Set CPSW clocks: CPPI, RGMII 5/50/250 MHz, CPTS */
-    EthFwBoard_configCpswClocks();
+    if (boardStatus == BOARD_SOK)
+    {
+        EthFwBoard_configCpswClocks();
+    }
 
     return boardStatus;
 }
@@ -358,13 +372,15 @@ static void EthFwBoard_configPinmux(void)
 
 static void EthFwBoard_detectDBs(void)
 {
-    bool qenetDetected;
-
     if (gEthFwBoard.i2cAllowed)
     {
-        qenetDetected = Board_detectBoard(BOARD_ID_ENET);
-
-        appLogPrintf("Detected boards:%s\n", qenetDetected ? " QSGMII" : "");
+        gEthFwBoard.qenetDetected = Board_detectBoard(BOARD_ID_ENET);
+        appLogPrintf("Detected boards: %s\n", gEthFwBoard.qenetDetected ? "QSGMII" : "None");
+    }
+    else
+    {
+        /* Assume expansion board is present if detection not allowed */
+        gEthFwBoard.qenetDetected = true;
     }
 }
 
