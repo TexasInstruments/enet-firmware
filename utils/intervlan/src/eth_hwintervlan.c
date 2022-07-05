@@ -99,8 +99,11 @@
 #if defined(SOC_J721E)
 #define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_8)
 #define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_3)
-#elif defined(SOC_J7200) || defined(SOC_J784S4)
+#elif defined(SOC_J7200)
 #define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_2)
+#define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_3)
+#elif defined(SOC_J784S4)
+#define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_5)
 #define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_3)
 #else
 #error "Unsupported SoC"
