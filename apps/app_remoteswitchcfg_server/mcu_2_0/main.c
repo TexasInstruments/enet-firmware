@@ -519,9 +519,9 @@ int main(void)
 #endif
 
 #if defined(SOC_J7200)
-    flags |= ETHFW_BOARD_QENET_ENABLE;
+    flags |= (ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_SERDES_CONFIG);
 #if defined(ETHFW_CCS)
-    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_I2C_ALLOWED);
+    flags |= (ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_I2C_ALLOWED);
 #endif
 #endif
 
