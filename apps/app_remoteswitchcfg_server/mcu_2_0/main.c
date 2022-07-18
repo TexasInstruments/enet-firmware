@@ -211,6 +211,13 @@
 /* Max length of shared mcast address list */
 #define ETHAPP_MAX_SHARED_MCAST_ADDR        (8U)
 
+/* Required size of the MAC address pool (specific to the TI EVM configuration):
+ *  1 x MAC address for Ethernet Firmware
+ *  2 x MAC address for mpu1_0 virtual switch and MAC-only ports (Linux, 1 for QNX)
+ *  2 x MAC address for mcu2_1 virtual switch and MAC-only ports (RTOS)
+ *  1 x MAC address for mcu2_1 virtual switch port (AUTOSAR) */
+#define ETHAPP_MAC_ADDR_POOL_SIZE               (6U)
+
 /* Define A72_QNX_OS if A72 is running Qnx. Qnx doesn't load resource table. */
 /* #define A72_QNX_OS */
 
@@ -771,6 +778,7 @@ static int32_t EthApp_initEthFw(void)
     Cpsw_Cfg *cpswCfg = &ethFwCfg.cpswCfg;
     EnetUdma_Cfg dmaCfg;
     EnetRm_MacAddressPool *pool = &cpswCfg->resCfg.macList;
+    uint32_t poolSize;
     int32_t status = ETHAPP_OK;
     uint32_t i;
 
@@ -783,8 +791,8 @@ static int32_t EthApp_initEthFw(void)
     cpswCfg->dmaCfg = (void *)&dmaCfg;
 
     /* Populate MAC address pool */
-    pool->numMacAddress = EthFwBoard_getMacAddrPool(pool->macAddress,
-                                                    ENET_ARRAYSIZE(pool->macAddress));
+    poolSize = EnetUtils_min(ENET_ARRAYSIZE(pool->macAddress), ETHAPP_MAC_ADDR_POOL_SIZE);
+    pool->numMacAddress = EthFwBoard_getMacAddrPool(pool->macAddress, poolSize);
 
     /* Set hardware port configuration parameters */
     ethFwCfg.ports    = &gEthAppPorts[0];
