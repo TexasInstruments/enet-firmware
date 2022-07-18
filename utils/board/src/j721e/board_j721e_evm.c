@@ -592,15 +592,23 @@ static void EthFwBoard_configCpswClocks(void)
 uint32_t EthFwBoard_getMacAddrPool(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
                                    uint32_t poolSize)
 {
-    uint32_t allocCnt;
+    uint32_t allocCnt = 0U;
+    uint32_t staticCnt = 0U;
 
     if (gEthFwBoard.i2cAllowed)
     {
         allocCnt = EthFwBoard_getMacAddrPoolEeprom(macAddr, poolSize);
     }
-    else
+
+    if (allocCnt < poolSize)
     {
-        allocCnt = EthFwBoard_getMacAddrPoolStatic(macAddr, poolSize);
+        staticCnt = EthFwBoard_getMacAddrPoolStatic(&macAddr[allocCnt], poolSize - allocCnt);
+        if (staticCnt > 0U)
+        {
+            appLogPrintf("Warning: Using %u MAC address(es) from static pool\n", staticCnt);
+        }
+
+        allocCnt += staticCnt;
     }
 
     return allocCnt;
@@ -661,7 +669,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
 
     if (allocCnt == 0U)
     {
-        EnetAppUtils_print("No MAC addresses read from GESI and/or QENET boards\n");
+        appLogPrintf("No MAC addresses read from GESI and/or QENET boards\n");
         EnetAppUtils_assert(false);
     }
 

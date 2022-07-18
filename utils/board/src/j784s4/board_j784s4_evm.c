@@ -87,9 +87,6 @@ typedef struct EthFwBoard_Obj_s
 
     /* QSGMII board detected */
     bool qenetDetected;
-
-    /* Use static MAC pool or populated from EEPROM */
-    bool staticMacPool;
 } EthFwBoard_Obj;
 
 /*!
@@ -242,10 +239,6 @@ int32_t EthFwBoard_init(uint32_t flags)
     gEthFwBoard.serdesAllowed = ENET_NOT_ZERO(flags & ETHFW_BOARD_SERDES_CONFIG);
     gEthFwBoard.uartAllowed   = ENET_NOT_ZERO(flags & ETHFW_BOARD_UART_ALLOWED);
     gEthFwBoard.i2cAllowed    = ENET_NOT_ZERO(flags & ETHFW_BOARD_I2C_ALLOWED);
-
-    /* Full virtual client concurrency requires 5 MAC addresses, but only 4 addresses
-     * are flashed in QSGMII expansion board's EEPROM, so use static pool instead */
-    gEthFwBoard.staticMacPool = true;
 
     /* Enable hardware block/modules that EthFw will need */
     EthFwBoard_enableMods();
@@ -460,12 +453,12 @@ uint32_t EthFwBoard_getMacAddrPool(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
         allocCnt = EthFwBoard_getMacAddrPoolEeprom(macAddr, poolSize);
     }
 
-    if ((allocCnt < poolSize) && gEthFwBoard.staticMacPool)
+    if (allocCnt < poolSize)
     {
         staticCnt = EthFwBoard_getMacAddrPoolStatic(&macAddr[allocCnt], poolSize - allocCnt);
         if (staticCnt > 0U)
         {
-            EnetAppUtils_print("Warning: Using %u MAC address(es) from static pool\n", staticCnt);
+            appLogPrintf("Warning: Using %u MAC address(es) from static pool\n", staticCnt);
         }
 
         allocCnt += staticCnt;
@@ -502,7 +495,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
 
     if (allocCnt == 0U)
     {
-        EnetAppUtils_print("No MAC addresses read from QENET board\n");
+        appLogPrintf("No MAC addresses read from QENET board\n");
         EnetAppUtils_assert(false);
     }
 
