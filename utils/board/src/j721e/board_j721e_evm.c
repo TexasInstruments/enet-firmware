@@ -227,10 +227,8 @@ static const Dp83867_Cfg gEnetGesiBoard_dp83867PhyCfg =
     },
 };
 
-/* Default port configuration for all ports in EVM:
- *   4 x RGMII ports in GESI
- *   4 x QSGMII ports in QEnet */
-static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
+/* 4 x RGMII ports in GESI expansion board */
+static EthFwBoard_MacPortCfg gEthFw_gesiMacPortCfg[] =
 {
     {   /* "PRG1_RGMII1_B" */
         .macPort   = ENET_MAC_PORT_1,
@@ -288,6 +286,11 @@ static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
         .sgmiiMode = ENET_MAC_SGMIIMODE_INVALID,
         .linkCfg   = { ENET_SPEED_AUTO, ENET_DUPLEX_AUTO },
     },
+};
+
+/* 4 x QSGMII ports in QEnet expansion board */
+static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
+{
     {   /* "P0" */
         .macPort   = ENET_MAC_PORT_2,
         .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_QUAD_SERIAL_MAIN },
@@ -404,20 +407,64 @@ int32_t EthFwBoard_init(uint32_t flags)
 
 uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])
 {
-    uint32_t numMacPorts;
+    uint32_t num = 0U;
+    uint32_t req;
     uint32_t i;
 
     memset(macPorts, 0, sizeof(*macPorts));
 
-    numMacPorts = EnetUtils_min(ENET_ARRAYSIZE(gEthFw_macPortCfg),
-                                ENET_MAC_PORT_NUM);
-
-    for (i = 0U; i < numMacPorts; i++)
+    if (gEthFwBoard.gesiEnabled && gEthFwBoard.gesiDetected)
     {
-        macPorts[i] = gEthFw_macPortCfg[i].macPort;
+        req = EnetUtils_min(ENET_MAC_PORT_NUM, ENET_ARRAYSIZE(gEthFw_gesiMacPortCfg));
+        for (i = 0U; i < req; i++)
+        {
+            macPorts[num++] = gEthFw_gesiMacPortCfg[i].macPort;
+        }
     }
 
-    return numMacPorts;
+    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    {
+        req = EnetUtils_min(ENET_MAC_PORT_NUM - num, ENET_ARRAYSIZE(gEthFw_qenetMacPortCfg));
+        for (i = 0U; i < req; i++)
+        {
+            macPorts[num++] = gEthFw_qenetMacPortCfg[i].macPort;
+        }
+    }
+
+    return num;
+}
+
+static const EthFwBoard_MacPortCfg *EthFwBoard_findPortCfg(Enet_MacPort macPort)
+{
+    const EthFwBoard_MacPortCfg *portCfg = NULL;
+    uint32_t i;
+
+    if (gEthFwBoard.gesiEnabled && gEthFwBoard.gesiDetected)
+    {
+        for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_gesiMacPortCfg); i++)
+        {
+            if (gEthFw_gesiMacPortCfg[i].macPort == macPort)
+            {
+                portCfg = &gEthFw_gesiMacPortCfg[i];
+                break;
+            }
+        }
+    }
+
+    if ((portCfg == NULL) &&
+        gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    {
+        for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_qenetMacPortCfg); i++)
+        {
+            if (gEthFw_qenetMacPortCfg[i].macPort == macPort)
+            {
+                portCfg = &gEthFw_qenetMacPortCfg[i];
+                break;
+            }
+        }
+    }
+
+    return portCfg;
 }
 
 int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
@@ -426,40 +473,35 @@ int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
                               EnetPhy_Cfg *phyCfg,
                               EnetMacPort_LinkCfg *linkCfg)
 {
-    EthFwBoard_MacPortCfg *portCfg;
+    const EthFwBoard_MacPortCfg *portCfg;
     uint32_t i;
     int32_t status = ENET_ENOTFOUND;
 
     CpswMacPort_initCfg(macCfg);
     EnetPhy_initCfg(phyCfg);
 
-    for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_macPortCfg); i++)
+    portCfg = EthFwBoard_findPortCfg(macPort);
+    if (portCfg != NULL)
     {
-        portCfg = &gEthFw_macPortCfg[i];
+        /* Set MII configuration: RGMII or Q/SGMII */
+        *mii = portCfg->mii;
+        mii->variantType = ENET_MAC_VARIANT_FORCED;
 
-        if (portCfg->macPort == macPort)
-        {
-            /* Set MII configuration: RGMII or Q/SGMII */
-            *mii = portCfg->mii;
-            mii->variantType = ENET_MAC_VARIANT_FORCED;
+        /* Set PHY configuration parameters */
+        phyCfg->phyAddr         = portCfg->phyCfg.phyAddr;
+        phyCfg->isStrapped      = portCfg->phyCfg.isStrapped;
+        phyCfg->loopbackEn      = false;
+        phyCfg->skipExtendedCfg = portCfg->phyCfg.skipExtendedCfg;
+        phyCfg->extendedCfgSize = portCfg->phyCfg.extendedCfgSize;
+        memcpy(phyCfg->extendedCfg, portCfg->phyCfg.extendedCfg, portCfg->phyCfg.extendedCfgSize);
 
-            /* Set PHY configuration parameters */
-            phyCfg->phyAddr         = portCfg->phyCfg.phyAddr;
-            phyCfg->isStrapped      = portCfg->phyCfg.isStrapped;
-            phyCfg->loopbackEn      = false;
-            phyCfg->skipExtendedCfg = portCfg->phyCfg.skipExtendedCfg;
-            phyCfg->extendedCfgSize = portCfg->phyCfg.extendedCfgSize;
-            memcpy(phyCfg->extendedCfg, portCfg->phyCfg.extendedCfg, portCfg->phyCfg.extendedCfgSize);
+        /* Set link configuration: speed and duplex */
+        *linkCfg = portCfg->linkCfg;
 
-            /* Set link configuration: speed and duplex */
-            *linkCfg = portCfg->linkCfg;
+        /* Set SGMII mode (applicable for Q/SGMII ports only) */
+        macCfg->sgmiiMode = portCfg->sgmiiMode;
 
-            /* Set SGMII mode (applicable for Q/SGMII ports only) */
-            macCfg->sgmiiMode = portCfg->sgmiiMode;
-
-            status = ENET_SOK;
-            break;
-        }
+        status = ENET_SOK;
     }
 
     return status;
