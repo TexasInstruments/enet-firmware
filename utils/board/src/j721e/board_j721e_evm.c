@@ -102,6 +102,9 @@ typedef struct EthFwBoard_Obj_s
 
     /* QSGMII board detected */
     bool qenetDetected;
+
+    /* ENET bridge board to be enabled or not. Mutually exclusive with QSGMII board. */
+    bool enetBridgeEnabled;
 } EthFwBoard_Obj;
 
 /*!
@@ -164,6 +167,8 @@ static void EthFwBoard_configUart(void);
 static void EthFwBoard_configGesi(void);
 
 static void EthFwBoard_configQenet(void);
+
+static void EthFwBoard_configSerdesBridge(void);
 
 static void EthFwBoard_configSierra0Clks(void);
 
@@ -349,6 +354,23 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
     },
 };
 
+/* 1 x XAUI port in MAC-to-MAC mode using (SGMII) ENET bridge expansion board */
+static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg =
+{
+    .macPort   = ENET_MAC_PORT_2,
+    .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_SERIAL },
+    .phyCfg    =
+    {
+        .phyAddr = ENETPHY_INVALID_PHYADDR,
+        .isStrapped      = false,
+        .skipExtendedCfg = false,
+        .extendedCfg     = NULL,
+        .extendedCfgSize = 0U,
+    },
+    .sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_AUTONEG_MASTER,
+    .linkCfg   = { ENET_SPEED_1GBIT, ENET_DUPLEX_FULL },
+};
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -359,12 +381,20 @@ int32_t EthFwBoard_init(uint32_t flags)
     Board_STATUS boardStatus;
 
     /* Save the functionality requested by app */
+    gEthFwBoard.enetBridgeEnabled = ENET_NOT_ZERO(flags & ETHFW_BOARD_ENET_BRIDGE_ENABLE);
     gEthFwBoard.gesiEnabled   = ENET_NOT_ZERO(flags & ETHFW_BOARD_GESI_ENABLE);
     gEthFwBoard.qenetEnabled  = ENET_NOT_ZERO(flags & ETHFW_BOARD_QENET_ENABLE);
     gEthFwBoard.serdesAllowed = ENET_NOT_ZERO(flags & ETHFW_BOARD_SERDES_CONFIG);
     gEthFwBoard.uartAllowed   = ENET_NOT_ZERO(flags & ETHFW_BOARD_UART_ALLOWED);
     gEthFwBoard.i2cAllowed    = ENET_NOT_ZERO(flags & ETHFW_BOARD_I2C_ALLOWED);
     gEthFwBoard.gpioAllowed   = ENET_NOT_ZERO(flags & ETHFW_BOARD_GPIO_ALLOWED);
+
+    /* QpENet expansion board and SerDes bridge board are mutually exclusive */
+    if (gEthFwBoard.qenetEnabled && gEthFwBoard.enetBridgeEnabled)
+    {
+        appLogPrintf("QpENet and SerDes bridge cannot be simultaneously enabled\n");
+        EnetAppUtils_assert(false);
+    }
 
     /* Enable hardware block/modules that EthFw will need */
     EthFwBoard_enableMods();
@@ -399,6 +429,11 @@ int32_t EthFwBoard_init(uint32_t flags)
         EthFwBoard_configQenet();
     }
 
+    if (gEthFwBoard.enetBridgeEnabled)
+    {
+        EthFwBoard_configSerdesBridge();
+    }
+
     /* Set CPSW clocks: CPPI, RGMII 5/50/250 MHz, CPTS */
     EthFwBoard_configCpswClocks();
 
@@ -428,6 +463,14 @@ uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])
         for (i = 0U; i < req; i++)
         {
             macPorts[num++] = gEthFw_qenetMacPortCfg[i].macPort;
+        }
+    }
+
+    if (gEthFwBoard.enetBridgeEnabled)
+    {
+        if (num < ENET_MAC_PORT_NUM)
+        {
+            macPorts[num++] = gEthFw_enetBridgeMacPortCfg.macPort;
         }
     }
 
@@ -461,6 +504,14 @@ static const EthFwBoard_MacPortCfg *EthFwBoard_findPortCfg(Enet_MacPort macPort)
                 portCfg = &gEthFw_qenetMacPortCfg[i];
                 break;
             }
+        }
+    }
+
+    if ((portCfg == NULL) && gEthFwBoard.enetBridgeEnabled)
+    {
+        if (gEthFw_enetBridgeMacPortCfg.macPort == macPort)
+        {
+            portCfg = &gEthFw_enetBridgeMacPortCfg;
         }
     }
 
@@ -600,6 +651,21 @@ static void EthFwBoard_configQenet(void)
 
         /* Configure SerDes for QSGMII functionality */
         boardStatus = Board_serdesCfgQsgmii();
+        EnetAppUtils_assert(boardStatus == BOARD_SOK);
+    }
+}
+
+static void EthFwBoard_configSerdesBridge(void)
+{
+    Board_STATUS boardStatus;
+
+    if (gEthFwBoard.serdesAllowed)
+    {
+        /* Configure SerDes clocks */
+        EthFwBoard_configSierra0Clks();
+
+        /* Configure SerDes for XAUI functionality */
+        boardStatus = Board_serdesCfgXaui();
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
     }
 }

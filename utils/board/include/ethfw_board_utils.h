@@ -73,6 +73,11 @@ extern "C" {
 /*! Whether Enet board utils can set GPIOs, i.e. PHY reset */
 #define ETHFW_BOARD_GPIO_ALLOWED               (ENET_BIT(5))
 
+/*! Whether Enet board utils should enable ENET expansion bridge, which is used
+ *  to connect two EVMs in MAC-to-MAC mode.  Mutually exclusive with
+ *  \ref ETHFW_BOARD_QENET_ENABLE. */
+#define ETHFW_BOARD_ENET_BRIDGE_ENABLE         (ENET_BIT(6))
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
