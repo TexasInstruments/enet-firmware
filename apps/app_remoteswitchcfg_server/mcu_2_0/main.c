@@ -799,6 +799,9 @@ static int32_t EthApp_initEthFw(void)
     ethFwCfg.autosarVirtPortCfg  = &gEthApp_autosarVirtPortCfg[0];
     ethFwCfg.numAutosarVirtPorts = ARRAY_SIZE(gEthApp_autosarVirtPortCfg);
 
+    /* CPTS_RFT_CLK is sourced from MAIN_SYSCLK0 (500MHz) */
+    cpswCfg->cptsCfg.cptsRftClkFreq = CPSW_CPTS_RFTCLK_FREQ_500MHZ;
+
     /* Overwrite config params with those for hardware interVLAN */
     EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswCfg);
 
