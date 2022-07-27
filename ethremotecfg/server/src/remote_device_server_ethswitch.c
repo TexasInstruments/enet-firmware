@@ -81,6 +81,8 @@
 #define g_message_monitor_tsk_stack_size        (0x2000)
 static volatile bool grdevEthSwitchAssertLoop = true;
 
+#define ETHREMOTECFG_ROUNDUP(x, y)              ((((x) + ((y) - 1U)) / (y)) * (y))
+
 #define ETHREMOTECFG_SERVER_ASSERT_SUCCESS(x)  {if ((x) != 0) {while (grdevEthSwitchAssertLoop) {; } \
                                                 }                                                    \
 }
@@ -127,8 +129,10 @@ typedef struct rdevEthSwitchServerMessage_s
 static uint8_t g_sender_tsk_stack[g_sender_tsk_stack_size] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 static uint8_t g_message_monitor_tsk_stack[g_message_monitor_tsk_stack_size * ETHREMOTECFG_SERVER_MAX_INSTANCES] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
 
+#define RDEV_ETHSWITCH_POOL_ELEM_SZ            ENET_DIV_ROUNDUP((ETHREMOTECFG_SERVER_MAX_PACKET_SIZE + sizeof(rdevEthSwitchServerMessage_t) + APP_QUEUE_ELEM_META_SIZE), sizeof(uint64_t))
+
 /* Storage areas for pools */
-static uint8_t g_message_pool_storage[(ETHREMOTECFG_SERVER_MAX_PACKET_SIZE + sizeof(rdevEthSwitchServerMessage_t) + APP_QUEUE_ELEM_META_SIZE) * ETHREMOTECFG_SERVER_MAX_MESSAGES];
+static uint64_t g_message_pool_storage[RDEV_ETHSWITCH_POOL_ELEM_SZ * ETHREMOTECFG_SERVER_MAX_MESSAGES];
 
 static rdevEthSwitchServerState_t gRdevEthSwitchServerState;
 
@@ -1602,14 +1606,24 @@ static int32_t rdevEthSwitchServerInitInst(rdevEthSwitchServerInstPrm_t *inst_pr
 
 static int32_t rdevEthSwitchServerPoolsInit(rdevEthSwitchServerInitPrm_t *prm)
 {
+    uint32_t elemSz;
     int32_t ret = 0;
+
+    if (prm->rpmsg_buf_size > ETHREMOTECFG_SERVER_MAX_PACKET_SIZE)
+    {
+        appLogPrintf("%s: Invalid rpmsg buffer size %u (must be < %u)\n",
+                     __func__, prm->rpmsg_buf_size, ETHREMOTECFG_SERVER_MAX_PACKET_SIZE);
+        ret = -1;
+    }
 
     if (ret == 0)
     {
+        elemSz = ETHREMOTECFG_ROUNDUP(prm->rpmsg_buf_size + sizeof(rdevEthSwitchServerMessage_t),
+                                      sizeof(uint64_t));
+
         /* The pool for transport messages */
         ret = appQueueInit(&gRdevEthSwitchServerState.message_pool, TRUE, ETHREMOTECFG_SERVER_MAX_MESSAGES,
-                           prm->rpmsg_buf_size + sizeof(rdevEthSwitchServerMessage_t),
-                           g_message_pool_storage, sizeof(g_message_pool_storage));
+                           elemSz, g_message_pool_storage, sizeof(g_message_pool_storage));
         if (ret != 0)
         {
             appLogPrintf("%s: Could not initialize message pool\n", __func__);
