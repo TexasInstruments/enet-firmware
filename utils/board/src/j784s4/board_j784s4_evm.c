@@ -164,6 +164,8 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
 
 static EthFwBoard_Obj gEthFwBoard;
 
+extern pinmuxBoardCfg_t gEthFwPinmuxData[];
+
 /* Default port configuration for all ports in EVM:
  *   4 x QSGMII ports in QEnet */
 static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
@@ -361,6 +363,8 @@ static void EthFwBoard_enableMods(void)
 
 static void EthFwBoard_configPinmux(void)
 {
+   /* Pinmux configuration of pins used for UART, I2C and MDIO */
+    Board_pinmuxUpdate(gEthFwPinmuxData, BOARD_SOC_DOMAIN_MAIN);
 }
 
 static void EthFwBoard_detectDBs(void)
