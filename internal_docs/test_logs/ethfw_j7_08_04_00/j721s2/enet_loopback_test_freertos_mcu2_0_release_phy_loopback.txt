@@ -1,0 +1,232 @@
+Select Enet peripheral type:
+0: CPSW 2G MAIN
+0
+Select loopback type:
+0: Internal (MAC loopback)
+1: External (PHY loopback)
+1
+Select MAC port:
+0: ENET_MAC_PORT_1 - RGMII
+0
+=============================
+ Enet Loopback: Iteration 1 
+=============================
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0 
+CPSW_2G Test on MAIN NAVSS
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: f4:84:4c:fa:ff:a5
+PHY 0 is alive
+PHY 3 is alive
+PHY 23 is alive
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+Received 5000 packets
+Transmitted 5000 packets 
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+
+
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[1]                = 5000
+  txPriBcnt[1]            = 2590000
+
+Cpsw_handleLinkDown: Port 1: Link down
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 2 
+=============================
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0 
+CPSW_2G Test on MAIN NAVSS
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: f4:84:4c:fa:ff:a5
+PHY 0 is alive
+PHY 3 is alive
+PHY 23 is alive
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+Received 5000 packets
+Transmitted 5000 packets 
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+
+
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[1]                = 5000
+  txPriBcnt[1]            = 2590000
+
+Cpsw_handleLinkDown: Port 1: Link down
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 3 
+=============================
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0 
+CPSW_2G Test on MAIN NAVSS
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: f4:84:4c:fa:ff:a5
+PHY 0 is alive
+PHY 3 is alive
+PHY 23 is alive
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+Received 5000 packets
+Transmitted 5000 packets 
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+
+
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[1]                = 5000
+  txPriBcnt[1]            = 2590000
+
+Cpsw_handleLinkDown: Port 1: Link down
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 4 
+=============================
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0 
+CPSW_2G Test on MAIN NAVSS
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: f4:84:4c:fa:ff:a5
+PHY 0 is alive
+PHY 3 is alive
+PHY 23 is alive
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+Received 5000 packets
+Transmitted 5000 packets 
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+
+
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[1]                = 5000
+  txPriBcnt[1]            = 2590000
+
+Cpsw_handleLinkDown: Port 1: Link down
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+=============================
+ Enet Loopback: Iteration 5 
+=============================
+EnetAppUtils_reduceCoreMacAllocation: Reduced Mac Address Allocation for CoreId:0 From 1 To 0 
+CPSW_2G Test on MAIN NAVSS
+EnetBoard_setupPorts: 1 of 1 ports configurations found
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+initQs() txFreePktInfoQ initialized with 128 pkts
+Host MAC address: f4:84:4c:fa:ff:a5
+PHY 0 is alive
+PHY 3 is alive
+PHY 23 is alive
+Cpsw_handleLinkUp: Port 1: Link up: 1-Gbps Full-Duplex
+Received 5000 packets
+Transmitted 5000 packets 
+
+ Port 0 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+
+
+ Port 1 Statistics
+-----------------------------------------
+  rxGoodFrames            = 5000
+  rxBcastFrames           = 5000
+  rxOctets                = 2590000
+  txGoodFrames            = 5000
+  txBcastFrames           = 5000
+  txOctets                = 2590000
+  octetsFrames512to1023   = 10000
+  netOctets               = 5180000
+  txPri[1]                = 5000
+  txPriBcnt[1]            = 2590000
+
+Cpsw_handleLinkDown: Port 1: Link down
+EnetLpbk_deleteRxTxTasks() done..
+Test complete: PASS
+Loopback application completed
+

@@ -1,0 +1,240 @@
+SBL Revision: 01.00.10.01 (Aug  1 2022 - 10:03:32)
+TIFS  ver: 8.4.1--v08.04.01 (Jolly Jellyfi
+Eth Application build date/time: Aug  1 2022, 10:06:56
+Eth Application Starts
+MAC Port 1 Address: f4:84:4c:fc:27:06
+EthTrcv mode: ACTIVE
+EthTrcv link state: Up
+EthTrcv baud rate: 1000Mbps
+EthTrcv duplexity: Full
+EthIf_TrcvModeIndication: Active
+
+
+-----------------------------------------------------------
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0002: START
+test_0002: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0003: START
+test_0003: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0004: START
+test_0004: received 500 of 500 frames
+test_0004: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0005: START
+test_0005:  Null: Exp1: exp 500, got 500
+test_0005:  Null: Exp2: exp   0, got   0
+test_0005: Ucast: Exp1: exp 500, got 500
+test_0005: Ucast: Exp2: exp 500, got 500
+test_0005: Mcast: Exp1: exp 500, got 500
+test_0005: Mcast: Exp2: exp 500, got 500
+test_0005: Mcast: Exp1: exp 500, got 500
+test_0005: Mcast: Exp2: exp   0, got   0
+test_0005: Bcast: Exp1: exp 500, got 500
+test_0005: Bcast: Exp2: exp 500, got 500
+test_0005:  Null: Exp1: exp 500, got 500
+test_0005:  Null: Exp2: exp   0, got   0
+test_0005: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0006: START
+test_0006: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0007: START
+test_0007: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0008: START
+test_0008: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0009: START
+test_0009: received 1000 of 1000 frames
+test_0009: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0010: START
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+test_0010: completed 10 of 10 iterations
+test_0010: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0011: START
+test_0011: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0100: START
+test_0100: 150000 frames sent
+test_0100: END
+Test Result: Pass
+-----------------------------------------------------------
+
+----------------------------
+Controller 0 Counters
+----------------------------
+Buffer overruns   : 0
+CRC errors        : 0
+Undersize packets : 0
+Oversized packets : 0
+Alignment errors  : 0
+SQE errors        : -1
+Discarded inbound : -1
+Erroneous inbound : 0
+Discarded outbound: -1
+Erroneous outbound: 0
+Single collision  : 0
+Multiple collision: 0
+Deferred transm   : 0
+Late collisions   : 0
+Excessive colls   : 0
+Carrier loss      : 0
+----------------------------
+Controller 0 Rx Statistics
+----------------------------
+Rx Drop Events       : 4000
+Rx Octets            : 11945216
+Rx Packets           : 21038
+Rx Bcast Packets     : 0
+Rx Mcast Packets     : 1019
+Rx CRC/Align Errors  : 0
+Rx Undersized Packets: 0
+Rx Oversized Packets : 0
+Rx Fragments         : 0
+Rx Jabbers           : 0
+Rx Collisions        : -1
+Rx 64 bytes or less Packets   : -1
+Rx 65 to 127 bytes Packets    : -1
+Rx 128 to 255 bytes Packets   : -1
+Rx 256 to 511 bytes Packets   : -1
+Rx 512 to 1023 bytes Packets  : -1
+Rx 1024 to 1518 bytes Packets : -1
+Rx Unicast Packets            : 19000
+----------------------------
+Controller 0 Tx Statistics 
+----------------------------
+Tx Num octets          : 251647396
+Tx No Unicast Packets  : 166704
+Tx Unicast Packets     : 0
+--------------------------------
+Controller 0 Tx Error Counters 
+--------------------------------
+Tx Deferred transm      : 0
+Tx Single collisions    : 0
+Tx Multiple collisions  : 0
+Tx Late collisions      : 0
+Tx Excessive collisions : 0
+ETH Stack Usage: 4488 bytes
+Tests Results: PASS
+Eth Application Completed
+

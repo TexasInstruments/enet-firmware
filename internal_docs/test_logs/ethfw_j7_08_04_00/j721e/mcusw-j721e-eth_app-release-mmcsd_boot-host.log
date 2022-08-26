@@ -1,0 +1,164 @@
+$ sudo ./EthHostApp -i eno1
+Interface    : eno1
+MAC address  : c8:d9:d2:07:f1:3a
+
+
+Waiting for DUT..
+DUT detected: 50:51:a9:fc:65:7e
+
+
+-----------------------------------------------------------
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0003: START
+test_0003: looped back 1000 frames
+test_0003: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0004: START
+test_0004: completed 500 of 500 iterations
+test_0004: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0005: START
+test_0005: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0006: START
+test_0006: received 1000 of 1000 frames
+test_0006: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0007: START
+test_0007: received 1000 of 1000 frames
+test_0007: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0008: START
+test_0008: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0009: START
+test_0009: transmitted 1000 of 1000 frames
+test_0009: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0010: START
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0002: START
+test_0002: received 1000 of 1000 frames
+test_0002: END
+test_0001: START
+test_0001: transmitted 1000 of 1000 frames
+test_0001: END
+test_0010: completed 10 of 10 iterations
+test_0010: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0011: START
+test_0011: received 1000 of 1000 frames
+test_0011: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0100: START
+receiveTput: received 150000 frames in 1.85 secs (81270.68 frames/s, 984.35 Mbps)
+test_0100: END
+Test Result: Pass
+-----------------------------------------------------------
+
+Test Result: Pass
+

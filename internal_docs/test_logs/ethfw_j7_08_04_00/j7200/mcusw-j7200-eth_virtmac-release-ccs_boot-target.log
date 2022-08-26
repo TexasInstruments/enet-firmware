@@ -1,0 +1,178 @@
+[MAIN_Cortex_R5_0_1] Eth Application Starts
+ 
+ CDD IPC MCAL Version Info
+---------------------
+ Vendor ID           : 44
+ Module ID           : 255
+ SW Major Version    : 1
+ SW Minor Version    : 5
+ SW Patch Version    : 0
+ 
+MAC Port 1 Address: 70:ff:76:1d:a0:7a
+
+
+-----------------------------------------------------------
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0002: START
+test_0002: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0003: START
+test_0003: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0004: START
+test_0004: received 500 of 500 frames
+test_0004: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0005: START
+test_0005:  Null: Exp1: exp 500, got 500
+test_0005:  Null: Exp2: exp   0, got   0
+test_0005: Ucast: Exp1: exp 500, got 500
+test_0005: Ucast: Exp2: exp 500, got 500
+test_0005: Mcast: Exp1: exp 500, got 500
+test_0005: Mcast: Exp2: exp 500, got 500
+test_0005: Mcast: Exp1: exp 500, got 500
+test_0005: Mcast: Exp2: exp   0, got   0
+test_0005: Bcast: Exp1: exp 500, got 500
+test_0005: Bcast: Exp2: exp 500, got 500
+test_0005:  Null: Exp1: exp 500, got 500
+test_0005:  Null: Exp2: exp   0, got   0
+test_0005: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0006: START
+test_0006: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0007: START
+test_0007: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0008: START
+test_0008: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0009: START
+test_0009: received 1000 of 1000 frames
+test_0009: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0010: START
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+EthIf_CtrlModeIndication: DOWN
+EthIf_CtrlModeIndication: ACTIVE
+test_0002: START
+test_0002: END
+test_0001: START
+test_0001: received 1000 of 1000 frames
+test_0001: END
+test_0010: completed 10 of 10 iterations
+test_0010: END
+Test Result: Pass
+-----------------------------------------------------------
+
+
+-----------------------------------------------------------
+test_0100: START
+test_0100: 150000 frames sent
+test_0100: END
+Test Result: Pass
+-----------------------------------------------------------
+
+ETH Stack Usage: 2804 bytes
+Eth Application Completed
