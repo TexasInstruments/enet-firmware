@@ -1,4 +1,3 @@
-
 include ../../../../ethfw_tools_path.mak
 
 export DOXYGEN ?= doxygen
@@ -35,5 +34,4 @@ api_guide_clean:
 	$(RM) -R ../../../docs/api_guide
 	$(RM) -R output.txt
 
-# Nothing beyond this point
 # Nothing beyond this point
