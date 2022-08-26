@@ -51,32 +51,65 @@
 extern "C" {
 #endif
 
+/*!
+ * \defgroup ETHFW_BOARD_UTILS Ethernet Board Utils
+ *
+ * \brief This section contains APIs for board initialization needed by
+ *        Ethernet Firmware.
+ *
+ * Ethernet Firmware board library is small set of functions intended to initialize
+ * board related functionality needed for Ethernet Firmware to run, ie. setup GPIOs
+ * to take PHY out of reset, configure SerDes, etc.
+ *
+ * This utils library has been written to support TI EVMs and can be used as
+ * reference when porting Ethernet Firmware to a different platform.
+ * @{
+ */
+/* @} */
+
+/*!
+ * \addtogroup ETHFW_BOARD_UTILS
+ * @{
+ */
+
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
 
-/*! Whether Enet board utils should enable GESI expansion board */
+/*!
+ * \anchor EthFwBoard_ConfigFlags
+ * \name Configuration flags for EthFw board utils
+ *
+ * The following configuration flags are used to indicate the board initialization
+ * that must be done by EthFw board function EthFwBoard_init().
+ *
+ * @{
+ */
+
+/*! \brief Whether Enet board utils should enable GESI expansion board */
 #define ETHFW_BOARD_GESI_ENABLE                (ENET_BIT(0))
 
-/*! Whether Enet board utils should enable ENET expansion board (QSGMII board) */
+/*! \brief Whether Enet board utils should enable ENET expansion board (QSGMII board) */
 #define ETHFW_BOARD_QENET_ENABLE               (ENET_BIT(1))
 
-/*! Whether Enet board utils can configure SerDes */
+/*! \brief Whether Enet board utils can configure SerDes */
 #define ETHFW_BOARD_SERDES_CONFIG              (ENET_BIT(2))
 
-/*! Whether Enet board utils can configure UART for logging */
+/*! \brief Whether Enet board utils can configure UART for logging */
 #define ETHFW_BOARD_UART_ALLOWED               (ENET_BIT(3))
 
-/*! Whether Enet board utils can run I2C-related operations, i.e. read EEPROM */
+/*! \brief Whether Enet board utils can run I2C-related operations, i.e. read EEPROM */
 #define ETHFW_BOARD_I2C_ALLOWED                (ENET_BIT(4))
 
-/*! Whether Enet board utils can set GPIOs, i.e. PHY reset */
+/*! \brief Whether Enet board utils can set GPIOs, i.e. PHY reset */
 #define ETHFW_BOARD_GPIO_ALLOWED               (ENET_BIT(5))
 
 /*! Whether Enet board utils should enable ENET expansion bridge, which is used
  *  to connect two EVMs in MAC-to-MAC mode.  Mutually exclusive with
  *  \ref ETHFW_BOARD_QENET_ENABLE. */
 #define ETHFW_BOARD_ENET_BRIDGE_ENABLE         (ENET_BIT(6))
+
+/* @} */
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -168,5 +201,7 @@ uint32_t EthFwBoard_getMacAddrPool(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
 #ifdef __cplusplus
 }
 #endif
+
+/* @} */
 
 #endif /* ETHFW_BOARD_UTILS_H_ */
