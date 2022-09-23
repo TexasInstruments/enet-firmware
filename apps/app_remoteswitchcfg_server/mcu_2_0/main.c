@@ -555,7 +555,7 @@ int main(void)
         taskParams.stacksize = sizeof(gEthAppStackBuf);
         taskParams.name = "EthFw Init Task";
 
-        task = TaskP_create(EthApp_initTaskFxn, &taskParams);
+        task = TaskP_create(&EthApp_initTaskFxn, &taskParams);
         if (NULL == task)
         {
             OS_stop();
@@ -625,7 +625,7 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
         taskParams.stacksize = sizeof(gEthAppLwipStackBuf);
         taskParams.name      = "lwIP main loop";
 
-        TaskP_create(EthApp_lwipMain, &taskParams);
+        TaskP_create(&EthApp_lwipMain, &taskParams);
     }
 
     /* Create IPC initialization task */
@@ -637,7 +637,7 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
         taskParams.stacksize = sizeof(gEthAppIpcInitStackBuf);
         taskParams.name = "EthFw IPC init Task";
 
-        TaskP_create(EthApp_initIpcTaskFxn, &taskParams);
+        TaskP_create(&EthApp_initIpcTaskFxn, &taskParams);
     }
 }
 
@@ -661,7 +661,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     taskParams.stacksize = sizeof(gEthAppTraceBufFlushBuf);
     taskParams.name      = "IPC tracebuf flush";
 
-    TaskP_create(EthApp_traceBufFlush, &taskParams);
+    TaskP_create(&EthApp_traceBufFlush, &taskParams);
 
     /* Initialize params with defaults */
     IpcInitPrms_init(0U, &initPrms);

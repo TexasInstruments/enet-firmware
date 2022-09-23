@@ -1190,7 +1190,7 @@ static void CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
     taskParams.stack     = &hProxy->rdevCmdTaskStack[0];
     taskParams.stacksize = sizeof(hProxy->rdevCmdTaskStack);
 
-    hProxy->hRdevCmdTsk = TaskP_create(CpswProxy_rdevCmdTskFxn, &taskParams);
+    hProxy->hRdevCmdTsk = TaskP_create(&CpswProxy_rdevCmdTskFxn, &taskParams);
     CpswProxy_assert(hProxy->hRdevCmdTsk != NULL);
 }
 
@@ -1205,7 +1205,7 @@ static void CpswProxy_createNotifyServiceTask(void)
     taskParams.stack     = &notifyObj->taskStack[0];
     taskParams.stacksize = sizeof(notifyObj->taskStack);
 
-    notifyObj->hNotifyServiceTsk = TaskP_create(CpswProxy_notifyServiceTskFxn, &taskParams);
+    notifyObj->hNotifyServiceTsk = TaskP_create(&CpswProxy_notifyServiceTskFxn, &taskParams);
     CpswProxy_assert(notifyObj->hNotifyServiceTsk != NULL);
 }
 

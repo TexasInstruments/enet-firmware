@@ -289,7 +289,7 @@ int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
         params.arg0      = (void *)obj;
         params.arg1      = NULL;
 
-        obj->hStatsCollectorTask = (void *)TaskP_create((void*)appEthfw_statsCollectorTask,
+        obj->hStatsCollectorTask = (void *)TaskP_create(&appEthfw_statsCollectorTask,
                                                         &params);
         if (NULL == obj->hStatsCollectorTask)
         {

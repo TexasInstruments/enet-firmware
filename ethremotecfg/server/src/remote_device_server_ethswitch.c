@@ -1421,7 +1421,7 @@ static int32_t rdevEthSwitchServerMessageConsumerTaskInit(rdevEthSwitchServerIns
         tsk_prm.stacksize = g_message_monitor_tsk_stack_size;
         tsk_prm.arg0 = inst;
 
-        inst->message_mon_task = TaskP_create(rdevEthSwitchServerMessageMonitorTaskFn, &tsk_prm);
+        inst->message_mon_task = TaskP_create(&rdevEthSwitchServerMessageMonitorTaskFn, &tsk_prm);
         if (inst->message_mon_task == NULL)
         {
             appLogPrintf("%s: Could not initialize sender task\n", __func__);
@@ -1468,7 +1468,7 @@ static int32_t rdevEthSwitchServerSenderTaskInit(void)
         tsk_prm.stack = &g_sender_tsk_stack;
         tsk_prm.stacksize = g_sender_tsk_stack_size;
 
-        gRdevEthSwitchServerState.sender_task = TaskP_create(rdevEthSwitchServerSenderTaskFn, &tsk_prm);
+        gRdevEthSwitchServerState.sender_task = TaskP_create(&rdevEthSwitchServerSenderTaskFn, &tsk_prm);
         if (gRdevEthSwitchServerState.sender_task == NULL)
         {
             appLogPrintf("%s: Could not initialize sender task\n", __func__);

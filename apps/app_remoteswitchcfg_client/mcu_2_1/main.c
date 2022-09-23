@@ -712,7 +712,7 @@ static void CpswRemoteApp_initTask(void* a0,
     params.priority = 3;
     params.stack = &g_vdevMonStackBuf[0];
     params.stacksize = sizeof(g_vdevMonStackBuf);
-    TaskP_create(rpmsg_vdevMonitorFxn, &params);
+    TaskP_create(&rpmsg_vdevMonitorFxn, &params);
 
     /* Step 5: Start Cpsw Proxy */
     CpswProxy_init(CPSW_REMOTE_APP_MASTER_CORE_ID,
@@ -738,7 +738,7 @@ static void CpswRemoteApp_initTask(void* a0,
     params.stacksize = sizeof(gEthAppLwipStackBuf);
     params.name      = "lwIP main loop";
 
-    TaskP_create(EthApp_lwipMain, &params);
+    TaskP_create(&EthApp_lwipMain, &params);
 }
 
 int main(void)
@@ -775,7 +775,7 @@ int main(void)
     taskParams.priority = 2;
     taskParams.stack = &g_initTaskStackBuf[0];
     taskParams.stacksize = sizeof(g_initTaskStackBuf);
-    task = TaskP_create(CpswRemoteApp_initTask, &taskParams);
+    task = TaskP_create(&CpswRemoteApp_initTask, &taskParams);
 
     if (NULL == task)
     {

@@ -872,7 +872,7 @@ void EthSwInterVlan_setupRouting(Enet_Type enetType,
     params.stacksize = sizeof(gAppTskStackMain);
     params.name = "Eth SW InterVLAN Task";
 
-    task = TaskP_create(CpswApp_InterVlanRouting, &params);
+    task = TaskP_create(&CpswApp_InterVlanRouting, &params);
     if (task == NULL)
     {
         OS_stop();

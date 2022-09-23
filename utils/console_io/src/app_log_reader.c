@@ -230,11 +230,18 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
     return num_bytes;
 }
 
+#if defined(FREERTOS)
+void appLogRdRun(void *arg0, void *arg1)
+#else
 void *appLogRdRun(app_log_rd_obj_t *obj)
+#endif
 {
     volatile uint32_t done = 0;
     uint32_t cpu_id = 0;
     uint32_t num_bytes, str_len;
+    #if defined(FREERTOS)
+    app_log_rd_obj_t *obj =  (app_log_rd_obj_t *)arg0;
+    #endif
 
     while (!done)
     {
@@ -272,5 +279,10 @@ void *appLogRdRun(app_log_rd_obj_t *obj)
         }
     }
 
+
+    #if defined(FREERTOS)
+    return;
+    #else
     return NULL;
+    #endif
 }

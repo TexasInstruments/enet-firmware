@@ -103,7 +103,7 @@ int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj,
     rtos_task_prms.arg1 = NULL;
 
     obj->task_handle = (void *)TaskP_create(
-                                            (void *)appLogRdRun,
+                                            &appLogRdRun,
                                             &rtos_task_prms);
     if (obj->task_handle == NULL)
     {

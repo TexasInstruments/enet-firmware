@@ -2480,7 +2480,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hPro
         taskParams.arg0         = (void*) hProxyServer;
         taskParams.stack        = &gCpswProxyServer_autosarEthDriverTaskStackBuf[0];
         taskParams.stacksize    = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK;
-        hProxyServer->ethDrvObj.hAutosarEthTsk = TaskP_create(CpswProxyServer_autosarEthDriverTaskFxn, &taskParams);
+        hProxyServer->ethDrvObj.hAutosarEthTsk = TaskP_create(&CpswProxyServer_autosarEthDriverTaskFxn, &taskParams);
         if(hProxyServer->ethDrvObj.hAutosarEthTsk == NULL)
         {
             retVal = CPSWPROXYSERVER_EFAIL;
@@ -2572,7 +2572,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hProxyS
         taskParams.arg0         = (void*) hProxyServer;
         taskParams.stack        = &gCpswProxyServer_notifyServiceTaskStackBuf[0];
         taskParams.stacksize    = CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE;
-        hProxyServer->notifyServiceObj.hNotifyServiceTsk = TaskP_create(CpswProxyServer_notifyServiceTaskFxn, &taskParams);
+        hProxyServer->notifyServiceObj.hNotifyServiceTsk = TaskP_create(&CpswProxyServer_notifyServiceTaskFxn, &taskParams);
         if(hProxyServer->notifyServiceObj.hNotifyServiceTsk == NULL)
         {
             retVal = CPSWPROXYSERVER_EFAIL;
