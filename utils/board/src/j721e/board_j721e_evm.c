@@ -72,6 +72,9 @@
 /* CPTS clock source */
 #define ETHFW_CPSW_CPTS_RFT_CLK                 (ENET_CPSW0_CPTS_CLKSEL_MAIN_SYSCLK0)
 
+/* VSC8514 wait time between NRESET deassert and access of the SMI interface */
+#define ETHFW_QSGMII_PHY_TWAIT_MSECS            (105U)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -643,6 +646,10 @@ static void EthFwBoard_configQenet(void)
         boardStatus = Board_cpswEnetExpComaModeCfg(0U);
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
     }
+
+    /* Wait till we can access QSGMII PHY registers after reset, irrespective
+     * of the NRESET gpio set by ETHFW or bootloader */
+    TaskP_sleepInMsecs(ETHFW_QSGMII_PHY_TWAIT_MSECS);
 
     if (gEthFwBoard.serdesAllowed)
     {

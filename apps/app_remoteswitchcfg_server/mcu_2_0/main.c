@@ -273,6 +273,8 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1);
 
 static void EthApp_initIpcTaskFxn(void* arg0, void* arg1);
 
+static int32_t EthApp_boardInit(void);
+
 static int32_t EthApp_initEthFw(void);
 
 static int32_t EthApp_initRemoteServices(void);
@@ -505,65 +507,27 @@ int main(void)
 {
     TaskP_Handle task;
     TaskP_Params taskParams;
-    SemaphoreP_Params semParams;
-    uint32_t flags = 0U;
-    int32_t status;
 
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
 
     gEthAppObj.coreId = EnetSoc_getCoreId();
 
-    /* Board related initialization */
-#if defined(SOC_J721E)
-    flags |= (ETHFW_BOARD_GESI_ENABLE | ETHFW_BOARD_UART_ALLOWED);
-#if defined(ETHFW_CCS)
-    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_I2C_ALLOWED | ETHFW_BOARD_GPIO_ALLOWED);
-#endif
-#if defined(ENABLE_QSGMII_PORTS)
-    flags |= ETHFW_BOARD_QENET_ENABLE;
-#endif
-#endif
-
-#if defined(SOC_J7200)
-    flags |= (ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_SERDES_CONFIG);
-#if defined(ETHFW_CCS)
-    flags |= (ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_I2C_ALLOWED);
-#endif
-#endif
-
-#if defined(SOC_J784S4)
-    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_UART_ALLOWED);
-#if defined(ETHFW_CCS)
-    flags |= ETHFW_BOARD_I2C_ALLOWED;
-#endif
-#endif
-
-    /* Board related initialization */
-    status = EthFwBoard_init(flags);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("ETHFW: Board initialization failed\n");
-    }
-
     /* Create initialization task */
-    if (status == ENET_SOK)
+    TaskP_Params_init(&taskParams);
+    taskParams.priority = 2;
+    taskParams.stack = &gEthAppStackBuf[0];
+    taskParams.stacksize = sizeof(gEthAppStackBuf);
+    taskParams.name = "EthFw Init Task";
+
+    task = TaskP_create(&EthApp_initTaskFxn, &taskParams);
+    if (NULL == task)
     {
-        TaskP_Params_init(&taskParams);
-        taskParams.priority = 2;
-        taskParams.stack = &gEthAppStackBuf[0];
-        taskParams.stacksize = sizeof(gEthAppStackBuf);
-        taskParams.name = "EthFw Init Task";
-
-        task = TaskP_create(&EthApp_initTaskFxn, &taskParams);
-        if (NULL == task)
-        {
-            OS_stop();
-        }
-
-        /* Does not return */
-        OS_start();
+        OS_stop();
     }
+
+    /* Does not return */
+    OS_start();
 
     return(0);
 }
@@ -592,22 +556,67 @@ static void EthApp_waitForDebugger(void)
     while (ccsHaltFlag);
 }
 
+static int32_t EthApp_boardInit(void)
+{
+    uint32_t flags = 0U;
+    int32_t status;
+
+#if defined(SOC_J721E)
+    flags |= (ETHFW_BOARD_GESI_ENABLE | ETHFW_BOARD_UART_ALLOWED);
+#if defined(ETHFW_CCS)
+    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_I2C_ALLOWED | ETHFW_BOARD_GPIO_ALLOWED);
+#endif
+#if defined(ENABLE_QSGMII_PORTS)
+    flags |= ETHFW_BOARD_QENET_ENABLE;
+#endif
+#endif
+
+#if defined(SOC_J7200)
+    flags |= (ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_SERDES_CONFIG);
+#if defined(ETHFW_CCS)
+    flags |= (ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_I2C_ALLOWED);
+#endif
+#endif
+
+#if defined(SOC_J784S4)
+    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_UART_ALLOWED);
+#if defined(ETHFW_CCS)
+    flags |= ETHFW_BOARD_I2C_ALLOWED;
+#endif
+#endif
+
+    /* Board related initialization */
+    status = EthFwBoard_init(flags);
+
+    return status;
+}
+
 static void EthApp_initTaskFxn(void* arg0, void* arg1)
 {
     TaskP_Params taskParams;
     int32_t status = ETHAPP_OK;
 
-    /* Print EthFw banner */
-    appLogPrintf("=======================================================\n");
-    appLogPrintf("            CPSW Ethernet Firmware                     \n");
-    appLogPrintf("=======================================================\n");
-
-    /* Open UDMA driver */
-    gEthAppObj.hUdmaDrv = EnetAppUtils_udmaOpen(gEthAppObj.enetType, NULL);
-    if (gEthAppObj.hUdmaDrv == NULL)
+    /* Board initialization: Serdes, GPIOs, pinmux, etc */
+    status = EthApp_boardInit();
+    if (status != ENET_SOK)
     {
-        appLogPrintf("ETHFW: failed to open UDMA driver\n");
-        status = ETHAPP_ERROR;
+        appLogPrintf("ETHFW: Board initialization failed\n");
+    }
+
+    /* Print EthFw banner */
+    if (status == ETHAPP_OK)
+    {
+        appLogPrintf("=======================================================\n");
+        appLogPrintf("            CPSW Ethernet Firmware                     \n");
+        appLogPrintf("=======================================================\n");
+
+        /* Open UDMA driver */
+        gEthAppObj.hUdmaDrv = EnetAppUtils_udmaOpen(gEthAppObj.enetType, NULL);
+        if (gEthAppObj.hUdmaDrv == NULL)
+        {
+            appLogPrintf("ETHFW: failed to open UDMA driver\n");
+            status = ETHAPP_ERROR;
+        }
     }
 
     /* Initialize Ethernet Firmware */
