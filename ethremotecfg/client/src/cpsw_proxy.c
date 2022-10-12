@@ -1102,55 +1102,55 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
         {
             notifyObj->localEp = localEp;
         }
-    }
 
-    /* Wait for Remote EP to active */
-    ret = RPMessage_getRemoteEndPt(gCpswProxy.masterCoreId,
-                                  CPSW_REMOTE_NOTIFY_SERVICE,
-                                  &remoteProcId,
-                                  &remoteEndPt,
-                                  IPC_RPMESSAGE_TIMEOUT_FOREVER);
-    if(ret != 0)
-    {
-        System_printf("Remote Notify service locate failed\n");
-    }
-
-    while (!exitTask)
-    {
-        ret = RPMessage_recv(notifyObj->hNotifyServicRpMsgEp,
-                            data,
-                            &len,
-                            &remoteEp,
-                            &remoteProc,
-                            IPC_RPMESSAGE_TIMEOUT_FOREVER);
-        if (IPC_SOK == ret)
+        /* Wait for Remote EP to active */
+        ret = RPMessage_getRemoteEndPt(gCpswProxy.masterCoreId,
+                                      CPSW_REMOTE_NOTIFY_SERVICE,
+                                      &remoteProcId,
+                                      &remoteEndPt,
+                                      IPC_RPMESSAGE_TIMEOUT_FOREVER);
+        if(ret != 0)
         {
-            CpswProxy_assert(len <= sizeof(msgBuffer));
-            CpswProxy_assert(remoteEp == remoteEndPt);
-            CpswProxy_assert(remoteProcId == remoteProc);
+            System_printf("Remote Notify service locate failed\n");
+        }
 
-            /* Process received message */
-            header = (CpswRemoteNotifyService_MessageHeader *)data;
-            switch(header->messageId)
+        while (!exitTask)
+        {
+            ret = RPMessage_recv(notifyObj->hNotifyServicRpMsgEp,
+                                data,
+                                &len,
+                                &remoteEp,
+                                &remoteProc,
+                                IPC_RPMESSAGE_TIMEOUT_FOREVER);
+            if (IPC_SOK == ret)
             {
-                case CPSW_REMOTE_NOTIFY_SERVICE_CMD_HWPUSH:
-                {
-                    hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)data;
-                    CpswProxy_assert(hwPushMsg->header.messageLen == sizeof(CpswRemoteNotifyService_HwPushMsg));
+                CpswProxy_assert(len <= sizeof(msgBuffer));
+                CpswProxy_assert(remoteEp == remoteEndPt);
+                CpswProxy_assert(remoteProcId == remoteProc);
 
-                    if (notifyObj->cb.hwPushCb != NULL)
+                /* Process received message */
+                header = (CpswRemoteNotifyService_MessageHeader *)data;
+                switch(header->messageId)
+                {
+                    case CPSW_REMOTE_NOTIFY_SERVICE_CMD_HWPUSH:
                     {
-                        notifyObj->cb.hwPushCb((CpswCpts_HwPush)hwPushMsg->hwPushNum,
-                                               hwPushMsg->timeStamp,
-                                               notifyObj->cb.hwPushCbArg);
-                    }
+                        hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)data;
+                        CpswProxy_assert(hwPushMsg->header.messageLen == sizeof(CpswRemoteNotifyService_HwPushMsg));
 
-                    break;
-                }
-                default:
-                {
-                    System_printf("CpswProxy_notifyServiceTskFxn: Received unknown notify command: %u\n", header->messageId);
-                    break;
+                        if (notifyObj->cb.hwPushCb != NULL)
+                        {
+                            notifyObj->cb.hwPushCb((CpswCpts_HwPush)hwPushMsg->hwPushNum,
+                                                   hwPushMsg->timeStamp,
+                                                   notifyObj->cb.hwPushCbArg);
+                        }
+
+                        break;
+                    }
+                    default:
+                    {
+                        System_printf("CpswProxy_notifyServiceTskFxn: Received unknown notify command: %u\n", header->messageId);
+                        break;
+                    }
                 }
             }
         }
