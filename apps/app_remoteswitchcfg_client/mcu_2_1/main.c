@@ -999,6 +999,13 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 {
     struct netif *netif = &virtNetif->netif;
     ip4_addr_t ipaddr, netmask, gw;
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+    uint32_t chksumFlags = (NETIF_CHECKSUM_ENABLE_ALL &
+                            ~(NETIF_CHECKSUM_GEN_UDP |
+                              NETIF_CHECKSUM_GEN_TCP |
+                              NETIF_CHECKSUM_CHECK_TCP |
+                              NETIF_CHECKSUM_CHECK_UDP));
+#endif
 #if ETHAPP_LWIP_USE_DHCP
     err_t err;
 #endif
@@ -1021,6 +1028,9 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
         /* Create Enet LLD ethernet interface */
         netif_add(netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+        NETIF_SET_CHECKSUM_CTRL(netif, chksumFlags);
+#endif
 
         /* Create inter-core virtual ethernet interface: MCU2_1 <-> MCU2_0 */
         netif_add(&netif_ic, NULL, NULL, NULL,
@@ -1044,6 +1054,9 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         netif_set_status_callback(&netif_bridge, EthApp_lwipNetifStatusCb);
 #else
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+        NETIF_SET_CHECKSUM_CTRL(netif, chksumFlags);
+#endif
 
         if (virtNetif->isDfltNetif)
         {
@@ -1080,6 +1093,9 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+    NETIF_SET_CHECKSUM_CTRL(netif, chksumFlags);
+#endif
 
         if (virtNetif->isDfltNetif)
         {

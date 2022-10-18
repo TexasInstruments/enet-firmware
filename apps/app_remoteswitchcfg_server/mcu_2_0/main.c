@@ -993,6 +993,13 @@ static void EthApp_initLwip(void *arg)
 static void EthApp_initNetif(void)
 {
     ip4_addr_t ipaddr, netmask, gw;
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+    uint32_t chksumFlags = (NETIF_CHECKSUM_ENABLE_ALL &
+                            ~(NETIF_CHECKSUM_GEN_UDP |
+                              NETIF_CHECKSUM_GEN_TCP |
+                              NETIF_CHECKSUM_CHECK_TCP |
+                              NETIF_CHECKSUM_CHECK_UDP));
+#endif
 #if ETHAPP_LWIP_USE_DHCP
     err_t err;
 #endif
@@ -1013,6 +1020,9 @@ static void EthApp_initNetif(void)
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
     /* Create Enet LLD ethernet interface */
     netif_add(&netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+    NETIF_SET_CHECKSUM_CTRL(&netif, chksumFlags);
+#endif
 
     /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU2_1 */
     netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], NULL, NULL, NULL,
@@ -1047,6 +1057,9 @@ static void EthApp_initNetif(void)
 #else
     netif_add(&netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
     netif_set_default(&netif);
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+    NETIF_SET_CHECKSUM_CTRL(&netif, chksumFlags);
+#endif
 #endif
 
     netif_set_status_callback(netif_default, EthApp_netifStatusCb);
