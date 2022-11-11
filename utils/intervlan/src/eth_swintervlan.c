@@ -309,15 +309,18 @@ static void CpswApp_initRxReadyPktQ(void)
     int32_t status;
     uint32_t i;
     EnetDma_Pkt *pPktInfo;
+    uint32_t scatterSegments[1];
 
     EnetQueue_initQ(&rxFreeQ);
     EnetQueue_initQ(&rxReadyQ);
 
+    scatterSegments[0] = ENET_MEM_LARGE_POOL_PKT_SIZE;
     for (i = 0U; i < CPSW_FRWD_APP_NUM_PKTS; i++)
     {
         pPktInfo = EnetMem_allocEthPkt(&gCpswInterVlanAppObj,
-                                                  ENET_MEM_LARGE_POOL_PKT_SIZE,
-                                                  UDMA_CACHELINE_ALIGNMENT);
+                                       UDMA_CACHELINE_ALIGNMENT,
+                                       ENET_ARRAYSIZE(scatterSegments),
+                                       scatterSegments);
         EnetAppUtils_assert(pPktInfo != NULL);
         EnetQueue_enq(&rxFreeQ, &pPktInfo->node);
     }
@@ -789,7 +792,7 @@ static void CpswApp_pktRxTx(void)
             {
                 /* Consume the received packets and release them */
                 /* TODO: Invalidate for the header portion*/
-                frame = (EthVlanFrame *)pktInfo->bufPtr;
+                frame = (EthVlanFrame *)pktInfo->sgList.list[0].bufPtr;
                 CacheP_Inv((Ptr)frame, PKT_HEADER_SIZE);
 
                 /* Step2: Modify SA, DA fields of Ethernet header*/
