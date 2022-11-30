@@ -78,9 +78,11 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
         ADDITIONAL_STATIC_LIBS += enet_intercore.ae$(TARGET_CPU_SUFFIX)
     endif
 
+    # osal_freertos and freertos libs have a cyclic dependency. osal_freertos lib needs to added twice to meet the cyclic dependency.
     ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
     ifeq ($(TARGET_OS),FREERTOS)
         ADDITIONAL_STATIC_LIBS += ti.kernel.freertos.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += ti.osal.ae$(TARGET_CPU_SUFFIX)
     endif
 
     ADDITIONAL_STATIC_LIBS += ti.csl.ae$(TARGET_CPU_SUFFIX)
