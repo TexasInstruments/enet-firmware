@@ -1542,26 +1542,32 @@ Please refer to the Ethernet Firmware Release Notes.
 
 Flag                             | Description
 ---------------------------------|------------
-`-g`                             | Default behavior. Enables symbolic debugging. The generation of debug information do not impact optimizations. Therefore, generating debug information is enabled by default.
-`--endian=little`                | Little Endian
-`-mv=7R5`                        | Processor Architecture Cortex-R5
-`--abi=eabi`                     | Application binary interface - ELF
-`-eo=.obj`                       | Output Object file extension
-`--float_support=vfpv3d16`       | VFP co-processor is enabled
-`--preproc_with_compile`         | Continue compilation after using -pp`<X>` options
+`-O0`                            | Optimization level 0
+`-D=MAKEFILE_BUILD`              | Makefile-based build type
 `-D=TARGET_BUILD=2`              | Identifies the build profile as 'debug'
 `-D_DEBUG_=1`                    | Identifies as debug build
+`-D=ETHFW_CCS`                   | Identifies ETHFW build for CCS boot, disabled for U-Boot/SBL build
 `-D=SOC_J721E`                   | Identifies the J721E SoC type
 `-D=J721E`                       | Identifies the J721E device type
 `-D=SOC_J7200`                   | Identifies the J7200 SoC type
 `-D=J7200`                       | Identifies the J7200 device type
-`-D=SOC_J784S4                   | Identifies the J784S4 SoC type
+`-D=SOC_J784S4`                  | Identifies the J784S4 SoC type
 `-D=J784s4`                      | Identifies the J784S4 device type
-`-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
+`-D=R5Ft="R5Ft"`                 | Identifies the core type as ARM R5F with Thumb2 enabled
+`-D=TARGET_NUM_CORES=2`          | Identifies the core id as mcu2_0 (ETHFW server)
+`-D=TARGET_NUM_CORES=3`          | Identifies the core id as mcu2_1 (RTOS client)
+`-D=TARGET_ARCH=32`              | Identifies the target architecture as 32-bit
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHFW_INTERCORE_ETH_SUPPORT` | Enable Intercore Ethernet support (disabled if BUILD_QNX_A72 is defined)
+`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
+`-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
+
+Other common flags:
+
+```
+-Wno-extra -Wno-exceptions -ferror-limit=100 -Wno-parentheses-equality -Wno-unused-command-line-argument -Wno-gnu-variable-sized-type-not-at-end -Wno-unused-function -Wno-inconsistent-missing-override -Wno-address-of-packed-member -Wno-self-assign -Wno-ignored-attributes -Wno-bitfield-constant-conversion -Wno-unused-const-variable -Wno-unused-variable -Wno-format-security -Wno-excess-initializers -Wno-sometimes-uninitialized -Wno-empty-body -Wno-extern-initializer -Wno-absolute-value -Wno-missing-braces -Wno-ti-macros -Wno-pointer-sign -Wno-macro-redefined -Wno-main-return-type -Werror -O0 -ggdb3 -mfloat-abi=hard -mfpu=vfpv3 -D16 -mcpu=cortex-r5 -march=armv7-r -mthumb -fno-strict-aliasing  -ffunction-sections
+```
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1571,28 +1577,31 @@ Flag                             | Description
 
 Flag                             | Description
 ---------------------------------|------------
-`--endian=little`                | Little Endian
-`-mv=7R5`                        | Processor Architecture Cortex-R5
-`--abi=eabi`                     | Application binary interface - ELF
-`-eo=.obj`                       | Output Object file extension
-`--float_support=vfpv3d16`       | VFP co-processor is enabled
-`--preproc_with_compile`         | Continue compilation after using -pp`<X>` options
-`--opt_level=3`                  | Optimization level 3
-`--gen_opt_info=2`               | Generate optimizer information file at level 2
+`-O3`                            | Optimization level 3
+`-D=MAKEFILE_BUILD`              | Makefile-based build type
 `-D=TARGET_BUILD=1`              | Identifies the build profile as 'release'
-`-DNDEBUG`                       | Disable standard-C assertions
+`-D=ETHFW_CCS`                   | Identifies ETHFW build for CCS boot, disabled for U-Boot/SBL build
 `-D=SOC_J721E`                   | Identifies the J721E SoC type
 `-D=J721E`                       | Identifies the J721E device type
 `-D=SOC_J7200`                   | Identifies the J7200 SoC type
 `-D=J7200`                       | Identifies the J7200 device type
-`-D=SOC_J784S4                   | Identifies the J784S4 SoC type
-`-D=J784s4`                      | Identifies the J784S4 device type
-`-D=R5F="R5F"`                   | Identifies the core type as ARM R5F
+`-D=SOC_J784S4`                  | Identifies the J784S4 SoC type
+`-D=J784S4`                      | Identifies the J784S4 device type
+`-D=R5Ft="R5Ft"`                 | Identifies the core type as ARM R5F with Thumb2 enabled
+`-D=TARGET_NUM_CORES=2`          | Identifies the core id as mcu2_0 (ETHFW server)
+`-D=TARGET_NUM_CORES=3`          | Identifies the core id as mcu2_1 (RTOS client)
+`-D=TARGET_ARCH=32`              | Identifies the target architecture as 32-bit
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHFW_INTERCORE_ETH_SUPPORT` | Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
+`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
+`-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 
+Other common flags:
+
+```
+-Wno-extra -Wno-exceptions -ferror-limit=100 -Wno-parentheses-equality -Wno-unused-command-line-argument -Wno-gnu-variable-sized-type-not-at-end -Wno-unused-function -Wno-inconsistent-missing-override -Wno-address-of-packed-member -Wno-self-assign -Wno-ignored-attributes -Wno-bitfield-constant-conversion -Wno-unused-const-variable -Wno-unused-variable -Wno-format-security -Wno-excess-initializers -Wno-sometimes-uninitialized -Wno-empty-body -Wno-extern-initializer -Wno-absolute-value -Wno-missing-braces -Wno-ti-macros -Wno-pointer-sign -Wno-macro-redefined -Wno-main-return-type -Werror -O3 -mfloat-abi=hard -mfpu=vfpv3 -D16 -mcpu=cortex-r5 -march=armv7-r -mthumb -fno-strict-aliasing  -ffunction-sections
+```
 
 [Back To Top](@ref ethfw_c_ug_top)
 
