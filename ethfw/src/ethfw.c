@@ -98,7 +98,7 @@
 
 #include <server-rtos/remote-device.h>
 
-#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
 #endif
 
@@ -974,7 +974,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
     }
 
-#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* Initialize lwIP ARP helper */
     if (status == ENET_SOK)
     {
@@ -1012,7 +1012,7 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 {
     EnetAppUtils_assert(hEthFw != NULL);
 
-#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
     EthFwArpUtils_deinit();
 #endif

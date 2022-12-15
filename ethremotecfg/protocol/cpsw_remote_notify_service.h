@@ -127,6 +127,9 @@ extern "C" {
 /*! Remote notify service task stack size */
 #define CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE       (16U * 1024U)
 
+/*! Remote notify service task stack alignment */
+#define CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKALIGN      CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */

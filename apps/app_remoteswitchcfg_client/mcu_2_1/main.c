@@ -155,7 +155,15 @@
                                                CPSW_REMOTE_APP_IPC_NUM_RPMSG_BUFS + \
                                                CPSW_REMOTE_APP_IPC_RPMSG_OBJ_SIZE)
 
-#define ETHAPP_LWIP_TASK_STACKSIZE      (4U * 1024U)
+#if defined(SAFERTOS)
+#define ETHAPP_LWIP_TASK_STACKSIZE              (16U * 1024U)
+#define ETHAPP_LWIP_TASK_STACKALIGN             ETHAPP_LWIP_TASK_STACKSIZE
+#define ETHAPP_IPC_TASK_STACKALIGN              IPC_TASK_STACKSIZE
+#else
+#define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
+#define ETHAPP_LWIP_TASK_STACKALIGN             (32U)
+#define ETHAPP_IPC_TASK_STACKALIGN              (8192U)
+#endif
 
 /* lwIP features that EthFw relies on */
 #ifndef LWIP_IPV4
@@ -182,47 +190,51 @@
 
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__((aligned(32)));
+__attribute__((aligned(ETHAPP_LWIP_TASK_STACKALIGN)));
 
 static uint8_t g_monitorStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
 
 static uint8_t g_rdevStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
 
 static uint8_t g_initTaskStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
 
 static uint8_t g_vdevMonStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
 
 static uint8_t g_mainStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
 
 static uint8_t ctrlTaskBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
 
 static uint8_t g_messageTaskStack[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
 
 static uint8_t g_requestTaskStack[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)))
+__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
+
+#if defined(SAFERTOS)
+static sys_sem_t gEthApp_lwipMainSemObj;
+#endif
 
 static uint8_t sysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section("ipc_data_buffer"), aligned(8)));
 static uint8_t gCntrlBuf[CPSW_REMOTE_APP_IPC_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned(8)));
@@ -403,6 +415,8 @@ CpswRemoteApp_Obj gRemoteAppObj =
 #endif
     },
 };
+
+static void EthApp_waitForDebugger(void);
 
 static uint64_t CpswRemoteApp_virtToPhysFxn(const void *virtAddr,
                                             void *appData);
@@ -712,6 +726,7 @@ static void CpswRemoteApp_initTask(void* a0,
     params.priority = 3;
     params.stack = &g_vdevMonStackBuf[0];
     params.stacksize = sizeof(g_vdevMonStackBuf);
+
     TaskP_create(&rpmsg_vdevMonitorFxn, &params);
 
     /* Step 5: Start Cpsw Proxy */
@@ -737,6 +752,9 @@ static void CpswRemoteApp_initTask(void* a0,
     params.stack     = &gEthAppLwipStackBuf[0];
     params.stacksize = sizeof(gEthAppLwipStackBuf);
     params.name      = "lwIP main loop";
+#if defined(SAFERTOS)
+    params.userData  = &gEthApp_lwipMainSemObj;
+#endif
 
     TaskP_create(&EthApp_lwipMain, &params);
 }
@@ -747,13 +765,10 @@ int main(void)
     TaskP_Params taskParams;
     int32_t status;
 
-    /* Set ccsHaltFlag to 1 for halting core for CCS connection */
-    volatile uint32_t ccsHaltFlag = 0U;
+    OS_init();
 
-    while (ccsHaltFlag)
-    {
-        ;
-    }
+    /* Wait for debugger to attach (disabled by default) */
+    EthApp_waitForDebugger();
 
     /* Init UDMA LLD based on NAVSS instance */
     status = CpswRemoteApp_openUdma();
@@ -775,6 +790,7 @@ int main(void)
     taskParams.priority = 2;
     taskParams.stack = &g_initTaskStackBuf[0];
     taskParams.stacksize = sizeof(g_initTaskStackBuf);
+
     task = TaskP_create(&CpswRemoteApp_initTask, &taskParams);
 
     if (NULL == task)
@@ -785,6 +801,14 @@ int main(void)
     OS_start();    /* does not return */
 
     return(0);
+}
+
+static void EthApp_waitForDebugger(void)
+{
+    /* Set ccsHaltFlag to 1 for halting core for CCS connection */
+    volatile uint32_t ccsHaltFlag = 0U;
+
+    while (ccsHaltFlag);
 }
 
 static int32_t CpswRemoteApp_openUdma(void)

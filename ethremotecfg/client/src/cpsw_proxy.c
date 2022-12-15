@@ -96,6 +96,10 @@
 
 #include "cpsw_proxy_cfg.h"
 
+#if defined(SAFERTOS)
+#include "SafeRTOS_API.h"
+#endif
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -106,6 +110,12 @@
 #define CPSWPROXY_RDEVCLIENT_CONNECT_RETRY_MS           (10U)
 
 #define CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT          (10U)
+
+#if defined(SAFERTOS)
+#define CPSWPROXY_RDEV_MBOX_SIZE            (sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT + safertosapiQUEUE_OVERHEAD_BYTES)
+#else
+#define CPSWPROXY_RDEV_MBOX_SIZE            (sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT)
+#endif
 
 #if defined(__KLOCWORK__)
 #define CpswProxy_assert(cond)               do { if (!(cond)) abort(); } while (0)
@@ -480,7 +490,7 @@ typedef struct CpswProxy_notifyServiceObj_s
     uint8_t rpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
 
     /* Notify service task stack buffer */
-    uint8_t taskStack[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(32)));
+    uint8_t taskStack[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKALIGN)));
 } CpswProxy_notifyServiceObj;
 
 typedef struct CpswProxy_ClientObj_s
@@ -497,12 +507,12 @@ typedef struct CpswProxy_ClientObj_s
 #else
     MailboxP_Handle    hCmdMbx;
     MailboxP_Handle    hResponseMbx;
-    uint8_t cmdMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
-    uint8_t responseMbxBuf[sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT] __attribute__ ((aligned(32)));
+    uint8_t cmdMbxBuf[CPSWPROXY_RDEV_MBOX_SIZE] __attribute__ ((aligned(32)));
+    uint8_t responseMbxBuf[CPSWPROXY_RDEV_MBOX_SIZE] __attribute__ ((aligned(32)));
 #endif
 
     /* remote_device command handler task stack buffer */
-    uint8_t rdevCmdTaskStack[CPSWPROXY_RDEVCMD_TSK_STACKSIZE] __attribute__ ((aligned(32)));
+    uint8_t rdevCmdTaskStack[CPSWPROXY_RDEVCMD_TSK_STACKSIZE] __attribute__ ((aligned(CPSWPROXY_RDEVCMD_TSK_STACKALIGN)));
 } CpswProxy_ClientObj;
 
 typedef struct CpswProxy_Obj_s
@@ -625,7 +635,7 @@ static void  CpswProxy_createMbx(CpswProxy_Handle hProxy,
     }
     mboxParams.size =  sizeof(CpswProxy_rdevCmd_t);
     mboxParams.count = CPSWPROXY_RDEV_MSGCOUNT;
-    mboxParams.bufsize = sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT;
+    mboxParams.bufsize = CPSWPROXY_RDEV_MBOX_SIZE;
 
     *pMailboxHandle = MailboxP_create(&mboxParams);
     CpswProxy_assert(*pMailboxHandle != NULL);

@@ -48,6 +48,7 @@
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 #include <ti/board/board.h>
+#include <ti/board/src/j7200_evm/include/board_cfg.h>
 #include <ti/board/src/j7200_evm/include/board_pinmux.h>
 #include <ti/board/src/j7200_evm/include/board_utils.h>
 #include <ti/board/src/j7200_evm/include/board_control.h>

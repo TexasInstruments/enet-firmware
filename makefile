@@ -15,7 +15,7 @@ DIRECTORIES += ethfw
 TARGET_COMBOS :=
 
 SOC_LIST := J721E J7200 J784S4 AM65XX
-OS_LIST  := LINUX FREERTOS
+OS_LIST  := LINUX FREERTOS SAFERTOS
 ISA_LIST := R5F R5Ft A72 A53 C66 C71
 PROFILE_LIST := debug release
 CGT_LIST := TIARMCGT_LLVM CGT6X CGT7X GCC_LINUX_ARM
@@ -71,6 +71,10 @@ ifeq ($(BUILD_TARGET_MODE),yes)
     OS_LIST := $(filter-out FREERTOS,$(OS_LIST))
   endif
 
+  ifneq ($(BUILD_APP_SAFERTOS),yes)
+    OS_LIST := $(filter-out SAFERTOS,$(OS_LIST))
+  endif
+
   ifeq (,$(filter $(BUILD_SOC_LIST),J721E))
     SOC_LIST := $(filter-out J721E,$(SOC_LIST))
   endif
@@ -105,7 +109,7 @@ include makerules/makefile_pdk.mak
 ethfw_server: pdk remotedevicefw app_remoteswitchcfg_server
 
 ethfw_all: pdk remotedevicefw all
-ifeq ($(BUILD_APP_FREERTOS),yes)
+ifneq ($(filter yes,$(BUILD_APP_FREERTOS) $(BUILD_APP_SAFERTOS)),)
 remoteswitchcfg_all: | pdk remotedevicefw app_remoteswitchcfg_client app_remoteswitchcfg_server
 endif
 ethfw_all_clean: pdk_clean remotedevicefw_clean clean scrub

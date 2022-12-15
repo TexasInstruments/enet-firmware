@@ -9,24 +9,21 @@ CPU_ID=mcu2_1
 
 TARGET      := app_remoteswitchcfg_client
 TARGETTYPE  := exe
+TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
+SOC_LC      := $(call lowercase,$(TARGET_PLATFORM))
 
 CSOURCES    := main.c
 ifeq ($(TARGET_OS),FREERTOS)
-  CSOURCES    += ../../ipc_cfg/ipc_trace.c
-  ifeq ($(TARGET_PLATFORM),J721E)
-    CSOURCES    += ../../common/r5f_mpu_j721e_default.c
-  else ifeq ($(TARGET_PLATFORM),J7200)
-    CSOURCES    += ../../common/r5f_mpu_j7200_default.c
-  else ifeq ($(TARGET_PLATFORM),J784S4)
-    CSOURCES    += ../../common/r5f_mpu_j784s4_default.c
-  endif
+  CSOURCES += ../../ipc_cfg/ipc_trace.c
+  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_default.c
+else ifeq ($(TARGET_OS),SAFERTOS)
+  CSOURCES += ../../ipc_cfg/ipc_trace.c
+  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_safertos.c
 endif
 
-SOC_DIR     := $(call lowercase,$(TARGET_PLATFORM))
-
-LINKER_CMD_FILES =  $(SDIR)/$(SOC_DIR)/linker_mem_map.cmd
-ifeq ($(TARGET_OS),FREERTOS)
-  LINKER_CMD_FILES += $(SDIR)/linker_freertos.cmd
+LINKER_CMD_FILES =  $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+  LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
 
 STATIC_LIBS += lib_remoteswitchcfg_client
@@ -42,15 +39,15 @@ ifneq ($(BUILD_QNX_A72), yes)
   DEFS += ENABLE_MAC_ONLY_PORTS
 endif
 
-ifeq ($(TARGET_OS),FREERTOS)
-  DEFS += MAKEFILE_BUILD FREERTOS
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+  DEFS += MAKEFILE_BUILD
 endif
 
-ifeq ($(TARGET_OS),FREERTOS)
-  ENET_APPUTILS_LIB = enet_example_utils_freertos
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+  ENET_APPUTILS_LIB = enet_example_utils_$(TARGET_OS_LC)
 endif
 
-ifeq ($(TARGET_OS),FREERTOS)
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
     DEFS += ETHAPP_ENABLE_INTERCORE_ETH
   endif

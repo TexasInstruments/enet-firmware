@@ -9,7 +9,7 @@ TARGETTYPE  := library
 # Needed for board library header files
 DEFS        += $(SOC_DIR)_evm
 
-ifeq ($(TARGET_OS),FREERTOS)
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   ifeq ($(TARGET_PLATFORM),J721E)
     CSOURCES    += src/j721e/board_j721e_evm.c
     CSOURCES    += src/j721e/board_pinmux_data.c

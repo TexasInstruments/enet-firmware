@@ -77,8 +77,18 @@
 #define ETHREMOTECFG_SERVER_MAX_MESSAGES         (32)
 #define ETHREMOTECFG_SERVER_MAX_PACKET_SIZE      (512)
 
+#if defined(SAFERTOS)
+#define g_sender_tsk_stack_size                 (16U * 1024U)
+#define g_message_monitor_tsk_stack_size        (16U * 1024U)
+#define g_sender_tsk_stack_align                g_sender_tsk_stack_size
+#define g_message_monitor_tsk_stack_align       g_message_monitor_tsk_stack_size
+#else
 #define g_sender_tsk_stack_size                 (0x2000)
 #define g_message_monitor_tsk_stack_size        (0x2000)
+#define g_sender_tsk_stack_align                (8192U)
+#define g_message_monitor_tsk_stack_align       (8192U)
+#endif
+
 static volatile bool grdevEthSwitchAssertLoop = true;
 
 #define ETHREMOTECFG_ROUNDUP(x, y)              ((((x) + ((y) - 1U)) / (y)) * (y))
@@ -126,8 +136,8 @@ typedef struct rdevEthSwitchServerMessage_s
 } rdevEthSwitchServerMessage_t;
 
 /* stack for sender task */
-static uint8_t g_sender_tsk_stack[g_sender_tsk_stack_size] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
-static uint8_t g_message_monitor_tsk_stack[g_message_monitor_tsk_stack_size * ETHREMOTECFG_SERVER_MAX_INSTANCES] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
+static uint8_t g_sender_tsk_stack[g_sender_tsk_stack_size] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(g_sender_tsk_stack_align)));
+static uint8_t g_message_monitor_tsk_stack[g_message_monitor_tsk_stack_size * ETHREMOTECFG_SERVER_MAX_INSTANCES] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(g_message_monitor_tsk_stack_align)));
 
 #define RDEV_ETHSWITCH_POOL_ELEM_SZ            ENET_DIV_ROUNDUP((ETHREMOTECFG_SERVER_MAX_PACKET_SIZE + sizeof(rdevEthSwitchServerMessage_t) + APP_QUEUE_ELEM_META_SIZE), sizeof(uint64_t))
 

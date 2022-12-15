@@ -106,7 +106,14 @@
  */
 #define RX_TX_COMPLETION_TIMEOUT        (1U)
 #define PKT_HEADER_SIZE                 (64U)
+
+#if defined(SAFERTOS)
+#define APP_TSK_STACK_SIZE              (16U * 1024U)
+#define APP_TSK_STACK_ALIGN             APP_TSK_STACK_SIZE
+#else
 #define APP_TSK_STACK_SIZE              (6U * 1024U)
+#define APP_TSK_STACK_ALIGN             (32U)
+#endif
 
 #define APP_INTERVLAN_INGRESS_PORT_NUM  (ENET_MAC_PORT_3)
 #define APP_INTERVLAN_EGRESS_PORT_NUM   (ENET_MAC_PORT_2)
@@ -181,7 +188,7 @@ static uint8_t testDstMacAddr[] = {0x00, 0x11, 0x02, 0x00, 0x00, 0x01};
 /* Test application stack */
 static uint8_t gAppTskStackMain[APP_TSK_STACK_SIZE]
  __attribute__((section(".bss:appStack")))
-__attribute__ ((aligned(32)));
+__attribute__ ((aligned(APP_TSK_STACK_ALIGN)));
 
 static TaskP_Handle task;
 

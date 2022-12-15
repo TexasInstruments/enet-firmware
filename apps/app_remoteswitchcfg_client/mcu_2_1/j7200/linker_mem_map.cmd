@@ -67,7 +67,8 @@
 MEMORY
 {
     /* R5F_TCMA [ size 32.00 KB ] */
-    R5F_TCMA                 (    X ) : ORIGIN = 0x00000000 , LENGTH = 0x00008000
+    _VEC                     (    X ) : ORIGIN = 0x00000000 , LENGTH = 0x00000040
+    R5F_TCMA                 (    X ) : ORIGIN = 0x00000100 , LENGTH = 0x00007F00
     /* R5F_TCMB0 [ size 32.00 KB ] */
     R5F_TCMB0                ( RWIX ) : ORIGIN = 0x41010000 , LENGTH = 0x00008000
     /* DDR for MCU2_1 for Linux IPC [ size 1024.00 KB ] */

@@ -70,7 +70,14 @@
 #define APP_ETHFW_STATS_POLL_PERIOD_MS           (500U)
 
 #define APP_ETHFW_STATS_COLLECTOR_TASK_PRI       (10U)
-#define APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE (8192U)
+
+#if defined(SAFERTOS)
+#define APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE  (16U * 1024U)
+#define APP_ETHFW_STATS_COLLECTOR_TASK_STACKALIGN APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE
+#else
+#define APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE  (8192U)
+#define APP_ETHFW_STATS_COLLECTOR_TASK_STACKALIGN (32U)
+#endif
 
 #define APP_ETHFW_STATS_BW_MULT                  (1000U / (APP_ETHFW_STATS_POLL_PERIOD_MS))
 #define APP_ETHFW_STATS_BW_FRAMES_MULT           (20U)
@@ -104,7 +111,7 @@ typedef struct
 } app_ethfw_stats_obj_t;
 
 static app_ethfw_stats_obj_t g_app_ethfw_stats_obj;
-static uint8_t g_ethfwStatsCollectorStack[APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE];
+static uint8_t g_ethfwStatsCollectorStack[APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE] __attribute__ ((aligned(APP_ETHFW_STATS_COLLECTOR_TASK_STACKALIGN)));
 
 static void appEthfw_statsCollectorTask(void *arg0, void *arg1);
 static void appEthfwStats_clockCb(void *arg);

@@ -28,7 +28,7 @@ __SVC_STACK_SIZE   = 0x0100;
 
 SECTIONS
 {
-    .freertosrstvectors : {} palign(8)      > R5F_TCMA
+    .freertosrstvectors : {} palign(8)      > _VEC
     
     .bootCode           : {} palign(8)      > R5F_TCMB0
     .startupCode        : {} palign(8)      > R5F_TCMB0

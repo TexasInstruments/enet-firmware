@@ -168,9 +168,19 @@
 
 #define ARRAY_SIZE(x)                           (sizeof((x)) / sizeof(x[0U]))
 
+#if defined(SAFERTOS)
+#define ETHAPP_LWIP_TASK_STACKSIZE              (16U * 1024U)
+#define ETHAPP_TRACEBUF_TASK_STACKSIZE          (16U * 1024U)
+#define ETHAPP_LWIP_TASK_STACKALIGN             ETHAPP_LWIP_TASK_STACKSIZE
+#define ETHAPP_TRACEBUF_TASK_STACKALIGN         ETHAPP_TRACEBUF_TASK_STACKSIZE
+#define ETHAPP_IPC_TASK_STACKALIGN              IPC_TASK_STACKSIZE
+#else
 #define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
-
 #define ETHAPP_TRACEBUF_TASK_STACKSIZE          (1U * 1024U)
+#define ETHAPP_LWIP_TASK_STACKALIGN             (32)
+#define ETHAPP_TRACEBUF_TASK_STACKALIGN         (32)
+#define ETHAPP_IPC_TASK_STACKALIGN              (8192U)
+#endif
 
 /* lwIP features that EthFw relies on */
 #ifndef LWIP_IPV4
@@ -380,6 +390,10 @@ extern char Ipc_traceBuffer[IPC_TRACEBUF_SIZE];
 /*                            Global Variables                                */
 /* ========================================================================== */
 
+#if defined(SAFERTOS)
+static sys_sem_t gEthApp_lwipMainTaskSemObj;
+#endif
+
 static EthAppObj gEthAppObj =
 {
 #if defined(SOC_J721E) || defined(SOC_J784S4)
@@ -453,15 +467,15 @@ static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
     },
 };
 
-static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
+static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
 
-static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(32)));
+static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(ETHAPP_LWIP_TASK_STACKALIGN)));
 
-static uint8_t gEthAppTraceBufFlushBuf[ETHAPP_TRACEBUF_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(32)));
+static uint8_t gEthAppTraceBufFlushBuf[ETHAPP_TRACEBUF_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(ETHAPP_TRACEBUF_TASK_STACKALIGN)));
 
-static uint8_t gEthAppIpcInitStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
+static uint8_t gEthAppIpcInitStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
 
-static uint8_t gEthAppCtrlTaskBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(8192)));
+static uint8_t gEthAppCtrlTaskBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
 
 static uint8_t gEthAppSysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section("ipc_data_buffer"), aligned(8)));
 
@@ -507,6 +521,8 @@ int main(void)
 {
     TaskP_Handle task;
     TaskP_Params taskParams;
+
+    OS_init();
 
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
@@ -632,6 +648,9 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
         taskParams.priority  = DEFAULT_THREAD_PRIO;
         taskParams.stack     = &gEthAppLwipStackBuf[0];
         taskParams.stacksize = sizeof(gEthAppLwipStackBuf);
+#if defined(SAFERTOS)
+        taskParams.userData  = &gEthApp_lwipMainTaskSemObj;
+#endif
         taskParams.name      = "lwIP main loop";
 
         TaskP_create(&EthApp_lwipMain, &taskParams);

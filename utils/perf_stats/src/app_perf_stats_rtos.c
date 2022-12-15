@@ -132,8 +132,10 @@ void appPerfStatsResetLoadCalcAll(app_perf_stats_obj_t *obj)
 
     appPerfStatsLock(obj);
 
+#if defined(FREERTOS)
     /* LoadP_reset() currently supported only for FreeRTOS */
     LoadP_reset();
+#endif
 
     appPerfStatsResetLoadCalc(&obj->idleLoad);
     for(i=0; i<APP_PERF_STATS_TASK_MAX; i++)
@@ -184,8 +186,9 @@ int32_t appPerfStatsHandler(char *service_name, uint32_t cmd, void *prm, uint32_
                 appPerfStatsLock(obj);
 
                 /* LoadP_getCPULoad() currently supported only for FreeRTOS */
+#if defined(FREERTOS)
                 cpu_load->cpu_load = LoadP_getCPULoad();
-
+#endif
                 appPerfStatsUnLock(obj);
             }
             else

@@ -65,11 +65,17 @@
 #include <stdarg.h>
 #include <string.h>
 
+#if defined(SAFERTOS)
+#define  APP_LOG_RD_TASK_STACK_SIZE   (16U * 1024U)
+#define  APP_LOG_RD_TASK_STACK_ALIGN  APP_LOG_RD_TASK_STACK_SIZE
+#else
 #define  APP_LOG_RD_TASK_STACK_SIZE   (4096u)
+#define  APP_LOG_RD_TASK_STACK_ALIGN  (32U)
+#endif
 
 static app_log_rd_obj_t g_app_log_rd_obj;
 
-static uint8_t g_app_log_rd_task_stack[APP_LOG_RD_TASK_STACK_SIZE];
+static uint8_t g_app_log_rd_task_stack[APP_LOG_RD_TASK_STACK_SIZE] __attribute__ ((aligned(APP_LOG_RD_TASK_STACK_ALIGN)));
 
 void appLogInitPrmSetDefault(app_log_init_prm_t *prms)
 {
@@ -230,7 +236,7 @@ uint32_t appLogRdGetString(app_log_cpu_shared_mem_t *cpu_shared_mem,
     return num_bytes;
 }
 
-#if defined(FREERTOS)
+#if defined(FREERTOS) || defined(SAFERTOS)
 void appLogRdRun(void *arg0, void *arg1)
 #else
 void *appLogRdRun(app_log_rd_obj_t *obj)
@@ -239,7 +245,7 @@ void *appLogRdRun(app_log_rd_obj_t *obj)
     volatile uint32_t done = 0;
     uint32_t cpu_id = 0;
     uint32_t num_bytes, str_len;
-    #if defined(FREERTOS)
+    #if defined(FREERTOS) || defined(SAFERTOS)
     app_log_rd_obj_t *obj =  (app_log_rd_obj_t *)arg0;
     #endif
 
@@ -280,7 +286,7 @@ void *appLogRdRun(app_log_rd_obj_t *obj)
     }
 
 
-    #if defined(FREERTOS)
+    #if defined(FREERTOS) || defined(SAFERTOS)
     return;
     #else
     return NULL;

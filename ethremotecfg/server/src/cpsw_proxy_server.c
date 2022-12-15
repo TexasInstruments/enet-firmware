@@ -104,11 +104,16 @@
 #define CPSWPROXY_CPTS_HWPUSH_EVENTS_OR_MASK            (0xFFU)
 
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_NAME           ("ASRETHDEVICE")
-/**< Task name */
+
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_PRIORITY       (2U)
-/**< Task priority */
+
+#if defined(SAFERTOS)
+#define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK          (16U * 1024U)
+#define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_ALIGN          CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK
+#else
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK          (0x4000)
-/**< Stack required for the task */
+#define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_ALIGN          (32)
+#endif
 
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE            (496U + 32U)
 
@@ -222,8 +227,8 @@ static uint8_t g_CpswProxyServerAutosarRpmsgBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_DATA
 static uint8_t g_CpswProxyServerNotifyServiceRpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
 
 /**< StackBuffer for different tasks */
-static uint8_t gCpswProxyServer_autosarEthDriverTaskStackBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK] __attribute__ ((aligned(32)));
-static uint8_t gCpswProxyServer_notifyServiceTaskStackBuf[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(32)));
+static uint8_t gCpswProxyServer_autosarEthDriverTaskStackBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK] __attribute__ ((aligned(CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_ALIGN)));
+static uint8_t gCpswProxyServer_notifyServiceTaskStackBuf[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKALIGN)));
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -1164,7 +1169,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
     int32_t status = 0;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
-#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
     struct eth_addr hwAddr;
 #endif
@@ -1191,7 +1196,7 @@ static int32_t CpswProxyServer_registerIpv4MacHandlerCb(EthRemoteCfg_VirtPort vi
 
         CpswProxyServer_validateHandle(hEnet);
 
-#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
         SMEMCPY(&hwAddr, mac_address, ETH_HWADDR_LEN);
 
@@ -1224,7 +1229,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
     int32_t status = 0;
     uint32_t ipaddr = ((uint32_t)ipv4_addr[0] << 24U) | ((uint32_t)ipv4_addr[1] << 16U) | ((uint32_t)ipv4_addr[2] << 8U) | ((uint32_t)ipv4_addr[3] << 0U);
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
-#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
 #endif
     bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
@@ -1244,7 +1249,7 @@ static int32_t CpswProxyServer_unregisterIpv4MacHandlerCb(EthRemoteCfg_VirtPort 
 
         CpswProxyServer_validateHandle(hEnet);
 
-#if defined(FREERTOS) && defined(ETHFW_PROXY_ARP_HANDLING)
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]);
 
         status = EthFwArpUtils_delAddr(&ip4Addr);

@@ -94,9 +94,15 @@ static uint8_t g_app_remote_service_rpmsg_rx_buf[APP_REMOTE_SERVICE_RPMSG_RX_BUF
  */
 #define APP_REMOTE_SERVICE_RX_TASK_STACK_SIZE   (128*1024u)
 #define APP_REMOTE_SERVICE_RX_TASK_PRI          (10u)
+#if defined(SAFERTOS)
+#define APP_REMOTE_SERVICE_RX_TASK_STACK_ALIGN  APP_REMOTE_SERVICE_RX_TASK_STACK_SIZE
+#else
+#define APP_REMOTE_SERVICE_RX_TASK_STACK_ALIGN  (8192u)
+#endif
+
 static uint8_t g_app_remote_service_rx_task_stack[APP_REMOTE_SERVICE_RX_TASK_STACK_SIZE]
 __attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(8192)));
+__attribute__ ((aligned(APP_REMOTE_SERVICE_RX_TASK_STACK_ALIGN)));
 
 
 typedef struct {

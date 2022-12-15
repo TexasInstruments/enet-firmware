@@ -5,8 +5,8 @@ TARGETTYPE  := library
 CSOURCES    := remote_device_client_ethswitch.c
 CSOURCES    += cpsw_proxy.c
 
-ifeq ($(TARGET_OS),FREERTOS)
-  DEFS += MAKEFILE_BUILD FREERTOS
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+  DEFS += MAKEFILE_BUILD
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

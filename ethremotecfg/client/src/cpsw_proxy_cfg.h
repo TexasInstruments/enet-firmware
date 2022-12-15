@@ -66,7 +66,8 @@
 #include <stdint.h>
 
 #define CPSWPROXY_RDEVCMD_TSK_PRI                (2U)
-#define CPSWPROXY_RDEVCMD_TSK_STACKSIZE          (8U * 1024U)
+#define CPSWPROXY_RDEVCMD_TSK_STACKSIZE          (16U * 1024U)
+#define CPSWPROXY_RDEVCMD_TSK_STACKALIGN         CPSWPROXY_RDEVCMD_TSK_STACKSIZE
 
 /*! Maximum number of supported CpswProxy clients */
 #define CPSWPROXY_CLIENT_MAX                     (2U)

@@ -25,6 +25,7 @@ BUILD_SOC_LIST ?= J721E J7200 J784S4
 export BUILD_SOC_LIST
 # Build FREERTOS only binaries
 BUILD_APP_FREERTOS?=yes
+BUILD_APP_SAFERTOS?=yes
 #Build Profile
 PROFILE?=release
 

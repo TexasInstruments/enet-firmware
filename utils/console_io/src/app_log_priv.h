@@ -101,7 +101,7 @@ void      appLogWrUnLock(app_log_wr_obj_t *obj,
 int32_t   appLogRdCreateTask(app_log_rd_obj_t *obj,
                              app_log_init_prm_t *prm);
 
-#if defined(FREERTOS)
+#if defined(FREERTOS) || defined(SAFERTOS)
 void appLogRdRun(void *arg0, void *arg1);
 #else
 void *appLogRdRun(app_log_rd_obj_t *obj);
