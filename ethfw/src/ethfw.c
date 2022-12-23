@@ -1181,6 +1181,7 @@ static void EthFw_deinitMcm(void)
 {
     /* Release MCM handle - CPSW should close if we're last client */
     EnetMcm_releaseHandleInfo(&gEthFwObj.mcmCmdIf);
+    EnetMcm_releaseCmdIf(gEthFwObj.enetType, &gEthFwObj.mcmCmdIf);
 
     /* De-initialize CPSW MCM */
     EnetMcm_deInit(gEthFwObj.enetType);

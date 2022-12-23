@@ -321,6 +321,8 @@ int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
         obj->ethfwStatsShutdown = false;
     }
 
+    EnetMcm_releaseCmdIf(obj->enetType, &cmdIf);
+
     return status;
 }
 

@@ -378,6 +378,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
 
     EnetMcm_coreDetach(&mcmCmdIf, releaseInfo->coreId, releaseInfo->coreKey);
     EnetMcm_releaseHandleInfo(&mcmCmdIf);
+    EnetMcm_releaseCmdIf(enetType, &mcmCmdIf);
 }
 
 #if defined(ETHFW_PROXY_ARP_HANDLING)

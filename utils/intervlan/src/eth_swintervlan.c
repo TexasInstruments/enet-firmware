@@ -279,6 +279,7 @@ static void CpswApp_InterVlanRouting(void* a0,
     EnetAppUtils_freePktInfoQ(&cqPktInfoQ);
 
     EnetMcm_releaseHandleInfo(&cmdIf);
+    EnetMcm_releaseCmdIf(gCpswInterVlanAppObj.enetType, &cmdIf);
 }
 
 void CpswApp_ingRxIsrFxn(void *appData)
