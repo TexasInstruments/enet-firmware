@@ -19,7 +19,7 @@
 --diag_suppress=10063                   /* entry point not _c_int00 */
 --stack_size=0x4000
 --heap_size=0x8000
---entry_point=_axSafeRTOSresetVectors   /* C RTS boot.asm with added SVC handler */
+--entry_point=_safeRTOSresetvectors     /* C RTS boot.asm with added SVC handler	*/
 
 -stack  0x4000  /* SOFTWARE STACK SIZE */
 -heap   0x8000  /* HEAP AREA SIZE      */
@@ -33,6 +33,7 @@ __ABORT_STACK_SIZE = 0x1000;
 __UND_STACK_SIZE   = 0x1000;
 __SVC_STACK_SIZE   = 0x1000;
 
+
 /*----------------------------------------------------------------------------*/
 /* Section Configuration                                                      */
 /*----------------------------------------------------------------------------*/
@@ -40,11 +41,10 @@ SECTIONS
 {
 
 /* Vector sections. */
-    GROUP
-    {
-        .safeRTOSrstvectors                                 : {} palign(8)
-        .rstvectors                                         : {} palign(8)
-    } > R5F_TCMA
+
+        ._safeRTOSrstvectors                                    : {} palign( 8 ) > _VEC
+
+        .rstvectors                                             : {} palign( 8 ) > R5F_TCMA
 
 /* Startup code sections. */
     GROUP
@@ -63,7 +63,7 @@ SECTIONS
         .text.cache     : palign(8)
         .text.mpu       : palign(8)
         .text.boot      : palign(8)
-    }                                       > R5F_TCMB0
+    } > R5F_TCMB0
 
 
 /* Code sections. */
@@ -71,46 +71,46 @@ SECTIONS
     {
         .KERNEL_FUNCTION LOAD_START( lnkKernelFuncStartAddr ),
                          LOAD_END( lnkKernelFuncEndAddr )       : {} palign( 0x10000 )
-    } > DDR_MCU2_0
+    } > DDR_MCU2_1
 
-    .text : align(8)    >  DDR_MCU2_0
-    .rodata : align(8)  > DDR_MCU2_0
+    .text   : palign(32) >  DDR_MCU2_1
+    .rodata : palign(8) > DDR_MCU2_1
 
 
 
     .text_fast {
 
-    }     > DDR_MCU2_0
+    }     > DDR_MCU2_1
 
     .text_rest{
        _text_rest_begin = .;
        *(.text)
        _text_rest_end = .;
-    } palign(32)    >  DDR_MCU2_0
+    } palign(32)    >  DDR_MCU2_1
 
-    ipc_data_buffer (NOINIT) : {} palign(128)   > DDR_MCU2_0
+    ipc_data_buffer (NOINIT) : {} palign(128)   > DDR_MCU2_1
 
     .resource_table          :
     {
         __RESOURCE_TABLE = .;
-    }                                           > DDR_MCU2_0_RESOURCE_TABLE
+    }                                           > DDR_MCU2_1_RESOURCE_TABLE
 
     intercore_eth_desc_mem (NOLOAD) : {} palign(128) > INTERCORE_ETH_DESC_MEM
     intercore_eth_data_mem (NOLOAD) : {} palign(128) > INTERCORE_ETH_DATA_MEM
 
-    .tracebuf                : {} align(1024)   > DDR_MCU2_0
+    .tracebuf                : {} align(1024)   > DDR_MCU2_1
 
-    .bss:ENET_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .bss:ENET_DMA_RING_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .bss:ENET_DMA_PKT_MEMPOOL   (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
-    .bss:ENET_DMA_OBJ_MEM       (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .bss:ENET_DMA_DESC_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
+    .bss:ENET_DMA_RING_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
+    .bss:ENET_DMA_PKT_MEMPOOL   (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
+    .bss:ENET_DMA_OBJ_MEM       (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
 
     /* Used in Switch configuration tool */
-    .serialContext     (NOLOAD) {} ALIGN (128) > DDR_MCU2_0
+    .serialContext     (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
 
     .bss:app_log_mem        (NOLOAD) : {} > APP_LOG_MEM
     .bss:ipc_vring_mem      (NOLOAD) : {} > IPC_VRING_MEM
-    .bss:ddr_shared_mem     (NOLOAD) : {} > DDR_MCU2_0
+    .bss:ddr_shared_mem     (NOLOAD) : {} > DDR_MCU2_1
 
 /* Data sections. */
     GROUP  palign( 0x10000 ), LOAD_START( lnkRamStartAddr ), LOAD_END( lnkRamEndAddr )
@@ -149,7 +149,7 @@ SECTIONS
         .svcStack    END( lnkStacksEndAddr )    : {. = . + __SVC_STACK_SIZE;}   align(4)
         RUN_START(__SVC_STACK_START)
         RUN_END(__SVC_STACK_END)
-    } > DDR_MCU2_0
+    } > DDR_MCU2_1
 }
 
 /*-------------------------------- END ---------------------------------------*/
