@@ -680,18 +680,28 @@ static void EthFwBoard_configSerdesBridge(void)
 
 static void EthFwBoard_configSierra0Clks(void)
 {
-    uint32_t moduleId;
-    uint32_t clkId;
-    uint32_t clkRateHz;
+    uint32_t moduleId = TISCI_DEV_SERDES_16G0;
+    uint32_t clkRateHz = 100000000U;
+    uint32_t clkId[] = {
+        TISCI_DEV_SERDES_16G0_CORE_REF1_CLK,
+        TISCI_DEV_SERDES_16G0_CORE_REF_CLK};
+    uint32_t clkParId[] = {
+        TISCI_DEV_SERDES_16G0_CORE_REF1_CLK_PARENT_HSDIV4_16FFT_MAIN_2_HSDIVOUT4_CLK,
+        TISCI_DEV_SERDES_16G0_CORE_REF_CLK_PARENT_HSDIV4_16FFT_MAIN_2_HSDIVOUT4_CLK};
+    uint32_t i;
+    int32_t status;
 
-    moduleId  = TISCI_DEV_SERDES_16G0;
-    clkId     = TISCI_DEV_SERDES_16G0_CORE_REF1_CLK;
-    clkRateHz = 100000000U;
-    EnetAppUtils_clkRateSet(moduleId, clkId, clkRateHz);
+    for (i = 0U; i < ENET_ARRAYSIZE(clkId); i++)
+    {
+        status = Sciclient_pmSetModuleClkParent(moduleId, clkId[i], clkParId[i], SCICLIENT_SERVICE_WAIT_FOREVER);
+        if (status != CSL_PASS)
+        {
+            appLogPrintf("Failed to reparent clk %u: %d\n", clkId[i], status);
+            EnetAppUtils_assert(false);
+        }
 
-    clkId     = TISCI_DEV_SERDES_16G0_CORE_REF_CLK;
-    clkRateHz = 100000000U;
-    EnetAppUtils_clkRateSet(moduleId, clkId, clkRateHz);
+        EnetAppUtils_clkRateSet(moduleId, clkId[i], clkRateHz);
+    }
 
     EnetAppUtils_setDeviceState(moduleId, TISCI_MSG_VALUE_DEVICE_SW_STATE_ON, 0U);
 }
