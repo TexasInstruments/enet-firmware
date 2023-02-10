@@ -1296,17 +1296,28 @@ recycled as it needs not be passed to lwIP stack.  If the packet is not meant to
 of the remote cores, it's simply passed to the lwIP stack, ARP request packets meant
 for Ethernet Firmware itself fall into this processing category.
 
+
+#### SafeRTOS {#ethfw_depend_safertos}
+
+Ethernet Firmware requires the following SafeRTOS kernel versions, depending on the
+SoC being used.
+
+  SoC  | ISA | SafeRTOS package version
+-------|-----|--------------------------
+J721E  | R5F | 009-004-199-024-219-001
+J7200  | R5F | 009-002-199-024-243-001
+J784S4 | R5F | 009-004-199-024-251-001
+
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## IDE (CCS) {#ethfw_instal_ccs}
 
--# Install Code Composer Studio and setup a <b>Target Configuration</b> for
-   use with J721E, J7200 or J784S4 EVM.
-
--# Refer to the instructions in @ref ccs_setup_top section for Code Code Composer
-   and emulation packs installation as well as Target Configuration file creation.
+Install Code Composer Studio and setup a <b>Target Configuration</b> for use with
+J721E, J7200 or J784S4 EVM.  Refer to the instructions in *CCS Setup* section of
+the Processor SDK RTOS documentation.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1429,6 +1440,8 @@ For J784S4:
     make ethfw_all BUILD_SOC_LIST=J784S4
 
 
+By default, above commands will build Ethernet Firmware for FreeRTOS.
+
 Verbose build can be enabled by setting the **SHOW_COMMANDS** variable as
 shown below:
 
@@ -1436,6 +1449,29 @@ shown below:
 
 On successful compilation, the output folder would be created at
 `<ethfw>/out`.
+
+
+### SafeRTOS Build {#ethfw_safertos_build_all}
+
+The RTOS used in Ethernet Firmware build is determined by the following flags, which
+can be set in `ethfw_build_flags.mk` or passed to the make command:
+
+- `BUILD_APP_FREERTOS` enables FreeRTOS build of EthFw and RTOS client.
+- `BUILD_APP_SAFERTOS` enables SafeRTOS build of EthFw and RTOS client. It requires
+  SafeRTOS kernel installed in SDK installation path.
+
+The location of the SafeRTOS package can be changed through the `SAFERTOS_KERNEL_INSTALL_r5f_<SOC>`
+variable in `ethfw_tools_path.mak`.  The SafeRTOS version validated for each SoC
+can also be found in `ethfw_tools_path.mak`.
+
+Build for SafeRTOS only, FreeRTOS build disabled:
+
+    make ethfw_all BUILD_SOC_LIST=<SOC> BUILD_APP_FREERTOS=no BUILD_APP_SAFERTOS=yes
+
+Build for SafeRTOS and FreeRTOS:
+
+    make ethfw_all BUILD_SOC_LIST=<SOC> BUILD_APP_FREERTOS=yes BUILD_APP_SAFERTOS=yes
+
 
 ### QNX Build {#ethfw_qnx_build_all}
 
@@ -1559,6 +1595,7 @@ Flag                             | Description
 `-D=TARGET_ARCH=32`              | Identifies the target architecture as 32-bit
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
+`-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
 `-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
@@ -1593,6 +1630,7 @@ Flag                             | Description
 `-D=TARGET_ARCH=32`              | Identifies the target architecture as 32-bit
 `-D=ARCH_32`                     | Identifies the architecture as 32-bit
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
+`-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
 `-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
@@ -1638,6 +1676,7 @@ Revision | Date          | Author                 | Description
 1.3      | 01 Dec 2021   | Nitin Sakhuja          | Adedd Inter-core Ethernet support for SDK 8.1
 1.4      | 07 Dec 2021   | Misael Lopez           | Adedd MAC-only, server and client doc
 1.5      | 01 Jul 2021   | Misael Lopez           | Updates for J784S4 support and SDK 8.02.01
+1.6      | 10 Feb 2023   | Misael Lopez           | Added SafeRTOS build info
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)
