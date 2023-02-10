@@ -183,7 +183,7 @@ xMPU_CONFIG_PARAMETERS  gMPUConfigParms[CSL_ARM_R5F_MPU_REGIONS_MAX] =
         .ulSubRegionDisable     = mpuREGION_ALL_SUB_REGIONS_ENABLED,
     },
     {
-        /* Region 7 configuration: DDR_MCU2_1_IPC */
+        /* Region 7 configuration: INTERCORE_ETH_DESC_MEM as non-cache 2MB */
         .ulRegionNumber         = 7U,
         .ulRegionBeginAddress   = 0xA5000000,
         {
