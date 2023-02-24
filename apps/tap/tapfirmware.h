@@ -89,7 +89,7 @@
 /**** END OF QUEUE RELATED DEFINITIONS ****/
 
 /**** START OF BUFPOOL RELATED DEFINITIONS ****/
-#define NUM_BUFFERS (2048U)
+#define NUM_BUFFERS (1280U)
 /* Bufpool check values */
 #define BUFPOOL_OK          (0)       
 #define BUFPOOL_ERROR       (-1)
