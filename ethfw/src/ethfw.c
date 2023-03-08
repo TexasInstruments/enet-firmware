@@ -647,32 +647,44 @@ static void EthFw_updateEnetRm(void)
     uint32_t req = 0U;
     uint32_t coreId;
     uint32_t i;
+    uint32_t rdevVirtPorts[IPC_MAX_PROCS];
+    uint32_t autosarVirtPorts[IPC_MAX_PROCS];
+    uint32_t virtPortCnt = 0U;
 
-    /* Add RM needed by remote_device-based virtual MAC ports */
+    memset(rdevVirtPorts, 0, sizeof(rdevVirtPorts));
+    memset(autosarVirtPorts, 0, sizeof(autosarVirtPorts));
+
+    /* Count the number of remote_device-based virtual ports */
     for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
     {
         coreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
-
-        rmInfo = EthFw_getRmInfo(coreId);
-        if (rmInfo != NULL)
-        {
-            rmInfo->numTxCh++;
-            rmInfo->numRxFlows++;
-            rmInfo->numMacAddress++;
-        }
+        rdevVirtPorts[coreId]++;
     }
 
-    /* Add RM needed by AUTOSAR virtual MAC ports */
+    /* Count the number of AUTOSAR virtual ports */
     for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
     {
         coreId = gEthFwObj.autosarVirtPortCfg[i].remoteCoreId;
+        autosarVirtPorts[coreId]++;
+    }
 
-        rmInfo = EthFw_getRmInfo(coreId);
-        if (rmInfo != NULL)
+    /* Add RM needed by virtual ports, each one needs:
+     * - 1 x TX channel
+     * - 1 x RX flow
+     * - 1 x MAC address from ETHFW pool
+     */
+    for (i = 0U; i < IPC_MAX_PROCS; i++)
+    {
+        virtPortCnt = EnetUtils_max(rdevVirtPorts[i], autosarVirtPorts[i]);
+        if (virtPortCnt > 0U)
         {
-            rmInfo->numTxCh++;
-            rmInfo->numRxFlows++;
-            rmInfo->numMacAddress++;
+            rmInfo = EthFw_getRmInfo(i);
+            if (rmInfo != NULL)
+            {
+                rmInfo->numTxCh += virtPortCnt;
+                rmInfo->numRxFlows += virtPortCnt;
+                rmInfo->numMacAddress += virtPortCnt;
+            }
         }
     }
 
@@ -1052,6 +1064,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     {
         cfg.virtPortCfg[i].remoteCoreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
         cfg.virtPortCfg[i].portId       = gEthFwObj.virtPortCfg[i].portId;
+        cfg.notifyServiceRemoteCoreId[i] = gEthFwObj.virtPortCfg[i].remoteCoreId;
     }
 
     /* AUTOSAR core */
@@ -1062,8 +1075,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 
     /* Enable server-to-client notify service */
     cfg.notifyServiceCpswType = gEthFwObj.enetType;
-    cfg.notifyServiceRemoteCoreId[0] = IPC_MPU1_0;
-    cfg.notifyServiceRemoteCoreId[1] = IPC_MCU2_1;
 
     /* Set CPSW Proxy shared multicast config.
      * All parameters have already been checked. */
