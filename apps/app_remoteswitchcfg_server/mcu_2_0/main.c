@@ -465,6 +465,10 @@ static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
         .remoteCoreId = IPC_MCU2_1,
         .portId       = ETHREMOTECFG_SWITCH_PORT_1,
     },
+    {
+        .remoteCoreId = IPC_MCU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_2,
+    },
 };
 
 static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));

@@ -170,4 +170,18 @@ const CSL_ArmR5MpuRegionCfg  gCslR5MpuCfg[CSL_ARM_R5F_MPU_REGIONS_MAX] =
         .cachePolicy      = CSL_ARM_R5_CACHE_POLICY_NON_CACHEABLE,
         .memAttr          = 4U,
     },
+	{
+        /* Region 9 configuration: DDR_MCU1_0_IPC_ADDR as non-cache */
+        .regionId         = 9U,
+        .enable           = 1U,
+        .baseAddr         = 0xA0000000,
+        .size             = CSL_ARM_R5_MPU_REGION_SIZE_1MB,
+        .subRegionEnable  = CSL_ARM_R5_MPU_SUB_REGION_ENABLE_ALL,
+        .exeNeverControl  = 1U,
+        .accessPermission = CSL_ARM_R5_ACC_PERM_PRIV_USR_RD_WR,
+        .shareable        = 0U,
+        .cacheable        = (uint32_t)FALSE,
+        .cachePolicy      = CSL_ARM_R5_CACHE_POLICY_NON_CACHEABLE,
+        .memAttr          = 4U,
+    },
 };

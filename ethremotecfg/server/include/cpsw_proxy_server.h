@@ -162,6 +162,9 @@ extern "C" {
 /*! Size of reserved multicast address table */
 #define CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN           (4U)
 
+/*! Max number of AUTOSAR client cores */
+#define CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX     (2U)
+
 /*!
  * \brief Application callback function pointer to initialize Ethernet Firmware data
  *
@@ -312,13 +315,16 @@ typedef struct CpswProxyServer_Config_s
     uint32_t rpmsgEndPointId;
 
     /*! AUTOSAR Ethernet Device RpMsg endpoint id */
-    uint32_t autosarEthDeviceEndPointId;
+    uint32_t autosarEthDeviceEndPointId[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
 
     /*! Remote Core Id for AUTOSAR core */
-    uint32_t autosarEthDriverRemoteCoreId;
+    uint32_t autosarEthDriverRemoteCoreId[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
 
     /*! Virtual port configuration */
-    EthRemoteCfg_VirtPort autosarEthDriverVirtPort;
+    EthRemoteCfg_VirtPort autosarEthDriverVirtPort[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
+
+    /*! Number of AUTOSAR virtual ports that remotes cores can attach to */
+    uint32_t autosarEthVirtPortNum;
 
     /*! CPSW type for which notify service is enabled */
     Enet_Type notifyServiceCpswType;

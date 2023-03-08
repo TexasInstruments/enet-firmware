@@ -126,9 +126,6 @@ extern "C" {
 /*! Max number of remote_device based client cores (Linux, QNX, RTOS) */
 #define ETHFW_REMOTE_CLIENT_MAX           (ETHREMOTECFG_SERVER_MAX_INSTANCES)
 
-/*! Max number of AUTOSAR client cores */
-#define ETHFW_AUTOSAR_REMOTE_CLIENT_MAX   (1U)
-
 /*! Size of shared multicast address table */
 #define ETHFW_SHARED_MCAST_LIST_LEN       (8U)
 

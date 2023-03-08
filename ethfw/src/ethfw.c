@@ -134,6 +134,9 @@
 /*! AUTOSAR Eth driver endpoint number */
 #define AUTOSAR_ETHDRIVER_DEVICE_ENDPT                (28U)
 
+/*! AUTOSAR Eth driver endpoint-2 number */
+#define AUTOSAR_ETHDRIVER_DEVICE_ENDPT2               (38U)
+
 /*! Max VLAN id as per standard */
 #define ETHFW_VLAN_ID_MAX                             (4094U)
 
@@ -202,7 +205,7 @@ typedef struct EthFw_Obj_s
     uint32_t numVirtPorts;
 
     /* AUTOSAR virtual port configuration */
-    EthFw_VirtPortCfg autosarVirtPortCfg[ETHFW_AUTOSAR_REMOTE_CLIENT_MAX];
+    EthFw_VirtPortCfg autosarVirtPortCfg[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
 
     /* Number of valid AUTOSAR virtual port configuration entries */
     uint32_t numAutosarVirtPorts;
@@ -228,6 +231,15 @@ typedef struct EthFw_Obj_s
     /*! Callback function for application to set port link parameters */
     EthFw_setPortCfg setPortCfg;
 } EthFw_Obj;
+
+typedef struct EthFw_Autosar_EpId_s
+{
+    /*! Remote core id */
+    uint32_t remoteCoreId;
+
+    /*! Remote Endpoint id */
+    uint32_t remoteEndptId;
+} EthFw_Autosar_EpId;
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
@@ -346,6 +358,18 @@ static const EnetRm_IoctlPermissionTable gEthFw_rmIoctlPerm =
     .numEntries = 0,
 };
 
+/* IPC endpoints used for AUTOSAR virtual clients */
+static EthFw_Autosar_EpId gEthFw_autosarEndptId[] =
+{
+    {
+        .remoteCoreId  = IPC_MCU2_1,
+        .remoteEndptId = AUTOSAR_ETHDRIVER_DEVICE_ENDPT,
+    },
+    {
+        .remoteCoreId  = IPC_MCU1_0,
+        .remoteEndptId = AUTOSAR_ETHDRIVER_DEVICE_ENDPT2,
+    },
+};
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -441,10 +465,10 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
         status = ENET_EINVALIDPARAMS;
     }
 
-    if (config->numAutosarVirtPorts > ETHFW_AUTOSAR_REMOTE_CLIENT_MAX)
+    if (config->numAutosarVirtPorts > CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX)
     {
         appLogPrintf("ETHFW: Too many AUTOSAR virtual ports requested (%u), max is %u\n",
-                     config->numAutosarVirtPorts, ETHFW_AUTOSAR_REMOTE_CLIENT_MAX);
+                     config->numAutosarVirtPorts, CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
         status = ENET_EINVALIDPARAMS;
     }
 
@@ -1036,6 +1060,26 @@ void EthFw_deinit(EthFw_Handle hEthFw)
     memset(&gEthFwObj.cpswCfg, 0, sizeof(Cpsw_Cfg));
 }
 
+uint32_t EthFw_getRemoteEndptId(uint32_t coreId)
+{
+    uint32_t i;
+    bool foundCoreId = false;
+    uint32_t remoteEndptId;
+
+    /* match the coreID the number of remote_device-based virtual ports */
+    for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_autosarEndptId); i++)
+    {
+        if(coreId == gEthFw_autosarEndptId[i].remoteCoreId)
+        {
+            foundCoreId = true;
+            remoteEndptId = gEthFw_autosarEndptId[i].remoteEndptId;
+            break;
+        }
+    }
+    EnetAppUtils_assert(true == foundCoreId);
+    return remoteEndptId;
+}
+
 int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 {
     CpswProxyServer_Config_t cfg;
@@ -1067,11 +1111,16 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         cfg.notifyServiceRemoteCoreId[i] = gEthFwObj.virtPortCfg[i].remoteCoreId;
     }
 
-    /* AUTOSAR core */
-    EnetAppUtils_assert(gEthFwObj.numAutosarVirtPorts == 1);
-    cfg.autosarEthDriverRemoteCoreId = gEthFwObj.autosarVirtPortCfg[0].remoteCoreId;
-    cfg.autosarEthDriverVirtPort     = gEthFwObj.autosarVirtPortCfg[0].portId;
-    cfg.autosarEthDeviceEndPointId   = AUTOSAR_ETHDRIVER_DEVICE_ENDPT;
+    /* AUTOSAR virtual clients */
+    EnetAppUtils_assert(gEthFwObj.numAutosarVirtPorts <= CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
+
+    cfg.autosarEthVirtPortNum = gEthFwObj.numAutosarVirtPorts;
+    for (i = 0U; i < cfg.autosarEthVirtPortNum; i++)
+    {
+        cfg.autosarEthDriverRemoteCoreId[i] = gEthFwObj.autosarVirtPortCfg[i].remoteCoreId;
+        cfg.autosarEthDriverVirtPort[i]     = gEthFwObj.autosarVirtPortCfg[i].portId;
+        cfg.autosarEthDeviceEndPointId[i]   = EthFw_getRemoteEndptId(cfg.autosarEthDriverRemoteCoreId[i]);
+    }
 
     /* Enable server-to-client notify service */
     cfg.notifyServiceCpswType = gEthFwObj.enetType;

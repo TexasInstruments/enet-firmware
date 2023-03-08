@@ -197,6 +197,21 @@ xMPU_CONFIG_PARAMETERS  gMPUConfigParms[CSL_ARM_R5F_MPU_REGIONS_MAX] =
         .ulRegionSize           = (2U * 1024U * 1024U), /* 2 MB */
         .ulSubRegionDisable     = mpuREGION_ALL_SUB_REGIONS_ENABLED,
     },
+    {
+        /* Region 8 configuration: DDR_MCU1_0_IPC */
+        .ulRegionNumber         = 8U,
+        .ulRegionBeginAddress   = 0xA0000000,
+        {
+            .ulexeNeverControl  = 1U,
+            .ulaccessPermission = CSL_ARM_R5_ACC_PERM_PRIV_USR_RD_WR,
+            .ulshareable        = 0U,
+            .ulcacheable        = 0U,
+            .ulcachePolicy      = CSL_ARM_R5_CACHE_POLICY_NON_CACHEABLE,
+            .ulmemAttr          = 4U,
+        },
+        .ulRegionSize           = (1U * 1024U * 1024U), /* 1 MB */
+        .ulSubRegionDisable     = mpuREGION_ALL_SUB_REGIONS_ENABLED,
+    },
 };
 
 
