@@ -234,7 +234,8 @@ UDMA TX channel and RX flow.
 In the current release, AUTOSAR client only supports *virtual switch port*. *Virtual MAC
 port* (MAC-only mode) is not supported.
 
-Note that the AUTOSAR client in the SDK has enabled only on Main R5F 0 core 1.
+Note that the AUTOSAR client in the SDK has enabled on Main R5F 0 core 1 with remote endpoint id as 28
+and MCU R5F 0 core 0 with remote endpoint id as 38.
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -348,8 +349,15 @@ the packets match the unicast MAC address classification criteria.
 SDK 8.0 or older supported only this type of virtual port.
 
 Virtual port (*virtual switch* or *virtual MAC*) are allocated to a specific core.
-For example, below code snippet shows a configuration where *virtual switch 0* is allocated
-for A72 core, and *virtual switch port 1* is allocated for Main R5F 0 Core 1.
+
+For example, below code snippet shows the virtual switch configuration:
+- For remote_device based clients in `gEthApp_virtPortCfg` where *virtual switch port 0* is allocated
+    for A72 core, and *virtual switch port 1* is allocated for Main R5F 0 Core 1.
+- For AUTOSAR clients in `gEthApp_autosarVirtPortCfg` where *virtual switch port 1* is allocated for
+    Main R5F 0 Core 1 and *virtual switch port 2* is allocated for MCU R5F 0 Core 0.
+
+It's worth noting that in this specific configuration *virtual switch port 1* can be used by an RTOS
+client or AUTOSAR client, depending on the OS running on Main R5F 0 Core 1.
 
 ```C
 static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
@@ -377,6 +385,10 @@ static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
     {
         .remoteCoreId = IPC_MCU2_1,
         .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MCU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_2,
     },
 };
 
@@ -413,7 +425,7 @@ These virtual ports are directly associated with a hardware MAC port which is co
 MAC-only mode.
 
 Below code snippet (which is same as shown in previous section for \ref ethfw_virtual_switch_port)
-shows a configuration where *virtual MAC port 1* is allocated for A72, and *virtual MAC port 2*
+shows a configuration where *virtual MAC port 1* is allocated for A72, and *virtual MAC port 4*
 is allocated for Main R5F 0 Core 1. It's worth noting that virtual MAC ports are only supported
 in Linux and RTOS client, hence no virtual MAC ports are allocated for AUTOSAR client.
 
@@ -443,6 +455,10 @@ static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
     {
         .remoteCoreId = IPC_MCU2_1,
         .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+    },
+    {
+        .remoteCoreId = IPC_MCU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_2,
     },
 };
 
