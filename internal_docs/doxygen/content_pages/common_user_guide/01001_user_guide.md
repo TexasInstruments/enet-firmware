@@ -599,7 +599,7 @@ located and their MAC mode.
 | MAC Port 7  |   19     | QSGMII | Switch Port
 | MAC Port 8  |   15     | GESI   | Switch Port
 
-**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_A72=yes)
+**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_MPU=yes)
 because QNX virtual MAC driver does not support MAC-only mode.
 
 
@@ -623,7 +623,7 @@ located and their MAC mode.
 | MAC Port 3  |   18     | QSGMII | Switch Port
 | MAC Port 4  |   19     | QSGMII | MAC-only
 
-**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_A72=yes)
+**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_MPU=yes)
 because QNX virtual MAC driver does not support MAC-only mode.
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -656,7 +656,7 @@ located and their MAC mode.
 
 MAC ports 2, 6, 7 and 8 are not enabled.
 
-**Note:** All enabled MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_A72=yes)
+**Note:** All enabled MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_MPU=yes)
 because QNX virtual MAC driver does not support MAC-only mode.
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -1493,12 +1493,12 @@ Build for SafeRTOS and FreeRTOS:
 
 Build EthFw components for QNX OS integration running on A72.
 
-    make ethfw_all BUILD_SOC_LIST=<SOC> BUILD_QNX_A72=yes
+    make ethfw_all BUILD_SOC_LIST=<SOC> BUILD_QNX_MPU=yes
 
-For QNX integration, the **BUILD_QNX_A72** flag will make sure that EthFW would not
+For QNX integration, the **BUILD_QNX_MPU** flag will make sure that EthFW would not
 load the IPC resource table, unlike in Linux.
 
-When building for Linux, the **BUILD_QNX_A72** can be omitted.
+When building for Linux, the **BUILD_QNX_MPU** can be omitted.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1613,7 +1613,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
+`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_MPU is defined)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 
 Other common flags:
@@ -1648,7 +1648,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_A72 is defined)
+`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_MPU is defined)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 
 Other common flags:

@@ -15,7 +15,7 @@ TARGETTYPE  := exe
 TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
 SOC_LC      := $(call lowercase,$(TARGET_PLATFORM))
 
-ifeq ($(BUILD_QNX_A72), yes)
+ifeq ($(BUILD_QNX_MPU), yes)
   DEFS+=A72_QNX_OS
 endif
 
@@ -64,7 +64,7 @@ endif
 DEFS += ENABLE_QSGMII_PORTS
 
 # MAC-only ports are not supported in QNX virtual MAC driver
-ifneq ($(BUILD_QNX_A72), yes)
+ifneq ($(BUILD_QNX_MPU), yes)
   DEFS += ENABLE_MAC_ONLY_PORTS
 endif
 
@@ -154,7 +154,7 @@ endif
 DEFS += ENABLE_QSGMII_PORTS
 
 # MAC-only ports are not supported in QNX virtual MAC driver
-ifneq ($(BUILD_QNX_A72), yes)
+ifneq ($(BUILD_QNX_MPU), yes)
   DEFS += ENABLE_MAC_ONLY_PORTS
 endif
 

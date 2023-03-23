@@ -47,7 +47,7 @@ ifeq ($(TARGET_PLATFORM),J7200)
 endif
 
 # MAC-only ports are not supported in QNX virtual MAC driver
-ifneq ($(BUILD_QNX_A72), yes)
+ifneq ($(BUILD_QNX_MPU), yes)
   DEFS += ENABLE_MAC_ONLY_PORTS
 endif
 

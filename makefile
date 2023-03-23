@@ -63,7 +63,7 @@ ifeq ($(BUILD_TARGET_MODE),yes)
     ISA_LIST := $(filter-out C71,$(ISA_LIST))
   endif
 
-  ifneq ($(BUILD_LINUX_A72),yes)
+  ifneq ($(BUILD_LINUX_MPU),yes)
     OS_LIST := $(filter-out LINUX,$(OS_LIST))
   endif
 

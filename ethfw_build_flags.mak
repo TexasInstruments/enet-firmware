@@ -30,7 +30,7 @@ BUILD_APP_SAFERTOS?=no
 PROFILE?=release
 
 # A72 OS specific Build flag
-BUILD_QNX_A72?=no
+BUILD_QNX_MPU?=no
 
 # Treat compiler warning as error
 # Supported Values: 1 | 0
@@ -86,7 +86,7 @@ endif
 # Inter-core virtual ethernet support
 # Supported Values: yes | no
 ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1)))
-  ifeq ($(BUILD_QNX_A72),yes)
+  ifeq ($(BUILD_QNX_MPU),yes)
     ETHFW_INTERCORE_ETH_SUPPORT?=no
   else
     ETHFW_INTERCORE_ETH_SUPPORT?=yes
