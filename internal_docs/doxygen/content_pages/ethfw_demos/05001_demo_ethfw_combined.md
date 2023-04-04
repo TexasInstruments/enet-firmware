@@ -265,16 +265,16 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
 
 > **Note:** PTP stack is required only on **PC 2**.
 
-> **Note:** **PC 2** should be connected to MAC port 3 in J721E. Refer to
-> @ref ethfw_depend_evm_gesi_j721e for MAC port numbers in J721E EVM.
+> **Note:** **PTP master (PC 2)** should be connected to MAC port 3 in J721E. Refer
+> to @ref ethfw_depend_evm_gesi_j721e for MAC port numbers in J721E EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
-> **Note:** **PC 2** should be connected to MAC port 3 in J7200. Refer to
-> @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J7200 EVM.
+> **Note:** **PTP master (PC 2)** should be connected to MAC port 3 in J7200. Refer
+> to  @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J7200 EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
-> **Note:** **PC 2** should be connected to MAC port 3 in J784S4. Refer to
-> @ref ethfw_depend_evm_quadport_j784s4 for MAC port numbers in J784S4 EVM.
+> **Note:** **PTP master (PC 2)** should be connected to MAC port 3 in J784S4. Refer
+> to @ref ethfw_depend_evm_quadport_j784s4 for MAC port numbers in J784S4 EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
 PTP stack is required to run master clock and synchronize with the slave
