@@ -82,7 +82,7 @@
 /* ========================================================================== */
 
 /* Number of entries in the address table */
-#define ETHFW_ARP_UTILS_TABLE_SIZE                 (8U)
+#define ETHFW_ARP_UTILS_TABLE_SIZE                 (16U)
 
 /* Macro to get the size of an array */
 #define ARRAY_SIZE(x)                              (sizeof((x)) / sizeof(x[0U]))
@@ -231,27 +231,15 @@ int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
         /* Check if an entry already in table needs to be updated */
         for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
         {
-            entry = &gEthFwArpObj.remoteCoreArpTable[i];
+             entry = &gEthFwArpObj.remoteCoreArpTable[i];
 
-            if (!entry->isFree)
-            {
-                /* Check if an entry for the IP address is already in table,
-                 * if so, update MAC address */
-                if (ip4_addr_cmp(ipAddr, &entry->ipAddr))
-                {
-                    SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
-                    done = true;
-                    break;
-                }
-
-                /* Check if an entry for the MAC address is already in table,
-                 * if so, update IP address */
-                if (memcmp(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN) == 0)
-                {
-                    ip4_addr_copy(entry->ipAddr, *ipAddr);
-                    done = true;
-                    break;
-                }
+             /* Check if an entry for the IP address is already in table,
+              * if so, update MAC address */
+             if (!entry->isFree && ip4_addr_cmp(ipAddr, &entry->ipAddr))
+             {
+                SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
+                done = true;
+                break;
             }
         }
 
