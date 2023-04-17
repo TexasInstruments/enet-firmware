@@ -501,6 +501,11 @@ with J721E, J7200 or J784S4 EVM. Refer to @ref ethfw_instal_ccs.
 The IPs assigned dynamically to Main R5F cores 0 and 1 will be printed in the
 UART2 serial terminal.
 
+> **Note:** To ping IP of Main R5F core 1 (RTOS Remote Client),
+> **PC 1** has to be connected to MAC port 3 of GESI board for J721E, 
+> MAC port 3 of Quad Port Eth board for J7200 and MAC port 3 of Quad Port Eth
+> for J784S4 respectively. Link status is only used on MAC port 3 to 
+> determine link up on virtual switch port.
 
 ## Plex TV {#ethfw_plex_tv_usage}
 
