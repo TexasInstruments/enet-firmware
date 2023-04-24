@@ -95,7 +95,7 @@ endif
 
 TARGET_COMBOS := $(foreach combo, $(call expand-target-combos,$(SOC_LIST),$(OS_LIST),$(ISA_LIST),$(PROFILE_LIST),$(CGT_LIST),$(ISA_CGT_OS_VALID_TUPLE)),$(strip $(combo)))
 
-CONCERTO_ROOT ?= concerto
+CONCERTO_ROOT = concerto
 BUILD_MULTI_PROJECT := 1
 BUILD_TARGET := concerto/target.mak
 BUILD_PLATFORM :=
