@@ -81,8 +81,8 @@ SECTIONS
     .data               : {} palign(128)    > DDR_MCU2_0
     .sysmem             : {} align(8)       > DDR_MCU2_0
     .data_buffer        : {} palign(128)    > DDR_MCU2_0
-    .bss.devgroup*      : {} align(4)       > DDR_MCU2_0
-    .const.devgroup*    : {} align(4)       > DDR_MCU2_0
+    .bss.devgroup       : {*(.bss.devgroup*)} align(4)   > DDR_MCU2_0
+    .const.devgroup     : {*(.const.devgroup*)} align(4) > DDR_MCU2_0
     .boardcfg_data      : {} align(4)       > DDR_MCU2_0
 
     ipc_data_buffer (NOINIT) : {} palign(128)   > DDR_MCU2_0
