@@ -834,15 +834,15 @@ The steps listed below assume that an SD card is used for Linux booting of the T
 
 -# Cross-compile the TAP application and install in SD card. Here,`<aarch64-none-linux-gnu install dir>`
    is the absolute path where the ARM64 A72 Linux compiler was installed using `setuptools.sh`
-   in previous step.
+   in previous step. $SOC is the soc (J7200, J721E or J784S4) for which we are running tap application.
 
-       $ make CROSS_COMPILE=<aarch64-none-linux-gnu install dir>/bin/aarch64-none-linux-gnu- install DESTDIR=<Path to the root file system on SD card>
+       $ make CROSS_COMPILE=<aarch64-none-linux-gnu install dir>/bin/aarch64-none-linux-gnu- install DESTDIR=<Path to the root file system on SD card> SOC=<SOC>
 
    For example, if the ARM64 A72 Linux compiler was installed in `<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu`,
-   and the SD card is mounted at `/media/username` and the file system is at `/media/username/root`,
+   and the SD card is mounted at `/media/username` and the file system is at `/media/username/root` and soc is `SOC`,
    then the make command should be:
 
-       $ make CROSS_COMPILE=<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu- install DESTDIR=/media/username/root
+       $ make CROSS_COMPILE=<PSDK_RTOS_PATH>/ethfw/apps/tap/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu- install DESTDIR=/media/username/root SOC=<SOC>
 
 -# Boot the TI EVM from SD card as usual, and run below command to ensure that the systemd service
    `launch_tap.service` starts up automatically on boot.  With this, on the next boot, the user-space

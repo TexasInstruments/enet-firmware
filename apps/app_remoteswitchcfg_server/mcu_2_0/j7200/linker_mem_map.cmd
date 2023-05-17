@@ -86,6 +86,6 @@ MEMORY
     DDR_SHARED_MEM                    : ORIGIN = 0xBC000000 , LENGTH = 0x23000000
     /* Inter-core ethernet shared desc queues. MUST be non-cached or cache-coherent [ size 2 MB ] */
     INTERCORE_ETH_DESC_MEM            : ORIGIN = 0xA5000000 , LENGTH = 0x00200000
-    /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 14 MB ] */
+    /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 30 MB ] */
     INTERCORE_ETH_DATA_MEM            : ORIGIN = 0xA5200000 , LENGTH = 0x01E00000
 }
