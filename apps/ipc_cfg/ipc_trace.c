@@ -71,6 +71,9 @@ int32_t Ipc_Trace_printf(const char *format, ...)
             gTraceBufIndex = 0;
         }
     }
+    /* Add a null character at the end */
+    Ipc_traceBuffer[gTraceBufIndex] = '\0';
+
     return 0;
 }
 
@@ -89,5 +92,8 @@ int32_t Ipc_Trace_vprintf(const char *format, va_list args)
             gTraceBufIndex = 0;
         }
     }
+    /* Add a null character at the end */
+    Ipc_traceBuffer[gTraceBufIndex] = '\0';
+
     return 0;
 }
