@@ -599,9 +599,6 @@ located and their MAC mode.
 | MAC Port 7  |   19     | QSGMII | Switch Port
 | MAC Port 8  |   15     | GESI   | Switch Port
 
-**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_MPU=yes)
-because QNX virtual MAC driver does not support MAC-only mode.
-
 
 ## J7200 Port Configuration {#ethfw_j7200_port_cfg}
 
@@ -622,9 +619,6 @@ located and their MAC mode.
 | MAC Port 2  |   17     | QSGMII | Switch Port
 | MAC Port 3  |   18     | QSGMII | Switch Port
 | MAC Port 4  |   19     | QSGMII | MAC-only
-
-**Note:** All MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_MPU=yes)
-because QNX virtual MAC driver does not support MAC-only mode.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -655,9 +649,6 @@ located and their MAC mode.
 | MAC Port 5  |   19     | QSGMII | Switch Port
 
 MAC ports 2, 6, 7 and 8 are not enabled.
-
-**Note:** All enabled MAC ports are configured as *switch ports* in QNX build (i.e. BUILD_QNX_MPU=yes)
-because QNX virtual MAC driver does not support MAC-only mode.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1491,14 +1482,24 @@ Build for SafeRTOS and FreeRTOS:
 
 ### QNX Build {#ethfw_qnx_build_all}
 
-Build EthFw components for QNX OS integration running on A72.
+Ethernet Firmware for QNX OS client integration on A72 is built with the standard
+make command:
 
-    make ethfw_all BUILD_SOC_LIST=<SOC> BUILD_QNX_MPU=yes
+    make ethfw_all BUILD_SOC_LIST=<SOC>
 
-For QNX integration, the **BUILD_QNX_MPU** flag will make sure that EthFW would not
-load the IPC resource table, unlike in Linux.
+It's worth noting that above command also builds EthFw binaries for integration
+with Linux and CCS, as well as RTOS client.
 
-When building for Linux, the **BUILD_QNX_MPU** can be omitted.
+Alternatively, user may choose to build Ethernet Firmware server for QNX only
+using below command:
+
+    make ethfw_server_qnx BUILD_SOC_LIST=<SOC>
+
+There are two main differences between QNX and Linux builds of Ethernet Firmware:
+
+- For QNX integration, EthFW would not load the IPC resource table, unlike in Linux.
+- \ref ethfw_intercore_eth is disabled, as QNX virtual client currently doesn't support
+  this feature.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1613,7 +1614,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_MPU is defined)
+`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 
 Other common flags:
@@ -1648,7 +1649,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled if BUILD_QNX_MPU is defined)
+`-D=ETHAPP_INTERCORE_ETH_SUPPORT`| Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 
 Other common flags:

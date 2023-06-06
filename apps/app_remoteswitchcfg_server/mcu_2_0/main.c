@@ -228,9 +228,6 @@
  *  1 x MAC address for mcu2_1 virtual switch port (AUTOSAR) */
 #define ETHAPP_MAC_ADDR_POOL_SIZE               (6U)
 
-/* Define A72_QNX_OS if A72 is running Qnx. Qnx doesn't load resource table. */
-/* #define A72_QNX_OS */
-
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */

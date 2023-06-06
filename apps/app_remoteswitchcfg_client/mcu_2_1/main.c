@@ -683,10 +683,14 @@ static void CpswRemoteApp_initTask(void* a0,
     initPrms.printFxn = &CpswRemoteApp_ipcPrint;
 
     status += Ipc_init(&initPrms);
+#if !defined(A72_QNX_OS)
     if (status == ENET_SOK)
     {
         Ipc_loadResourceTable(appGetIpcResourceTable());
     }
+#else
+    appLogPrintf("Skipping Ipc_loadResourceTable for QNX (core : %s) .....\r\n", Ipc_mpGetSelfName());
+#endif
 
     if (status == ENET_SOK)
     {
