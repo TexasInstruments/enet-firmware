@@ -1410,6 +1410,8 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->hUdmaDrv = gRemoteAppObj.hUdmaDrv;
     outArgs->print = (Enet_Print) & printf;
     outArgs->isPortLinkedFxn = &LwipifEnetAppCb_isPortLinked;
+    outArgs->txCsumOffloadEn = true;
+    outArgs->rxCsumOffloadEn = true;
     outArgs->rxInfo[0U].disableEvent = true;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
     outArgs->txInfo.disableEvent = true;

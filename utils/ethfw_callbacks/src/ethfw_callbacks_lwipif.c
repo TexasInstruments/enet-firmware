@@ -262,6 +262,8 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->hUdmaDrv        = handleInfo.hUdmaDrv;
     outArgs->print           = &EnetAppUtils_print;
     outArgs->isPortLinkedFxn = &EthFwCallbacks_isPortLinked;
+    outArgs->txCsumOffloadEn = true;
+    outArgs->rxCsumOffloadEn = true;
 
     /* TODO: Polling timer is getting corrupted at times of sudden burst of
      * traffic, because of which timer callback is never called.
