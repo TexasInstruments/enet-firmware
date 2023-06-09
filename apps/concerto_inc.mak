@@ -16,6 +16,7 @@ DEFS+=CPU_$(CPU_ID)
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
+    IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-contrib
 endif
 ifeq ($(TARGET_OS),SAFERTOS)
     ifeq ($(TARGET_PLATFORM),J721E)
@@ -100,8 +101,8 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     ADDITIONAL_STATIC_LIBS += ti.drv.gpio.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += pm_lib.ae$(TARGET_CPU_SUFFIX)
     ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-        ADDITIONAL_STATIC_LIBS += lwipstack_${TARGET_OS_LC}.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipcontrib_${TARGET_OS_LC}.ae$(TARGET_CPU_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += lwipstack_${TARGET_OS_LC}.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipport_${TARGET_OS_LC}.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipif_${TARGET_OS_LC}.ae$(TARGET_CPU_SUFFIX)
         ADDITIONAL_STATIC_LIBS += lwipific_${TARGET_OS_LC}.ae$(TARGET_CPU_SUFFIX)
@@ -150,8 +151,8 @@ PDK_LIB_RULES += pm_lib
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     PDK_LIB_RULES += osal_${TARGET_OS_LC}
     PDK_LIB_RULES += ${TARGET_OS_LC}
-    PDK_LIB_RULES += lwipstack_${TARGET_OS_LC}
     PDK_LIB_RULES += lwipcontrib_${TARGET_OS_LC}
+    PDK_LIB_RULES += lwipstack_${TARGET_OS_LC}
     PDK_LIB_RULES += lwipport_${TARGET_OS_LC}
     PDK_LIB_RULES += lwipif_${TARGET_OS_LC}
     PDK_LIB_RULES += lwipific_${TARGET_OS_LC}

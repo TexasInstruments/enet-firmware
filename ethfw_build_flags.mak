@@ -86,4 +86,7 @@ ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1)))
   ETHFW_INTERCORE_ETH_SUPPORT?=yes
 endif
 
+# Enable iperf server (TCP only) by default
+ETHFW_IPERF_SERVER_SUPPORT?=yes
+
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)

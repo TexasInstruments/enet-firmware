@@ -552,6 +552,23 @@ be added.
 
 ## iperf {#ethfw_running_iperf}
 
+## iperf with ETHFW server {#ethfw_running_iperf_ethfw}
+
+lwIP iperf server (TCP-only) is enabled by default in Ethernet Firmware starting
+in SDK 9.0.  iperf server is started when lwIP network interface is up.
+iperf can be demonostrated by running iperf client on any external devices,
+**PC 1** or **PC 2**.
+
+-# Run iperf client on the selected PC.  Set test duration with `-t` option as
+   needed.
+
+       iperf -c 192.168.1.<r5f_0> -t 20 -i 1
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
+
+## iperf with virtual client {#ethfw_running_iperf_virtmac}
+
 The CPSW switch is capable of steering network traffic without CPU intervention
 by classifying it based on its characteristics.  This can be demonstrated by
 running iperf server on Linux running on the A72 core and iperf client on any of

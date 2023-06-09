@@ -160,6 +160,11 @@ endif
 
 # Intercore virtual Ethernet currently not supported in QNX
 
+# iperf server support
+ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
+  DEFS += ETHAPP_ENABLE_IPERF_SERVER
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)
@@ -240,6 +245,10 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
     DEFS += ETHAPP_ENABLE_INTERCORE_ETH
   endif
+endif
+
+ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
+  DEFS += ETHAPP_ENABLE_IPERF_SERVER
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

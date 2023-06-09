@@ -110,6 +110,10 @@
 #include "netif/ethernet.h"
 #include "netif/bridgeif.h"
 
+#if defined(ETHAPP_ENABLE_IPERF_SERVER)
+#include "examples/lwiperf/lwiperf_example.h"
+#endif
+
 #include <ti/drv/enet/lwipif/inc/default_netif.h>
 #include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
 
@@ -1020,6 +1024,11 @@ static void EthApp_initLwip(void *arg)
         EthApp_initNetif(&gRemoteAppObj.virtNetif[i]);
     }
 
+#if defined(ETHAPP_ENABLE_IPERF_SERVER)
+    /* Enable iperf */
+    lwiperf_example_init();
+#endif
+
     sys_sem_signal(initSem);
 }
 
@@ -1177,7 +1186,6 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
                                            virtNetif->macAddr,
                                            virtNetif->ipv4Addr);
             }
-
         }
 
         /* Init time synchronization */
