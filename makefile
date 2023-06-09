@@ -119,7 +119,7 @@ remoteswitchcfg_all_clean: | pdk_clean remotedevicefw_clean clean scrub
 remotedevicefw:
 	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
 		$(foreach os, $(sort ${OS_LIST}),\
-			$(MAKE) -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} lib_remote_device_client lib_remote_device \
+			$(MAKE) -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} PSDK_TOOLS_PATH:=$(PSDK_TOOLS_PATH) lib_remote_device_client lib_remote_device \
 										cp_to_lib &&\
 		) \
 	)$(NOP)
