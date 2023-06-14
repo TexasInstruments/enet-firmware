@@ -358,7 +358,7 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
     },
 };
 
-/* 1 x XAUI port in MAC-to-MAC mode using (SGMII) ENET bridge expansion board */
+/* 1 x SGMII port in MAC-to-MAC mode using (SGMII) ENET bridge expansion board */
 static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg =
 {
     .macPort   = ENET_MAC_PORT_2,
@@ -371,7 +371,7 @@ static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg =
         .extendedCfg     = NULL,
         .extendedCfgSize = 0U,
     },
-    .sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_AUTONEG_MASTER,
+    .sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_FORCEDLINK,
     .linkCfg   = { ENET_SPEED_1GBIT, ENET_DUPLEX_FULL },
 };
 
@@ -529,7 +529,6 @@ int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
                               EnetMacPort_LinkCfg *linkCfg)
 {
     const EthFwBoard_MacPortCfg *portCfg;
-    uint32_t i;
     int32_t status = ENET_ENOTFOUND;
 
     CpswMacPort_initCfg(macCfg);
@@ -672,8 +671,12 @@ static void EthFwBoard_configSerdesBridge(void)
         /* Configure SerDes clocks */
         EthFwBoard_configSierra0Clks();
 
-        /* Configure SerDes for XAUI functionality */
-        boardStatus = Board_serdesCfgXaui();
+        /* Configure SerDes for SGMII functionality */
+        boardStatus = Board_serdesCfgSgmii();
+        EnetAppUtils_assert(boardStatus == BOARD_SOK);
+
+        /* Set MAC mode to SGMII */
+        boardStatus = Board_cpsw9gEthConfig(ENET_MACPORT_NORM(ENET_MAC_PORT_2), SGMII);
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
     }
 }
@@ -748,8 +751,11 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
     uint32_t macAddrCnt, tempCnt;
     uint32_t allocCnt = 0U;
     uint32_t i, j;
+    bool gesiInUse;
+    bool qenetInUse;
 
-    if (gEthFwBoard.gesiEnabled && gEthFwBoard.gesiDetected)
+    gesiInUse = gEthFwBoard.gesiEnabled && gEthFwBoard.gesiDetected;
+    if (gesiInUse)
     {
         /* Read number of MAC addresses in GESI board */
         boardStatus = Board_readMacAddrCount(BOARD_ID_GESI, &macAddrCnt);
@@ -771,7 +777,8 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
         allocCnt = macAddrCnt;
     }
 
-    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    qenetInUse = gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected;
+    if (qenetInUse)
     {
         /* Read number of MAC addresses in QUAD Eth board */
         boardStatus = Board_readMacAddrCount(BOARD_ID_ENET, &macAddrCnt);
@@ -796,7 +803,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
     if (allocCnt == 0U)
     {
         appLogPrintf("No MAC addresses read from GESI and/or QENET boards\n");
-        EnetAppUtils_assert(false);
+        EnetAppUtils_assert(!(gesiInUse || qenetInUse));
     }
 
     return allocCnt;

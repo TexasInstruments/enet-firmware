@@ -87,6 +87,15 @@ typedef struct EthFwBoard_Obj_s
 
     /* SerDes configuration allowed */
     bool serdesAllowed;
+
+    /* QSGMII board to be enabled or not */
+    bool qenetEnabled;
+
+    /* QSGMII board detected */
+    bool qenetDetected;
+
+    /* ENET bridge board to be enabled or not */
+    bool enetBridgeEnabled;
 } EthFwBoard_Obj;
 
 /*!
@@ -148,6 +157,8 @@ static void EthFwBoard_configUart(void);
 
 static void EthFwBoard_configQenet(void);
 
+static void EthFwBoard_configSerdesBridge(void);
+
 static void EthFwBoard_configTorrentClks(void);
 
 static void EthFwBoard_configCpswClocks(void);
@@ -166,7 +177,7 @@ static EthFwBoard_Obj gEthFwBoard;
 
 /* Default port configuration for all ports in EVM:
  *   4 x QSGMII ports in QEnet */
-static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
+static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
 {
     {   /* "P0" */
         .macPort   = ENET_MAC_PORT_1,
@@ -226,6 +237,23 @@ static EthFwBoard_MacPortCfg gEthFw_macPortCfg[] =
     },
 };
 
+/* 1 x SGMII port in MAC-to-MAC mode using (SGMII) ENET bridge expansion board */
+static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg =
+{
+    .macPort   = ENET_MAC_PORT_1,
+    .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_SERIAL },
+    .phyCfg    =
+    {
+        .phyAddr         = ENETPHY_INVALID_PHYADDR,
+        .isStrapped      = false,
+        .skipExtendedCfg = false,
+        .extendedCfg     = NULL,
+        .extendedCfgSize = 0U,
+    },
+    .sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_FORCEDLINK,
+    .linkCfg   = { ENET_SPEED_1GBIT, ENET_DUPLEX_FULL },
+};
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -236,6 +264,8 @@ int32_t EthFwBoard_init(uint32_t flags)
     Board_STATUS boardStatus;
 
     /* Save the functionality requested by app */
+    gEthFwBoard.enetBridgeEnabled = ENET_NOT_ZERO(flags & ETHFW_BOARD_ENET_BRIDGE_ENABLE);
+    gEthFwBoard.qenetEnabled  = ENET_NOT_ZERO(flags & ETHFW_BOARD_QENET_ENABLE);
     gEthFwBoard.serdesAllowed = ENET_NOT_ZERO(flags & ETHFW_BOARD_SERDES_CONFIG);
     gEthFwBoard.uartAllowed   = ENET_NOT_ZERO(flags & ETHFW_BOARD_UART_ALLOWED);
     gEthFwBoard.i2cAllowed    = ENET_NOT_ZERO(flags & ETHFW_BOARD_I2C_ALLOWED);
@@ -262,7 +292,16 @@ int32_t EthFwBoard_init(uint32_t flags)
     EthFwBoard_detectDBs();
 
     /* Configure QSGMII expansion board */
-    EthFwBoard_configQenet();
+    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    {
+        EthFwBoard_configQenet();
+    }
+
+    /* Configure SerDes for SGMII bridge */
+    if (gEthFwBoard.enetBridgeEnabled)
+    {
+        EthFwBoard_configSerdesBridge();
+    }
 
     /* Set CPSW clocks: CPPI, RGMII 5/50/250 MHz, CPTS */
     EthFwBoard_configCpswClocks();
@@ -272,20 +311,58 @@ int32_t EthFwBoard_init(uint32_t flags)
 
 uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])
 {
-    uint32_t numMacPorts;
+    uint32_t num = 0U;
+    uint32_t req;
     uint32_t i;
 
     memset(macPorts, 0, sizeof(*macPorts));
 
-    numMacPorts = EnetUtils_min(ENET_ARRAYSIZE(gEthFw_macPortCfg),
-                                ENET_MAC_PORT_NUM);
-
-    for (i = 0U; i < numMacPorts; i++)
+    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
     {
-        macPorts[i] = gEthFw_macPortCfg[i].macPort;
+        req = EnetUtils_min(ENET_MAC_PORT_NUM, ENET_ARRAYSIZE(gEthFw_qenetMacPortCfg));
+        for (i = 0U; i < req; i++)
+        {
+            macPorts[num++] = gEthFw_qenetMacPortCfg[i].macPort;
+        }
     }
 
-    return numMacPorts;
+    if (gEthFwBoard.enetBridgeEnabled)
+    {
+        if (num < ENET_MAC_PORT_NUM)
+        {
+            macPorts[num++] = gEthFw_enetBridgeMacPortCfg.macPort;
+        }
+    }
+
+    return num;
+}
+
+static const EthFwBoard_MacPortCfg *EthFwBoard_findPortCfg(Enet_MacPort macPort)
+{
+    const EthFwBoard_MacPortCfg *portCfg = NULL;
+    uint32_t i;
+
+    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    {
+        for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_qenetMacPortCfg); i++)
+        {
+            if (gEthFw_qenetMacPortCfg[i].macPort == macPort)
+            {
+                portCfg = &gEthFw_qenetMacPortCfg[i];
+                break;
+            }
+        }
+    }
+
+    if ((portCfg == NULL) && gEthFwBoard.enetBridgeEnabled)
+    {
+        if (gEthFw_enetBridgeMacPortCfg.macPort == macPort)
+        {
+            portCfg = &gEthFw_enetBridgeMacPortCfg;
+        }
+    }
+
+    return portCfg;
 }
 
 int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
@@ -294,40 +371,34 @@ int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
                               EnetPhy_Cfg *phyCfg,
                               EnetMacPort_LinkCfg *linkCfg)
 {
-    EthFwBoard_MacPortCfg *portCfg;
-    uint32_t i;
+    const EthFwBoard_MacPortCfg *portCfg;
     int32_t status = ENET_ENOTFOUND;
 
     CpswMacPort_initCfg(macCfg);
     EnetPhy_initCfg(phyCfg);
 
-    for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_macPortCfg); i++)
+    portCfg = EthFwBoard_findPortCfg(macPort);
+    if (portCfg != NULL)
     {
-        portCfg = &gEthFw_macPortCfg[i];
+        /* Set MII configuration: RGMII or Q/SGMII */
+        *mii = portCfg->mii;
+        mii->variantType = ENET_MAC_VARIANT_FORCED;
 
-        if (portCfg->macPort == macPort)
-        {
-            /* Set MII configuration: RGMII or Q/SGMII */
-            *mii = portCfg->mii;
-            mii->variantType = ENET_MAC_VARIANT_FORCED;
+        /* Set PHY configuration parameters */
+        phyCfg->phyAddr         = portCfg->phyCfg.phyAddr;
+        phyCfg->isStrapped      = portCfg->phyCfg.isStrapped;
+        phyCfg->loopbackEn      = false;
+        phyCfg->skipExtendedCfg = portCfg->phyCfg.skipExtendedCfg;
+        phyCfg->extendedCfgSize = portCfg->phyCfg.extendedCfgSize;
+        memcpy(phyCfg->extendedCfg, portCfg->phyCfg.extendedCfg, portCfg->phyCfg.extendedCfgSize);
 
-            /* Set PHY configuration parameters */
-            phyCfg->phyAddr         = portCfg->phyCfg.phyAddr;
-            phyCfg->isStrapped      = portCfg->phyCfg.isStrapped;
-            phyCfg->loopbackEn      = false;
-            phyCfg->skipExtendedCfg = portCfg->phyCfg.skipExtendedCfg;
-            phyCfg->extendedCfgSize = portCfg->phyCfg.extendedCfgSize;
-            memcpy(phyCfg->extendedCfg, portCfg->phyCfg.extendedCfg, portCfg->phyCfg.extendedCfgSize);
+        /* Set link configuration: speed and duplex */
+        *linkCfg = portCfg->linkCfg;
 
-            /* Set link configuration: speed and duplex */
-            *linkCfg = portCfg->linkCfg;
+        /* Set SGMII mode (applicable for Q/SGMII ports only) */
+        macCfg->sgmiiMode = portCfg->sgmiiMode;
 
-            /* Set SGMII mode (applicable for Q/SGMII ports only) */
-            macCfg->sgmiiMode = portCfg->sgmiiMode;
-
-            status = ENET_SOK;
-            break;
-        }
+        status = ENET_SOK;
     }
 
     return status;
@@ -361,14 +432,8 @@ static void EthFwBoard_configPinmux(void)
 
 static void EthFwBoard_detectDBs(void)
 {
-    bool qenetDetected;
-
-    if (gEthFwBoard.i2cAllowed)
-    {
-        qenetDetected = Board_detectBoard(BOARD_ID_ENET);
-
-        appLogPrintf("Detected boards:%s\n", qenetDetected ? " QSGMII" : "");
-    }
+    gEthFwBoard.qenetDetected = Board_detectBoard(BOARD_ID_ENET);
+    appLogPrintf("Detected boards:%s\n", gEthFwBoard.qenetDetected ? " QSGMII" : "");
 }
 
 static void EthFwBoard_configUart(void)
@@ -416,6 +481,25 @@ static void EthFwBoard_configQenet(void)
 
         /* Configure SerDes for QSGMII functionality */
         boardStatus = Board_serdesCfgQsgmii();
+        EnetAppUtils_assert(boardStatus == BOARD_SOK);
+    }
+}
+
+static void EthFwBoard_configSerdesBridge(void)
+{
+    Board_STATUS boardStatus;
+
+    if (gEthFwBoard.serdesAllowed)
+    {
+        /* Configure SerDes clocks */
+        EthFwBoard_configTorrentClks();
+
+        /* Configure SerDes for SGMII functionality */
+        boardStatus = Board_serdesCfgSgmii();
+        EnetAppUtils_assert(boardStatus == BOARD_SOK);
+
+        /* Set MAC mode to SGMII */
+        boardStatus = Board_cpsw5gEthConfig(ENET_MACPORT_NORM(ENET_MAC_PORT_1), SGMII);
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
     }
 }
@@ -483,27 +567,30 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
     uint32_t allocCnt = 0U;
     uint32_t i;
 
-    /* Read number of MAC addresses in QUAD Eth board */
-    boardStatus = Board_readMacAddrCount(BOARD_ID_ENET, &macAddrCnt);
-    EnetAppUtils_assert(boardStatus == BOARD_SOK);
-    EnetAppUtils_assert(macAddrCnt <= ENET_RM_NUM_MACADDR_MAX);
-
-    /* Read MAC addresses */
-    boardStatus = Board_readMacAddr(BOARD_ID_ENET, macAddrBuf, sizeof(macAddrBuf), &tempCnt);
-    EnetAppUtils_assert(boardStatus == BOARD_SOK);
-    EnetAppUtils_assert(tempCnt == macAddrCnt);
-
-    /* Save only those required to meet the max number of MAC entries */
-    allocCnt = EnetUtils_min(macAddrCnt, poolSize);
-    for (i = 0U; i < allocCnt; i++)
+    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
     {
-        memcpy(macAddr[i], &macAddrBuf[i * BOARD_MAC_ADDR_BYTES], ENET_MAC_ADDR_LEN);
-    }
+        /* Read number of MAC addresses in QUAD Eth board */
+        boardStatus = Board_readMacAddrCount(BOARD_ID_ENET, &macAddrCnt);
+        EnetAppUtils_assert(boardStatus == BOARD_SOK);
+        EnetAppUtils_assert(macAddrCnt <= ENET_RM_NUM_MACADDR_MAX);
 
-    if (allocCnt == 0U)
-    {
-        appLogPrintf("No MAC addresses read from QENET board\n");
-        EnetAppUtils_assert(false);
+        /* Read MAC addresses */
+        boardStatus = Board_readMacAddr(BOARD_ID_ENET, macAddrBuf, sizeof(macAddrBuf), &tempCnt);
+        EnetAppUtils_assert(boardStatus == BOARD_SOK);
+        EnetAppUtils_assert(tempCnt == macAddrCnt);
+
+        /* Save only those required to meet the max number of MAC entries */
+        allocCnt = EnetUtils_min(macAddrCnt, poolSize);
+        for (i = 0U; i < allocCnt; i++)
+        {
+            memcpy(macAddr[i], &macAddrBuf[i * BOARD_MAC_ADDR_BYTES], ENET_MAC_ADDR_LEN);
+        }
+
+        if (allocCnt == 0U)
+        {
+            appLogPrintf("No MAC addresses read from QENET board\n");
+            EnetAppUtils_assert(false);
+        }
     }
 
     return allocCnt;
