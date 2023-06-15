@@ -237,7 +237,10 @@ endif
 DEFS += ENABLE_QSGMII_PORTS
 
 # Enable MAC-only ports. Comment out for switch only ports
-DEFS += ENABLE_MAC_ONLY_PORTS
+# Disabled in profiling setting as there is single port
+ifneq ($(ETHFW_BOOT_TIME_PROFILING),yes)
+  DEFS += ENABLE_MAC_ONLY_PORTS
+endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   ENET_APPUTILS_LIB = enet_example_utils_full_$(TARGET_OS_LC)
@@ -252,6 +255,11 @@ endif
 
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
+endif
+
+# ETHFW boot time profiling
+ifeq ($(ETHFW_BOOT_TIME_PROFILING),yes)
+  DEFS += ETHFW_BOOT_TIME_PROFILING
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

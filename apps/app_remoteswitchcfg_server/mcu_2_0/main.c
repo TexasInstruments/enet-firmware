@@ -198,7 +198,11 @@
 #endif
 
 /* DHCP or static IP */
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+#define ETHAPP_LWIP_USE_DHCP            (0)
+#else
 #define ETHAPP_LWIP_USE_DHCP            (1)
+#endif
 #if !ETHAPP_LWIP_USE_DHCP
 #define ETHFW_SERVER_IPADDR(addr)       IP4_ADDR((addr), 192,168,1,200)
 #define ETHFW_SERVER_GW(addr)           IP4_ADDR((addr), 192,168,1,1)
@@ -232,9 +236,29 @@
  *  1 x MAC address for mcu2_1 virtual switch port (AUTOSAR) */
 #define ETHAPP_MAC_ADDR_POOL_SIZE               (6U)
 
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+/* Time taken for a given boot milestone since app's main() */
+#define ETHFW_BOOT_PROFILING_TS_DIFF(id)       (gEthAppObj.bootTs[ETHFW_BOOT_PROFILING_TS_##id] - \
+                                                gEthAppObj.bootTs[ETHFW_BOOT_PROFILING_TS_MAIN])
+#endif
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+/* Boot profiling ids */
+typedef enum EthApp_BootTsId_e
+{
+    ETHFW_BOOT_PROFILING_TS_MAIN = 0U,
+    ETHFW_BOOT_PROFILING_TS_IPC,
+    ETHFW_BOOT_PROFILING_TS_ETH_PORT,
+    ETHFW_BOOT_PROFILING_TS_HOST_PORT,
+    ETHFW_BOOT_PROFILING_TS_TCPIP,
+    ETHFW_BOOT_PROFILING_TS_PTP,
+    ETHFW_BOOT_PROFILING_TS_MAX,
+} EthApp_BootTsId;
+#endif
 
 typedef struct
 {
@@ -270,6 +294,14 @@ typedef struct
 
     /* DHCP network interface */
     struct dhcp dhcpNetif;
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    /* ETHFW boot time */
+    uint64_t bootTs[ETHFW_BOOT_PROFILING_TS_MAX];
+
+    /* UART logging enabled */
+    bool uartPrintEn;
+#endif
 } EthAppObj;
 
 /* ========================================================================== */
@@ -306,6 +338,10 @@ static void EthApp_initNetif(void);
 static void EthApp_netifStatusCb(struct netif *netif);
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1);
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+static void EthApp_setBootTs(EthApp_BootTsId tsId);
+#endif
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
@@ -411,8 +447,9 @@ static EthAppObj gEthAppObj =
 static Enet_MacPort gEthAppPorts[] =
 {
 #if defined(SOC_J721E)
-    /* On J721E EVM to use all 8 ports simultaneously, we use below configuration
-       RGMII Ports - 1,3,4,8. QSGMII ports - 2,5,6,7 */
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_2, /* SGMII */
+#else
     ENET_MAC_PORT_1, /* RGMII */
     ENET_MAC_PORT_3, /* RGMII */
     ENET_MAC_PORT_4, /* RGMII */
@@ -424,17 +461,28 @@ static Enet_MacPort gEthAppPorts[] =
     ENET_MAC_PORT_7, /* QSGMII sub */
 #endif
 #endif
+#endif
+
 #if defined(SOC_J7200)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_1, /* SGMII */
+#else
     ENET_MAC_PORT_1, /* QSGMII main */
     ENET_MAC_PORT_2, /* QSGMII sub */
     ENET_MAC_PORT_3, /* QSGMII sub */
     ENET_MAC_PORT_4, /* QSGMII sub */
 #endif
+#endif
+
 #if defined(SOC_J784S4)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_2, /* SGMII */
+#else
     ENET_MAC_PORT_1, /* QSGMII main */
     ENET_MAC_PORT_3, /* QSGMII sub */
     ENET_MAC_PORT_4, /* QSGMII sub */
     ENET_MAC_PORT_5, /* QSGMII sub */
+#endif
 #endif
 };
 
@@ -527,6 +575,11 @@ int main(void)
     TaskP_Handle task;
     TaskP_Params taskParams;
 
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    memset(gEthAppObj.bootTs, 0, sizeof(gEthAppObj.bootTs));
+    gEthAppObj.uartPrintEn = false;
+#endif
+
     OS_init();
 
     /* Wait for debugger to attach (disabled by default) */
@@ -559,7 +612,14 @@ void appLogPrintf(const char *format, ...)
 
     va_start(args, format);
     System_vprintf(format, args);
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    if (gEthAppObj.uartPrintEn)
+    {
+        EnetAppUtils_vprint(format, args);
+    }
+#else
     EnetAppUtils_vprint(format, args);
+#endif
     va_end(args);
 }
 
@@ -582,6 +642,12 @@ static int32_t EthApp_boardInit(void)
     uint32_t flags = 0U;
     int32_t status;
 
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    flags = (ETHFW_BOARD_ENET_BRIDGE_ENABLE |
+             ETHFW_BOARD_SERDES_CONFIG |
+             ETHFW_BOARD_UART_ALLOWED |
+             ETHFW_BOARD_I2C_ALLOWED);
+#else /* !ETHFW_BOOT_TIME_PROFILING */
 #if defined(SOC_J721E)
     flags |= (ETHFW_BOARD_GESI_ENABLE | ETHFW_BOARD_UART_ALLOWED);
 #if defined(ETHFW_CCS)
@@ -605,6 +671,7 @@ static int32_t EthApp_boardInit(void)
     flags |= ETHFW_BOARD_I2C_ALLOWED;
 #endif
 #endif
+#endif /* !ETHFW_BOOT_TIME_PROFILING */
 
     /* Board related initialization */
     status = EthFwBoard_init(flags);
@@ -616,6 +683,11 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
 {
     TaskP_Params taskParams;
     int32_t status = ETHAPP_OK;
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    /* EthFw's initial timestamp, used as offset for further profiling timestamps */
+    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_MAIN);
+#endif
 
     /* Board initialization: Serdes, GPIOs, pinmux, etc */
     status = EthApp_boardInit();
@@ -750,6 +822,10 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
         appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote config: %d\n", status);
     }
 
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_IPC);
+#endif
+
     /* Wait for Linux VDev ready... */
     if (status == ENET_SOK)
     {
@@ -804,6 +880,15 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     }
 }
 
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+static void EthApp_portLinkStatusChangeCb(Enet_MacPort macPort,
+                                          bool isLinkUp,
+                                          void *appArg)
+{
+    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_ETH_PORT);
+}
+#endif
+
 static int32_t EthApp_initEthFw(void)
 {
     EthFw_Version ver;
@@ -842,6 +927,12 @@ static int32_t EthApp_initEthFw(void)
 
     /* CPTS_RFT_CLK is sourced from MAIN_SYSCLK0 (500MHz) */
     cpswCfg->cptsCfg.cptsRftClkFreq = CPSW_CPTS_RFTCLK_FREQ_500MHZ;
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    /* Link-up timestamp */
+    cpswCfg->portLinkStatusChangeCb    = &EthApp_portLinkStatusChangeCb;
+    cpswCfg->portLinkStatusChangeCbArg = &gEthAppObj;
+#endif
 
     /* Overwrite config params with those for hardware interVLAN */
     EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswCfg);
@@ -968,6 +1059,10 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     /* Save host port MAC address */
     EnetUtils_copyMacAddr(&gEthAppObj.hostMacAddr[0U],
                           &outArgs->rxInfo[0U].macAddr[0U]);
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
+#endif
 }
 
 void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
@@ -1127,15 +1222,29 @@ static void EthApp_netifStatusCb(struct netif *netif)
 
         if (ipAddr->addr != 0)
         {
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+            /* Timestamp when EthFw got an IP */
+            EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_TCPIP);
+#endif
+
             gEthAppObj.hostIpAddr = lwip_ntohl(ip_addr_get_ip4_u32(ipAddr));
 
             /* MAC port used for PTP */
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+            macPort = gEthAppPorts[0U];
+#else
             macPort = ENET_MAC_PORT_3;
+#endif
 
             /* Initialize and enable PTP stack */
             EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
                                   &gEthAppObj.hostMacAddr[0U],
                                   ENET_BIT(ENET_MACPORT_NORM(macPort)));
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+            /* Timestamp when gPTP stack is initialized */
+            EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_PTP);
+#endif
 
             /* Assign functions that are to be called based on actions in GUI.
              * These cannot be dynamically pushed to function pointer array, as the
@@ -1323,6 +1432,59 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
     if (!matchFound)
     {
         appLogPrintf("delMacSharedCb: Address not found\n");
+    }
+}
+#endif
+
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+static void EthApp_setBootTs(EthApp_BootTsId tsId)
+{
+    bool done = true;
+    uint64_t val;
+    uint32_t i;
+
+    val = TimerP_getTimeInUsecs();
+
+    /* Save the profiling timestamp */
+    switch (tsId)
+    {
+        case ETHFW_BOOT_PROFILING_TS_MAIN:
+        case ETHFW_BOOT_PROFILING_TS_IPC:
+        case ETHFW_BOOT_PROFILING_TS_HOST_PORT:
+        case ETHFW_BOOT_PROFILING_TS_PTP:
+            gEthAppObj.bootTs[tsId] = val;
+            break;
+
+        case ETHFW_BOOT_PROFILING_TS_ETH_PORT:
+        case ETHFW_BOOT_PROFILING_TS_TCPIP:
+            /* Save first time this event is hit (i.e. new IP, multiple Ethernet ports) */
+            if (gEthAppObj.bootTs[tsId] == 0U)
+            {
+                gEthAppObj.bootTs[tsId] = val;
+            }
+
+        default:
+            break;
+    }
+
+    /* Check if all boot profiling timestamps have been set */
+    for (i = 0U; i < ETHFW_BOOT_PROFILING_TS_MAX; i++)
+    {
+        done &= (gEthAppObj.bootTs[i] != 0);
+    }
+
+    if (done)
+    {
+        /* Re-enable UART prints (which add boot time overhead) once all timestamps are captured */
+        gEthAppObj.uartPrintEn = true;
+
+        /* Print all time diffs wrt app's main() once we have hit all boot milestones */
+        EnetAppUtils_print("IPC server  = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(IPC));
+        EnetAppUtils_print("Eth link-up = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(ETH_PORT));
+        EnetAppUtils_print("Host port   = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(HOST_PORT));
+        EnetAppUtils_print("Got IP addr = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(TCPIP));
+        EnetAppUtils_print("PTP stack   = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(PTP));
     }
 }
 #endif

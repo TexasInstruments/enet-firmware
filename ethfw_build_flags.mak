@@ -89,4 +89,7 @@ endif
 # Enable iperf server (TCP only) by default
 ETHFW_IPERF_SERVER_SUPPORT?=yes
 
+# Boot time profile support
+ETHFW_BOOT_TIME_PROFILING?=no
+
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)

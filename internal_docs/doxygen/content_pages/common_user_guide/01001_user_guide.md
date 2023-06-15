@@ -1617,6 +1617,7 @@ Flag                             | Description
 `-D=ETHAPP_ENABLE_INTERCORE_ETH` | Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
+`-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
 
 Other common flags:
 
@@ -1653,6 +1654,7 @@ Flag                             | Description
 `-D=ETHAPP_ENABLE_INTERCORE_ETH` | Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
+`-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
 
 Other common flags:
 
