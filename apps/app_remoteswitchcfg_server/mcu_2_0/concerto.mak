@@ -236,6 +236,9 @@ endif
 # Comment out to disable QSGMII ports in J721E EVM
 DEFS += ENABLE_QSGMII_PORTS
 
+# Enable MAC-only ports. Comment out for switch only ports
+DEFS += ENABLE_MAC_ONLY_PORTS
+
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   ENET_APPUTILS_LIB = enet_example_utils_full_$(TARGET_OS_LC)
 endif
