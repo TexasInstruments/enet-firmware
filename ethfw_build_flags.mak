@@ -86,6 +86,9 @@ ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1)))
   ETHFW_INTERCORE_ETH_SUPPORT?=yes
 endif
 
+# gPTP stack support - currently supported in FreeRTOS build only
+ETHFW_GPTP_SUPPORT?=yes
+
 # Enable iperf server (TCP only) by default
 ETHFW_IPERF_SERVER_SUPPORT?=yes
 

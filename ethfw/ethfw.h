@@ -257,6 +257,9 @@ typedef int32_t (*EthFw_setPortCfg)(Enet_MacPort macPort,
                                     EnetPhy_Cfg *phyCfg,
                                     EnetMacPort_LinkCfg *linkCfg);
 
+/*! Callback for setting gPTP config parameters from the application */
+typedef void (*EthFw_configPtpCb)(void *arg);
+
 /*!
  * \brief Ethernet Firmware configuration
  *
@@ -304,6 +307,13 @@ typedef struct EthFw_Config_s
     /*! Callback function for application to set port link parameters
      *  (MII, PHY, speed, duplexity, etc) */
     EthFw_setPortCfg setPortCfg;
+
+    /*! Callback for setting gPTP config parameters from the application */
+    EthFw_configPtpCb configPtpCb;
+
+    /*! Argument to be passed to gPTP config callback function */
+    void *configPtpCbArg;
+
 } EthFw_Config;
 
 /*!
@@ -408,18 +418,19 @@ void EthFw_getVersion(EthFw_Handle hEthFw,
                       EthFw_Version *version);
 
 /*!
- * \brief Initialize and Enable EthFw PTP Stack
+ * \brief Initialize and enable EthFw gPTP stack
  *
- * Initializes and enable the EthFw PTP Stack with the provided configuration parameters.
+ * Initializes and enable the EthFw gPTP stack with the provided configuration parameters.
  *
- * \param ipAddr        IP Address
  * \param hostMacAddr   Host Port MAC Address
  * \param portMask      Mask of ports used for PTP. The mask is built by or-ing
- *                      ENET_BIT(ENET_NORM_MACPORT(macPort)).
+ *                      ENET_MACPORT_MASK(macPort).
+ *
+ * \retval ENET_SOK if gPTP initialization was successful
+ * \retval Negative error code if initialization failed
  */
-void EthFw_initTimeSyncPtp(uint32_t ipAddr,
-                           const uint8_t *hostMacAddr,
-                           uint32_t portMask);
+int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
+                              uint32_t portMask);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

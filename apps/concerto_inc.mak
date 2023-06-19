@@ -13,10 +13,18 @@ TARGET_OS_LC        := $(call lowercase,$(TARGET_OS))
 
 DEFS+=CPU_$(CPU_ID)
 
+# gPTP is supported only in ETHFW R5F core
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ETHFW_GPTP_BUILD_SUPPORT = $(BUILD_CPU_MCU2_0)
+endif
+
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-contrib
+ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
+    IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
+endif
 endif
 ifeq ($(TARGET_OS),SAFERTOS)
     ifeq ($(TARGET_PLATFORM),J721E)
@@ -49,6 +57,9 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-contrib/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
+    LDIRS += $(PDK_PATH)/packages/ti/transport/tsn/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+endif
 endif
 
 ifeq ($(TARGET_OS),FREERTOS)
@@ -86,8 +97,11 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
         ADDITIONAL_STATIC_LIBS += enet_cfgserver_${TARGET_OS_LC}.ae$(TARGET_CPU_SUFFIX)
     endif
-    ADDITIONAL_STATIC_LIBS += enet_timesync_ptp.ae$(TARGET_CPU_SUFFIX)
-    ADDITIONAL_STATIC_LIBS += enet_timesync_hal.ae$(TARGET_CPU_SUFFIX)
+ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
+    ADDITIONAL_STATIC_LIBS += tsn_gptp.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += tsn_combase.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += tsn_unibase.ae$(TARGET_CPU_SUFFIX)
+endif
     ADDITIONAL_STATIC_LIBS += $(ENET_APPUTILS_LIB).ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enetsoc.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enet.ae$(TARGET_CPU_SUFFIX)
@@ -125,8 +139,6 @@ else
     ifneq (,$(filter ${TARGET_CPU},A72 A53))
         ADDITIONAL_STATIC_LIBS += ti.board.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += nimuenet.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += enet_timesync_hal.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
-        ADDITIONAL_STATIC_LIBS += enet_timesync_ptp.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += $(ENET_APPUTILS_LIB).a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += enet.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += udma.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
@@ -170,5 +182,8 @@ PDK_LIB_RULES += uart
 PDK_LIB_RULES += gpio
 PDK_LIB_RULES += board
 PDK_LIB_RULES += ipc
-PDK_LIB_RULES += enet_timesync_hal
-PDK_LIB_RULES += enet_timesync_ptp
+ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
+PDK_LIB_RULES += tsn_gptp
+PDK_LIB_RULES += tsn_combase
+PDK_LIB_RULES += tsn_unibase
+endif

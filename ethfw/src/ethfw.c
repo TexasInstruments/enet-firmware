@@ -102,9 +102,15 @@
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
 #endif
 
+#if defined(ETHFW_GPTP_SUPPORT)
 /* Timesync header files */
-#include <ti/drv/enet/examples/timesync/timeSync.h>
-#include <ti/drv/enet/examples/timesync/protocol/ptp/include/timeSync_ptp.h>
+#include <tsn_tilld_include.h>
+#include <tsn_combase/combase.h>
+#include <tsn_unibase/unibase_binding.h>
+#include <tsn_gptp/gptp_config.h>
+#include <tsn_gptp/gptpman.h>
+
+#endif
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -151,6 +157,28 @@
 #define ETHFW_MAC_PORT_MAX                            (8U)
 #else
 #define ETHFW_MAC_PORT_MAX                            (4U)
+#endif
+
+#if defined(ETHFW_GPTP_SUPPORT)
+/*! Logging task - very low priority so it doesn't interfere with gPTP stack */
+#define ETHFW_LOGGER_TASK_PRIORITY                    (1U)
+
+/*! gPTP stack priority - should be higher than other non-critical tasks which could interfere*/
+#define ETHFW_GPTP_TASK_PRIORITY                      (7U)
+
+/*! TSN stack size and alignment */
+#define ETHFW_TSN_TASK_STACK_SIZE                     (16U * 1024U)
+#define ETHFW_TSN_TASK_STACK_ALIGN                    ETHFW_TSN_TASK_STACK_SIZE
+
+/*! Log task's buffer stack size and alignment */
+#define ETHFW_TSN_LOGGER_TASK_STACK_SIZE              (2U * 1024U)
+#define ETHFW_TSN_LOGGER_TASK_STACK_ALIGN             (32U)
+
+/*! Size of the buffer used for storing logs before printing */
+#define ETHFW_TSN_BUFFER_SIZE                         (5120U)
+
+/*! Number of MAC ports supported by the gPTP stack */
+#define ETHAPP_PTP_CFG_NUM_MAC_PORTS                  (1U)
 #endif
 
 /* ========================================================================== */
@@ -219,9 +247,6 @@ typedef struct EthFw_Obj_s
     /* Multiclient Manager (MCM) handle */
     EnetMcm_CmdIf mcmCmdIf;
 
-    /* Handle to PTP stack */
-    TimeSyncPtp_Handle timeSyncPtp;
-
     /* Shared multicast configuration */
     EthFw_SharedMcastCfg sharedMcastCfg;
 
@@ -230,6 +255,50 @@ typedef struct EthFw_Obj_s
 
     /*! Callback function for application to set port link parameters */
     EthFw_setPortCfg setPortCfg;
+
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* Whether TSN stack has been initialized or not */
+    bool tsnInit;
+
+    /* Whether gPTP has been started or not */
+    bool ptpStarted;
+
+    /* TSN stack netdevs */
+    char netDevs[ETHAPP_PTP_CFG_NUM_MAC_PORTS][IFNAMSIZ];
+
+    /* gPTP stack netdevs */
+    char *gPtpNetDevs[ETHAPP_PTP_CFG_NUM_MAC_PORTS + 1];
+
+    /* gPTP task handle */
+    TaskP_Handle hPtpTask;
+
+    /* gPTP task stack buffer */
+    uint8_t gPtpStackBuf[ETHFW_TSN_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_TASK_STACK_ALIGN)));
+
+    /* Mutex object used for TSN stack logging */
+    MutexP_Object logMutexObj;
+
+    /* Mutex handle for logMutexObj */
+    MutexP_Handle hLogMutex;
+
+    /* TSN stack logging task handle */
+    TaskP_Handle hLogTask;
+
+    /* TSN logger task stack buffer */
+    uint8_t logTaskStackBuf[ETHFW_TSN_LOGGER_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_LOGGER_TASK_STACK_ALIGN)));
+
+    /* Buffer used to accumulate the log messages given by stack until 'log_task' flushes them */
+    uint8_t logBuf[ETHFW_TSN_BUFFER_SIZE];
+
+    /* Buffer used to store string to be printed via app's print function */
+    uint8_t printBuf[ETHFW_TSN_BUFFER_SIZE];
+
+    /* gPTP config callback from app */
+    EthFw_configPtpCb configPtpCb;
+
+    /* gPTP config callback argument */
+    void *configPtpCbArg;
+#endif
 } EthFw_Obj;
 
 typedef struct EthFw_Autosar_EpId_s
@@ -269,6 +338,12 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
                                           enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len);
+
+#if defined(ETHFW_GPTP_SUPPORT)
+static void EthFw_tsnInit(void);
+
+static void EthFw_tsnDeinit(void);
+#endif
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -370,6 +445,7 @@ static EthFw_Autosar_EpId gEthFw_autosarEndptId[] =
         .remoteEndptId = AUTOSAR_ETHDRIVER_DEVICE_ENDPT2,
     },
 };
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -913,6 +989,12 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
 
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* Save gPTP stack config callback */
+    gEthFwObj.configPtpCb    = config->configPtpCb;
+    gEthFwObj.configPtpCbArg = config->configPtpCbArg;
+#endif
+
     /* Get default VLAN ids for MAC-only and switch ports */
     status = EthFw_getDfltVlanId(config);
 
@@ -1041,12 +1123,24 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         status = EthFw_setAleBcastEntry();
     }
 
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* Initializes tsn stack before calling gPTP task */
+    if (status == ENET_SOK)
+    {
+        EthFw_tsnInit();
+    }
+#endif
+
     return (status == ENET_SOK) ? &gEthFwObj : NULL;
 }
 
 void EthFw_deinit(EthFw_Handle hEthFw)
 {
     EnetAppUtils_assert(hEthFw != NULL);
+
+#if defined(ETHFW_GPTP_SUPPORT)
+    EthFw_tsnDeinit();
+#endif
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
@@ -1355,44 +1449,240 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
 }
 
 /* PTP related functions */
-
-static void EthFw_setPtpConfig(TimeSyncPtp_Config *ptpConfig)
+#if defined(ETHFW_GPTP_SUPPORT)
+static void EthFw_logTask(void *a0, void *a1)
 {
-#if defined(SOC_J721E)
-    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J721E;
-    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
-    ptpConfig->socConfig.instId     = 0U;
-#elif defined(SOC_J7200)
-    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J7200;
-    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_5G;
-    ptpConfig->socConfig.instId     = 0U;
-#elif defined(SOC_J784S4)
-    ptpConfig->socConfig.socVersion = TIMESYNC_SOC_J784S4;
-    ptpConfig->socConfig.ipVersion  = TIMESYNC_IP_VER_CPSW_9G;
-    ptpConfig->socConfig.instId     = 0U;
-#endif
-    ptpConfig->vlanCfg.vlanType     = TIMESYNC_VLAN_TYPE_NONE;
-    ptpConfig->deviceMode           = TIMESYNC_ORDINARY_CLOCK;
+    int32_t len;
+
+    while (true)
+    {
+        MutexP_lock(gEthFwObj.hLogMutex, MutexP_WAIT_FOREVER);
+        len = strlen((char *)gEthFwObj.logBuf);
+        if (len > 0)
+        {
+            memcpy(gEthFwObj.printBuf, gEthFwObj.logBuf, len);
+            gEthFwObj.logBuf[0] = 0;
+            gEthFwObj.printBuf[len] = 0;
+        }
+        MutexP_unlock(gEthFwObj.hLogMutex);
+
+        if (len > 0)
+        {
+            /* The print function will take a long time, we should not
+             * call it inside the mutex lock. */
+            appLogPrintf("%s", gEthFwObj.printBuf);
+        }
+
+        TaskP_sleep(1000);
+    }
 }
 
-void EthFw_initTimeSyncPtp(uint32_t ipAddr,
-                           const uint8_t *hostMacAddr,
-                           uint32_t portMask)
+static int32_t EthFw_logBuffer(bool flush, const char *str)
 {
-    TimeSyncPtp_Config ptpConfig;
+    int32_t usedLen;
+    int32_t bufSizeLeft;
+    int32_t loglen = strlen(str);
+    int32_t status = ENET_SOK;
 
-    /* Initialize and enable PTP stack */
-    TimeSyncPtp_setDefaultPtpConfig(&ptpConfig);
-    EthFw_setPtpConfig(&ptpConfig);
-    ptpConfig.portMask = portMask;
+    MutexP_lock(gEthFwObj.hLogMutex, MutexP_WAIT_FOREVER);
+    usedLen = strlen((char *)gEthFwObj.logBuf);
+    bufSizeLeft = sizeof(gEthFwObj.logBuf)-usedLen;
+    if (bufSizeLeft > loglen)
+    {
+        snprintf((char *)&gEthFwObj.logBuf[usedLen], bufSizeLeft, "%s", str);
+    }
+    else
+    {
+        snprintf((char *)&gEthFwObj.logBuf[0], sizeof(gEthFwObj.logBuf), "log overflow!\n");
+    }
+    MutexP_unlock(gEthFwObj.hLogMutex);
 
-    /* Save host port IP address and MAC address */
-    memcpy(&ptpConfig.ipAddr[0U], &ipAddr, ENET_IPv4_ADDR_LEN);
-    memcpy(&ptpConfig.ifMacID[0U], hostMacAddr, ENET_MAC_ADDR_LEN);
+    return status;
+}
 
-    gEthFwObj.timeSyncPtp = TimeSyncPtp_init(&ptpConfig);
-    EnetAppUtils_assert(gEthFwObj.timeSyncPtp != NULL);
+static void EthFw_startLogTask(void)
+{
+    TaskP_Params params;
 
-    TimeSyncPtp_enable(gEthFwObj.timeSyncPtp);
-    appLogPrintf("EthFw: TimeSync PTP enabled\n");
+    gEthFwObj.hLogMutex = MutexP_create(&gEthFwObj.logMutexObj);
+
+    /* Create logging task for gPTP stack */
+    TaskP_Params_init(&params);
+    params.priority  = ETHFW_LOGGER_TASK_PRIORITY;
+    params.stack     = &gEthFwObj.logTaskStackBuf[0];
+    params.stacksize = sizeof(gEthFwObj.logTaskStackBuf);
+    params.name      = "ETHFW Log Task";
+
+    gEthFwObj.hLogTask = TaskP_create(&EthFw_logTask, &params);
+    if (NULL == gEthFwObj.hLogTask)
+    {
+        appLogPrintf("ETHFW: Failed to create log task!\n");
+        EnetAppUtils_assert(false);
+    }
+}
+
+static void EthFw_gptpTask(void *a0,
+                           void *a1)
+{
+    char **netdevs = (char **)a0;
+    int32_t i;
+
+    /* Count the number of netdevs */
+    for (i = 0; netdevs[i]; i++)
+    {
+        /* Do nothing */
+    }
+
+    /* This function start gPTP, it has a true loop inside */
+    if (gptpman_run(netdevs, i, 1, NULL) < 0)
+    {
+        appLogPrintf("ETHFW: gptpman_run() error\n");
+    }
+}
+
+static void EthFw_tsnInit(void)
+{
+    unibase_init_para_t params;
+
+    if (!gEthFwObj.tsnInit)
+    {
+        /*refer to 'ub_logging.h for logging levels*/
+        ubb_default_initpara(&params);
+        params.ub_log_initstr    = "5,ubase:5,cbase:5,gptp:4";
+        params.cbset.gettime64   = cb_lld_gettime64;
+        params.cbset.console_out = EthFw_logBuffer;
+
+        EthFw_startLogTask();
+
+        unibase_init(&params);
+        ubb_memory_out_init(NULL, 0);
+        gEthFwObj.tsnInit = true;
+    }
+}
+
+static void EthFw_tsnDeinit(void)
+{
+    unibase_close();
+
+    if (gEthFwObj.hLogTask != NULL)
+    {
+        TaskP_delete(gEthFwObj.hLogTask);
+        gEthFwObj.hLogTask = NULL;
+    }
+    if (gEthFwObj.hPtpTask != NULL)
+    {
+        TaskP_delete(gEthFwObj.hPtpTask);
+        gEthFwObj.hPtpTask = NULL;
+    }
+    if (gEthFwObj.hLogMutex != NULL)
+    {
+        MutexP_delete(&gEthFwObj.hLogMutex);
+        gEthFwObj.hLogMutex = NULL;
+    }
+
+    unibase_close();
+
+    gEthFwObj.tsnInit = false;
+    gEthFwObj.ptpStarted = false;
+}
+
+static void EthFw_gptpStart(char *netdevs[])
+{
+    TaskP_Params params;
+
+    if (!gEthFwObj.ptpStarted)
+    {
+        /* gPTP Task Init */
+        TaskP_Params_init(&params);
+        params.priority  = ETHFW_GPTP_TASK_PRIORITY;
+        params.stack     = &gEthFwObj.gPtpStackBuf[0];
+        params.stacksize = sizeof(gEthFwObj.gPtpStackBuf);
+        params.name      = "ETHFW gPTP Task";
+        params.arg0      = netdevs;
+
+        gEthFwObj.hPtpTask = TaskP_create(&EthFw_gptpTask, &params);
+        if (NULL == gEthFwObj.hPtpTask)
+        {
+            appLogPrintf("ETHFW: Failed to create gptp task!\n");
+            EnetAppUtils_assert(false);
+        }
+        else
+        {
+            gEthFwObj.ptpStarted = true;
+        }
+    }
+}
+#endif
+
+int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
+                              uint32_t portMask)
+{
+#if defined(ETHFW_GPTP_SUPPORT)
+    lld_ethdev_t ethdevs[MAX_NUMBER_ENET_DEVS] = {0};
+    Enet_MacPort macPort;
+    int32_t status = ENET_SOK;
+    int32_t singleClk = 1;
+    int32_t i;
+    int32_t j = 0;
+
+    for (i = 0; i < ETHFW_MAC_PORT_MAX; i++)
+    {
+        if (ENET_IS_BIT_SET(portMask, i))
+        {
+            macPort = ENET_MACPORT_DENORM(i);
+
+            /* Linking each MAC port with an interface name */
+            if (j < ETHAPP_PTP_CFG_NUM_MAC_PORTS)
+            {
+                snprintf(&gEthFwObj.netDevs[j][0], IFNAMSIZ, "tilld%d", i + 1);
+                gEthFwObj.gPtpNetDevs[j] = &gEthFwObj.netDevs[j][0];
+                ethdevs[j].netdev  = gEthFwObj.netDevs[j];
+                ethdevs[j].macport = macPort;
+                memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
+
+                appLogPrintf("ETHFW: Enable gPTP on MAC port %u (%s)\n",
+                             ENET_MACPORT_ID(macPort), gEthFwObj.gPtpNetDevs[j]);
+
+                j++;
+            }
+            else
+            {
+                appLogPrintf("ETHFW: Can't enable gPTP on MAC port %u, exceeded max number of ports (%u)\n",
+                             ENET_MACPORT_ID(macPort), ETHAPP_PTP_CFG_NUM_MAC_PORTS);
+                status = ENET_EINVALIDPARAMS;
+                EnetAppUtils_assert(false);
+
+            }
+        }
+    }
+
+    /* Filling netdev table where each entry consists of an interface,
+     * its MAC port and mac addr (if any) */
+    if (status == ENET_SOK)
+    {
+        if (cb_lld_init_devs_table(ethdevs, j, gEthFwObj.enetType, gEthFwObj.instId) < 0)
+        {
+            appLogPrintf("ETHFW: Failed to int devs table\n");
+            status = ENET_EFAIL;
+        }
+    }
+
+    /* CPSW has a single clock for all the ports */
+    gptpconf_set_item(CONF_SINGLE_CLOCK_MODE, &singleClk);
+
+    /* Let app overwrite any gPTP configuration parameters */
+    if (gEthFwObj.configPtpCb != NULL)
+    {
+        gEthFwObj.configPtpCb(gEthFwObj.configPtpCbArg);
+    }
+
+    EthFw_gptpStart(gEthFwObj.gPtpNetDevs);
+
+    appLogPrintf("ETHFW: TimeSync PTP enabled\n");
+
+    return status;
+#else
+    appLogPrintf("ETHFW: Warning - TimeSync is not supported\n");
+    return ENET_SOK;
+#endif
 }

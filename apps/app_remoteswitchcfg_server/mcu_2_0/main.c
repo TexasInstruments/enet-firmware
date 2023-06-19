@@ -95,9 +95,10 @@
 #include <utils/intervlan/include/eth_swintervlan.h>
 #include <ethfw/ethfw.h>
 
+#if defined(ETHFW_GPTP_SUPPORT)
 /* Timesync header files */
-#include <ti/drv/enet/examples/timesync/timeSync.h>
-#include <ti/drv/enet/examples/timesync/protocol/ptp/include/timeSync_ptp.h>
+#include <tsn_gptp/gptp_config.h>
+#endif
 
 /* EthFw utils header files */
 #include <utils/remote_service/include/app_remote_service.h>
@@ -280,8 +281,10 @@ typedef struct
     /* Host MAC address */
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
-    /* Host IP address */
-    uint32_t hostIpAddr;
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* Semaphore used to indicate when host port MAC address has been allocated */
+    SemaphoreP_Handle hHostMacAllocSem;
+#endif
 
     /* IPC trace buffer address */
     uint8_t *traceBufAddr;
@@ -338,6 +341,12 @@ static void EthApp_initNetif(void);
 static void EthApp_netifStatusCb(struct netif *netif);
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1);
+
+#if defined(ETHFW_GPTP_SUPPORT)
+static void EthApp_configPtpCb(void *arg);
+
+static void EthApp_initPtp(void);
+#endif
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
 static void EthApp_setBootTs(EthApp_BootTsId tsId);
@@ -681,6 +690,9 @@ static int32_t EthApp_boardInit(void)
 
 static void EthApp_initTaskFxn(void* arg0, void* arg1)
 {
+#if defined(ETHFW_GPTP_SUPPORT)
+    SemaphoreP_Params semParams;
+#endif
     TaskP_Params taskParams;
     int32_t status = ETHAPP_OK;
 
@@ -711,6 +723,23 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
             status = ETHAPP_ERROR;
         }
     }
+
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* Create semaphore used to synchronize MAC alloc by lwIP which is required and
+     * shared with the gPTP stack */
+    if (status == ETHAPP_OK)
+    {
+        SemaphoreP_Params_init(&semParams);
+        semParams.mode = SemaphoreP_Mode_BINARY;
+
+        gEthAppObj.hHostMacAllocSem = SemaphoreP_create(0, &semParams);
+        if (gEthAppObj.hHostMacAllocSem == NULL)
+        {
+            appLogPrintf("ETHFW: failed to create hostport MAC addr semaphore\n");
+            status = ETHAPP_ERROR;
+        }
+    }
+#endif
 
     /* Initialize Ethernet Firmware */
     if (status == ETHAPP_OK)
@@ -744,6 +773,15 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
 
         TaskP_create(&EthApp_initIpcTaskFxn, &taskParams);
     }
+
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* Initialize gPTP stack */
+    if (status == ENET_SOK)
+    {
+        EthApp_initPtp();
+    }
+#endif
+
 }
 
 static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
@@ -928,6 +966,12 @@ static int32_t EthApp_initEthFw(void)
     /* CPTS_RFT_CLK is sourced from MAIN_SYSCLK0 (500MHz) */
     cpswCfg->cptsCfg.cptsRftClkFreq = CPSW_CPTS_RFTCLK_FREQ_500MHZ;
 
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* gPTP stack config parameters */
+    ethFwCfg.configPtpCb    = EthApp_configPtpCb;
+    ethFwCfg.configPtpCbArg = NULL;
+#endif
+
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     /* Link-up timestamp */
     cpswCfg->portLinkStatusChangeCb    = &EthApp_portLinkStatusChangeCb;
@@ -1062,6 +1106,9 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
+#endif
+#if defined(ETHFW_GPTP_SUPPORT)
+    SemaphoreP_post(gEthAppObj.hHostMacAllocSem);
 #endif
 }
 
@@ -1225,25 +1272,6 @@ static void EthApp_netifStatusCb(struct netif *netif)
 #if defined(ETHFW_BOOT_TIME_PROFILING)
             /* Timestamp when EthFw got an IP */
             EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_TCPIP);
-#endif
-
-            gEthAppObj.hostIpAddr = lwip_ntohl(ip_addr_get_ip4_u32(ipAddr));
-
-            /* MAC port used for PTP */
-#if defined(ETHFW_BOOT_TIME_PROFILING)
-            macPort = gEthAppPorts[0U];
-#else
-            macPort = ENET_MAC_PORT_3;
-#endif
-
-            /* Initialize and enable PTP stack */
-            EthFw_initTimeSyncPtp(gEthAppObj.hostIpAddr,
-                                  &gEthAppObj.hostMacAddr[0U],
-                                  ENET_BIT(ENET_MACPORT_NORM(macPort)));
-
-#if defined(ETHFW_BOOT_TIME_PROFILING)
-            /* Timestamp when gPTP stack is initialized */
-            EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_PTP);
 #endif
 
             /* Assign functions that are to be called based on actions in GUI.
@@ -1436,6 +1464,40 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
 }
 #endif
 
+#if defined(ETHFW_GPTP_SUPPORT)
+static void EthApp_configPtpCb(void *arg)
+{
+    int32_t useHwPhase = 1;
+
+    /* Apply phase adjustment directly to the HW */
+    gptpconf_set_item(CONF_USE_HW_PHASE_ADJUSTMENT, &useHwPhase);
+}
+
+static void EthApp_initPtp(void)
+{
+    Enet_MacPort macPort;
+    uint32_t portMask;
+
+    /* MAC port used for PTP */
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    macPort = gEthAppPorts[0U];
+#else
+    macPort = ENET_MAC_PORT_3;
+#endif
+
+    portMask = ENET_MACPORT_MASK(macPort);
+
+    /* Wait for host port MAC address to be allocated during lwIP getHandle */
+    SemaphoreP_pend(gEthAppObj.hHostMacAllocSem, SemaphoreP_WAIT_FOREVER);
+
+    EthFw_initTimeSyncPtp(&gEthAppObj.hostMacAddr[0U], portMask);
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    /* Timestamp when gPTP stack is initialized */
+    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_PTP);
+#endif
+}
+#endif
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
 static void EthApp_setBootTs(EthApp_BootTsId tsId)

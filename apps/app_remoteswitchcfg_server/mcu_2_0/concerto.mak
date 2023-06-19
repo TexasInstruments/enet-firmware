@@ -77,6 +77,13 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   endif
 endif
 
+# ETHFW gPTP stack - for now, supported in FreeRTOS only
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ifeq ($(TARGET_OS),FREERTOS)
+    DEFS += ETHFW_GPTP_SUPPORT
+  endif
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)
@@ -159,6 +166,13 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 # Intercore virtual Ethernet currently not supported in QNX
+
+# ETHFW gPTP stack - for now, supported in FreeRTOS only
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ifeq ($(TARGET_OS),FREERTOS)
+    DEFS += ETHFW_GPTP_SUPPORT
+  endif
+endif
 
 # iperf server support
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
@@ -250,6 +264,13 @@ endif
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
     DEFS += ETHAPP_ENABLE_INTERCORE_ETH
+  endif
+endif
+
+# ETHFW gPTP stack - for now, supported in FreeRTOS only
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ifeq ($(TARGET_OS),FREERTOS)
+    DEFS += ETHFW_GPTP_SUPPORT
   endif
 endif
 

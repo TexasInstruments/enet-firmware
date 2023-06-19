@@ -13,6 +13,11 @@ IDIRS := ${ETHFW_PATH}
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
+  ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+    ifeq ($(TARGET_OS),FREERTOS)
+      IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
+    endif
+  endif
 endif
 IDIRS += $(REMOTE_DEVICE_PATH)
 IDIRS += $(NDK_PATH)/packages
@@ -24,6 +29,13 @@ endif
 
 ifeq ($(ETHFW_PROXY_ARP_SUPPORT),yes)
   DEFS += ETHFW_PROXY_ARP_HANDLING
+endif
+
+# ETHFW gPTP stack - for now, supported in FreeRTOS only
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ifeq ($(TARGET_OS),FREERTOS)
+    DEFS += ETHFW_GPTP_SUPPORT
+  endif
 endif
 
 RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT := ${shell cd ${ETHFW_PATH};git rev-parse --short=8 HEAD 2>/dev/null}
