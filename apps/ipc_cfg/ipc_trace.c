@@ -57,13 +57,13 @@ int32_t Ipc_Trace_printf(const char *format, ...)
 {
     char buffer[IPC_TRACE_MAX_LINE_LENGTH];
     va_list args;
-    uint8_t i = 0;
+    uint32_t i = 0U;
 
     va_start(args, format);
     vsprintf(buffer, format, args);
     va_end(args);
 
-    for (i = 0; i < strlen(buffer); i++)
+    for (i = 0U; i < strlen(buffer); i++)
     {
         Ipc_traceBuffer[gTraceBufIndex++] = buffer[i];
 
@@ -80,11 +80,11 @@ int32_t Ipc_Trace_printf(const char *format, ...)
 int32_t Ipc_Trace_vprintf(const char *format, va_list args)
 {
     char buffer[IPC_TRACE_MAX_LINE_LENGTH];
-    uint8_t i = 0;
+    uint32_t i = 0U;
 
     vsnprintf(buffer, sizeof(buffer), format, args);
 
-    for (i = 0; i < strlen(buffer); i++)
+    for (i = 0U; i < strlen(buffer); i++)
     {
         Ipc_traceBuffer[gTraceBufIndex++] = buffer[i];
 
