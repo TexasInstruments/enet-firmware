@@ -91,8 +91,12 @@
 
 /* EthFw header files */
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
+
+#if defined(ETHFW_DEMO_SUPPORT)
 #include <utils/intervlan/include/eth_hwintervlan.h>
 #include <utils/intervlan/include/eth_swintervlan.h>
+#endif
+
 #include <ethfw/ethfw.h>
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -325,11 +329,13 @@ static int32_t EthApp_initEthFw(void);
 
 static int32_t EthApp_initRemoteServices(void);
 
+#if defined(ETHFW_DEMO_SUPPORT)
 static void EthApp_startSwInterVlan(char *recvBuff,
                                     char *sendBuff);
 
 static void EthApp_startHwInterVlan(char *recvBuff,
                                     char *sendBuff);
+#endif
 
 static void EthApp_lwipMain(void *a0,
                             void *a1);
@@ -978,8 +984,10 @@ static int32_t EthApp_initEthFw(void)
     cpswCfg->portLinkStatusChangeCbArg = &gEthAppObj;
 #endif
 
+#if defined(ETHFW_DEMO_SUPPORT)
     /* Overwrite config params with those for hardware interVLAN */
     EthHwInterVlan_setOpenPrms(&ethFwCfg.cpswCfg);
+#endif
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
     if (ARRAY_SIZE(gEthApp_sharedMcastAddrTable) > ETHAPP_MAX_SHARED_MCAST_ADDR)
@@ -1274,6 +1282,7 @@ static void EthApp_netifStatusCb(struct netif *netif)
             EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_TCPIP);
 #endif
 
+#if defined(ETHFW_DEMO_SUPPORT)
             /* Assign functions that are to be called based on actions in GUI.
              * These cannot be dynamically pushed to function pointer array, as the
              * index is used in GUI as command */
@@ -1286,6 +1295,7 @@ static void EthApp_netifStatusCb(struct netif *netif)
 
             /* Start the software-based interVLAN routing */
             EthSwInterVlan_setupRouting(gEthAppObj.enetType, ETH_SWINTERVLAN_TASK_PRI);
+#endif
         }
     }
     else
@@ -1304,7 +1314,7 @@ static void EthApp_traceBufFlush(void* arg0, void* arg1)
 }
 
 /* Functions called from Config server library based on selection from GUI */
-
+#if defined(ETHFW_DEMO_SUPPORT)
 static void EthApp_startSwInterVlan(char *recvBuff,
                                     char *sendBuff)
 {
@@ -1330,6 +1340,7 @@ static void EthApp_startHwInterVlan(char *recvBuff,
         EthHwInterVlan_setupRouting(gEthAppObj.enetType, pInterVlanCfg);
     }
 }
+#endif
 
 /* IPC trace buffer flush */
 void EthApp_traceBufCacheWb(void)

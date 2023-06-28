@@ -1618,6 +1618,7 @@ Flag                             | Description
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 `-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
+`-D=ETHFW_DEMO_SUPPORT`          | Enable ETHFW demos, such as hardware and software interVLAN, GUI configurator tool, etc.
 
 Other common flags:
 
@@ -1655,6 +1656,7 @@ Flag                             | Description
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 `-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
+`-D=ETHFW_DEMO_SUPPORT`          | Enable ETHFW demos, such as hardware and software interVLAN, GUI configurator tool, etc.
 
 Other common flags:
 

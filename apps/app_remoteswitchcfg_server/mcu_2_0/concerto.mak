@@ -283,6 +283,11 @@ ifeq ($(ETHFW_BOOT_TIME_PROFILING),yes)
   DEFS += ETHFW_BOOT_TIME_PROFILING
 endif
 
+# Ethfw Intervlan demo
+ifeq ($(ETHFW_DEMO_SUPPORT),yes)
+  DEFS += ETHFW_DEMO_SUPPORT
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)

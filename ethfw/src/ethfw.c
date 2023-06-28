@@ -152,6 +152,9 @@
 /*! VLAN id used for all MAC ports in switch mode (non MAC-only mode) */
 #define ETHFW_SWITCH_PORTS_VLAN_ID                    (1U)
 
+/*! VLAN id used for Host port */
+#define ETHFW_HOST_PORT_VLAN_ID                       (2U)
+
 /*! Max number of CPSW MAC ports supported */
 #if defined(SOC_J721E) || defined(SOC_J784S4)
 #define ETHFW_MAC_PORT_MAX                            (8U)
@@ -455,23 +458,23 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     /* ALE configuration */
     aleCfg->modeFlags = CPSW_ALE_CFG_MODULE_EN |
                         CPSW_ALE_CFG_UNKNOWN_UCAST_FLOOD2HOST;
+
     aleCfg->agingCfg.autoAgingEn = TRUE;
     aleCfg->agingCfg.agingPeriodInMs = 1000;
+
     aleCfg->nwSecCfg.vid0ModeEn = FALSE;
+
     aleCfg->vlanCfg.aleVlanAwareMode = TRUE;
-    aleCfg->vlanCfg.cpswVlanAwareMode = FALSE;
+    aleCfg->vlanCfg.cpswVlanAwareMode = TRUE;
     aleCfg->vlanCfg.unknownUnregMcastFloodMask = 0U;
     aleCfg->vlanCfg.unknownRegMcastFloodMask = 0U;
     aleCfg->vlanCfg.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
     aleCfg->vlanCfg.autoLearnWithVlan = false;
+
     aleCfg->policerGlobalCfg.policingEn = true;
     aleCfg->policerGlobalCfg.yellowDropEn = false;
     aleCfg->policerGlobalCfg.redDropEn = true;
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
-    aleCfg->portCfg[0].learningCfg.noLearn = FALSE;
-    aleCfg->portCfg[0].vlanCfg.dropUntagged = FALSE;
-    aleCfg->portCfg[1].learningCfg.noLearn = FALSE;
-    aleCfg->portCfg[1].vlanCfg.dropUntagged = FALSE;
 
     /* ALE policer configuration */
     aleCfg->policerGlobalCfg.policingEn = true;
@@ -666,10 +669,14 @@ static void EthFw_setPortMode(void)
     CpswAle_PortVlanCfg *pvidCfg;
     CpswAle_PortMacModeCfg *macModeCfg;
     CpswAle_PortLearningSecurityCfg *learningCfg;
+    CpswAle_PortVlanSecurityCfg *vlanSecCfg;
     uint32_t aleSwitchPortMask = 0U;
     uint32_t aleMacOnlyPortMask = 0U;
     uint32_t alePort;
     uint32_t i;
+
+    aleSwitchPortMask  = (gEthFwObj.switchPortMask << 1U);
+    aleMacOnlyPortMask = (gEthFwObj.macOnlyPortMask << 1U);
 
     /* Reset MAC-only and learning config for all enabled ports. It will be
      * overwritten as needed right after */
@@ -681,15 +688,14 @@ static void EthFw_setPortMode(void)
         macModeCfg  = &aleCfg->portCfg[alePort].macModeCfg;
         learningCfg = &aleCfg->portCfg[alePort].learningCfg;
         pvidCfg     = &aleCfg->portCfg[alePort].pvidCfg;
-
-        aleSwitchPortMask  = (gEthFwObj.switchPortMask << 1U);
-        aleMacOnlyPortMask = (gEthFwObj.macOnlyPortMask << 1U);
+        vlanSecCfg  = &aleCfg->portCfg[alePort].vlanCfg;
 
         if (EthFw_isMacOnlyPort(macPort))
         {
             macModeCfg->macOnlyCafEn = false;
             macModeCfg->macOnlyEn = true;
             learningCfg->noLearn = true;
+            vlanSecCfg->dropUntagged = FALSE;
 
             pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
             pvidCfg->vlanIdInfo.vlanId   = gEthFwObj.dfltVlanIdMacOnlyPorts;
@@ -707,6 +713,7 @@ static void EthFw_setPortMode(void)
             macModeCfg->macOnlyCafEn = false;
             macModeCfg->macOnlyEn = false;
             learningCfg->noLearn = false;
+            vlanSecCfg->dropUntagged = FALSE;
 
             pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
             pvidCfg->vlanIdInfo.vlanId   = gEthFwObj.dfltVlanIdSwitchPorts;
@@ -720,6 +727,24 @@ static void EthFw_setPortMode(void)
             pvidCfg->disallowIPFrag  = false;
         }
     }
+
+    pvidCfg = &aleCfg->portCfg[0].pvidCfg;
+    pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
+    pvidCfg->vlanIdInfo.vlanId   = ETHFW_HOST_PORT_VLAN_ID;
+    pvidCfg->vlanMemberList      = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+    pvidCfg->regMcastFloodMask   = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+    pvidCfg->unregMcastFloodMask = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+    pvidCfg->forceUntaggedEgressMask = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+    pvidCfg->noLearnMask     = 0U;
+    pvidCfg->vidIngressCheck = 0U;
+    pvidCfg->limitIPNxtHdr   = false;
+    pvidCfg->disallowIPFrag  = false;
+
+    learningCfg = &aleCfg->portCfg[0].learningCfg;
+    learningCfg->noLearn = false;
+
+    vlanSecCfg = &aleCfg->portCfg[0].vlanCfg;
+    vlanSecCfg->dropUntagged = FALSE;
 }
 
 static EnetRm_ResourceInfo *EthFw_getRmInfo(uint32_t coreId)
@@ -964,6 +989,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
     hostPortCfg->passCrcErrors = true;
     hostPortCfg->csumOffloadEn = true;
     hostPortCfg->rxMtu = 1522U;
+    hostPortCfg->vlanCfg.portVID = ETHFW_HOST_PORT_VLAN_ID;
 
     EthFw_initAleCfg(aleCfg);
 }

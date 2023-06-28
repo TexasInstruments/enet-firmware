@@ -95,4 +95,7 @@ ETHFW_IPERF_SERVER_SUPPORT?=yes
 # Boot time profile support
 ETHFW_BOOT_TIME_PROFILING?=no
 
+# Ethfw Demo support
+ETHFW_DEMO_SUPPORT?=no
+
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)
