@@ -731,10 +731,10 @@ static void EthFw_setPortMode(void)
     pvidCfg = &aleCfg->portCfg[0].pvidCfg;
     pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
     pvidCfg->vlanIdInfo.vlanId   = ETHFW_HOST_PORT_VLAN_ID;
-    pvidCfg->vlanMemberList      = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
-    pvidCfg->regMcastFloodMask   = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
-    pvidCfg->unregMcastFloodMask = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
-    pvidCfg->forceUntaggedEgressMask = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
+    pvidCfg->vlanMemberList      = CPSW_ALE_ALL_PORTS_MASK;
+    pvidCfg->regMcastFloodMask   = CPSW_ALE_ALL_PORTS_MASK;
+    pvidCfg->unregMcastFloodMask = 0U;
+    pvidCfg->forceUntaggedEgressMask = CPSW_ALE_ALL_PORTS_MASK;
     pvidCfg->noLearnMask     = 0U;
     pvidCfg->vidIngressCheck = 0U;
     pvidCfg->limitIPNxtHdr   = false;
