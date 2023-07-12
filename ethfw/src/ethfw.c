@@ -146,14 +146,14 @@
 /*! Max VLAN id as per standard */
 #define ETHFW_VLAN_ID_MAX                             (4094U)
 
+/*! VLAN id used for host port */
+#define ETHFW_HOST_PORT_VLAN_ID                       (1U)
+
 /*! VLAN id used for all MAC ports in MAC-only mode */
-#define ETHFW_MAC_ONLY_PORTS_VLAN_ID                  (0U)
+#define ETHFW_MAC_ONLY_PORTS_VLAN_ID                  (2U)
 
 /*! VLAN id used for all MAC ports in switch mode (non MAC-only mode) */
-#define ETHFW_SWITCH_PORTS_VLAN_ID                    (1U)
-
-/*! VLAN id used for Host port */
-#define ETHFW_HOST_PORT_VLAN_ID                       (2U)
+#define ETHFW_SWITCH_PORTS_VLAN_ID                    (3U)
 
 /*! Max number of CPSW MAC ports supported */
 #if defined(SOC_J721E) || defined(SOC_J784S4)
