@@ -95,7 +95,7 @@
 /*! Ethernet Switch Remote Device API version major version */
 #define RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR             (0)
 /*! Ethernet Switch Remote Device API version minor version */
-#define RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR             (3)
+#define RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR             (2)
 /*! Ethernet Switch Remote Device API version minor revision */
 #define RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION          (0)
 /*  @} */
