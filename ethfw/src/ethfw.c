@@ -266,6 +266,9 @@ typedef struct EthFw_Obj_s
     /* Whether gPTP has been started or not */
     bool ptpStarted;
 
+    /* To run log Task in the loop*/
+    bool logTaskrun;
+
     /* TSN stack netdevs */
     char netDevs[ETHAPP_PTP_CFG_NUM_MAC_PORTS][IFNAMSIZ];
 
@@ -1480,7 +1483,7 @@ static void EthFw_logTask(void *a0, void *a1)
 {
     int32_t len;
 
-    while (true)
+    while (gEthFwObj.logTaskrun)
     {
         MutexP_lock(gEthFwObj.hLogMutex, MutexP_WAIT_FOREVER);
         len = strlen((char *)gEthFwObj.logBuf);
@@ -1577,6 +1580,7 @@ static void EthFw_tsnInit(void)
         params.ub_log_initstr    = "5,ubase:5,cbase:5,gptp:4";
         params.cbset.gettime64   = cb_lld_gettime64;
         params.cbset.console_out = EthFw_logBuffer;
+        gEthFwObj.logTaskrun = true;
 
         EthFw_startLogTask();
 
@@ -1610,6 +1614,7 @@ static void EthFw_tsnDeinit(void)
 
     gEthFwObj.tsnInit = false;
     gEthFwObj.ptpStarted = false;
+    gEthFwObj.logTaskrun = false;
 }
 
 static void EthFw_gptpStart(char *netdevs[])

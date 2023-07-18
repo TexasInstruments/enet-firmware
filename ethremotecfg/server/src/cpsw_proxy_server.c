@@ -2417,6 +2417,13 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         status = rdevEthSwitchServerInit(&remote_ethswitch_init_prm);
         EnetAppUtils_assert(status == 0);
 
+        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(cfg->autosarEthDriverRemoteCoreId));
+        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(cfg->autosarEthDriverVirtPort));
+        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(cfg->autosarEthDeviceEndPointId));
+        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(g_CpswProxyServerAutosarRpmsgBuf));
+        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(hProxyServer->ethDrvObj));
+        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(gCpswProxyServer_autosarEthDriverTaskStackBuf));
+
         for (i = 0U; i < cfg->autosarEthVirtPortNum; i++)
         {
             status = CpswProxyServer_initAutosarEthDeviceEp(hProxyServer, cfg, i);
