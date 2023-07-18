@@ -1594,6 +1594,8 @@ static void EthFw_tsnDeinit(void)
 {
     unibase_close();
 
+    gEthFwObj.logTaskrun = false;
+
     if (gEthFwObj.hLogTask != NULL)
     {
         TaskP_delete(gEthFwObj.hLogTask);
