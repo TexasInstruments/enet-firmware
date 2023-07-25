@@ -1479,9 +1479,18 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
 static void EthApp_configPtpCb(void *arg)
 {
     int32_t useHwPhase = 1;
+    int phase_alpha = 1;
+    int compute_intv = 100;
+    int mrate_ppb = 5;
+    int freq_alpha = 2;
 
     /* Apply phase adjustment directly to the HW */
     gptpconf_set_item(CONF_USE_HW_PHASE_ADJUSTMENT, &useHwPhase);
+
+    gptpconf_set_item(CONF_PHASE_OFFSET_IIR_ALPHA_STABLE_VALUE, &phase_alpha);
+    gptpconf_set_item(CONF_FREQ_OFFSET_IIR_ALPHA_STABLE_VALUE, &freq_alpha);
+    gptpconf_set_item(CONF_CLOCK_COMPUTE_INTERVAL_MSEC, &compute_intv);
+    gptpconf_set_item(CONF_FREQ_OFFSET_UPDATE_MRATE_PPB, &mrate_ppb);
 }
 
 static void EthApp_initPtp(void)

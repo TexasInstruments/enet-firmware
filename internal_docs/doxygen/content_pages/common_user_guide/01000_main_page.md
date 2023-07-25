@@ -4,7 +4,7 @@
 
 # Integrated Switch {#ethfw_c_ug_switch}
 
-SoC's, such as J7200 or J721E, integrate an Ethernet Switch as an chip-in-chip. The
+SoC's, such as J7200, J721E or J784S4, integrate an Ethernet Switch as an chip-in-chip. The
 combined features of SoC and Switch IP (CPSW5G/CPSW9G) can allow Ethernet switch to
 function continuously enabling unaffected switching on external ports regardless
 of the state of the rest of the device.
@@ -15,8 +15,8 @@ traditional automotive Ethernet gateway system.
 
 ![](j7_switch_for_replacement_of_external_switch.png "J721E Switch as a replacement to external switch")
 
-The integrated switch in J721E offers 8 MAC ports, while the switch in J7200 offers
-4 MAC ports.  In both cases, an internal host port provides connectivity to the SoC
+The integrated switch in J721E and J784S4 offers 8 MAC ports, while the switch in J7200
+offers 4 MAC ports.  In both cases, an internal host port provides connectivity to the SoC
 which enables the different processing cores to exchange packets with the switch.
 
 It's worth noting that the previous diagram shows internal data paths that are
@@ -28,7 +28,7 @@ about the processing cores where virtual Ethernet functionality has been enabled
 # Ethernet Firmware Software Stack  {#ethfw_c_ug_fw_architecture}
 
 The Ethernet Firmware is a FreeRTOS based application for configuration of Ethernet switch,
-hosted on the Cortex R5F 0 core 0 in Main domain of J721E and J7200 SoCs.
+hosted on the Cortex R5F 0 core 0 in Main domain of J721E, J7200 and J784S4 SoCs.
 
 Ethernet Firmware package contains remote configuration server, resource management
 library, switch resident protocols, proxy layers to handle local and remote API calls

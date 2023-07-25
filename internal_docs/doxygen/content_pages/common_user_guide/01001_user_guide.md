@@ -38,7 +38,7 @@ peripheral shared among the different processing cores within the SoC.  Ethernet
 Firmware acts as the owner of the CPSW switch and provides a remote configuration
 infrastructure for other processing cores running different operating systems.
 
-Ethernet Firmware enables TCP/IP stack and PTP test stack, includes software and
+Ethernet Firmware enables TCP/IP stack and gPTP stack, includes software and
 hardware interVLAN demos, as well as helper utils libraries (i.e. network statistics).
 
 The following diagram shows the main components of the Ethernet Firmware software
@@ -61,11 +61,10 @@ When multiple cores need to receive the same multicast flow, then it is always s
 the Ethernet Firmware which plays the role of central hub that replicates and fans out.
 Refer to the \ref ethfw_mcast_support section for more information.
 
-Ethernet Firmware operates as a PTP clock slave and supports two-step mode with Layer-2
-encapsulation.  The integrated PTP stack is a TI implementation meant for testing and
-demonstration purposes.  **It must not be used for production**.  This PTP implementation
-sets up CPSW ALE classifiers with PTP multicast MAC addresses as match criteria to have
-PTP traffic routed to a dedicated UDMA RX flow.
+Ethernet Firmware runs gPTP stack which operates either as master or slave clock based on the
+gPTP configurations set, supporting both software and hardware adjustments for the CPTS clock.
+This PTP implementation sets up CPSW ALE classifiers with PTP multicast MAC address and PTP
+EtherType PTP classifier as match criteria to have PTP traffic routed to dedicated UDMA RX flow.
 
 The remote configuration infrastructure provided by Ethernet Firmware is built on top
 of the *remote_device* framework.  Ethernet Firmware plays the role of a server which
@@ -544,8 +543,8 @@ The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is 
 
 | Resource    | Count  | EthFw Usage (mcu2_0)
 |:------------|:------:|:-----------------------------------
-| TX channel  |   3    | <ul><li>lwIP netif (1)</li><li>PTP (1)</li><li>SW interVLAN (1)</li></ul>
-| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>Proxy ARP (1)</li><li>PTP (1)</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
+| TX channel  |   3    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>SW interVLAN (1)</li></ul>
+| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1)</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
 | MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
 
 UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
@@ -1282,7 +1281,44 @@ The lwIP pool configuration file (lwippools.h) contains the different pools and 
 sizes required by the Enet LLD lwIP interface implementation. This file is located at
 `<pdk>/packages/ti/drv/transport/lwip/lwip-port/freertos/include/lwippools.h`.
 
-#### Ethernet Firmware Proxy ARP {#ethfw_depend_lwip_proxyarp}
+
+### TSN stack {#ethfw_depend_tsn}
+
+\note SDK 9.0 provides support only for gPTP stack. No other TSN protocol is supported.
+
+Starting in SDK 9.0, a new gPTP stack is integrated on top of Enet LLD in PDK, it can be
+located at: `<pdk>/packages/ti/transport/tsn/tsn-stack`.
+The previous gPTP test stack used in SDK 8.x and older releases is no longer supported
+and has been fully removed from both, Enet LLD and Ethernet Firmware.
+
+The new gPTP stack provides time synchronization for CPSW5G/CPSW9G on Main R5F0 core 0
+for J721E, J7200 and J784S4. The stack is composed of the following modules:
+
+  - **tsn_unibase** : Universal utility libraries that are platform-independent.
+  - **tsn_combase** : Communication utility libraries that provide support for functions
+    like sockets, mutexes, and semaphores.
+  - **tsn_gptp**: Implementation of the IEEE 802.1 AS gptp protocol.
+
+This stack can be used for production and testing purposes.  For more information about
+the stack, please refer to PDK documentation:
+
+  - API Guide is located under *Time Sensitive Networking (TSN) Stack* section of
+    PDK API Guide.
+  - User's Guide is located under *TSN Integration* section of the ENET module in
+    PDK User's Guide.
+
+The utilisation of these resources by gPTP stack on Ethernet Firmware is as follows:
+
+| Resource    | Count  | gPTP Usage (mcu2_0)
+|:------------|:------:|:-----------------------------------
+| TX channel  |   1    | To transmit PTP packets
+| RX flow     |   1    | To receive PTP packets (filtered by PTP multicast and EtherType)
+| MAC address |   1    | Shared with TCP/IP lwIP netif
+
+\note The gPTP stack is supported only in FreeRTOS.  It's not supported in SafeRTOS.
+
+
+### Ethernet Firmware Proxy ARP {#ethfw_depend_lwip_proxyarp}
 
 Enet LLD lwIP interface implementation provides a hook to let application *process*
 a packet and indicate whether the packet needs additional handling (i.e. be passed to
@@ -1304,7 +1340,7 @@ of the remote cores, it's simply passed to the lwIP stack, ARP request packets m
 for Ethernet Firmware itself fall into this processing category.
 
 
-#### SafeRTOS {#ethfw_depend_safertos}
+### SafeRTOS {#ethfw_depend_safertos}
 
 Ethernet Firmware requires the following SafeRTOS kernel versions, depending on the
 SoC being used.

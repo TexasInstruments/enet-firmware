@@ -30,7 +30,7 @@ Below are top-level features demonstrated:
  - Hardware-based interVLAN routing
  - IP next header filtering
  - MAC address based rate limiting
- - Time-synchronization using PTP
+ - Time-synchronization using gPTP
  - Multi-core time-synchronization with RTOS client
  - Software based inter-core virtual Ethernet communication
 
@@ -261,79 +261,60 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
 
 > **Note:** Make sure that all IPs assigned manually are in the same subnet as the Ethernet Firmware.
 
-### PTP stack {#demo_ethfw_ptp_stack}
+### gPTP stack {#demo_ethfw_ptp_stack}
 
-> **Note:** PTP stack is required only on **PC 2**.
+gPTP stack is initialized when Ethernet Firmware RTOS application calls
+`EthFw_initTimeSyncPtp()` function, and will continue to run in a separate task.
 
-> **Note:** **PTP master (PC 2)** should be connected to MAC port 3 in J721E. Refer
+Once master-slave connection is established between either of the EVMs, slave prints
+logs showing the hardware/software clock adjustment rate in *ppb* (parts-per-billion)
+and difference in master-slave correction in nanoseconds.
+
+This stack supports gPTP config parameters which can be configured in the stack
+via application, like phase adjustment, clock modes, phase offsets etc.
+By enabling some optimization config params, an accuracy around +/- 18 nanoseconds
+can be achieved with convergence time around 4500 msecs.
+
+These params can be configured inside `EthApp_configPtpCb()` function in
+`<ethfw>/apps/app_remoteswitchcfg_server/mcu2_0/main.c` file.
+
+```C
+/*
+ * Optimization for best synchronization.
+ * This config will make the adjustment happen more often.
+ * Note that this may have an impact on system performance.
+ */
+int phase_alpha = 1;
+int compute_intv = 100;
+int mrate_ppb = 5;
+int freq_alpha = 2;
+
+gptpconf_set_item(CONF_PHASE_OFFSET_IIR_ALPHA_STABLE_VALUE, &phase_alpha);
+gptpconf_set_item(CONF_FREQ_OFFSET_IIR_ALPHA_STABLE_VALUE, &freq_alpha);
+gptpconf_set_item(CONF_CLOCK_COMPUTE_INTERVAL_MSEC, &compute_intv);
+gptpconf_set_item(CONF_FREQ_OFFSET_UPDATE_MRATE_PPB, &mrate_ppb);
+```
+
+gPTP stack is enabled only in MAC port 3 in the default Ethernet Firmware configuration.
+When running gPTP demo, user must make sure that MAC port 3 is connected to the gPTP
+capable device (i.e. another EVM, PC, TSN switch).
+
+> **Note:** gPTP stack is enabled only on MAC port 3.
+
+> **Note:** gPTP stack is required on **PC 2** or run ETHFW on another EVM.
+
+> **Note:** **gPTP master (PC 2)** should be connected to MAC port 3 in J721E. Refer
 > to @ref ethfw_depend_evm_gesi_j721e for MAC port numbers in J721E EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
-> **Note:** **PTP master (PC 2)** should be connected to MAC port 3 in J7200. Refer
+> **Note:** **gPTP master (PC 2)** should be connected to MAC port 3 in J7200. Refer
 > to  @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J7200 EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
-> **Note:** **PTP master (PC 2)** should be connected to MAC port 3 in J784S4. Refer
+> **Note:** **gPTP master (PC 2)** should be connected to MAC port 3 in J784S4. Refer
 > to @ref ethfw_depend_evm_quadport_j784s4 for MAC port numbers in J784S4 EVM.
 > CPTS event lookup errors will be seen if connected to a different MAC port.
 
-PTP stack is required to run master clock and synchronize with the slave
-running on EVM.
-
--# Check for hardware timestamping support,
-
- * In Ubuntu PC terminal, enter the command as follows:,
-              
-       ~]# ethtool -T eth3
-       Time stamping parameters for eth3:
-       Capabilities:
-              hardware-transmit     (SOF_TIMESTAMPING_TX_HARDWARE)
-              software-transmit     (SOF_TIMESTAMPING_TX_SOFTWARE)
-              hardware-receive      (SOF_TIMESTAMPING_RX_HARDWARE)
-              software-receive      (SOF_TIMESTAMPING_RX_SOFTWARE)
-              software-system-clock (SOF_TIMESTAMPING_SOFTWARE)
-              hardware-raw-clock    (SOF_TIMESTAMPING_RAW_HARDWARE)
-       PTP Hardware Clock: 0
-       Hardware Transmit Timestamp Modes:
-              off                   (HWTSTAMP_TX_OFF)
-              on                    (HWTSTAMP_TX_ON)
-       Hardware Receive Filter Modes:
-              none                  (HWTSTAMP_FILTER_NONE)
-              all                   (HWTSTAMP_FILTER_ALL)
-where eth3 is the interface you want to check.
-
- * For software time stamping support, the parameters list should include:
-
-       SOF_TIMESTAMPING_SOFTWARE 
-
-       SOF_TIMESTAMPING_TX_SOFTWARE 
-
-       SOF_TIMESTAMPING_RX_SOFTWARE 
-
- * For hardware time stamping support, the parameters list should include:
-
-       SOF_TIMESTAMPING_RAW_HARDWARE 
-
-       SOF_TIMESTAMPING_TX_HARDWARE 
-
-       SOF_TIMESTAMPING_RX_HARDWARE 
-
--# Install PTP stack in the Ubuntu PC as follows:
-
-       sudo apt install linuxptp
-
--# Start PTP master: 
-
-       sudo ptp4l -P -2 -S -i eth3 -m -q -p -l 7 /dev/ptp0
-
-   Replace `-S` with `-H` if your NIC supports hardware timestamping.
-
--# Optional: PTP packets can be monitored using Wireshark from PC by setting
-   `ptp` in Wireshark's display filter.  The timestamp sent from the
-   J721E/J7200/J784S4 EVM should be updated to current time, i.e. responseOriginTimestamp
-   in TI EVM's Path_Delay_Resp_Follow_Up message.  The value from this field can
-   be converted to a human-readable date using [epochconverter.com](http://www.epochconverter.com)
-   or other tools.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -584,6 +565,110 @@ the external devices, **PC 1** or **PC 2**.
        iperf -c 192.168.1.<a72> -t 20 -i 1
 
 [Back To Top](@ref demo_ethfw_combined_top)
+
+
+## gPTP Stack {#ethfw_demo_gptp}
+
+The gPTP stack demo can be run using two TI EVMs running ETHFW SDK 9.x or later.
+MAC port 3 is the only port where gPTP is enabled by default in Ethernet Firmware
+configuration, hence the demo requires connecting MAC port 3 on both TI EVMs.
+The diagram below shows the suggested setup.
+
+![](EthFw_gPTP_demo_connection.png "EthFw gPTP demo connections with 2 TI EVMs")
+
+At runtime, both EVMs will negotiate which device runs as *master* or *slave*.
+ETHFW traces will show the MAC address of the device that will be running as
+*master* as shown in the log snippet below:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INF:gptp:000006-513181:domainIndex=0, GM changed old=70:FF:76:FF:FE:1E:01:C8, new=70:FF:76:FF:FE:1D:A0:26
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, ETHFW configures gPTP logging to informational trace level to limit
+the amount of ETHFW traces.  However, user may want to see the accuracy of the
+synchronization achieved on the *slave* device.  This requires a change in the
+logging level in ETHFW library, from `gptp:4` to `gptp:5` as shown in below code
+snippet.
+
+```C
+static void EthFw_tsnInit(void)
+{
+    unibase_init_para_t params;
+
+    ...
+
+    /*refer to 'ub_logging.h for logging levels*/
+    ubb_default_initpara(&params);
+    params.ub_log_initstr  = "5,ubase:5,cbase:5,gptp:5";
+
+    ...
+
+    unibase_init(&params);
+
+    ...
+}
+```
+
+With gPTP log level 5, the following traces can be seen in the *master* and *slave*
+devices.  It's worth noting that these logs are captured using the optimization
+settings suggested in \ref demo_ethfw_ptp_stack section.
+
+**gPTP master logs**
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+domain=0, offset=0nsec, hw-adjrate=0ppb
+        gmsync=true, last_setts64=0nsec
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**gPTP slave logs**
+
+The traces will show the difference with respect to *grand-master* clock computed
+on the *slave* device.  This can give an indication of the synchronization accuracy
+achieved in this demo.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2099ppb, GMdiff=-5nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2090ppb, GMdiff=-3nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2084ppb, GMdiff=-3nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2097ppb, GMdiff=-6nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2106ppb, GMdiff=-2nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2062ppb, GMdiff=-5nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2081ppb, GMdiff=0nsec
+domain=0, offset=0nsec, hw-adjrate=2080ppb
+        gmsync=true, last_setts64=0nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2052ppb, GMdiff=-8nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2084ppb, GMdiff=-2nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2072ppb, GMdiff=-4nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2075ppb, GMdiff=-5nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2085ppb, GMdiff=-2nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2053ppb, GMdiff=-6nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2076ppb, GMdiff=0nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2053ppb, GMdiff=0nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2083ppb, GMdiff=6nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2074ppb, GMdiff=-2nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2102ppb, GMdiff=4nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2091ppb, GMdiff=1nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058ppb, GMdiff=-6nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2075ppb, GMdiff=2nsec
+IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058ppb, GMdiff=-2nsec
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+> **Note:** ETHFW doesn't provide support for PPS in this release.
 
 
 ## GUI Configurator Tool {#ethfw_gui_tool_configuration}
