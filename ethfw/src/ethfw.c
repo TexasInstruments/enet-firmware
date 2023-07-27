@@ -1577,7 +1577,7 @@ static void EthFw_tsnInit(void)
     {
         /*refer to 'ub_logging.h for logging levels*/
         ubb_default_initpara(&params);
-        params.ub_log_initstr    = "5,ubase:5,cbase:5,gptp:5";
+        params.ub_log_initstr    = "5,ubase:5,cbase:5,gptp:4";
         params.cbset.gettime64   = cb_lld_gettime64;
         params.cbset.console_out = EthFw_logBuffer;
         gEthFwObj.logTaskrun = true;
