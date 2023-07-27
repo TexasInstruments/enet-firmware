@@ -60,7 +60,7 @@ make_rel_package() {
 
     mkdir -p $ethfw_rel_dir
     mkdir -p $log_dir
-    
+
     cd ${ethfw_dir}
 
     local soc_caps=${platform^^}
@@ -82,9 +82,6 @@ make_rel_package() {
     #Copy files to build folder
     cp -rf ${ethfw_dir} ${ethfw_rel_dir}
 
-    #Change component paths
-    sed -i -e "s|\/pdk|\/pdk_${soc}_${release_version_short}|g"   ${ethfw_rel_dir}/ethfw_tools_path.mak
-
     #Remove internal folders and components
     rm -rf ${ethfw_rel_dir}/.git
     rm -rf ${ethfw_rel_dir}/.gitignore
@@ -94,7 +91,7 @@ make_rel_package() {
     #Make Tar package
     cd ${ethfw_rel_dir}
     tar czf ${ethfw_rel_dir}.tar.gz ./* 1>>$log_dir/ethfw_build.log  2>>$log_dir/ethfw_error.log
-    
+
     rm -rf ${ethfw_rel_dir}
 
     echo "  Package EthFw ... Done"
