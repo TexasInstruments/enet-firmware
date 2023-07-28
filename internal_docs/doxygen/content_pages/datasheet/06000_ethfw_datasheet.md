@@ -8,8 +8,8 @@
 # Boot Time {#ethfw_datasheet_boot_time}
 
 The Ethernet Firmware boot time measurements in the table below show the current
-status in the TI Processor SDK for J721E.  The test setup is:
- - Hardware: TI J721E EVM with GESI daughter board.
+status in the TI Processor SDK for J721E/J7200/J784S4.  The test setup is:
+ - Hardware: TI Jacinto EVM with MAC-to-MAC connection to a second TI EVM.
  - Software: Ethernet Firmware running on Main R5F 0 core 0 at 1 GHz.
 
 **Note:** It is worth noting that the reported boot time below is not optimized.
@@ -18,7 +18,6 @@ status in the TI Processor SDK for J721E.  The test setup is:
   <tr>
     <th>Function
     <th>Description
-    <th>Total Time
   </tr>
   <tr>
     <td>main()</td>
@@ -28,7 +27,6 @@ status in the TI Processor SDK for J721E.  The test setup is:
         Using main() as starting point decouples these measurements from the EthFw binary
         loading mechanism.
     </td>
-    <td>0 ms</td>
   </tr>
   <tr>
     <td>Layer-2 switching active</td>
@@ -36,14 +34,10 @@ status in the TI Processor SDK for J721E.  The test setup is:
         Time elapsed from main() till L2 switching is active.
         - Board and clocks initialization.
         - CPSW has been initialized.
-        - MAC ports have been opened.
+        - One MAC port have been opened (MAC-to-MAC connection).
         - ALE has been configured to route packets at Layer-2.
-        - Two MAC ports are linked.
-
-        The time reported here is for an equivalent of a MAC-to-MAC link, where PHY driver
-        state machine is bypassed.
+        - Two MAC ports are linked (MAC-to-MAC connection).
     </td>
-    <td>535 ms</td>
   </tr>
   <tr>
     <td>Host port ready for RX/TX</td>
@@ -52,9 +46,43 @@ status in the TI Processor SDK for J721E.  The test setup is:
         - UDMA RX flow has been opened and host port is ready to receive packets.
         - UDMA TX channel has been opened and host port is ready to transmit packets.
     </td>
-    <td>725 ms</td>
+  </tr>
+  <tr>
+    <td>TCP/IP stack initialized</td>
+    <td>
+        Time elapsed from main() till TCP/IP stack is initialized.
+        - TCP/IP lwIP stack's *netif up* status callback reports (static) IP address.
+    </td>
+  </tr>
+  <tr>
+    <td>gPTP stack initilized</td>
+    <td>
+        Time elapsed from main() till gPTP stack is initialized.
+        - gPTP initialization routine is called.
+        - This is not the convergence time to achieve time synchronization.
+    </td>
+  </tr>
+  <tr>
+    <td>CPSW Proxy Server initialized</td>
+    <td>
+        Time elapsed from main() till CPSW Proxy Server is initialized.
+        - ETHFW is ready to receive remote commands from virtual clients.
+        - Excludes MPU1_0 late init, late announcement.
+    </td>
   </tr>
 </table>
+
+The time taken to reach each of the ETHFW boot stages described above is summarized
+in the following table.
+
+| Boot stage                     |  J721E    |  J7200    | J784S4    |
+|:-------------------------------|:---------:|:---------:|:---------:|
+| main()                         |      0 us |      0 us |      0 us |
+| Layer-2 switching active       | 141.97 us | 185.59 us | 113.94 us |
+| Host port ready for RX/TX      |  54.13 us |  96.22 us |  27.05 us |
+| TCP/IP stack initialized       |  83.23 us | 123.12 us |  54.15 us |
+| gPTP stack initilized          |  83.85 us | 123.57 us |  54.60 us |
+| CPSW Proxy Server initialized  | 100.52 us | 135.01 us |  71.38 us |
 
 This table doesn't take into account the time between power-on reset (POR) and the 
 Firmware image loaded and made ready to run, as it will be bootloader dependent.
@@ -64,30 +92,6 @@ time taken by the Ethernet PHYs to establish a link with the remote partner.  Th
 *Layer-2 switching active* time must take into account the *link time* corresponding to the
 PHY configuration being used.
 
-The table below shows the time taken to get link up for different PHY configurations.
-
-<table >
-  <tr>
-    <th>PHY Configuration
-    <th>Link Time
-  </tr>
-  <tr>
-    <td>1 Gbps, auto-negotiation</td>
-    <td>3,965 ms</td>
-  </tr>
-  <tr>
-    <td>100 Mbps, auto-negotiation</td>
-    <td>2,182 ms</td>
-  </tr>
-  <tr>
-    <td>100 Mbps, manual mode</td>
-    <td>760 ms</td>
-  </tr>
-</table>
-
-The PHY tick period was reduced periodic tick to 5 msecs to improve link up time. The default tick
-period in Processor SDK is 100 msecs.
-
 <BR>
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -95,5 +99,5 @@ period in Processor SDK is 100 msecs.
 
 Revision | Date          | Author        | Description         | Status
 ---------|---------------|---------------|---------------------|----------------
-0.1      | 09 Mar 2021   | Misael Lopez  | First version       | Pending Review
+1.0      | 27 Jul 2022   | Misael Lopez  | First version       | Approved
 
