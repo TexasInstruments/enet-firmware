@@ -68,19 +68,6 @@ A GUI-based control interface to enable/disable/configure features like VLAN,
 multicast, rate limiting, interVLAN routing and also to show the load of the
 CPU is added in the release.
 
-A video streaming application, like Plex or VLC, can be used to demonstrate
-Ethernet packet switching functionality between multiple PCs. The media server
-will run on one PC and the client(s) will run on other PC(s), all connected to
-the switch via GESI board.
-
-This demo uses [Plex media system](https://www.plex.tv/) for video streaming.
-Plex clients can access media content via web interface, so any PC connected
-to the switch can easily access it.
-
-> **Note:** Please check licensing information and terms of usage of Plex TV
-> media server and make sure it adheres to your organization's policy before
-> using and configuring it.
-
 A  Remote Client application for the Main R5F core 1 is also available as part
 of this demo.  This application runs a local lwIP stack on a virtual network
 device which demonstrates the RTOS switch remote core integration.
@@ -107,7 +94,15 @@ below:
 # Compile Time Configurations {#demo_ethfw_combined_cfg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Not applicable.
+## Ethernet Firmware Demos Configuration {#demo_ethfw_demos_cfg}
+
+Starting in SDK 9.0 release, the default Ethernet Firmware standalone RTOS application
+no longer enables the following demos: GUI configurator tool, hardware and
+software interVLAN, IP next hader filtering and rate limiting.
+
+User must recompile ETHFW in order to enable these demos:
+
+    make ethfw_all BUILD_SOC_LIST=<SOC> ETHFW_DEMO_SUPPORT=yes
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -117,20 +112,6 @@ Not applicable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ## Prerequisites {#demo_ethfw_combined_prerequisites}
-
-### Plex server {#demo_ethfw_combined_prereq_plextv}
-
-> **Note:** Plex server is required only in **PC 1**.
-
--# Install Plex Media Server. The Ubuntu/Windows installation executable
-   and instructions can be found in their [website](https://www.plex.tv/).
-   - It's recommended to disable Plex authentication on the local network
-     because this demo is not connected to internet and will not be able
-     to login otherwise. Follow the instructions in this
-     [website](https://www.howtogeek.com/303282/how-to-use-plex-media-server-without-internet-access/).
--# Once setup, the media server will be started every time that the PC is
-   powered on.
--# Add video samples to the Library as needed.
 
 ### packETH tool {#demo_ethfw_combined_prereq_packEth}
 
@@ -252,9 +233,9 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
 
     Device                                           |  IP address
     ------------------------------------------------ | -------------
-    PC 1 (Plex server)                               | 192.168.1.202
+    PC 1                                             | 192.168.1.202
     J721E/J7200/J784S4 Main R5F core (running EthFw) | 192.168.1.203
-    PC 2 (Plex client)                               | 192.168.1.204
+    PC 2                                             | 192.168.1.204
     J721E/J7200/J784S4 A72 core (virtual net driver) | 192.168.1.205
     Default Gateway                                  | 192.168.1.1
     Subnet Mask                                      | 255.255.255.0
@@ -488,23 +469,6 @@ UART2 serial terminal.
 > for J784S4 respectively. Link status is only used on MAC port 3 to 
 > determine link up on virtual switch port.
 
-## Plex TV {#ethfw_plex_tv_usage}
-
-### Plex TV Server {#ethfw_plex_tv_server_usage}
-
-Plex TV server running on **PC 1** requires an initial setup covered in the
-[Prerequisites](@ref demo_ethfw_combined_prereq_plextv) section. Note that
-Plex server may required to be explicitly launched after PC has been booted.
-
-### Plex TV Client {#ethfw_plex_tv_client_usage}
-
-Run Plex client from **PC 2** by accessing the following address using your
-favorite web browser: `http://192.168.1.<pc1>:32400/web/index.html`
-
-![](PlexClient.png "Plex client interface")
-
-[Back To Top](@ref demo_ethfw_combined_top)
-
 
 ## Virtual Net Driver on A72 {#ethfw_virt_net_driver}
 
@@ -673,6 +637,9 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
 
 ## GUI Configurator Tool {#ethfw_gui_tool_configuration}
 
+> **Note:** GUI configuration requires ETHFW built with demo support, see
+> @ref demo_ethfw_demos_cfg for more details.
+
 -# After getting the IP address printed on the console, launch the GUI tool:
 
        cd <SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient
@@ -697,6 +664,9 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
 
 
 ## InterVLAN Routing {#ethfw_intervlan_routing}
+
+> **Note:** InterVLAN routing demo requires ETHFW built with demo support, see
+> @ref demo_ethfw_demos_cfg for more details.
 
 ### Software InterVLAN Routing {#ethfw_sw_intervlan_routing}
 
@@ -824,6 +794,9 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
 
 ## IP Next Header Filtering {#ethfw_ip_nxthdr_filtering}
 
+> **Note:** IP next header filtering demo requires ETHFW built with demo support,
+> see @ref demo_ethfw_demos_cfg for more details.
+
 CPSW9G supports whitelisting of up to four different IP protocols for a VLAN
 group.  This demo white-lists TCP and UDP protocols and hence blocking packets
 of other protocols in the VLAN network.
@@ -857,6 +830,9 @@ of other protocols in the VLAN network.
 
 
 ## Rate Limiting {#ethfw_rate_limiting}
+
+> **Note:** Rate limiting demo requires ETHFW built with demo support,
+> see @ref demo_ethfw_demos_cfg for more details.
 
 -# Rate Limiting can be enabled by adding a policer entry with parameters like
    Source and Destination MAC address of the traffic to be limited.  The rate at
