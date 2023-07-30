@@ -84,6 +84,11 @@ ifeq ($(ETHFW_GPTP_SUPPORT),yes)
   endif
 endif
 
+# iperf server support
+ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
+  DEFS += ETHAPP_ENABLE_IPERF_SERVER
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)
