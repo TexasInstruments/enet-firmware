@@ -21,7 +21,7 @@ else
   ETHFW_PATH ?= $(abspath .)
 endif
 
-PSDK_TOOLS_PATH ?= $(HOME)/ti
+PSDK_TOOLS_PATH ?= $(PSDK_PATH)
 
 # SafeRTOS version
 SAFERTOS_VERSION_r5f_j721e = 009-004-199-024-219-001
