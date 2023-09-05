@@ -947,6 +947,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
     CpswAle_Cfg *aleCfg = &cpswCfg->aleCfg;
     Cpsw_VlanCfg *vlanCfg = &cpswCfg->vlanCfg;
     CpswHostPort_Cfg *hostPortCfg = &cpswCfg->hostPortCfg;
+    CpswCpts_Cfg *cptsCfg = &cpswCfg->cptsCfg;
     EnetRm_ResCfg *resCfg = &cpswCfg->resCfg;
     uint32_t instId = 0U;
 
@@ -982,6 +983,10 @@ void EthFw_initConfigParams(Enet_Type enetType,
     resCfg->ioctlPermissionInfo = gEthFw_rmIoctlPerm;
     resCfg->selfCoreId = EnetSoc_getCoreId();
     resCfg->macList.numMacAddress = 0U;
+
+    /* Disable CPTS host receive timestamping as it can cause
+     * MAC port lockup in packets with corrupted SFD */
+    cptsCfg->hostRxTsEn = false;
 
     /* VLAN configuration */
     vlanCfg->vlanAware = true;
