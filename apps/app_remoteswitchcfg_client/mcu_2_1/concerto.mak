@@ -29,18 +29,6 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
 
-# Use separate linker cmd file for J7200 which has different
-# entry point name than J721E/J784S4, this is due to
-# J7200 being in an older SafeRTOS version than J721E/J784S4.
-# This is temporary for SDK 8.6 and should be aligned once new
-# SafeRTOS drop for J7200 is available and all SoCs are aligned.
-ifeq ($(TARGET_OS),SAFERTOS)
-  ifeq ($(TARGET_PLATFORM),J7200)
-    LINKER_CMD_FILES =  $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
-    LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC)_j7200.cmd
-  endif
-endif
-
 STATIC_LIBS += lib_remoteswitchcfg_client
 STATIC_LIBS += lib_remote_device_client
 
@@ -108,18 +96,6 @@ endif
 LINKER_CMD_FILES =  $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
-endif
-
-# Use separate linker cmd file for J7200 which has different
-# entry point name than J721E/J784S4, this is due to
-# J7200 being in an older SafeRTOS version than J721E/J784S4.
-# This is temporary for SDK 8.6 and should be aligned once new
-# SafeRTOS drop for J7200 is available and all SoCs are aligned.
-ifeq ($(TARGET_OS),SAFERTOS)
-  ifeq ($(TARGET_PLATFORM),J7200)
-    LINKER_CMD_FILES =  $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
-    LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC)_j7200.cmd
-  endif
 endif
 
 STATIC_LIBS += lib_remoteswitchcfg_client
