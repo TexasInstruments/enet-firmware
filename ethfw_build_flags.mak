@@ -74,6 +74,10 @@ else
   BUILD_ISA_A53=no
 endif
 
+ifneq (,$(filter $(BUILD_SOC_LIST),J784S4))
+  ETHFW_CPSW_VEPA_SUPPORT?=yes
+endif
+
 # Proxy ARP handling support
 # Supported Values: yes | no
 ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0)))

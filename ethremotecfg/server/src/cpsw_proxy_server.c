@@ -86,6 +86,9 @@
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
+#if defined(ETHFW_VEPA_SUPPORT)
+#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
+#endif
 
 #include <ethremotecfg/protocol/Eth_Rpc.h>
 #include <ethremotecfg/protocol/cpsw_remote_notify_service.h>
@@ -725,6 +728,9 @@ static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPo
     bool isSwitchPort = EthRemoteCfg_isSwitchPort(virtPort);
     uint32_t start_flow_idx, flow_idx_offset;
     int32_t status;
+#if defined(ETHFW_VEPA_SUPPORT)
+    struct eth_addr hwAddr;
+#endif
 
     hProxyServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
@@ -752,6 +758,25 @@ static int32_t CpswProxyServer_registerMacHandlerCb(EthRemoteCfg_VirtPort virtPo
         {
             appLogPrintf("EnetAppUtils_regDstMacRxFlow() failed CPSW_ALE_IOCTL_SET_POLICER: %d\n", status);
         }
+#if defined(ETHFW_VEPA_SUPPORT)
+        else if (status == ENET_SOK)
+        {
+            SMEMCPY(&hwAddr, mac_address, ETH_HWADDR_LEN);
+            /* vlanId of 0 indicates do not use VLAN */
+            status = EthFwVepaUtils_registerClient(hEnet, host_id, flow_idx_offset, 0, virtPort, &hwAddr);
+            if (status != ENET_SOK)
+            {
+                appLogPrintf("Failed to register client core %u MacAddress:%x:%x:%x:%x:%x:%x into VEPA table\n",
+                             host_id,
+                             mac_address[0],
+                             mac_address[1],
+                             mac_address[2],
+                             mac_address[3],
+                             mac_address[4],
+                             mac_address[5]);
+            }
+        }
+#endif
     }
     else
     {
@@ -803,6 +828,24 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(EthRemoteCfg_VirtPort virt
         {
             appLogPrintf("Failed EnetAppUtils_unregDstMacRxFlow: %d\n", status);
         }
+#if defined(ETHFW_VEPA_SUPPORT)
+        else if (status == ENET_SOK)
+        {
+            /* vlanId of 0 indicates do not use VLAN */
+            status = EthFwVepaUtils_unregisterClient(hEnet, host_id, flow_idx_offset, 0, virtPort);
+            if (status != ENET_SOK)
+            {
+                appLogPrintf("Failed to unregister client core %u MacAddress:%x:%x:%x:%x:%x:%x into VEPA table\n",
+                             host_id,
+                             mac_address[0],
+                             mac_address[1],
+                             mac_address[2],
+                             mac_address[3],
+                             mac_address[4],
+                             mac_address[5]);
+            }
+        }
+#endif
     }
     else
     {
@@ -1541,8 +1584,8 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(EthRemoteCfg_VirtPort 
         setPolicerInArgs.policerMatch.etherType = ether_type;
         setPolicerInArgs.threadIdEn = TRUE;
         setPolicerInArgs.threadId   = flow_idx_offset;
-        setPolicerInArgs.peakRateInBitsPerSec   = 0;
-        setPolicerInArgs.commitRateInBitsPerSec = 0;
+        setPolicerInArgs.peakRateInBitsPerSec   = 0U;
+        setPolicerInArgs.commitRateInBitsPerSec = 0U;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
 
@@ -2085,6 +2128,9 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(EthRemoteCfg_VirtPort virtP
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
     int32_t status = CPSWPROXYSERVER_SOK;
+#if defined(ETHFW_VEPA_SUPPORT)
+    struct eth_addr hwAddr;
+#endif
 
     hProxyServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
@@ -2130,6 +2176,24 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(EthRemoteCfg_VirtPort virtP
             {
                 appLogPrintf("Failed to add multicast (shared): %d\n", status);
             }
+#if defined(ETHFW_VEPA_SUPPORT)
+            else if (status == CPSWPROXYSERVER_SOK)
+            {
+                SMEMCPY(&hwAddr, &sharedMcastEntry->macAddr, ETH_HWADDR_LEN);
+                status = EthFwVepaUtils_addAddr(hEnet, &hwAddr, vlan_id, host_id, virtPort);
+                if (status != ENET_SOK)
+                {
+                    appLogPrintf("Failed to add MacAddress:%x:%x:%x:%x:%x:%x for client core %u into VEPA table\n",
+                                 mac_address[0],
+                                 mac_address[1],
+                                 mac_address[2],
+                                 mac_address[3],
+                                 mac_address[4],
+                                 mac_address[5],
+                                 host_id);
+                }
+            }
+#endif
         }
         else
         {
@@ -2156,6 +2220,9 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(EthRemoteCfg_VirtPort virtP
     Enet_Handle hEnet = (Enet_Handle)((uintptr_t)handle);
     uint32_t start_flow_idx, flow_idx_offset;
     int32_t status = CPSWPROXYSERVER_SOK;
+#if defined(ETHFW_VEPA_SUPPORT)
+    struct eth_addr hwAddr;
+#endif
 
     hProxyServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hProxyServer != NULL) && (hProxyServer->initDone == true));
@@ -2196,6 +2263,23 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(EthRemoteCfg_VirtPort virtP
         sharedMcastEntry = CpswProxyServer_getSharedMcastEntry(hProxyServer, mac_address);
         if (sharedMcastEntry != NULL)
         {
+#if defined(ETHFW_VEPA_SUPPORT)
+            SMEMCPY(&hwAddr, &sharedMcastEntry->macAddr, ETH_HWADDR_LEN);
+            /* Delete policer for packet duplication flow before deleting the ALE entry
+             * Delete shared multicast entry from VEPA table as well */
+            status = EthFwVepaUtils_delAddr(hEnet, &hwAddr, vlan_id, host_id, virtPort);
+            if (status != ENET_SOK)
+            {
+                appLogPrintf("Failed to delete MacAddress:%x:%x:%x:%x:%x:%x for client core %u from VEPA table\n",
+                             mac_address[0],
+                             mac_address[1],
+                             mac_address[2],
+                             mac_address[3],
+                             mac_address[4],
+                             mac_address[5],
+                             host_id);
+            }
+#endif
             status = CpswProxyServer_filterDelMacShared(hProxyServer, hEnet, sharedMcastEntry, vlan_id, host_id);
             if (status != CPSWPROXYSERVER_SOK)
             {

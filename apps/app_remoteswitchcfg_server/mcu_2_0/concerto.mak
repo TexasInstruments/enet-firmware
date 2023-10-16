@@ -41,6 +41,12 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
+    STATIC_LIBS += ethfw_vepa
+  endif
+endif
+
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
 endif
 
@@ -60,7 +66,10 @@ endif
 
 # Intercore virtual Ethernet
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
+  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
+    DEFS += ETHFW_VEPA_SUPPORT
+    DEFS += ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA
+  else ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
     DEFS += ETHAPP_ENABLE_INTERCORE_ETH
   endif
 endif
@@ -126,6 +135,12 @@ STATIC_LIBS += lib_remote_device
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   STATIC_LIBS += ethfw_lwip
+endif
+
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
+    STATIC_LIBS += ethfw_vepa
+  endif
 endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
@@ -213,6 +228,12 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
+    STATIC_LIBS += ethfw_vepa
+  endif
+endif
+
+ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
 endif
 
@@ -231,7 +252,10 @@ endif
 
 # Intercore virtual Ethernet
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
+  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
+    DEFS += ETHFW_VEPA_SUPPORT
+    DEFS += ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA
+  else ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
     DEFS += ETHAPP_ENABLE_INTERCORE_ETH
   endif
 endif

@@ -49,7 +49,10 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
+  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT), yes)
+    DEFS += ETHFW_VEPA_SUPPORT
+    DEFS += ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA
+  else ifeq ($(ETHFW_INTERCORE_ETH_SUPPORT),yes)
     DEFS += ETHAPP_ENABLE_INTERCORE_ETH
   endif
 endif
@@ -122,6 +125,11 @@ endif
 # iperf server support
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
+endif
+
+ifeq ($(ETHFW_CPSW_VEPA_SUPPORT), yes)
+  DEFS += ETHFW_VEPA_SUPPORT
+  DEFS += ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

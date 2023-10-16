@@ -86,6 +86,11 @@
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
+
+#if defined(ETHFW_VEPA_SUPPORT)
+#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
+#endif
+
 #include <utils/console_io/include/app_log.h>
 
 /* If defined, enables ARP packet handle function debug prints */
@@ -119,7 +124,26 @@ typedef struct EthFwCallbacks_RemoteCoreAddrTable_s
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(ETHFW_VEPA_SUPPORT)
+static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
+                                                          uint32_t coreKey,
+                                                          uint32_t coreId,
+                                                          EnetMcm_HandleInfo *handleInfo,
+                                                          LwipifEnetAppIf_RxConfig *rxCfg,
+                                                          EnetDma_RxChHandle *hRxFlow,
+                                                          uint32_t *rxFlowStartIdx,
+                                                          uint32_t *flowIdx);
+
+static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
+                                                          uint32_t coreKey,
+                                                          uint32_t coreId,
+                                                          EnetDma_RxChHandle hRxFlow,
+                                                          uint32_t flowIdx,
+                                                          Lwip2EnetAppIf_FreePktInfo *freePktInfo);
+
+static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
+                                                           struct pbuf *pbuf);
+#elif defined(ETHFW_PROXY_ARP_HANDLING)
 static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
                                             uint32_t coreKey,
                                             uint32_t coreId,
@@ -176,7 +200,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     uint32_t coreId = EnetSoc_getCoreId();
     bool useDefaultFlow = true;    /* Must handle the default flow */
     bool useRingMon = true;
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(ETHFW_PROXY_ARP_HANDLING) || defined(ETHFW_VEPA_SUPPORT)
     int32_t status;
 #endif
 
@@ -262,8 +286,13 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->hUdmaDrv        = handleInfo.hUdmaDrv;
     outArgs->print           = &EnetAppUtils_print;
     outArgs->isPortLinkedFxn = &EthFwCallbacks_isPortLinked;
+#if defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
+    outArgs->txCsumOffloadEn = false;
+    outArgs->rxCsumOffloadEn = false;
+#else
     outArgs->txCsumOffloadEn = true;
     outArgs->rxCsumOffloadEn = true;
+#endif
 
     /* TODO: Polling timer is getting corrupted at times of sudden burst of
      * traffic, because of which timer callback is never called.
@@ -285,10 +314,32 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                  macAddr[0] & 0xFF, macAddr[1] & 0xFF, macAddr[2] & 0xFF,
                  macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
 
-
-#if defined(ETHFW_PROXY_ARP_HANDLING)
     rxInfo->handlePktFxn = NULL;
 
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* Open second RX channel/flow for broadcast/multicast packet duplication */
+    rxCfg  = &inArgs->rxCfg[1U];
+    rxInfo = &outArgs->rxInfo[1U];
+
+    status = EthFwCallbacks_setupPacketDuplicationRoute(handleInfo.hEnet,
+                                                        outArgs->coreKey,
+                                                        outArgs->coreId,
+                                                        &handleInfo,
+                                                        rxCfg,
+                                                        &rxInfo->hRxFlow,
+                                                        &rxInfo->rxFlowStartIdx,
+                                                        &rxInfo->rxFlowIdx);
+    if (status != ENET_SOK)
+    {
+        /* Just print an error as EthFw and its clients will continue to run with
+         * limited functionality */
+        appLogPrintf("Failed to setup route for packet duplication: %d\n", status);
+    }
+    else
+    {
+        rxInfo->handlePktFxn = EthFwCallbacks_handlePacketDuplicationRxPktFxn;
+    }
+#elif defined(ETHFW_PROXY_ARP_HANDLING)
     /* Open second RX channel/flow for ARP */
     rxCfg  = &inArgs->rxCfg[1U];
     rxInfo = &outArgs->rxInfo[1U];
@@ -333,7 +384,18 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetAppUtils_assert(mcmCmdIf.hMboxCmd != NULL);
     EnetAppUtils_assert(mcmCmdIf.hMboxResponse != NULL);
 
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* Tear-down packet duplication route (RX flow + ALE classifier) */
+    rxInfo = &releaseInfo->rxInfo[1U];
+    freePktInfo = &releaseInfo->rxFreePkt[1U];
+
+    EthFwCallbacks_teardownPacketDuplicationRoute(releaseInfo->hEnet,
+                                                  releaseInfo->coreKey,
+                                                  releaseInfo->coreId,
+                                                  rxInfo->hRxFlow,
+                                                  rxInfo->rxFlowIdx,
+                                                  freePktInfo);
+#elif defined(ETHFW_PROXY_ARP_HANDLING)
     /* Tear-down ARP route (RX flow + ALE classifier) */
     rxInfo = &releaseInfo->rxInfo[1U];
     freePktInfo = &releaseInfo->rxFreePkt[1U];
@@ -383,7 +445,149 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetMcm_releaseCmdIf(enetType, &mcmCmdIf);
 }
 
-#if defined(ETHFW_PROXY_ARP_HANDLING)
+#if defined(ETHFW_VEPA_SUPPORT)
+/* Setup flow for packet duplication */
+static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
+                                                          uint32_t coreKey,
+                                                          uint32_t coreId,
+                                                          EnetMcm_HandleInfo *handleInfo,
+                                                          LwipifEnetAppIf_RxConfig *rxCfg,
+                                                          EnetDma_RxChHandle *hRxFlow,
+                                                          uint32_t *rxFlowStartIdx,
+                                                          uint32_t *flowIdx)
+{
+    EnetDma_Handle hDma = Enet_getDmaHandle(hEnet);
+    EnetUdma_OpenRxFlowPrms rxFlowCfg;
+    int32_t status = ENET_SOK;
+
+    if (hDma == NULL)
+    {
+        appLogPrintf("Failed to get Enet DMA handle for packet duplication flow\n");
+        status = ENET_EFAIL;
+    }
+
+    if (status == ENET_SOK)
+    {
+        status = EnetAppUtils_allocRxFlow(hEnet, coreKey, coreId, rxFlowStartIdx, flowIdx);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed to alloc RX flow for packet duplication traffic: %d\n", status);
+        }
+    }
+
+    /* Open RX Flow */
+    if (status == ENET_SOK)
+    {
+        EnetDma_initRxChParams(&rxFlowCfg);
+        rxFlowCfg.startIdx  = *rxFlowStartIdx;
+        rxFlowCfg.flowIdx   = *flowIdx;
+        rxFlowCfg.notifyCb  = rxCfg->notifyCb;
+        rxFlowCfg.cbArg     = rxCfg->cbArg;
+        rxFlowCfg.numRxPkts = rxCfg->numPackets;
+        rxFlowCfg.hUdmaDrv  = handleInfo->hUdmaDrv;
+        rxFlowCfg.useProxy  = true;
+        EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
+
+        *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed to open RX flow for packet duplication traffic: %d\n", status);
+        }
+    }
+
+    /* Set packet duplication flow id */
+    if (status == ENET_SOK)
+    {
+        status = EthFwVepaUtils_setPacketDuplicationFlowIdx(*flowIdx);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed to set flow for packet duplication: %d\n", status);
+        }
+    }
+
+    return status;
+}
+
+/* Remove flow for packet duplication */
+static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
+                                                          uint32_t coreKey,
+                                                          uint32_t coreId,
+                                                          EnetDma_RxChHandle hRxFlow,
+                                                          uint32_t flowIdx,
+                                                          Lwip2EnetAppIf_FreePktInfo *freePktInfo)
+{
+    EnetDma_Handle hDma = Enet_getDmaHandle(hEnet);
+    EnetDma_PktQ fqPktInfoQ;
+    EnetDma_PktQ cqPktInfoQ;
+    int32_t status;
+
+    /* Set packet duplication flow to be un-defined */
+    status = EthFwVepaUtils_setPacketDuplicationFlowIdx(ETHFW_VEPA_UTILS_PKT_DUP_FLOW_IDX_UNDEFINED);
+    if (status != ENET_SOK)
+    {
+        appLogPrintf("Failed to remove flow for packet duplication: %d\n", status);
+    }
+
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+
+    if (hRxFlow != NULL)
+    {
+        EnetDma_disableRxEvent(hRxFlow);
+
+        /* Close RX flow */
+        status = EnetDma_closeRxCh(hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("Failed to close RX flow for packet duplication traffic: %d\n", status);
+        }
+
+        /* Free RX flow only if channel was closed */
+        if (status == ENET_SOK)
+        {
+            status = EnetAppUtils_freeRxFlow(hEnet, coreKey, coreId, flowIdx);
+            if (status != ENET_SOK)
+            {
+                appLogPrintf("Failed to free RX flow used for packet duplication traffic: %d\n", status);
+            }
+
+            freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
+        }
+    }
+}
+
+static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
+                                                           struct pbuf *pbuf)
+{
+    int32_t status;
+    struct eth_hdr *ethHdr;
+#if defined(ETHFW_CALLBACKS_DEBUG)
+    uint8_t *dstMac, uint8_t *srcMac;
+#endif
+
+#if defined(ETHFW_CALLBACKS_DEBUG)
+    dstMac = &ethHdr->dest.addr[0];
+    srcMac = &ethHdr->src.addr[0];
+
+    appLogPrintf("Received packet for duplication, "
+                 "dstMac %02x:%02x:%02x:%02x:%02x:%02x and "
+                 "srcMac %02x:%02x:%02x:%02x:%02x:%02x\n",
+                 dstMac[0] & 0xFF, dstMac[1] & 0xFF,
+                 dstMac[2] & 0xFF, dstMac[3] & 0xFF,
+                 dstMac[4] & 0xFF, dstMac[5] & 0xFF,
+                 srcMac[0] & 0xFF, srcMac[1] & 0xFF,
+                 srcMac[2] & 0xFF, srcMac[3] & 0xFF,
+                 srcMac[4] & 0xFF, srcMac[5] & 0xFF);
+#endif
+
+    ethHdr = (struct eth_hdr *)(pbuf->payload);
+    status = EthFwVepaUtils_sendRaw(netif, pbuf, &ethHdr->src, &ethHdr->dest);
+
+    /* Lwip stack should also consume the packet */
+    return false;
+}
+
+#elif defined(ETHFW_PROXY_ARP_HANDLING)
 static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
                                      uint32_t coreKey,
                                      uint32_t coreId,

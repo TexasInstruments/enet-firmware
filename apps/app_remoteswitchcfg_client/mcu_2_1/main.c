@@ -1037,11 +1037,14 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     struct netif *netif = &virtNetif->netif;
     ip4_addr_t ipaddr, netmask, gw;
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
-    uint32_t chksumFlags = (NETIF_CHECKSUM_ENABLE_ALL &
-                            ~(NETIF_CHECKSUM_GEN_UDP |
-                              NETIF_CHECKSUM_GEN_TCP |
-                              NETIF_CHECKSUM_CHECK_TCP |
-                              NETIF_CHECKSUM_CHECK_UDP));
+    uint32_t chksumFlags = NETIF_CHECKSUM_ENABLE_ALL;
+/* Disable checksum in software if CPSW can do it (i.e. not impacted by errata) */
+#if !defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
+    chksumFlags = ~(NETIF_CHECKSUM_GEN_UDP |
+                    NETIF_CHECKSUM_GEN_TCP |
+                    NETIF_CHECKSUM_CHECK_TCP |
+                    NETIF_CHECKSUM_CHECK_UDP);
+#endif
 #endif
 #if ETHAPP_LWIP_USE_DHCP
     err_t err;

@@ -76,6 +76,7 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -314,6 +315,8 @@ typedef struct EthFw_Config_s
     /*! Argument to be passed to gPTP config callback function */
     void *configPtpCbArg;
 
+    /*! VEPA configuration passed from application */
+    EthFwVepaUtils_Cfg vepaCfg;
 } EthFw_Config;
 
 /*!

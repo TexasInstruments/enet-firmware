@@ -102,6 +102,10 @@
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
 #endif
 
+#if defined(ETHFW_VEPA_SUPPORT)
+#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
+#endif
+
 #if defined(ETHFW_GPTP_SUPPORT)
 /* Timesync header files */
 #include <tsn_tilld_include.h>
@@ -452,6 +456,21 @@ static EthFw_Autosar_EpId gEthFw_autosarEndptId[] =
     },
 };
 
+/* Policer table partition into chunks of different size each having different
+ * priority CPSW_ALE_POLICER_PARTITION_DEFAULT having lowest and
+ * CPSW_ALE_POLICER_PARTITION_LEVEL_1 having the highest priority */
+static uint32_t gEthFw_policerTablePartSize[CPSW_ALE_POLICER_TABLE_PART_MAX] =
+{
+    [CPSW_ALE_POLICER_PARTITION_LEVEL_1] = 10U,
+    [CPSW_ALE_POLICER_PARTITION_LEVEL_2] = 20U,
+    [CPSW_ALE_POLICER_PARTITION_LEVEL_3] = 0U,
+    [CPSW_ALE_POLICER_PARTITION_LEVEL_4] = 0U,
+    /* Give the unused/default partition size to be 0
+     * Partitions with size 0 are clubbed to default partition */
+    [CPSW_ALE_POLICER_PARTITION_DEFAULT] = 0U
+};
+/* Note: Sum of partition sizes must be <= Total number of policer entries available */
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -461,6 +480,9 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     /* ALE configuration */
     aleCfg->modeFlags = CPSW_ALE_CFG_MODULE_EN |
                         CPSW_ALE_CFG_UNKNOWN_UCAST_FLOOD2HOST;
+#if defined(ETHFW_VEPA_SUPPORT)
+    aleCfg->modeFlags |= CPSW_ALE_CFG_MULTIHOST;
+#endif
 
     aleCfg->agingCfg.autoAgingEn = TRUE;
     aleCfg->agingCfg.agingPeriodInMs = 1000;
@@ -484,6 +506,9 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->policerGlobalCfg.yellowDropEn = false;
     aleCfg->policerGlobalCfg.redDropEn = true;
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
+
+    /* ALE policer partition configuration */
+    memcpy(aleCfg->policerTablePartSize, gEthFw_policerTablePartSize, sizeof(gEthFw_policerTablePartSize));
 }
 
 static int32_t EthFw_getDfltVlanId(const EthFw_Config *config)
@@ -731,6 +756,7 @@ static void EthFw_setPortMode(void)
         }
     }
 
+    /* ALE host port configuration */
     pvidCfg = &aleCfg->portCfg[0].pvidCfg;
     pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
     pvidCfg->vlanIdInfo.vlanId   = ETHFW_HOST_PORT_VLAN_ID;
@@ -748,6 +774,10 @@ static void EthFw_setPortMode(void)
 
     vlanSecCfg = &aleCfg->portCfg[0].vlanCfg;
     vlanSecCfg->dropUntagged = FALSE;
+#if defined(ETHFW_VEPA_SUPPORT)
+    vlanSecCfg->dropDoubleVlan = false;
+    vlanSecCfg->dropDualVlan = true;
+#endif
 }
 
 static EnetRm_ResourceInfo *EthFw_getRmInfo(uint32_t coreId)
@@ -977,6 +1007,11 @@ void EthFw_initConfigParams(Enet_Type enetType,
     config->dfltVlanIdMacOnlyPorts = ETHFW_MAC_ONLY_PORTS_VLAN_ID;
     config->dfltVlanIdSwitchPorts  = ETHFW_SWITCH_PORTS_VLAN_ID;
 
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* Initialize VEPA config params */
+    EthFwVepaUtils_initCfg(&config->vepaCfg);
+#endif
+
     /* Start with CPSW LLD's default configuration */
     Enet_initCfg(enetType, instId, cpswCfg, sizeof (*cpswCfg));
     cpswCfg->dmaCfg = NULL;
@@ -991,13 +1026,27 @@ void EthFw_initConfigParams(Enet_Type enetType,
     /* VLAN configuration */
     vlanCfg->vlanAware = true;
 
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* CPSW switching using INNER VLAN tag
+     * VLAN_LTYPE_SEL value is selected by the S_CN_SWITCH
+     * i.e. VLAN processing uses inner_vlan_ltype
+     * vlanCfg->vlanSwitch = ENET_VLAN_TAG_TYPE_INNER
+     * As VLAN_LTYPE_OUTER is same as VLAN_LTYPE_INNER
+     * double tagged packet will be looked as single tagged by ALE */
+    vlanCfg->innerVlan = ENET_ETHERTYPE_CUSTOMER_VLAN;
+    vlanCfg->outerVlan = ENET_ETHERTYPE_CUSTOMER_VLAN;
+#endif
     /* Host port configuration */
     hostPortCfg->removeCrc = true;
     hostPortCfg->padShortPacket = true;
     hostPortCfg->passCrcErrors = true;
-    hostPortCfg->csumOffloadEn = true;
     hostPortCfg->rxMtu = 1522U;
     hostPortCfg->vlanCfg.portVID = ETHFW_HOST_PORT_VLAN_ID;
+#if defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
+    hostPortCfg->csumOffloadEn = false;
+#else
+    hostPortCfg->csumOffloadEn = true;
+#endif
 
     EthFw_initAleCfg(aleCfg);
 }
@@ -1138,6 +1187,14 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     }
 #endif
 
+#if defined(ETHFW_VEPA_SUPPORT)
+    status = EthFwVepaUtils_init(&config->vepaCfg);
+    if (status != ENET_SOK)
+    {
+        appLogPrintf("ETHFW: failed to init VEPA utils: %d\n", status);
+    }
+#endif
+
     /* Initialize MCM */
     if (status == ENET_SOK)
     {
@@ -1179,6 +1236,11 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
     EthFwArpUtils_deinit();
+#endif
+
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* De-initialize VEPA table */
+    EthFwVepaUtils_deinit();
 #endif
 
     /* De-initialize MCM */
