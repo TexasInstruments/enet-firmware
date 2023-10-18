@@ -862,7 +862,65 @@ of other protocols in the VLAN network.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-## Inter-core Virtual Ethernet communication {#ethfw_intercore_communication}
+## Inter-core Virtual Ethernet communication with VEPA {#ethfw_intercore_communication_vepa}
+
+**Note:** From SDK 9.1 or later we support VEPA on J784S4.
+
+### For J784S4 using Virtual Ethernet Port Aggregator (VEPA)
+
+VEPA or hairpin mode allows the traffic to return to the same port (host port in our case) 
+at which it ingressed on. It enables to forward broadcast and multicast packets directly to
+clients via host port increasing intercore virtual ethernet communication performance. VEPA
+is enabled by default for J784S4 for all clients.
+
+### RTOS client test {#intercore_rtos_client_test_vepa}
+
+Examples of broadcast data flows exercised in this demo are given below.
+
+- <b>RTOS remote client DHCP procedure:</b> Main R5F core1 starts DHCP procedure by sending
+a DHCP discover broadcast packet, which is forwarded via Enet LLD netif. Outgoing broadcast
+packets follow this data path:
+
+  <b>Main R5F core1 network stack &rarr; Main R5F core1 Enet LLD netif &rarr; Linux PC (DHCP server)</b>
+
+- <b>Incoming ARP broadcast from PC:</b> Ping Main R5F core1 remote client from Linux PC.
+This results in the PC sending an ARP broadcast to resolve the MAC address of the remote
+core. Incoming broadcast packets follow this data path:
+
+  <b>Broadcast from PC &rarr; Main R5F core0 Enet LLD netif (packet duplication flow) &rarr;
+  Packet duplicated with private VLAN tag (sent back to host port) &rarr;
+  Main R5F core1 Enet LLD netif (direct steering) &rarr; Main R5F core1 network stack</b>
+
+![](EthFw_VEPA_MCU2_1.png "Inter-core Virtual Ethernet - RTOS client test with VEPA")
+
+### Linux client test {#intercore_linux_client_test_vepa}
+
+Examples of broadcast data flows exercised in this demo are given below.
+
+- <b>Linux remote client DHCP procedure:</b> A72 core starts DHCP procedure by sending a DHCP
+discover broadcast packet, which is forwarded via virtual switch interface (eth2). Outgoing
+broadcast packets follow this data path:
+
+  <b>A72 core network stack &rarr; A72 core virtual switch interface &rarr; Linux PC (DHCP server)</b>
+
+- <b>Incoming ARP broadcast from PC:</b> Ping A72 core remote client from Linux PC.
+This results in the PC sending an ARP broadcast to resolve the MAC address of the remote
+core. Incoming broadcast packets follow this data path:
+
+  <b>Broadcast from PC &rarr; Main R5F core0 Enet LLD netif (packet duplication flow) &rarr;
+  Packet duplicated with private VLAN tag (sent back to host port) &rarr;
+  A72 core virtual switch netif (direct steering) &rarr; A72 core network stack</b>
+
+  ![](EthFw_VEPA_A72.png "Inter-core Virtual Ethernet - Linux client test with VEPA")
+
+**Note:** Tap application is not required for intercore ethernet communicatoin 
+when VEPA is enabled for J784S4 with Linux client
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## Inter-core Virtual Ethernet communication with shared memory transport {#ethfw_intercore_communication}
+
+### For J721E and J7200 using shared memory transport
 
 ### RTOS client test {#intercore_rtos_client_test}
 
