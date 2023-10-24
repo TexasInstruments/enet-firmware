@@ -21,7 +21,7 @@ endif
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
-    IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-contrib
+    IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/contrib
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
     IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
 endif
@@ -55,7 +55,7 @@ IDIRS += $(ETHFW_PATH)
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     LDIRS += $(PDK_PATH)/packages/ti/osal/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
-    LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-contrib/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+    LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/contrib/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
     LDIRS += $(PDK_PATH)/packages/ti/transport/tsn/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
