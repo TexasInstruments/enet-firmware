@@ -104,6 +104,9 @@ typedef struct EthFwArpUtils_AddrEntry_s
     /*! Remote core's MAC address */
     struct eth_addr hwAddr;
 
+    /*! VLAN id */
+    uint16_t vlanId;
+
     /*! Whether this entry is free or not */
     bool isFree;
 } EthFwArpUtils_AddrEntry;
@@ -179,7 +182,8 @@ void EthFwArpUtils_deinit(void)
 }
 
 int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
-                                struct eth_addr *hwAddr)
+                                struct eth_addr *hwAddr,
+                                uint16_t vlanId)
 {
     EthFwArpUtils_AddrEntry *entry;
     int32_t status = ETHFW_LWIP_UTILS_EFAIL;
@@ -193,6 +197,7 @@ int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
 
         /* Check if there is an entry matching given IP address */
         if (!entry->isFree &&
+            (entry->vlanId == vlanId) &&
             ip4_addr_cmp(&entry->ipAddr, ipAddr))
         {
             SMEMCPY(hwAddr, &entry->hwAddr, ETH_HWADDR_LEN);
@@ -207,7 +212,8 @@ int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
 }
 
 int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
-                              const struct eth_addr *hwAddr)
+                              const struct eth_addr *hwAddr,
+                              uint16_t vlanId)
 {
     EthFwArpUtils_AddrEntry *entry;
     int32_t status = ETHFW_LWIP_UTILS_SOK;
@@ -235,7 +241,9 @@ int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
 
              /* Check if an entry for the IP address is already in table,
               * if so, update MAC address */
-             if (!entry->isFree && ip4_addr_cmp(ipAddr, &entry->ipAddr))
+             if (!entry->isFree &&
+                 (entry->vlanId == vlanId) &&
+                 ip4_addr_cmp(ipAddr, &entry->ipAddr))
              {
                 SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
                 done = true;
@@ -255,6 +263,7 @@ int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
                 {
                     ip4_addr_copy(entry->ipAddr, *ipAddr);
                     SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
+                    entry->vlanId = vlanId;
                     entry->isFree = false;
                     done = true;
                     break;
@@ -270,7 +279,8 @@ int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
     return status;
 }
 
-int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr)
+int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr,
+                              uint16_t vlanId)
 {
     EthFwArpUtils_AddrEntry *entry;
     int32_t status = ETHFW_LWIP_UTILS_SOK;
@@ -284,6 +294,7 @@ int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr)
 
         /* Clear entry if matching IP address is found */
         if (!entry->isFree &&
+            (entry->vlanId == vlanId) &&
             ip4_addr_cmp(&entry->ipAddr, ipAddr))
         {
             ip4_addr_set_zero(&entry->ipAddr);
@@ -314,8 +325,8 @@ void EthFwArpUtils_printTable(void)
     uint32_t used = 0U;
     uint32_t i;
 
-    appLogPrintf("\n SNo.      IP Address          MAC Address   \n");
-    appLogPrintf("------    -------------     -----------------\n");
+    appLogPrintf("\n SNo.      MAC Address        VLAN     IP Address\n");
+    appLogPrintf("------  -------------------  ------  -----------------\n");
 
     for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
     {
@@ -325,11 +336,12 @@ void EthFwArpUtils_printTable(void)
         {
             hwAddr = &entry->hwAddr.addr[0U];
 
-            appLogPrintf("  %d       %s     %02x:%02x:%02x:%02x:%02x:%02x\n",
+            appLogPrintf("  %3d    %02x:%02x:%02x:%02x:%02x:%02x    %4d    %s\n",
                          ++used,
-                         ip4addr_ntoa(&entry->ipAddr),
                          hwAddr[0] & 0xFF, hwAddr[1] & 0xFF, hwAddr[2] & 0xFF,
-                         hwAddr[3] & 0xFF, hwAddr[4] & 0xFF, hwAddr[5] & 0xFF);
+                         hwAddr[3] & 0xFF, hwAddr[4] & 0xFF, hwAddr[5] & 0xFF,
+                         entry->vlanId,
+                         ip4addr_ntoa(&entry->ipAddr));
         }
     }
 }
@@ -341,13 +353,24 @@ void EthFwArpUtils_sendRaw(struct netif *netif,
                            const ip4_addr_t *ipSrcAddr,
                            const struct eth_addr *hwDstAddr,
                            const ip4_addr_t *ipDstAddr,
+                           uint16_t vlanId,
                            const u16_t opcode)
 {
     struct pbuf *pbuf;
-    struct etharp_hdr *hdr;
+    struct eth_hdr *ethHdr;
+    struct eth_vlan_hdr *vlanHdr;
+    struct etharp_hdr *arpHdr;
+    uint8_t *payload;
+    uint16_t len = SIZEOF_ETH_HDR + SIZEOF_ETHARP_HDR;
+    uint16_t pcpDei = 0U;
+
+    if (vlanId != 0U)
+    {
+        len += SIZEOF_VLAN_HDR;
+    }
 
     /* allocate a pbuf for the outgoing ARP request packet */
-    pbuf = pbuf_alloc(PBUF_LINK, SIZEOF_ETHARP_HDR, PBUF_RAM);
+    pbuf = pbuf_alloc(PBUF_RAW_TX, len, PBUF_RAM);
     /* could allocate a pbuf for an ARP request? */
     if (pbuf == NULL)
     {
@@ -355,26 +378,50 @@ void EthFwArpUtils_sendRaw(struct netif *netif,
     }
     else
     {
-        hdr = (struct etharp_hdr *)pbuf->payload;
-        hdr->opcode = lwip_htons(opcode);
+        payload = (uint8_t *)pbuf->payload;
+
+        /* Add Layer-2 header */
+        ethHdr = (struct eth_hdr *)payload;
+        SMEMCPY(&ethHdr->dest, ethDstAddr, ETH_HWADDR_LEN);
+        SMEMCPY(&ethHdr->src,  ethSrcAddr, ETH_HWADDR_LEN);
+        payload += SIZEOF_ETH_HDR;
+
+        if (vlanId != 0U)
+        {
+            ethHdr->type = lwip_htons(ETHTYPE_VLAN);
+
+            vlanHdr = (struct eth_vlan_hdr *)payload;
+            vlanHdr->prio_vid = lwip_htons(pcpDei | vlanId);
+            vlanHdr->tpid = lwip_htons(ETHTYPE_ARP);
+
+            payload += SIZEOF_VLAN_HDR;
+        }
+        else
+        {
+            ethHdr->type = lwip_htons(ETHTYPE_ARP);
+        }
+
+        /* Write ARP reply */
+        arpHdr = (struct etharp_hdr *)payload;
+        arpHdr->opcode = lwip_htons(opcode);
 
         /* Write the ARP MAC-Addresses */
-        SMEMCPY(&hdr->shwaddr, hwSrcAddr, ETH_HWADDR_LEN);
-        SMEMCPY(&hdr->dhwaddr, hwDstAddr, ETH_HWADDR_LEN);
+        SMEMCPY(&arpHdr->shwaddr, hwSrcAddr, ETH_HWADDR_LEN);
+        SMEMCPY(&arpHdr->dhwaddr, hwDstAddr, ETH_HWADDR_LEN);
 
         /* Copy struct ip4_addr_wordaligned to aligned ip4_addr, to support compilers without
          * structure packing. */
-        IPADDR_WORDALIGNED_COPY_FROM_IP4_ADDR_T(&hdr->sipaddr, ipSrcAddr);
-        IPADDR_WORDALIGNED_COPY_FROM_IP4_ADDR_T(&hdr->dipaddr, ipDstAddr);
+        IPADDR_WORDALIGNED_COPY_FROM_IP4_ADDR_T(&arpHdr->sipaddr, ipSrcAddr);
+        IPADDR_WORDALIGNED_COPY_FROM_IP4_ADDR_T(&arpHdr->dipaddr, ipDstAddr);
 
-        hdr->hwtype = PP_HTONS(1);
-        hdr->proto = PP_HTONS(ETHTYPE_IP);
+        arpHdr->hwtype = PP_HTONS(1);
+        arpHdr->proto = PP_HTONS(ETHTYPE_IP);
         /* set hwlen and protolen */
-        hdr->hwlen = ETH_HWADDR_LEN;
-        hdr->protolen = sizeof(ip4_addr_t);
+        arpHdr->hwlen = ETH_HWADDR_LEN;
+        arpHdr->protolen = sizeof(ip4_addr_t);
 
         LOCK_TCPIP_CORE();
-        ethernet_output(netif, pbuf, ethSrcAddr, ethDstAddr, ETHTYPE_ARP);
+        netif->linkoutput(netif, pbuf);
         UNLOCK_TCPIP_CORE();
 
         pbuf_free(pbuf);

@@ -749,6 +749,7 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
                                              struct pbuf *pbuf)
 {
     struct eth_hdr *ethHdr;
+    struct eth_vlan_hdr *vlanHdr;
     struct etharp_hdr *ethArpHdr;
     struct eth_addr hwAddr;
 #if defined(ETHFW_CALLBACKS_DEBUG)
@@ -756,11 +757,24 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
 #endif
     ip4_addr_t srcIp;
     ip4_addr_t dstIp;
+    uint8_t *payload;
+    uint16_t vlanId = 0U;
     bool handled = false;
     int32_t status;
 
-    ethHdr = (struct eth_hdr *)(pbuf->payload);
-    ethArpHdr = (struct etharp_hdr *)(ethHdr + 1);
+    payload = (uint8_t *)pbuf->payload;
+
+    ethHdr = (struct eth_hdr *)payload;
+    payload += SIZEOF_ETH_HDR;
+
+    if (ethHdr->type == lwip_ntohs(ETHTYPE_VLAN))
+    {
+        vlanHdr = (struct eth_vlan_hdr *)payload;
+        vlanId = VLAN_ID(vlanHdr);
+        payload += SIZEOF_VLAN_HDR;
+    }
+
+    ethArpHdr = (struct etharp_hdr *)payload;
 
     IPADDR_WORDALIGNED_COPY_TO_IP4_ADDR_T(&srcIp, &ethArpHdr->sipaddr);
     IPADDR_WORDALIGNED_COPY_TO_IP4_ADDR_T(&dstIp, &ethArpHdr->dipaddr);
@@ -768,13 +782,14 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
 #if defined(ETHFW_CALLBACKS_DEBUG)
     dstMac = &ethHdr->dest.addr[0];
 
-    appLogPrintf("Received ARP dstIp %s, dstMac %02x:%02x:%02x:%02x:%02x:%02x\n",
+    appLogPrintf("Received ARP dstIp %s, dstMac %02x:%02x:%02x:%02x:%02x:%02x vlanId %u\n",
                  ip4addr_ntoa(&dstIp),
                  dstMac[0] & 0xFF, dstMac[1] & 0xFF, dstMac[2] & 0xFF,
-                 dstMac[3] & 0xFF, dstMac[4] & 0xFF, dstMac[5] & 0xFF);
+                 dstMac[3] & 0xFF, dstMac[4] & 0xFF, dstMac[5] & 0xFF,
+                 vlanId);
 #endif
 
-    status = EthFwArpUtils_getHwAddr(&dstIp, &hwAddr);
+    status = EthFwArpUtils_getHwAddr(&dstIp, &hwAddr, vlanId);
     if (status == ETHFW_LWIP_UTILS_SOK)
     {
         EthFwArpUtils_sendRaw(netif,
@@ -784,6 +799,7 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
                               &dstIp,
                               &ethArpHdr->shwaddr,
                               &srcIp,
+                              vlanId,
                               ARP_REPLY);
 
 #if defined(ETHFW_CALLBACKS_DEBUG)

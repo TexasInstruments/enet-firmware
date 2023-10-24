@@ -119,12 +119,15 @@ int32_t EthFwArpUtils_init(void);
 void EthFwArpUtils_deinit(void);
 
 int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
-                                struct eth_addr *hwAddr);
+                                struct eth_addr *hwAddr,
+                                uint16_t vlanId);
 
 int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
-                              const struct eth_addr *hwAddr);
+                              const struct eth_addr *hwAddr,
+                              uint16_t vlanId);
 
-int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr);
+int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr,
+                              uint16_t vlanId);
 
 void EthFwArpUtils_printTable(void);
 
@@ -135,6 +138,7 @@ void EthFwArpUtils_sendRaw(struct netif *netif,
                            const ip4_addr_t *ipSrcAddr,
                            const struct eth_addr *hwDstAddr,
                            const ip4_addr_t *ipDstAddr,
+                           uint16_t vlanId,
                            const u16_t opcode);
 
 /* ========================================================================== */

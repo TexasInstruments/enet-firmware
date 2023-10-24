@@ -909,6 +909,7 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
     struct eth_addr hwAddr;
 #endif
     bool isSwitchPort;
+    uint16_t vlanId = 0U;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
     /* Check that server itself is ready */
@@ -924,7 +925,7 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
         IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
         SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
 
-        status = EthFwArpUtils_addAddr(&ip4Addr, &hwAddr);
+        status = EthFwArpUtils_addAddr(&ip4Addr, &hwAddr, vlanId);
         if (status != ETHFW_LWIP_UTILS_SOK)
         {
             appLogPrintf("Failed to add ARP entry: %d\n", status);
@@ -958,6 +959,7 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
     ip4_addr_t ip4Addr;
 #endif
     bool isSwitchPort;
+    uint16_t vlanId = 0U;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
     /* Check that server itself is ready */
@@ -972,7 +974,7 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
 
-        status = EthFwArpUtils_delAddr(&ip4Addr);
+        status = EthFwArpUtils_delAddr(&ip4Addr, vlanId);
         if (status != ETHFW_LWIP_UTILS_SOK)
         {
             appLogPrintf("Failed to remove ARP entry: %d\n", status);
