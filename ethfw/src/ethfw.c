@@ -87,6 +87,7 @@
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
 /* EthFw utils header files */
+#include <utils/ethfw_vlan/include/ethfw_vlan.h>
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
@@ -680,6 +681,30 @@ static void EthFw_setPortVlan(void)
     }
 }
 
+static int32_t EthFw_setupVlan(const EthFw_Config *config)
+{
+    Enet_Handle hEnet;
+    EthFwVlan_Cfg vlanCfg;
+    int32_t status = ENET_SOK;
+
+    vlanCfg.vlanCfg  = config->vlanCfg;
+    vlanCfg.numVlans = config->numVlans;
+    vlanCfg.dfltVlanIdSwitchPorts  = gEthFwObj.dfltVlanIdSwitchPorts;
+    vlanCfg.dfltVlanIdMacOnlyPorts = gEthFwObj.dfltVlanIdMacOnlyPorts;
+    vlanCfg.switchPortMask  = gEthFwObj.switchPortMask;
+    vlanCfg.macOnlyPortMask = gEthFwObj.macOnlyPortMask;
+
+    hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+
+    status = EthFwVlan_init(hEnet, &vlanCfg);
+    if (status != ENET_SOK)
+    {
+        appLogPrintf("ETHFW: Incorrect VLAN configuration: %d\n", status);
+    }
+
+    return status;
+}
+
 static bool EthFw_isMacOnlyPort(Enet_MacPort macPort)
 {
     bool isMacOnly = false;
@@ -993,6 +1018,10 @@ void EthFw_initConfigParams(Enet_Type enetType,
     config->virtPortCfg = NULL;
     config->numVirtPorts = 0U;
 
+    /* VLAN configuration */
+    config->vlanCfg = NULL;
+    config->numVlans = 0U;
+
     /* Virtual ports (bare IPC, AUTOSAR) */
     config->autosarVirtPortCfg = NULL;
     config->numAutosarVirtPorts = 0U;
@@ -1223,6 +1252,16 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     if (status == ENET_SOK)
     {
         status = EthFw_setAleBcastEntry();
+    }
+
+    /* Setup static VLANs */
+    if (status == ENET_SOK)
+    {
+        status = EthFw_setupVlan(config);
+        if (status != ENET_SOK)
+        {
+            appLogPrintf("ETHFW: Failed to setup static VLANs: %d\n", status);
+        }
     }
 
 #if defined(ETHFW_GPTP_SUPPORT)

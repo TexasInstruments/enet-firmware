@@ -31,6 +31,7 @@ endif
 
 STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
+STATIC_LIBS += ethfw_vlan
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server
@@ -127,6 +128,7 @@ endif
 
 STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
+STATIC_LIBS += ethfw_vlan
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server
@@ -216,6 +218,7 @@ endif
 
 STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
+STATIC_LIBS += ethfw_vlan
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server

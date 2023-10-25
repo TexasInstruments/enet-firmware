@@ -76,6 +76,7 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <utils/ethfw_vlan/include/ethfw_vlan.h>
 #include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
 
 #ifdef __cplusplus
@@ -305,6 +306,12 @@ typedef struct EthFw_Config_s
     /*! Virtual ports accessed via remote_device framework (A72 Linux,
      *  A72 QNX, RTOS cores) */
     EthFw_VirtPortCfg *virtPortCfg;
+
+    /*! VLAN configuration */
+    EthFwVlan_VlanCfg *vlanCfg;
+
+    /*! VLAN configuration */
+    uint32_t numVlans;
 
     /*! Number of virtual ports accessed via remote_device framework */
     uint32_t numVirtPorts;
