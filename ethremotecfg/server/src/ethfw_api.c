@@ -565,8 +565,7 @@ static void EthFw_compileTimeChecks(void)
 static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
 {
     /* ALE configuration */
-    aleCfg->modeFlags = CPSW_ALE_CFG_MODULE_EN |
-                        CPSW_ALE_CFG_UNKNOWN_UCAST_FLOOD2HOST;
+    aleCfg->modeFlags = CPSW_ALE_CFG_MODULE_EN;
 #if defined(ETHFW_VEPA_SUPPORT)
     aleCfg->modeFlags |= CPSW_ALE_CFG_MULTIHOST;
 #endif
@@ -582,11 +581,6 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->vlanCfg.unknownRegMcastFloodMask = 0U;
     aleCfg->vlanCfg.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
     aleCfg->vlanCfg.autoLearnWithVlan = false;
-
-    aleCfg->policerGlobalCfg.policingEn = true;
-    aleCfg->policerGlobalCfg.yellowDropEn = false;
-    aleCfg->policerGlobalCfg.redDropEn = true;
-    aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 
     /* ALE policer configuration */
     aleCfg->policerGlobalCfg.policingEn = true;
