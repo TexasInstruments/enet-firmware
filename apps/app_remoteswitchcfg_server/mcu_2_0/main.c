@@ -600,6 +600,19 @@ static EthFw_AllocCfg gEthApp_allocCfg[] =
         },
 };
 
+/* Test VLAN config */
+static EthFwVlan_VlanCfg gEthApp_vlanCfg[] =
+{
+    {
+        .vlanId              = 1024U,
+        .memberMask          = ETHAPP_DFLT_PORT_MASK,
+        .regMcastFloodMask   = ETHAPP_DFLT_PORT_MASK,
+        .unregMcastFloodMask = ETHAPP_DFLT_PORT_MASK,
+        .virtMemberMask      = ETHAPP_DFLT_VIRT_PORT_MASK,
+        .untagMask           = 0U,
+    },
+};
+
 static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
 
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(ETHAPP_LWIP_TASK_STACKALIGN)));
@@ -1042,6 +1055,10 @@ static int32_t EthApp_initEthFw(void)
     /* Set virtual port configuration parameters */
     ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
     ethFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
+
+    /* Set static VLAN configuration parameters */
+    ethFwCfg.vlanCfg  = &gEthApp_vlanCfg[0];
+    ethFwCfg.numVlans = ARRAY_SIZE(gEthApp_vlanCfg);
 
     /* Set AUTOSAR virtual port configuration parameters */
     ethFwCfg.autosarVirtPortCfg  = &gEthApp_autosarVirtPortCfg[0];
