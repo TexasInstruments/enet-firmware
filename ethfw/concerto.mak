@@ -6,6 +6,7 @@ ifneq (,$(filter $(TARGET_CPU),R5F R5Ft))
 TARGET     := ethfw
 TARGETTYPE := library
 TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
+TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 
 CSOURCES := src/ethfw.c
 
@@ -13,6 +14,8 @@ IDIRS := ${ETHFW_PATH}
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
+  IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config
+  IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config/${TARGET_SOC_FOLDER}
   ifeq ($(ETHFW_GPTP_SUPPORT),yes)
     ifeq ($(TARGET_OS),FREERTOS)
       IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack

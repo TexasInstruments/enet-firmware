@@ -21,6 +21,8 @@ endif
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
+    IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config
+    IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config/${TARGET_SOC_FOLDER}
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/contrib
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
     IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
