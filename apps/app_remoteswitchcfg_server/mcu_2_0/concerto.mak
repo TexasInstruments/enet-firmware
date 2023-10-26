@@ -34,7 +34,6 @@ STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server
-STATIC_LIBS += lib_remote_device
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   STATIC_LIBS += ethfw_lwip
@@ -131,7 +130,6 @@ STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server
-STATIC_LIBS += lib_remote_device
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   STATIC_LIBS += ethfw_lwip
@@ -221,7 +219,6 @@ STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += lib_remoteswitchcfg_server
-STATIC_LIBS += lib_remote_device
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   STATIC_LIBS += ethfw_lwip

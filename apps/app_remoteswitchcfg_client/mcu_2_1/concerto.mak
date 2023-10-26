@@ -30,7 +30,6 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 STATIC_LIBS += lib_remoteswitchcfg_client
-STATIC_LIBS += lib_remote_device_client
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)
@@ -102,7 +101,6 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 STATIC_LIBS += lib_remoteswitchcfg_client
-STATIC_LIBS += lib_remote_device_client
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)

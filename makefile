@@ -106,29 +106,13 @@ include $(CONCERTO_ROOT)/rules.mak
 include makerules/makefile_pdk.mak
 
 .NOTPARALLEL:
-ethfw_server: pdk remotedevicefw app_remoteswitchcfg_server
-ethfw_server_qnx: pdk remotedevicefw app_remoteswitchcfg_server_qnx
+ethfw_server: pdk app_remoteswitchcfg_server
+ethfw_server_qnx: pdk app_remoteswitchcfg_server_qnx
 
-ethfw_all: pdk remotedevicefw all
+ethfw_all: pdk all
 ifneq ($(filter yes,$(BUILD_APP_FREERTOS) $(BUILD_APP_SAFERTOS)),)
-remoteswitchcfg_all: | pdk remotedevicefw app_remoteswitchcfg_client app_remoteswitchcfg_server
+remoteswitchcfg_all: | pdk app_remoteswitchcfg_client app_remoteswitchcfg_server
 endif
-ethfw_all_clean: pdk_clean remotedevicefw_clean clean scrub
-remoteswitchcfg_all_clean: | pdk_clean remotedevicefw_clean clean scrub
+ethfw_all_clean: pdk_clean clean scrub
 
-remotedevicefw:
-	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
-		$(foreach os, $(sort ${OS_LIST}),\
-			$(MAKE) -C ${REMOTE_DEVICE_PATH} SOC=${soc} RTOS=${os} PSDK_TOOLS_PATH:=$(PSDK_TOOLS_PATH) lib_remote_device_client lib_remote_device \
-										cp_to_lib &&\
-		) \
-	)$(NOP)
-
-remotedevicefw_clean:
-	$(foreach soc, $(call lowercase, $(sort ${SOC_LIST})),\
-		$(foreach os, $(sort ${OS_LIST}),\
-			$(MAKE) -C ${REMOTE_DEVICE_PATH} SOC=${soc}  RTOS=${os} clean scrub &&\
-		) \
-	)$(NOP)
-
-.PHONY: ethfw_all remoteswitchcfg_all ethfw_all_clean remoteswitchcfg_all_clean remotedevicefw remotedevicefw_clean
+.PHONY: ethfw_all ethfw_all_clean 

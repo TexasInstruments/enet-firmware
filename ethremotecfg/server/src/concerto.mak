@@ -4,7 +4,6 @@ TARGETTYPE  := library
 TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 
-CSOURCES    := remote_device_server_ethswitch.c
 CSOURCES    += cpsw_proxy_server.c
 
 #include $(ETHFW_PATH)/apps/concerto_inc.mak
@@ -15,7 +14,6 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   IDIRS       += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config/${TARGET_SOC_FOLDER}
 endif
 IDIRS       += $(PDK_PATH)/packages
-IDIRS       += $(REMOTE_DEVICE_PATH)
 IDIRS       += $(ETHFW_PATH)
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
