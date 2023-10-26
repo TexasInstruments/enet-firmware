@@ -143,6 +143,7 @@
 #endif
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -535,6 +536,50 @@ static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
     },
 };
 
+static EthFw_AllocCfg gEthApp_allocCfg[] =
+{
+        {
+            .clientId = ETHREMOTECFG_CLIENTID_AUTOSAR,
+            .remoteProcId = IPC_MCU2_1,
+            .virtSwitchPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_SWITCH_PORT_1),
+#if defined(ENABLE_MAC_ONLY_PORTS)
+            .virtMacPortMask = 0,
+#endif
+        },
+        {
+            .clientId = ETHREMOTECFG_CLIENTID_AUTOSAR,
+            .remoteProcId = IPC_MCU1_0,
+            .virtSwitchPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_SWITCH_PORT_2),
+#if defined(ENABLE_MAC_ONLY_PORTS)
+            .virtMacPortMask = 0,
+#endif
+        },
+        {
+            .clientId = ETHREMOTECFG_CLIENTID_RTOS,
+            .remoteProcId = IPC_MCU2_1,
+            .virtSwitchPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_SWITCH_PORT_1),
+#if defined(ENABLE_MAC_ONLY_PORTS)
+            .virtMacPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_MAC_PORT_4),
+#endif
+        },
+        {
+            .clientId = ETHREMOTECFG_CLIENTID_LINUX,
+            .remoteProcId = IPC_MPU1_0,
+            .virtSwitchPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_SWITCH_PORT_0),
+#if defined(ENABLE_MAC_ONLY_PORTS)
+            .virtMacPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_MAC_PORT_1),
+#endif
+        },
+        {
+            .clientId = ETHREMOTECFG_CLIENTID_QNX,
+            .remoteProcId = IPC_MPU1_0,
+            .virtSwitchPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_SWITCH_PORT_0),
+#if defined(ENABLE_MAC_ONLY_PORTS)
+            .virtMacPortMask = ENET_MACPORT_MASK(ETHREMOTECFG_MAC_PORT_1),
+#endif
+        },
+};
+
 static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
 
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(ETHAPP_LWIP_TASK_STACKALIGN)));
@@ -807,9 +852,9 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     uint32_t numProc = ARRAY_SIZE(gEthAppRemoteProc);
     Ipc_VirtIoParams vqParam;
     Ipc_InitPrms initPrms;
-    RPMessage_Params cntrlParam;
     int32_t status;
     TaskP_Params taskParams;
+    RPMessage_Params cntrlParam;
 
     /* Step 1: Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gEthAppRemoteProc[0]);
@@ -982,6 +1027,10 @@ static int32_t EthApp_initEthFw(void)
 
     /* CPTS_RFT_CLK is sourced from MAIN_SYSCLK0 (500MHz) */
     cpswCfg->cptsCfg.cptsRftClkFreq = CPSW_CPTS_RFTCLK_FREQ_500MHZ;
+
+    /* Set remote client object parameters */
+    ethFwCfg.allocCfg = &gEthApp_allocCfg[0];
+    ethFwCfg.numAlloc = ARRAY_SIZE(gEthApp_allocCfg);
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* gPTP stack config parameters */

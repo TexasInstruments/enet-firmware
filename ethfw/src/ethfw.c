@@ -93,10 +93,7 @@
 #include <utils/console_io/include/app_log.h>
 
 /* EthFw remote configuration header files */
-#include <ethremotecfg/server/include/ethremotecfg_server.h>
 #include <ethremotecfg/server/include/cpsw_proxy_server.h>
-
-#include <server-rtos/remote-device.h>
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
@@ -121,22 +118,22 @@
 /* ========================================================================== */
 
 /*! Month substring offset in date string */
-#define ETHFW_VERSION_OFFSET_MONTH                    (0)
+#define ETHFWVERSION_OFFSET_MONTH                    (0)
 
 /*! Date substring offset in date string */
-#define ETHFW_VERSION_OFFSET_DATE                     (4)
+#define ETHFWVERSION_OFFSET_DATE                     (4)
 
 /*! Year substring offset in data string */
-#define ETHFW_VERSION_OFFSET_YEAR                     (7)
+#define ETHFWVERSION_OFFSET_YEAR                     (7)
 
 /*! Month substring offset in date string */
-#define ETHFW_VERSION_OFFSET_HOUR                     (0)
+#define ETHFWVERSION_OFFSET_HOUR                     (0)
 
 /*! Date substring offset in date string */
-#define ETHFW_VERSION_OFFSET_MIN                      (3)
+#define ETHFWVERSION_OFFSET_MIN                      (3)
 
 /*! Year substring offset in data string */
-#define ETHFW_VERSION_OFFSET_SEC                      (6)
+#define ETHFWVERSION_OFFSET_SEC                      (6)
 
 /*! Remote device endpoint number */
 #define REMOTE_DEVICE_ENDPT                           (26U)
@@ -194,10 +191,10 @@
 
 typedef struct EthFw_Port_s
 {
-    /*! MAC port number */
+    /* MAC port number */
     Enet_MacPort macPort;
 
-    /*! Port VLAN config */
+    /* Port VLAN config */
     EnetPort_VlanCfg vlanCfg;
 } EthFw_Port;
 
@@ -245,10 +242,10 @@ typedef struct EthFw_Obj_s
     /* Number of valid AUTOSAR virtual port configuration entries */
     uint32_t numAutosarVirtPorts;
 
-    /*! Default VLAN id to be used for MAC ports configured in MAC-only mode */
+    /* Default VLAN id to be used for MAC ports configured in MAC-only mode */
     uint16_t dfltVlanIdMacOnlyPorts;
 
-    /*! Default VLAN id to be used for MAC ports configured in switch mode (non MAC-only) */
+    /* Default VLAN id to be used for MAC ports configured in switch mode (non MAC-only) */
     uint16_t dfltVlanIdSwitchPorts;
 
     /* Multiclient Manager (MCM) handle */
@@ -260,8 +257,14 @@ typedef struct EthFw_Obj_s
     /* Reserved multicast configuration */
     EthFw_RsvdMcastCfg rsvdMcastCfg;
 
-    /*! Callback function for application to set port link parameters */
+    /* Callback function for application to set port link parameters */
     EthFw_setPortCfg setPortCfg;
+
+    /* Remote client alloc object */
+    EthFw_AllocCfg clientAllocCfg[ETHFW_REMOTE_CLIENT_ALLOC_MAX];
+
+    /* Number of remote clients with resource allocation */
+    uint32_t numClients;
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Whether TSN stack has been initialized or not */
@@ -338,14 +341,13 @@ static int32_t EthFw_setAleBcastEntry(void);
 static void EthFw_getMcmCmdIfCb(Enet_Type enetType,
                                 EnetMcm_CmdIf **pMcmCmdIfHandle);
 
-static void EthFw_getDeviceData(uint32_t host_id,
-                                struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
+static void EthFw_getDeviceData(EthRemoteCfg_DeviceData *ethdevData);
 
 static void EthFw_handleProfileInfoNotify(uint32_t host_id,
                                           Enet_Handle hEnet,
                                           Enet_Type enetType,
                                           uint32_t core_key,
-                                          enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
+                                          EthRemoteCfg_NotifyType notifyid,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len);
 
@@ -1057,6 +1059,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     EnetUdma_Cfg *udmaCfg;
     char *date = __DATE__;
     char *time = __TIME__;
+    uint32_t i;
     int32_t status = ENET_SOK;
 
     EnetAppUtils_assert(config != NULL);
@@ -1068,6 +1071,13 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     EnetAppUtils_assert(udmaCfg->hUdmaDrv != NULL);
 
     memset(&gEthFwObj, 0, sizeof(gEthFwObj));
+
+    /* Get the allocated resources for all remote clients */
+    gEthFwObj.numClients = config->numAlloc;
+    for (i = 0U; i < gEthFwObj.numClients; i++)
+    {
+        gEthFwObj.clientAllocCfg[i] = config->allocCfg[i];
+    }
 
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
@@ -1133,37 +1143,38 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         gEthFwObj.instId = 0U;
 
         /* Populate EthFw version */
-        gEthFwObj.version.major = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MAJOR;
-        gEthFwObj.version.minor = RPMSG_KDRV_TP_ETHSWITCH_VERSION_MINOR;
-        gEthFwObj.version.rev = RPMSG_KDRV_TP_ETHSWITCH_VERSION_REVISION;
+        gEthFwObj.version.major = ETHREMOTECFG_FW_ETHSWITCH_VERSION_MAJOR;
+        gEthFwObj.version.minor = ETHREMOTECFG_FW_ETHSWITCH_VERSION_MINOR;
+        gEthFwObj.version.rev = ETHREMOTECFG_FW_ETHSWITCH_VERSION_REVISION;
 
         /* __DATE__ is a string constant that contains eleven characters and
          * looks like "Feb 12 1996". If the day of the month is less than
          * 10, it is padded with a space on the left */
         memcpy(&gEthFwObj.version.month[0U],
-               &date[ETHFW_VERSION_OFFSET_MONTH],
+               &date[ETHFWVERSION_OFFSET_MONTH],
                ETHFW_VERSION_MONTHLEN);
         memcpy(&gEthFwObj.version.date[0U],
-               &date[ETHFW_VERSION_OFFSET_DATE],
+               &date[ETHFWVERSION_OFFSET_DATE],
                ETHFW_VERSION_DATELEN);
         memcpy(&gEthFwObj.version.year[0U],
-               &date[ETHFW_VERSION_OFFSET_YEAR],
+               &date[ETHFWVERSION_OFFSET_YEAR],
                ETHFW_VERSION_YEARLEN);
+
 
         /* __TIME__ is a string in 24 hour time format */
         memcpy(&gEthFwObj.version.hour[0U],
-               &time[ETHFW_VERSION_OFFSET_HOUR],
+               &time[ETHFWVERSION_OFFSET_HOUR],
                ETHFW_VERSION_HOURLEN);
         memcpy(&gEthFwObj.version.min[0U],
-               &time[ETHFW_VERSION_OFFSET_MIN],
+               &time[ETHFWVERSION_OFFSET_MIN],
                ETHFW_VERSION_MINLEN);
         memcpy(&gEthFwObj.version.sec[0U],
-               &time[ETHFW_VERSION_OFFSET_SEC],
+               &time[ETHFWVERSION_OFFSET_SEC],
                ETHFW_VERSION_SECLEN);
 
-        /* RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT is defined by the build system */
+        /* ETHRPC_ETHSWITCH_VERSION_LAST_COMMIT is defined by the build system */
         memcpy(&gEthFwObj.version.commitHash[0U],
-               RPMSG_KDRV_TP_ETHSWITCH_VERSION_LAST_COMMIT,
+               ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT,
                ETHFW_VERSION_COMMITSHALEN);
 
         gEthFwObj.version.month[ETHFW_VERSION_MONTHLEN] = '\0';
@@ -1280,6 +1291,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 
     /* Initialize Proxy Server */
     memset(&cfg, 0, sizeof(cfg));
+    cfg.instId = gEthFwObj.instId;
     cfg.getMcmCmdIfCb = &EthFw_getMcmCmdIfCb;
     cfg.initEthfwDeviceDataCb = &EthFw_getDeviceData;
     cfg.notifyCb = &EthFw_handleProfileInfoNotify;
@@ -1307,13 +1319,22 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.autosarEthVirtPortNum = gEthFwObj.numAutosarVirtPorts;
     for (i = 0U; i < cfg.autosarEthVirtPortNum; i++)
     {
-        cfg.autosarEthDriverRemoteCoreId[i] = gEthFwObj.autosarVirtPortCfg[i].remoteCoreId;
-        cfg.autosarEthDriverVirtPort[i]     = gEthFwObj.autosarVirtPortCfg[i].portId;
-        cfg.autosarEthDeviceEndPointId[i]   = EthFw_getRemoteEndptId(cfg.autosarEthDriverRemoteCoreId[i]);
+        cfg.autosarPortCfg[i].remoteCoreId = gEthFwObj.autosarVirtPortCfg[i].remoteCoreId;
+        cfg.autosarPortCfg[i].portId    = gEthFwObj.autosarVirtPortCfg[i].portId;
+        cfg.autosarEthDeviceEndPointId[i]   = EthFw_getRemoteEndptId(cfg.autosarPortCfg[i].remoteCoreId);
     }
 
-    /* Enable server-to-client notify service */
-    cfg.notifyServiceCpswType = gEthFwObj.enetType;
+    /* Alloc resources for the remote clients */
+    EnetAppUtils_assert(gEthFwObj.numClients <= CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX);
+
+    cfg.numAllocObj = gEthFwObj.numClients;
+    for (i = 0U; i < cfg.numAllocObj; i++)
+    {
+        cfg.allocObj[i].clientId = gEthFwObj.clientAllocCfg[i].clientId;
+        cfg.allocObj[i].remoteProcId = gEthFwObj.clientAllocCfg[i].remoteProcId;
+        cfg.allocObj[i].virtMacPortMask = gEthFwObj.clientAllocCfg[i].virtMacPortMask;
+        cfg.allocObj[i].virtSwitchPortMask = gEthFwObj.clientAllocCfg[i].virtSwitchPortMask;
+    }
 
     /* Set CPSW Proxy shared multicast config.
      * All parameters have already been checked. */
@@ -1333,20 +1354,13 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.dfltVlanIdMacOnlyPorts = gEthFwObj.dfltVlanIdMacOnlyPorts;
     cfg.dfltVlanIdSwitchPorts  = gEthFwObj.dfltVlanIdSwitchPorts;
 
+    cfg.enabledPortMask = gEthFwObj.enabledPortMask;
+    cfg.macOnlyPortMask = gEthFwObj.macOnlyPortMask;
+
     status = CpswProxyServer_init(&cfg);
     if (status != ENET_SOK)
     {
         appLogPrintf("EthFw_initRemoteConfig() failed to init CPSW Proxy: %d\n", status);
-    }
-
-    /* Start Proxy Server */
-    if (status == ENET_SOK)
-    {
-        status = CpswProxyServer_start();
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("EthFw_initRemoteConfig() failed to start CPSW Proxy: %d\n", status);
-        }
     }
 
     return status;
@@ -1360,7 +1374,7 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
     EnetAppUtils_assert(hEthFw != NULL);
 
     /* Late announcement of server's endpoint to remote processor */
-    status = appRemoteDeviceLateAnnounce(procId);
+    status = CpswProxyServer_lateAnnounce(procId);
     if (status != IPC_SOK)
     {
         appLogPrintf("EthFw_lateAnnounce: late announcement to proc %u failed: %d\n", procId, status);
@@ -1505,43 +1519,42 @@ static void EthFw_getMcmCmdIfCb(Enet_Type enetType,
     *pMcmCmdIfHandle = &gEthFwObj.mcmCmdIf;
 }
 
-static void EthFw_getDeviceData(uint32_t host_id,
-                                struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data)
+static void EthFw_getDeviceData(EthRemoteCfg_DeviceData *ethdevData)
 {
-    eth_dev_data->fw_ver.major = gEthFwObj.version.major;
-    eth_dev_data->fw_ver.minor = gEthFwObj.version.minor;
-    eth_dev_data->fw_ver.rev = gEthFwObj.version.rev;
+    ethdevData->fwVer.major = gEthFwObj.version.major;
+    ethdevData->fwVer.minor = gEthFwObj.version.minor;
+    ethdevData->fwVer.rev = gEthFwObj.version.rev;
 
-    memcpy(eth_dev_data->fw_ver.month,
+    memcpy(ethdevData->fwVer.month,
            &gEthFwObj.version.month[0U],
-           sizeof(eth_dev_data->fw_ver.month));
+           sizeof(ethdevData->fwVer.month));
 
-    memcpy(eth_dev_data->fw_ver.date,
+    memcpy(ethdevData->fwVer.date,
            &gEthFwObj.version.date[0U],
-           sizeof(eth_dev_data->fw_ver.date));
+           sizeof(ethdevData->fwVer.date));
 
-    memcpy(eth_dev_data->fw_ver.year,
+    memcpy(ethdevData->fwVer.year,
            &gEthFwObj.version.year[0U],
-           sizeof(eth_dev_data->fw_ver.year));
+           sizeof(ethdevData->fwVer.year));
 
-    memcpy(eth_dev_data->fw_ver.commit_hash,
+    memcpy(ethdevData->fwVer.commitHash,
            &gEthFwObj.version.commitHash[0U],
-           sizeof(eth_dev_data->fw_ver.commit_hash));
+           sizeof(ethdevData->fwVer.commitHash));
 
     /* Enable permission for all ETHDEV remote commands without consideration of cores.
      * This should be changed based on trusted cores */
-    eth_dev_data->permission_flags = ((1 << RPMSG_KDRV_TP_ETHSWITCH_MAX) - 1);
-    eth_dev_data->uart_connected = true;
-    eth_dev_data->uart_id = ENET_UTILS_MCU2_0_UART_INSTANCE;
+    ethdevData->permissionFlags = ((1ULL << ETHREMOTECFG_CMD_TYPE_LAST) - 1);
+    ethdevData->uartConnected = true;
+    ethdevData->uartId = ENET_UTILS_MCU2_0_UART_INSTANCE;
 }
 
-static void EthFw_handleProfileInfoNotify(uint32_t host_id,
+static void EthFw_handleProfileInfoNotify(uint32_t hostId,
                                           Enet_Handle hEnet,
                                           Enet_Type enetType,
-                                          uint32_t core_key,
-                                          enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
-                                          uint8_t *notify_info,
-                                          uint32_t notify_info_len)
+                                          uint32_t coreKey,
+                                          EthRemoteCfg_NotifyType notifyid,
+                                          uint8_t *notifyInfo,
+                                          uint32_t notifyInfoLen)
 {
     /* Nothing to do */
 }

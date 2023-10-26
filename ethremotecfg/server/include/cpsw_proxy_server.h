@@ -64,9 +64,10 @@
 #define __CPSWPROXYSERVER_H__
 
 #include <stdint.h>
-#include <ethremotecfg/server/include/ethremotecfg_server.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -165,19 +166,30 @@ extern "C" {
 /*! Max number of AUTOSAR client cores */
 #define CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX     (2U)
 
+/*! Max number of Remote client cores based on CLient tokens (VirtPort Clients) */
+#define CPSWPROXYSERVER_REMOTE_CLIENT_MAX             (6U)
+
+/*! Max number of Remote clients requesting resource allocation data */
+#define CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX       (5U)
+
+/*! Max number of remote client ports */
+#define CPSWPROXYSERVER_REMOTE_CLIENT_PORTS_MAX       (2U)
+
+/*! Max number of remote client virtual ports */
+#define CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX    (4U)
+
 /*!
  * \brief Application callback function pointer to initialize Ethernet Firmware data
  *
  * When a client connection from remote core to  cpsw proxy server is
  * established, the server will invoke this application callback to populate
- * firmware info which is exported as remote device data to the remote core
+ * firmware info which is exported as Ethernet device data to the remote core
  * client.
  *
  * \param host_id       Remote Core Id
  * \param eth_dev_data  Firmware device data to be populated
  */
-typedef void  (*CpswProxyServer_InitEthfwDeviceDataCb)(uint32_t host_id,
-                                                       struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
+typedef void  (*CpswProxyServer_InitEthfwDeviceDataCb)(EthRemoteCfg_DeviceData *ethdevData);
 
 /*!
  * \brief Application callback function pointer to get Multiclient Manager (MCM)
@@ -208,17 +220,17 @@ typedef void  (*CpswProxyServer_GetMcmCmdIfCb)(Enet_Type  enetType, EnetMcm_CmdI
  * \param host_id      Remote Core IPC core id
  * \param hEnet        Handle to CPSW
  * \param enetType     Enet instance type
- * \param notifyid     Custom notify id. Will be #RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_CUSTOM
+ * \param notifyid     Custom notify type
  * \param notify_info  Notify info
  * \param notify_info_len Notify info length
  */
-typedef void  (*CpswProxyServer_NotifyCb)(uint32_t host_id,
+typedef void  (*CpswProxyServer_NotifyCb)(uint32_t hostId,
                                           Enet_Handle hEnet,
                                           Enet_Type enetType,
-                                          uint32_t core_key,
-                                          enum rpmsg_kdrv_ethswitch_client_notify_type notifyid,
-                                          uint8_t *notify_info,
-                                          uint32_t notify_info_len);
+                                          uint32_t coreKey,
+                                          EthRemoteCfg_NotifyType notifyid,
+                                          uint8_t *notifyInfo,
+                                          uint32_t notifyInfoLen);
 
 /*!
  * \brief Cpsw Proxy Server Virtual Port Configuration structure
@@ -295,12 +307,35 @@ typedef struct CpswProxyServer_RsvdMcastCfg_s
 } CpswProxyServer_RsvdMcastCfg;
 
 /*!
+ * \brief Remote client alloc object
+ *
+ * Alloc object per remote client holding the resources allocated for a given remote client.
+ */
+typedef struct CpswProxyServer_AllocObj_s
+{
+    /* Remote core id */
+    uint32_t remoteProcId;
+
+    /* Client Id */
+    uint32_t clientId;
+
+    /* Virtual Switch Port Mask */
+    uint32_t virtSwitchPortMask;
+
+    /* virtual Mac Port MAsk */
+    uint32_t virtMacPortMask;
+}CpswProxyServer_AllocObj;
+
+/*!
  * \brief Cpsw Proxy Server Remote Configuration structure
  *
  * Structure passed by application to configure the CPSW Proxy server.
  */
 typedef struct CpswProxyServer_Config_s
 {
+    /*! Enet instance id */
+    uint32_t instId;
+
     /*! Application callback to populate Ethernet Remote Device data */
     CpswProxyServer_InitEthfwDeviceDataCb initEthfwDeviceDataCb;
 
@@ -317,23 +352,17 @@ typedef struct CpswProxyServer_Config_s
     /*! AUTOSAR Ethernet Device RpMsg endpoint id */
     uint32_t autosarEthDeviceEndPointId[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
 
-    /*! Remote Core Id for AUTOSAR core */
-    uint32_t autosarEthDriverRemoteCoreId[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
-
     /*! Virtual port configuration */
-    EthRemoteCfg_VirtPort autosarEthDriverVirtPort[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
+    CpswProxyServer_VirtPortCfg autosarPortCfg[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
 
     /*! Number of AUTOSAR virtual ports that remotes cores can attach to */
     uint32_t autosarEthVirtPortNum;
 
-    /*! CPSW type for which notify service is enabled */
-    Enet_Type notifyServiceCpswType;
-
     /*! Remote Core Id for Notification service */
-    uint32_t notifyServiceRemoteCoreId[ETHREMOTECFG_SERVER_MAX_INSTANCES];
+    uint32_t notifyServiceRemoteCoreId[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
 
     /*! Virtual port configuration */
-    CpswProxyServer_VirtPortCfg virtPortCfg[ETHREMOTECFG_SERVER_MAX_INSTANCES];
+    CpswProxyServer_VirtPortCfg virtPortCfg[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
 
     /*! Number of remote virtual ports that remotes cores can attach to */
     uint32_t numVirtPorts;
@@ -355,6 +384,18 @@ typedef struct CpswProxyServer_Config_s
 
     /*! Reserved multicast configuration */
     CpswProxyServer_RsvdMcastCfg rsvdMcastCfg;
+
+    /*! Port mask of all enabled MAC ports */
+    uint32_t enabledPortMask;
+
+    /*! Port mask of all MAC-only ports */
+    uint32_t macOnlyPortMask;
+
+    /*! Remote client alloc object */
+    CpswProxyServer_AllocObj allocObj[CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX];
+
+    /*! Number of remote client alloc objects */
+    uint32_t numAllocObj;
 } CpswProxyServer_Config_t;
 
 /*!
@@ -365,13 +406,9 @@ typedef struct CpswProxyServer_Config_s
 int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg);
 
 /*!
- * \brief Start the Cpsw proxy server
- *
- * Starts the remote device framework.
- *
- * \return Refer to \ref CpswProxyServer_ErrorCodes.
+ * \brief Late announces ETHFW endpoint to Linux
  */
-int32_t  CpswProxyServer_start(void);
+int32_t CpswProxyServer_lateAnnounce(uint32_t procId);
 
 /* @} */
 

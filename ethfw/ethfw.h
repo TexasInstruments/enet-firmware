@@ -124,14 +124,17 @@ extern "C" {
 /*! GIT Commit SHA length in octets */
 #define ETHFW_VERSION_COMMITSHALEN        (8)
 
-/*! Max number of remote_device based client cores (Linux, QNX, RTOS) */
-#define ETHFW_REMOTE_CLIENT_MAX           (ETHREMOTECFG_SERVER_MAX_INSTANCES)
+/*! Max number of remote clients sharing resources with ETHFW(Linux, QNX, RTOS) */
+#define ETHFW_REMOTE_CLIENT_MAX           (4U)
 
 /*! Size of shared multicast address table */
 #define ETHFW_SHARED_MCAST_LIST_LEN       (8U)
 
 /*! Size of reserved multicast address table */
 #define ETHFW_RSVD_MCAST_LIST_LEN         (4U)
+
+/*! Max number of Remote clients requesting resource allocation data */
+#define ETHFW_REMOTE_CLIENT_ALLOC_MAX     (5U)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -235,6 +238,26 @@ typedef struct EthFw_SharedMcastCfg_s
 } EthFw_SharedMcastCfg;
 
 /*!
+ * \brief Remote client alloc object
+ *
+ * Alloc object per remote client holding the resources allocated for a given remote client.
+ */
+typedef struct EthFw_AllocCfg_s
+{
+    /* Remote core id */
+    uint32_t remoteProcId;
+
+    /* Client Id */
+    uint32_t clientId;
+
+    /* Virtual Switch Port Mask */
+    uint32_t virtSwitchPortMask;
+
+    /* virtual Mac Port MAsk */
+    uint32_t virtMacPortMask;
+}EthFw_AllocCfg;
+
+/*!
  * \brief Ethernet Firmware reserved multicast configuration.
  *
  * Ethernet Firmware configuration parameters for reserved multicast addresses, that is,
@@ -317,6 +340,12 @@ typedef struct EthFw_Config_s
 
     /*! VEPA configuration passed from application */
     EthFwVepaUtils_Cfg vepaCfg;
+
+    /*! Remote client alloc object */
+    EthFw_AllocCfg *allocCfg;
+
+    /*! Number of remote clients with resource allocation */
+    uint32_t numAlloc;
 } EthFw_Config;
 
 /*!
