@@ -86,15 +86,15 @@
 #include <ti/osal/TaskP.h>
 #include <ti/osal/MailboxP.h>
 
-#include <client-rtos/remote-device.h>
-#include <ethremotecfg/protocol/rpmsg-kdrv-transport-ethswitch.h>
-#include <ethremotecfg/client/include/ethremotecfg_client.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/client/include/cpsw_proxy.h>
+#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #include <ti/drv/ipc/ipc.h>
 #include <ti/drv/enet/enet.h>
 
-#include "cpsw_proxy_cfg.h"
+/* EthFw utils header files */
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 #if defined(SAFERTOS)
 #include "SafeRTOS_API.h"
@@ -103,19 +103,38 @@
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
-#define CPSWPROXY_RDEV_MSGSIZE                          (256U)
 
-#define CPSWPROXY_RDEV_MSGCOUNT                         (3U)
+/* Maximum number of supported CpswProxy clients */
+#define CPSWPROXY_CLIENT_MAX                            (2U)
 
-#define CPSWPROXY_RDEVCLIENT_CONNECT_RETRY_MS           (10U)
+#define CPSWPROXY_RES_MSGSIZE                           (256U)
 
-#define CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT          (10U)
+#define CPSWPROXY_RES_MSGCOUNT                          (3U)
+
+#define CPSWPROXY_CONNECT_RETRY_MS                      (10U)
+
+#define CPSWPROXY_LOCATE_TIMEOUT                        (10U)
 
 #if defined(SAFERTOS)
-#define CPSWPROXY_RDEV_MBOX_SIZE            (sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT + safertosapiQUEUE_OVERHEAD_BYTES)
+#define CPSWPROXY_RES_MBOX_SIZE                         (CPSWPROXY_RES_MSGSIZE * CPSWPROXY_RES_MSGCOUNT + safertosapiQUEUE_OVERHEAD_BYTES)
 #else
-#define CPSWPROXY_RDEV_MBOX_SIZE            (sizeof(CpswProxy_rdevCmd_t) * CPSWPROXY_RDEV_MSGCOUNT)
+#define CPSWPROXY_RES_MBOX_SIZE                         (CPSWPROXY_RES_MSGSIZE * CPSWPROXY_RES_MSGCOUNT)
 #endif
+
+#define CPSWPROXY_CLIENT_CMD_TASK_NAME                  "R5CLIENTDEVICE"
+#ifdef QNX_OS
+#define CPSWPROXY_RDEVCMD_TSK_PRI                       (22U)
+#else
+#define CPSWPROXY_RDEVCMD_TSK_PRI                       (2U)
+#endif
+#define CPSWPROXY_IPC_TASK_STACKALIGN                   (8192U)
+
+/*! Remote notify service task stack size */
+#define CPSWPROXY_NOTIFY_SERVICE_CLIENT_TASK_STACKSIZE  (16U * 1024U)
+
+#define CPSWPROXY_NOTIFY_SERVICE_TASK_STACKALIGN        CPSWPROXY_NOTIFY_SERVICE_CLIENT_TASK_STACKSIZE
+
+#define CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY          (2U)
 
 #if defined(__KLOCWORK__)
 #define CpswProxy_assert(cond)               do { if (!(cond)) abort(); } while (0)
@@ -125,374 +144,42 @@
                     (const char *) __FILE__, (int32_t) __LINE__))
 #endif
 
-
-typedef enum CpswProxy_RdevCmd_tag
-{
-    CPSWPROXY_RDEVCMD_IOCTL,
-    CPSWPROXY_RDEVCMD_REGWR,
-    CPSWPROXY_RDEVCMD_REGRD,
-    CPSWPROXY_RDEVCMD_ATTACH,
-    CPSWPROXY_RDEVCMD_ATTACHEXT,
-    CPSWPROXY_RDEVCMD_DETACH,
-    CPSWPROXY_RDEVCMD_REGIPV6,
-    CPSWPROXY_RDEVCMD_UNREGIPV6,
-    CPSWPROXY_RDEVCMD_REGIPV4,
-    CPSWPROXY_RDEVCMD_UNREGIPV4,
-    CPSWPROXY_RDEVCMD_ALLOCTX,
-    CPSWPROXY_RDEVCMD_FREETX,
-    CPSWPROXY_RDEVCMD_ALLOCRX,
-    CPSWPROXY_RDEVCMD_FREERX,
-    CPSWPROXY_RDEVCMD_ALLOCMAC,
-    CPSWPROXY_RDEVCMD_FREEMAC,
-    CPSWPROXY_RDEVCMD_REGMAC,
-    CPSWPROXY_RDEVCMD_UNREGMAC,
-    CPSWPROXY_RDEVCMD_REGDEFAULT,
-    CPSWPROXY_RDEVCMD_UNREGDEFAULT,
-    CPSWPROXY_RDEVCMD_REGETHTYPE,
-    CPSWPROXY_RDEVCMD_UNREGETHTYPE,
-    CPSWPROXY_RDEVCMD_REGREMOTETIMER,
-    CPSWPROXY_RDEVCMD_UNREGREMOTETIMER,
-    CPSWPROXY_RDEVCMD_SETPROMISCMODE,
-    CPSWPROXY_RDEVCMD_FILTERADDMAC,
-    CPSWPROXY_RDEVCMD_FILTERDELMAC,
-    CPSWPROXY_RDEVCMD_NOTIFY,
-    CPSWPROXY_RDEVCMD_PING,
-    CPSWPROXY_RDEVCMD_EXIT,
-} CpswProxy_rdevCmd_e;
-
-
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
-typedef struct CpswProxy_rdevCmdAttachReq_s
-{
-    enum rpmsg_kdrv_ethswitch_cpsw_type enetType;
-} CpswProxy_rdevCmdAttachReq_t;
 
-typedef struct CpswProxy_rdevCmdAttachExtReq_s
+/*!
+ * \brief CPSW Remote notify service callback handlers
+ */
+typedef struct CpswProxy_NotifyServiceCallbackHandlers_s
 {
-    enum rpmsg_kdrv_ethswitch_cpsw_type enetType;
-} CpswProxy_rdevCmdAttachExtReq_t;
+    /*! Hardware push notify handler */
+     CpswProxy_hwPushNotifyCbFxn hwPushCb;
 
-typedef struct CpswProxy_rdevCmdAttachRes_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_mtu;
-    uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
-    uint32_t features;
-    uint32_t mac_only_port;
-} CpswProxy_rdevCmdAttachRes_t;
-
-typedef struct CpswProxy_rdevCmdAttachExtRes_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_mtu;
-    uint32_t tx_mtu[RPMSG_KDRV_TP_ETHSWITCH_CPSW_PRIORITY_NUM];
-    uint32_t features;
-    uint32_t tx_id;
-    uint32_t rx_flow_allocidx;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-    uint32_t mac_only_port;
-} CpswProxy_rdevCmdAttachExtRes_t;
-
-typedef struct CpswProxy_rdevCmdAllocReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-} CpswProxy_rdevCmdAllocReq_t;
-
-typedef struct CpswProxy_rdevCmdAllocTxRes_s
-{
-    uint32_t tx_id;
-} CpswProxy_rdevCmdAllocTxRes_t;
-
-typedef struct CpswProxy_rdevCmdFreeTxReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t tx_id;
-} CpswProxy_rdevCmdFreeTxReq_t;
-
-typedef struct CpswProxy_rdevCmdAllocRxRes_s
-{
-    uint32_t rx_flow_allocidx;
-} CpswProxy_rdevCmdAllocRxRes_t;
-
-typedef struct CpswProxy_rdevCmdFreeRxReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_flow_allocidx;
-} CpswProxy_rdevCmdFreeRxReq_t;
-
-typedef struct CpswProxy_rdevCmdAllocMacRes_s
-{
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-} CpswProxy_rdevCmdAllocMacRes_t;
-
-typedef struct CpswProxy_rdevCmdFreeMacReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-} CpswProxy_rdevCmdFreeMacReq_t;
-
-typedef struct CpswProxy_rdevCmdRegDefaultReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_default_flow_allocidx;
-} CpswProxy_rdevCmdRegDefaultReq_t;
-
-typedef struct CpswProxy_rdevCmdUnRegDefaultReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_default_flow_allocidx;
-} CpswProxy_rdevCmdUnRegDefaultReq_t;
-
-typedef struct CpswProxy_rdevCmdRegMacReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_flow_allocidx;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-} CpswProxy_rdevCmdRegMacReq_t;
-
-typedef struct CpswProxy_rdevCmdUnRegMacReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_flow_allocidx;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-} CpswProxy_rdevCmdUnRegMacReq_t;
-
-typedef struct CpswProxy_rdevCmdRegIPv4Req_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-    uint8_t ipv4Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
-} CpswProxy_rdevCmdRegIPv4Req_t;
-
-typedef struct CpswProxy_rdevCmdUnRegIPv4Req_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t ipv4Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV4ADDRLEN];
-} CpswProxy_rdevCmdUnRegIPv4Req_t;
-
-typedef struct CpswProxy_rdevCmdRegIPv6Req_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-    uint8_t ipv6Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
-} CpswProxy_rdevCmdRegIPv6Req_t;
-
-typedef struct CpswProxy_rdevCmdUnRegIPv6Req_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t ipv6Addr[RPMSG_KDRV_TP_ETHSWITCH_IPV6ADDRLEN];
-} CpswProxy_rdevCmdUnRegIPv6Req_t;
-
-typedef struct CpswProxy_rdevCmdDetachReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-} CpswProxy_rdevCmdDetachReq_t;
-
-typedef struct CpswProxy_rdevCmdRegRdReq_s
-{
-    uint32_t regRdAddr;
-} CpswProxy_rdevCmdRegRdReq_t;
-
-typedef struct CpswProxy_rdevCmdRegRdRes_s
-{
-    uint32_t regRdValue;
-} CpswProxy_rdevCmdRegRdRes_t;
-
-typedef struct CpswProxy_rdevCmdRegWrReq_s
-{
-    uint32_t regWrAddr;
-    uint32_t regWrValue;
-} CpswProxy_rdevCmdRegWrReq_t;
-
-typedef struct CpswProxy_rdevCmdRegWrRes_s
-{
-    uint32_t regPostWrValue;
-} CpswProxy_rdevCmdRegWrRes_t;
-
-typedef struct CpswProxy_rdevCmdIOCTLReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t cmd;
-    const void *inArgs;
-    uint32_t inArgsSize;
-    void *outArgs;
-    uint32_t outArgsSize;
-} CpswProxy_rdevCmdIOCTLReq_t;
-
-typedef struct CpswProxy_rdevCmdIOCTLRes_s
-{
-    uint8_t *outArgs;
-} CpswProxy_rdevCmdIOCTLRes_t;
-
-typedef struct rdecEthSwitchAppPingReq_s
-{
-    char msgText[128];
-} rdecEthSwitchAppPingReq_t;
-
-typedef struct rdecEthSwitchAppPingRes_s
-{
-    char resp[128];
-} rdecEthSwitchAppPingRes_t;
-
-typedef struct CpswProxy_rdevCmdRegEthertypeReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_flow_allocidx;
-    uint16_t ether_type;
-} CpswProxy_rdevCmdRegEthertypeReq_t;
-
-typedef struct CpswProxy_rdevCmdUnRegEthertypeReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_flow_allocidx;
-    uint16_t ether_type;
-} CpswProxy_rdevCmdUnRegEthertypeReq_t;
-
-typedef struct CpswProxy_rdevCmdRegRemoteTimerReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t timerId;
-    uint8_t hwPushNum;
-} CpswProxy_rdevCmdRegRemoteTimerReq_t;
-
-typedef struct CpswProxy_rdevCmdUnRegRemoteTimerReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t hwPushNum;
-} CpswProxy_rdevCmdUnRegRemoteTimerReq_t;
-
-typedef struct CpswProxy_rdevCmdSetPromiscMode_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t enable;
-} CpswProxy_rdevCmdSetPromiscMode_t;
-
-typedef struct CpswProxy_rdevCmdFilterAddMacReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_flow_allocidx;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-    uint16_t vlan_id;
-} CpswProxy_rdevCmdFilterAddMacReq_t;
-
-typedef struct CpswProxy_rdevCmdFilterDelMacReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint32_t rx_flow_allocidx;
-    uint8_t mac_address[RPMSG_KDRV_TP_ETHSWITCH_MACADDRLEN];
-    uint16_t vlan_id;
-} CpswProxy_rdevCmdFilterDelMacReq_t;
-
-typedef struct CpswProxy_rdevCmdNotifyReq_s
-{
-    uint64_t id;
-    uint32_t core_key;
-    uint8_t notify_id;
-    uint8_t *notify_info;
-    uint32_t notify_len;
-} CpswProxy_rdevCmdNotifyReq_t;
-
-
-typedef struct CpswProxy_rdevCmdReqMsg_s
-{
-    CpswProxy_rdevCmd_e cmd;
-#ifndef QNX_OS
-    MailboxP_Handle hResponseMbx;
-#endif
-    union
-    {
-        CpswProxy_rdevCmdIOCTLReq_t ioctl;
-        CpswProxy_rdevCmdRegWrReq_t regwr;
-        CpswProxy_rdevCmdRegRdReq_t regrd;
-        CpswProxy_rdevCmdAttachReq_t attach;
-        CpswProxy_rdevCmdAttachExtReq_t attachext;
-        CpswProxy_rdevCmdDetachReq_t detach;
-        CpswProxy_rdevCmdRegIPv6Req_t regipv6;
-        CpswProxy_rdevCmdUnRegIPv6Req_t unregipv6;
-        CpswProxy_rdevCmdRegIPv4Req_t regipv4;
-        CpswProxy_rdevCmdUnRegIPv4Req_t unregipv4;
-        CpswProxy_rdevCmdRegMacReq_t regmac;
-        CpswProxy_rdevCmdUnRegMacReq_t unregmac;
-        CpswProxy_rdevCmdRegDefaultReq_t regdefault;
-        CpswProxy_rdevCmdUnRegDefaultReq_t unregdefault;
-        CpswProxy_rdevCmdAllocReq_t alloc;
-        CpswProxy_rdevCmdFreeTxReq_t freetx;
-        CpswProxy_rdevCmdFreeRxReq_t freerx;
-        CpswProxy_rdevCmdFreeMacReq_t freemac;
-        CpswProxy_rdevCmdRegEthertypeReq_t regethtype;
-        CpswProxy_rdevCmdUnRegEthertypeReq_t unregethtype;
-        CpswProxy_rdevCmdRegRemoteTimerReq_t regremotetimer;
-        CpswProxy_rdevCmdUnRegRemoteTimerReq_t unregremotetimer;
-        CpswProxy_rdevCmdSetPromiscMode_t setpromiscmode;
-        CpswProxy_rdevCmdFilterAddMacReq_t filteraddmac;
-        CpswProxy_rdevCmdFilterDelMacReq_t filterdelmac;
-        CpswProxy_rdevCmdNotifyReq_t notify;
-        rdecEthSwitchAppPingReq_t ping;
-    } u;
-} CpswProxy_rdevCmdReqMsg_t;
-
-typedef struct CpswProxy_rdevCmdResMsg_s
-{
-    int32_t retVal;
-    union
-    {
-        CpswProxy_rdevCmdAttachRes_t attach;
-        CpswProxy_rdevCmdAttachExtRes_t attachext;
-        CpswProxy_rdevCmdAllocTxRes_t tx;
-        CpswProxy_rdevCmdAllocRxRes_t rx;
-        CpswProxy_rdevCmdAllocMacRes_t mac;
-        CpswProxy_rdevCmdIOCTLRes_t ioctl;
-        CpswProxy_rdevCmdRegWrRes_t regwr;
-        CpswProxy_rdevCmdRegRdRes_t regrd;
-        rdecEthSwitchAppPingRes_t ping;
-    } u;
-} CpswProxy_rdevCmdResMsg_t;
-
-typedef struct CpswProxy_rdevCmdMsg_s
-{
-    CpswProxy_rdevCmdReqMsg_t req;
-    CpswProxy_rdevCmdResMsg_t res;
-} CpswProxy_rdevCmd_t;
+    /*! Hardware push notify arguments */
+    void *hwPushCbArg;
+} CpswProxy_NotifyServiceCallbackHandlers;
 
 typedef struct CpswProxy_notifyServiceObj_s
 {
+    /* Task handle for remote notify service */
     TaskP_Handle hNotifyServiceTsk;
+
+    /* RPMessage handle for remote notify service */
     RPMessage_Handle hNotifyServicRpMsgEp;
+
+    /* Local endpoint for notify service in proxy client */
     uint32_t localEp;
-    CpswRemoteNotifyService_CallbackHandlers cb;
+
+    /* Notify service callback handlers, cbFxn and cbArgs */
+    CpswProxy_NotifyServiceCallbackHandlers cb;
 
     /* Buffer to store received messages for remote notify service */
-    uint8_t rpmsgBuf[CPSW_REMOTE_NOTIFY_SERVICE_DATA_SIZE]  __attribute__ ((aligned(8192)));
+    uint8_t rpmsgBuf[ETHREMOTECFG_IPC_DATA_SIZE] __attribute__ ((aligned(8192)));
 
     /* Notify service task stack buffer */
-    uint8_t taskStack[CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKSIZE] __attribute__ ((aligned(CPSW_REMOTE_NOTIFY_SERVICE_TASK_STACKALIGN)));
+    uint8_t taskStack[CPSWPROXY_NOTIFY_SERVICE_CLIENT_TASK_STACKSIZE] __attribute__ ((aligned(CPSWPROXY_NOTIFY_SERVICE_TASK_STACKALIGN)));
 } CpswProxy_notifyServiceObj;
-
 typedef struct CpswProxy_ClientObj_s
 {
     CpswProxy_Config cfg;
@@ -500,19 +187,14 @@ typedef struct CpswProxy_ClientObj_s
     /* Whether client object is already in used by an app */
     bool inUse;
 
-    TaskP_Handle      hRdevCmdTsk;
-#ifdef QNX_OS
-    int chid;
-    int coid;
-#else
-    MailboxP_Handle    hCmdMbx;
-    MailboxP_Handle    hResponseMbx;
-    uint8_t cmdMbxBuf[CPSWPROXY_RDEV_MBOX_SIZE] __attribute__ ((aligned(32)));
-    uint8_t responseMbxBuf[CPSWPROXY_RDEV_MBOX_SIZE] __attribute__ ((aligned(32)));
-#endif
+    /* Token used after attaching to ETHFW */
+    uint32_t token;
 
-    /* remote_device command handler task stack buffer */
-    uint8_t rdevCmdTaskStack[CPSWPROXY_RDEVCMD_TSK_STACKSIZE] __attribute__ ((aligned(CPSWPROXY_RDEVCMD_TSK_STACKALIGN)));
+    /* Sequential request id number */
+    uint32_t reqId;
+
+    /* Features supported by related virtual port */
+    uint32_t features;
 } CpswProxy_ClientObj;
 
 typedef struct CpswProxy_Obj_s
@@ -533,23 +215,45 @@ typedef struct CpswProxy_Obj_s
     /* Endpoint associated with the underlying remote_device used by CpswProxyServer */
     uint32_t masterEndpt;
 
-    SemaphoreP_Handle hRdevStartSem;
+    /* Local endpoint for handling messages from ETHFW */
+    uint32_t localEndpt;
+
+    /* RPMessage handle for ETHFW Proxy Service */
+    RPMessage_Handle hEthfwServiceRpMsg;
 
     /* Timestamp event notify service */
     CpswProxy_notifyServiceObj notifyServiceObj;
+
+#ifdef QNX_OS
+    int chid;
+    int coid;
+#else
+    /* Mailbox handle for response messages */
+    MailboxP_Handle hResMbx;
+
+    /* Mailbox Buffer for storing all the response messages */
+    uint8_t resMbxBuf[CPSWPROXY_RES_MBOX_SIZE] __attribute__ ((aligned(32)));
+#endif
+
+    /* Task handle for message handling */
+    TaskP_Handle hMsgHandlerTsk;
 } CpswProxy_Obj;
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
-static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
-                              CpswProxy_rdevCmd_e cmd,
-                              CpswProxy_rdevCmd_t *msg);
 
-static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
-                                        Enet_Handle hEnet,
-                                        uint32_t coreKey,
-                                        uint32_t *startFlowIdx);
+static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
+                              uint32_t reqType,
+                              void *reqMsg,
+                              uint16_t reqLen,
+                              void *resMsg,
+                              uint16_t resLen);
+
+static void CpswProxy_msgHandlerTskFxn(void* arg0,
+                                       void* arg1);
+
+static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1);
 
 #ifdef QNX_OS
 static void slog_printf(const char *pcString, ...);
@@ -564,6 +268,10 @@ static void slog_printf(const char *pcString, ...);
 /* ========================================================================== */
 
 static CpswProxy_Obj gCpswProxy;
+
+static uint8_t gCpswProxyClientRpMsgbuf[ETHREMOTECFG_IPC_DATA_SIZE] __attribute__ ((aligned(1024)));
+
+static uint8_t msgHandlerTaskBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(CPSWPROXY_IPC_TASK_STACKALIGN)));
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -615,460 +323,56 @@ static void slog_printf(const char *pcString, ...)
 }
 #endif
 
-#ifndef QNX_OS
-static void  CpswProxy_createMbx(CpswProxy_Handle hProxy,
-                                 MailboxP_Handle *pMailboxHandle,
-                                 bool IsCMD)
+int32_t CpswProxy_createEndpts(void)
 {
-    MailboxP_Params mboxParams;
+    RPMessage_Params params;
+    int32_t status = ENET_SOK;
 
-    MailboxP_Params_init(&mboxParams);
-    if (IsCMD == true)
+    /* Create the RPMSG endpoint */
+    RPMessageParams_init(&params);
+    params.requestedEndpt = RPMESSAGE_ANY;
+    params.buf            = gCpswProxyClientRpMsgbuf;
+    params.bufSize        = sizeof(gCpswProxyClientRpMsgbuf);
+
+    gCpswProxy.hEthfwServiceRpMsg = RPMessage_create(&params, &gCpswProxy.localEndpt);
+    if (gCpswProxy.hEthfwServiceRpMsg == NULL)
     {
-        mboxParams.name = (uint8_t *)"CmdMbx";
-        mboxParams.buf = (void *)hProxy->cmdMbxBuf;
+        status = ENET_EFAIL;
+        System_printf("Failed to create endpt: %d\n", status);
     }
-    else
+
+    return status;
+}
+
+void CpswProxy_deleteEndpts(void)
+{
+    int32_t status = ENET_SOK;
+
+    if (gCpswProxy.hEthfwServiceRpMsg != NULL)
     {
-        mboxParams.name = (uint8_t *)"ResponseMbx";
-        mboxParams.buf = (void *)hProxy->responseMbxBuf;
-    }
-    mboxParams.size =  sizeof(CpswProxy_rdevCmd_t);
-    mboxParams.count = CPSWPROXY_RDEV_MSGCOUNT;
-    mboxParams.bufsize = CPSWPROXY_RDEV_MBOX_SIZE;
-
-    *pMailboxHandle = MailboxP_create(&mboxParams);
-    CpswProxy_assert(*pMailboxHandle != NULL);
-}
-
-static void  CpswProxy_deleteMbx(MailboxP_Handle *pMailboxHandle)
-{
-    MailboxP_delete(*pMailboxHandle);
-}
-#endif
-
-static void CpswProxy_createSem(SemaphoreP_Handle *pSemHandle)
-{
-    SemaphoreP_Params semParams;
-
-    SemaphoreP_Params_init(&semParams);
-    semParams.mode = SemaphoreP_Mode_BINARY;
-    *pSemHandle = SemaphoreP_create(0, &semParams);
-
-    CpswProxy_assert(*pSemHandle != NULL);
-}
-
-static void CpswProxy_cmdHandler(CpswProxy_Handle hProxy,
-                                 uint32_t deviceId)
-{
-#ifdef QNX_OS
-    int rcvid;
-    int status;
-#else
-    Bool mbxStatus;
-    MailboxP_Handle hMailbox = hProxy->hCmdMbx;
-#endif
-    Bool exitCmdHandler;
-    CpswProxy_rdevCmd_t msg;
-
-    exitCmdHandler = FALSE;
-    while (exitCmdHandler != TRUE)
-    {
-#ifdef QNX_OS
-        rcvid = MsgReceive(hProxy->chid, &msg, sizeof(msg), NULL);
-        CpswProxy_assert(rcvid != -1);
-#else
-        mbxStatus = MailboxP_pend(hMailbox, &msg, MailboxP_WAIT_FOREVER);
-        CpswProxy_assert(mbxStatus == MailboxP_OK);
-#endif
-        switch (msg.req.cmd)
+        status = RPMessage_delete(&gCpswProxy.hEthfwServiceRpMsg);
+        if (status != IPC_SOK)
         {
-            case CPSWPROXY_RDEVCMD_PING:
-            {
-                memset(msg.res.u.ping.resp, 0, sizeof(msg.res.u.ping.resp));
-                System_printf("%s: sending ping request\n", __func__);
-                msg.res.retVal = rdevEthSwitchClient_sendping(deviceId,
-                                                              msg.req.u.ping.msgText,
-                                                              strlen(msg.req.u.ping.msgText),
-                                                              msg.res.u.ping.resp,
-                                                              sizeof(msg.res.u.ping.resp));
-                if (0 == msg.res.retVal)
-                {
-                    uint32_t respLen = sizeof(msg.res.u.ping.resp);
-
-                    msg.res.u.ping.resp[respLen - 1U] = '\0';
-                    System_printf("%s: respose %s\n", __func__, msg.res.u.ping.resp);
-                }
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_ATTACH:
-            {
-                msg.res.retVal = rdevEthSwitchClient_attach(deviceId,
-                                                            msg.req.u.attach.enetType,
-                                                            &msg.res.u.attach.id,
-                                                            &msg.res.u.attach.core_key,
-                                                            &msg.res.u.attach.rx_mtu,
-                                                            msg.res.u.attach.tx_mtu,
-                                                            ENET_ARRAYSIZE(msg.res.u.attach.tx_mtu),
-                                                            &msg.res.u.attach.features,
-                                                            &msg.res.u.attach.mac_only_port);
-                if (0 == msg.res.retVal)
-                {
-                    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
-                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsum:%s, MacOnly:%u\n",
-                                  __func__,
-                                  hEnet,
-                                  msg.res.u.attach.core_key,
-                                  msg.res.u.attach.rx_mtu,
-                                  msg.res.u.attach.tx_mtu[0],
-                                  msg.res.u.attach.tx_mtu[1],
-                                  msg.res.u.attach.tx_mtu[2],
-                                  msg.res.u.attach.tx_mtu[3],
-                                  msg.res.u.attach.tx_mtu[4],
-                                  msg.res.u.attach.tx_mtu[5],
-                                  msg.res.u.attach.tx_mtu[6],
-                                  msg.res.u.attach.tx_mtu[7],
-                                  (((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0)?"enabled":"disabled"),
-                                  msg.res.u.attach.mac_only_port);
-                }
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_ATTACHEXT:
-            {
-                msg.res.retVal = rdevEthSwitchClient_attachext(deviceId,
-                                                               msg.req.u.attachext.enetType,
-                                                               &msg.res.u.attachext.id,
-                                                               &msg.res.u.attachext.core_key,
-                                                               &msg.res.u.attachext.rx_mtu,
-                                                               msg.res.u.attachext.tx_mtu,
-                                                               ENET_ARRAYSIZE(msg.res.u.attachext.tx_mtu),
-                                                               &msg.res.u.attachext.features,
-                                                               &msg.res.u.attachext.tx_id,
-                                                               &msg.res.u.attachext.rx_flow_allocidx,
-                                                               msg.res.u.attachext.mac_address,
-                                                               ENET_ARRAYSIZE(msg.res.u.attachext.mac_address),
-                                                               &msg.res.u.attachext.mac_only_port);
-                if (0 == msg.res.retVal)
-                {
-                    Enet_Handle hEnet = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
-                    System_printf("Function:%s,Handle:%p,CoreKey:%x, RxMtu:%4u, TxMtu:%4u:%4u:%4u:%4u:%4u:%4u:%4u:%4u, TxCsum:%s, MacOnly:%u\n",
-                                  __func__,
-                                  hEnet,
-                                  msg.res.u.attachext.core_key,
-                                  msg.res.u.attachext.rx_mtu,
-                                  msg.res.u.attachext.tx_mtu[0],
-                                  msg.res.u.attachext.tx_mtu[1],
-                                  msg.res.u.attachext.tx_mtu[2],
-                                  msg.res.u.attachext.tx_mtu[3],
-                                  msg.res.u.attachext.tx_mtu[4],
-                                  msg.res.u.attachext.tx_mtu[5],
-                                  msg.res.u.attachext.tx_mtu[6],
-                                  msg.res.u.attachext.tx_mtu[7],
-                                  (((msg.res.u.attachext.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_TXCSUM) != 0)?"enabled":"disabled"),
-                                  msg.res.u.attachext.mac_only_port);
-                }
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_ALLOCTX:
-            {
-                msg.res.retVal = rdevEthSwitchClient_alloctx(deviceId, msg.req.u.alloc.id, msg.req.u.alloc.core_key, &msg.res.u.tx.tx_id);
-                if (0 == msg.res.retVal)
-                {
-                    System_printf("Function:%s,Txid:%u\n", __func__, msg.res.u.tx.tx_id);
-                }
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_ALLOCRX:
-            {
-                msg.res.retVal = rdevEthSwitchClient_allocrx(deviceId, msg.req.u.alloc.id, msg.req.u.alloc.core_key, &msg.res.u.rx.rx_flow_allocidx);
-                if (0 == msg.res.retVal)
-                {
-                    System_printf("Function:%s,RxAllocId:%u\n", __func__, msg.res.u.rx.rx_flow_allocidx);
-                }
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_REGDEFAULT:
-            {
-                msg.res.retVal = rdevEthSwitchClient_registerrxdefault(deviceId, msg.req.u.regdefault.id, msg.req.u.regdefault.core_key, msg.req.u.regdefault.rx_default_flow_allocidx);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_ALLOCMAC:
-            {
-                msg.res.retVal = rdevEthSwitchClient_allocmac(deviceId, msg.req.u.alloc.id, msg.req.u.alloc.core_key, msg.res.u.mac.mac_address, ENET_ARRAYSIZE(msg.res.u.mac.mac_address));
-                if (0 == msg.res.retVal)
-                {
-                    System_printf("Function:%s,mac_address:%2x:%2x:%2x:%2x:%2x:%2x \n",
-                                  __func__,
-                                  msg.res.u.mac.mac_address[0],
-                                  msg.res.u.mac.mac_address[1],
-                                  msg.res.u.mac.mac_address[2],
-                                  msg.res.u.mac.mac_address[3],
-                                  msg.res.u.mac.mac_address[4],
-                                  msg.res.u.mac.mac_address[5]);
-                }
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_REGMAC:
-            {
-                msg.res.retVal = rdevEthSwitchClient_registermac(deviceId, msg.req.u.regmac.id, msg.req.u.regmac.core_key, msg.req.u.regmac.rx_flow_allocidx, msg.req.u.regmac.mac_address);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_REGIPV4:
-            {
-                msg.res.retVal = rdevEthSwitchClient_ipv4macregister(deviceId, msg.req.u.regipv4.id, msg.req.u.regipv4.core_key, msg.req.u.regipv4.mac_address, msg.req.u.regipv4.ipv4Addr);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_REGIPV6:
-            {
-                msg.res.retVal = rdevEthSwitchClient_ipv6macregister(deviceId, msg.req.u.regipv6.id, msg.req.u.regipv6.core_key, msg.req.u.regipv6.mac_address, msg.req.u.regipv6.ipv6Addr);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_UNREGIPV4:
-            {
-                msg.res.retVal = rdevEthSwitchClient_ipv4macunregister(deviceId, msg.req.u.unregipv4.id, msg.req.u.unregipv4.core_key, msg.req.u.unregipv4.ipv4Addr);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_UNREGIPV6:
-            {
-                /* Nothing to do */
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_IOCTL:
-            {
-                msg.res.retVal = rdevEthSwitchClient_ioctl(deviceId,
-                                                           msg.req.u.ioctl.id,
-                                                           msg.req.u.ioctl.core_key,
-                                                           msg.req.u.ioctl.cmd,
-                                                           msg.req.u.ioctl.inArgs,
-                                                           msg.req.u.ioctl.inArgsSize,
-                                                           msg.req.u.ioctl.outArgs,
-                                                           msg.req.u.ioctl.outArgsSize);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_UNREGMAC:
-            {
-                msg.res.retVal = rdevEthSwitchClient_unregistermac(deviceId, msg.req.u.unregmac.id, msg.req.u.unregmac.core_key, msg.req.u.unregmac.rx_flow_allocidx, msg.req.u.unregmac.mac_address);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_UNREGDEFAULT:
-            {
-                msg.res.retVal = rdevEthSwitchClient_unregisterrxdefault(deviceId, msg.req.u.unregdefault.id, msg.req.u.unregdefault.core_key, msg.req.u.unregdefault.rx_default_flow_allocidx);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_FREEMAC:
-            {
-                msg.res.retVal = rdevEthSwitchClient_freemac(deviceId, msg.req.u.freemac.id, msg.req.u.freemac.core_key, msg.req.u.freemac.mac_address);
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_FREETX:
-            {
-                msg.res.retVal = rdevEthSwitchClient_freetx(deviceId, msg.req.u.freetx.id, msg.req.u.freetx.core_key, msg.req.u.freetx.tx_id);
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_FREERX:
-            {
-                msg.res.retVal = rdevEthSwitchClient_freerx(deviceId, msg.req.u.freerx.id, msg.req.u.freerx.core_key, msg.req.u.freerx.rx_flow_allocidx);
-
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_DETACH:
-            {
-                /* Dump stats before detach */
-                uint8_t notifyInfo[] = {'d', 'u', 'm', 'p', 's', 't', 'a', 't', 's'};
-                System_printf("%s: sending message\n", __func__);
-                rdevEthSwitchClient_sendNotify(deviceId, msg.req.u.detach.id, msg.req.u.detach.core_key, RPMSG_KDRV_TP_ETHSWITCH_CLIENTNOTIFY_DUMPSTATS, notifyInfo, sizeof(notifyInfo));
-                msg.res.retVal = rdevEthSwitchClient_detach(deviceId, msg.req.u.detach.id, msg.req.u.detach.core_key);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_REGWR:
-            {
-                msg.res.retVal = rdevEthSwitchClient_regwr(deviceId, msg.req.u.regwr.regWrAddr, msg.req.u.regwr.regWrValue, &msg.res.u.regwr.regPostWrValue);
-                break;
-            }
-
-            case CPSWPROXY_RDEVCMD_REGRD:
-            {
-                msg.res.retVal = rdevEthSwitchClient_regrd(deviceId, msg.req.u.regrd.regRdAddr, &msg.res.u.regrd.regRdValue);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_REGETHTYPE:
-            {
-                msg.res.retVal = rdevEthSwitchClient_registerethtype(deviceId, msg.req.u.regethtype.id, msg.req.u.regethtype.core_key, msg.req.u.regethtype.rx_flow_allocidx, msg.req.u.regethtype.ether_type);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_UNREGETHTYPE:
-            {
-                msg.res.retVal = rdevEthSwitchClient_unregisterethtype(deviceId, msg.req.u.unregethtype.id, msg.req.u.unregethtype.core_key, msg.req.u.unregethtype.rx_flow_allocidx, msg.req.u.unregethtype.ether_type);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_REGREMOTETIMER:
-            {
-                msg.res.retVal = rdevEthSwitchClient_registerremotetimer(deviceId,
-                                                                         msg.req.u.regremotetimer.id,
-                                                                         msg.req.u.regremotetimer.core_key,
-                                                                         msg.req.u.regremotetimer.timerId,
-                                                                         msg.req.u.regremotetimer.hwPushNum);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_UNREGREMOTETIMER:
-            {
-                msg.res.retVal = rdevEthSwitchClient_unregisterremotetimer(deviceId,
-                                                                           msg.req.u.unregremotetimer.id,
-                                                                           msg.req.u.unregremotetimer.core_key,
-                                                                           msg.req.u.unregremotetimer.hwPushNum);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_SETPROMISCMODE:
-            {
-                msg.res.retVal = rdevEthSwitchClient_setPromiscMode(deviceId,
-                                                                    msg.req.u.setpromiscmode.id,
-                                                                    msg.req.u.setpromiscmode.core_key,
-                                                                    msg.req.u.setpromiscmode.enable);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_FILTERADDMAC:
-            {
-                msg.res.retVal = rdevEthSwitchClient_filterAddMac(deviceId,
-                                                                  msg.req.u.filteraddmac.id,
-                                                                  msg.req.u.filteraddmac.core_key,
-                                                                  msg.req.u.filteraddmac.rx_flow_allocidx,
-                                                                  msg.req.u.filteraddmac.mac_address,
-                                                                  msg.req.u.filteraddmac.vlan_id);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_FILTERDELMAC:
-            {
-                msg.res.retVal = rdevEthSwitchClient_filterDelMac(deviceId,
-                                                                   msg.req.u.filterdelmac.id,
-                                                                   msg.req.u.filterdelmac.core_key,
-                                                                   msg.req.u.filterdelmac.rx_flow_allocidx,
-                                                                   msg.req.u.filterdelmac.mac_address,
-                                                                   msg.req.u.filterdelmac.vlan_id);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_NOTIFY:
-            {
-                msg.res.retVal = rdevEthSwitchClient_sendNotify(deviceId,
-                                                                msg.req.u.notify.id,
-                                                                msg.req.u.notify.core_key,
-                                                                msg.req.u.notify.notify_id,
-                                                                msg.req.u.notify.notify_info,
-                                                                msg.req.u.notify.notify_len);
-                break;
-            }
-            case CPSWPROXY_RDEVCMD_EXIT:
-            {
-                exitCmdHandler = TRUE;
-                msg.res.retVal = rdevEthSwitchClient_disconnect(deviceId);
-                break;
-            }
+            System_printf("Failed to delete endpt: %d\n", status);
         }
 
-#ifdef QNX_OS
-        status = MsgReply(rcvid, EOK, &msg, sizeof(msg));
-        CpswProxy_assert(status != -1);
-#else
-        CpswProxy_assert(msg.req.hResponseMbx != NULL);
-        mbxStatus =
-            MailboxP_post(msg.req.hResponseMbx, &msg, MailboxP_WAIT_FOREVER);
-        CpswProxy_assert(mbxStatus == MailboxP_OK);
-#endif
+        gCpswProxy.hEthfwServiceRpMsg = NULL;
     }
 }
 
-static void CpswProxy_setRemoteParams(EthRemoteCfg_VirtPort portId,
-                                      rdevEthSwitchClientInitPrms_t *prm)
+static void CpswProxy_createNotifyServiceTask(void)
 {
-    const char *coreName[] = {
-        [IPC_MPU1_0] = "mpu_1_0",
-        [IPC_MCU1_0] = "mcu_1_0",
-        [IPC_MCU1_1] = "mcu_1_1",
-        [IPC_MCU2_0] = "mcu_2_0",
-        [IPC_MCU2_1] = "mcu_2_1",
-#if defined (SOC_J721E) || defined(SOC_J784S4)
-        [IPC_MCU3_0] = "mcu_3_0",
-        [IPC_MCU3_1] = "mcu_3_1",
-#endif
-    };
-    uint32_t coreId = EnetSoc_getCoreId();
-    uint32_t portNum = EthRemoteCfg_getPortNum(portId);
-    bool isSwitchPort = EthRemoteCfg_isSwitchPort(portId);
+    CpswProxy_notifyServiceObj *notifyObj = &gCpswProxy.notifyServiceObj;
+    TaskP_Params taskParams;
 
-    snprintf((char *)&prm->device_name[0],
-             ETHREMOTECFG_SERVER_MAX_NAME_LEN,
-             "%s_eth%s-device-%u",
-             coreName[coreId],
-             isSwitchPort ? "switch" : "mac",
-             portNum);
-}
+    TaskP_Params_init(&taskParams);
+    taskParams.priority  = CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY;
+    taskParams.arg0      = (void *)notifyObj;
+    taskParams.stack     = &notifyObj->taskStack[0];
+    taskParams.stacksize = sizeof(notifyObj->taskStack);
 
-static void CpswProxy_rdevCmdTskFxn(void* a0, void* a1)
-{
-    int32_t ret = 0;
-    rdevEthSwitchClientInitPrms_t prm;
-    CpswProxy_Handle hProxy = (CpswProxy_Handle) a0;
-
-    CpswProxy_setRemoteParams(hProxy->cfg.virtPort, &prm);
-    prm.cbHandler = rdevEthSwitchClient_printText;
-
-    System_printf("Connecting to '%s'\n", prm.device_name);
-
-    while (TRUE)
-    {
-        ret = rdevEthSwitchClient_connect(&prm);
-        if (ret != 0)
-        {
-            System_printf("error in device query\n");
-        }
-
-        if (ret != 0 || (ret == 0 && prm.device_id != APP_REMOTE_DEVICE_DEVICE_ID_EAGAIN))
-        {
-            break;
-        }
-
-        if (ret == 0 && (prm.device_id == APP_REMOTE_DEVICE_DEVICE_ID_EAGAIN))
-        {
-            TaskP_sleep(CPSWPROXY_RDEVCLIENT_CONNECT_RETRY_MS);
-        }
-    }
-
-    if (ret == 0)
-    {
-        System_printf("Registered a device name = %s, id = %u, type = %u\n",
-                      prm.device_name,
-                      prm.device_id,
-                      prm.device_type);
-        hProxy->cfg.deviceDataNotifyCb(&prm.eth_device_data);
-    }
-
-    CpswProxy_cmdHandler(hProxy, prm.device_id);
+    notifyObj->hNotifyServiceTsk = TaskP_create(&CpswProxy_notifyServiceTskFxn, &taskParams);
+    CpswProxy_assert(notifyObj->hNotifyServiceTsk != NULL);
 }
 
 static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
@@ -1079,20 +383,20 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
     uint32_t localEp;
     uint32_t remoteProcId, remoteEndPt;
     uint32_t remoteProc, remoteEp;
-    CpswRemoteNotifyService_MessageHeader *header = NULL;
+    EthRemoteCfg_NotifyHdr *header = NULL;
     uint16_t len;
-    uint64_t msgBuffer[CPSW_REMOTE_NOTIFY_SERVICE_RPC_MSG_SIZE / sizeof(uint64_t)];
+    uint64_t msgBuffer[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];
     volatile bool exitTask = false;
     void *data;
-    CpswRemoteNotifyService_HwPushMsg *hwPushMsg;
+    EthRemoteCfg_NotifyServiceHwPushMsg *hwPushMsg;
 
     data = (void *)msgBuffer;
     /* Create RPMsg */
     RPMessageParams_init(&rpmsgPrm);
-    rpmsgPrm.requestedEndpt = CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID;
+    rpmsgPrm.requestedEndpt = ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID;
     rpmsgPrm.buf = notifyObj->rpmsgBuf;
     rpmsgPrm.bufSize = sizeof(notifyObj->rpmsgBuf);
-    rpmsgPrm.numBufs = CPSW_REMOTE_NOTIFY_SERVICE_NUM_RPMSG_BUFS;
+    rpmsgPrm.numBufs = ETHREMOTECFG_IPC_NUM_MSG_BUFS;
 
     notifyObj->hNotifyServicRpMsgEp = RPMessage_create(&rpmsgPrm, &localEp);
 
@@ -1104,7 +408,7 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
 
     if (CPSWPROXY_SOK == ret)
     {
-        if (localEp != CPSW_REMOTE_NOTIFY_SERVICE_ENDPT_ID)
+        if (localEp != ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID)
         {
             System_printf("Could not create required End Point");
         }
@@ -1115,10 +419,10 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
 
         /* Wait for Remote EP to active */
         ret = RPMessage_getRemoteEndPt(gCpswProxy.masterCoreId,
-                                      CPSW_REMOTE_NOTIFY_SERVICE,
-                                      &remoteProcId,
-                                      &remoteEndPt,
-                                      IPC_RPMESSAGE_TIMEOUT_FOREVER);
+                                       ETHREMOTECFG_REMOTE_NOTIFY_SERVICE,
+                                       &remoteProcId,
+                                       &remoteEndPt,
+                                       IPC_RPMESSAGE_TIMEOUT_FOREVER);
         if(ret != 0)
         {
             System_printf("Remote Notify service locate failed\n");
@@ -1127,11 +431,11 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
         while (!exitTask)
         {
             ret = RPMessage_recv(notifyObj->hNotifyServicRpMsgEp,
-                                data,
-                                &len,
-                                &remoteEp,
-                                &remoteProc,
-                                IPC_RPMESSAGE_TIMEOUT_FOREVER);
+                                 data,
+                                 &len,
+                                 &remoteEp,
+                                 &remoteProc,
+                                 IPC_RPMESSAGE_TIMEOUT_FOREVER);
             if (IPC_SOK == ret)
             {
                 CpswProxy_assert(len <= sizeof(msgBuffer));
@@ -1139,15 +443,17 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
                 CpswProxy_assert(remoteProcId == remoteProc);
 
                 /* Process received message */
-                header = (CpswRemoteNotifyService_MessageHeader *)data;
-                switch(header->messageId)
+                header = (EthRemoteCfg_NotifyHdr *)data;
+                switch(header->notifyType)
                 {
-                    case CPSW_REMOTE_NOTIFY_SERVICE_CMD_HWPUSH:
+                case ETHREMOTECFG_NOTIFYTYPE_HWPUSH:
                     {
-                        hwPushMsg = (CpswRemoteNotifyService_HwPushMsg *)data;
-                        CpswProxy_assert(hwPushMsg->header.messageLen == sizeof(CpswRemoteNotifyService_HwPushMsg));
-
-                        if (notifyObj->cb.hwPushCb != NULL)
+                        hwPushMsg = (EthRemoteCfg_NotifyServiceHwPushMsg *)data;
+                        if (len <= sizeof(data))
+                        {
+                            System_printf("len is not matching data provided (data len: %u, len: %u)\n", sizeof(data), len);
+                        }
+                        else if (notifyObj->cb.hwPushCb != NULL)
                         {
                             notifyObj->cb.hwPushCb((CpswCpts_HwPush)hwPushMsg->hwPushNum,
                                                    hwPushMsg->timeStamp,
@@ -1158,7 +464,7 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
                     }
                     default:
                     {
-                        System_printf("CpswProxy_notifyServiceTskFxn: Received unknown notify command: %u\n", header->messageId);
+                        System_printf("CpswProxy_notifyServiceTskFxn: Received unknown notify command: %u\n", header->notifyType);
                         break;
                     }
                 }
@@ -1167,91 +473,84 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
     }
 }
 
-static void CpswProxy_remoteDeviceInit(uint32_t masterCoreId,
-                                       uint32_t remoteEp,
-                                       SemaphoreP_Handle rdevStartSem)
+void CpswProxy_init(void)
 {
-    app_remote_device_init_prm_t remote_dev_init_prm;
-
-    appRemoteDeviceInitParamsInit(&remote_dev_init_prm);
-
-    remote_dev_init_prm.rpmsg_buf_size = CPSWPROXY_RDEV_MSGSIZE;
-    remote_dev_init_prm.remote_endpt = remoteEp;
-    remote_dev_init_prm.wait_sem     = rdevStartSem;
-    remote_dev_init_prm.num_cores    = 1;
-    remote_dev_init_prm.cores[0]     = masterCoreId;
-
-    appRemoteDeviceInit(&remote_dev_init_prm);
-
-#ifdef QNX_OS
-    System_printf("Remote device (core : mpu1_0) .....\r\n");
-#else
-    System_printf("Remote device (core : mcu2_1) .....\r\n");
+    int32_t status = ENET_SOK;
+#ifndef QNX_OS
+    MailboxP_Params params;
 #endif
-}
-
-static void CpswProxy_createRDevCmdTask(CpswProxy_Handle hProxy)
-{
     TaskP_Params taskParams;
 
-    TaskP_Params_init(&taskParams);
-    taskParams.priority  = CPSWPROXY_RDEVCMD_TSK_PRI;
-    taskParams.arg0      = (void *)hProxy;
-    taskParams.stack     = &hProxy->rdevCmdTaskStack[0];
-    taskParams.stacksize = sizeof(hProxy->rdevCmdTaskStack);
-
-    hProxy->hRdevCmdTsk = TaskP_create(&CpswProxy_rdevCmdTskFxn, &taskParams);
-    CpswProxy_assert(hProxy->hRdevCmdTsk != NULL);
-}
-
-static void CpswProxy_createNotifyServiceTask(void)
-{
-    CpswProxy_notifyServiceObj *notifyObj = &gCpswProxy.notifyServiceObj;
-    TaskP_Params taskParams;
-
-    TaskP_Params_init(&taskParams);
-    taskParams.priority  = CPSW_REMOTE_NOTIFY_SERVICE_TASK_PRIORITY;
-    taskParams.arg0      = (void *)notifyObj;
-    taskParams.stack     = &notifyObj->taskStack[0];
-    taskParams.stacksize = sizeof(notifyObj->taskStack);
-
-    notifyObj->hNotifyServiceTsk = TaskP_create(&CpswProxy_notifyServiceTskFxn, &taskParams);
-    CpswProxy_assert(notifyObj->hNotifyServiceTsk != NULL);
-}
-
-void CpswProxy_init(uint32_t masterCoreId,
-                    uint32_t masterEndpt)
-{
     memset(&gCpswProxy, 0, sizeof(gCpswProxy));
 
     gCpswProxy.hMutex = MutexP_create(&gCpswProxy.mutexObj);
 
-    CpswProxy_createSem(&gCpswProxy.hRdevStartSem);
+#ifdef QNX_OS
+    gCpswProxy.chid = ChannelCreate(0);
+    CpswProxy_assert(gCpswProxy.chid != -1);
+    gCpswProxy.coid = ConnectAttach(ND_LOCAL_NODE, 0, gCpswProxy.chid, _NTO_SIDE_CHANNEL, 0);
+    CpswProxy_assert(gCpswProxy.coid != -1);
+#else
+    MailboxP_Params_init(&params);
+    params.name    = (uint8_t *)"ResponseMbx";
+    params.size    = CPSWPROXY_RES_MSGSIZE;
+    params.count   = CPSWPROXY_RES_MSGCOUNT;
+    params.buf     = (void *)gCpswProxy.resMbxBuf;
+    params.bufsize = sizeof(gCpswProxy.resMbxBuf);
 
-    /* Initialize remote_device on the client side */
-    CpswProxy_remoteDeviceInit(masterCoreId, masterEndpt, gCpswProxy.hRdevStartSem);
-    gCpswProxy.masterCoreId = masterCoreId;
-    gCpswProxy.masterEndpt  = masterEndpt;
+    gCpswProxy.hResMbx = MailboxP_create(&params);
+    CpswProxy_assert(gCpswProxy.hResMbx != NULL);
+#endif
+
+    status = CpswProxy_createEndpts();
+    if (status != ENET_SOK)
+    {
+        System_printf("Failed to create all required endpts: %d\n", status);
+    }
+
+    if (ENET_SOK == status)
+    {
+        /* Initialize the task params */
+        TaskP_Params_init(&taskParams);
+        taskParams.name         = CPSWPROXY_CLIENT_CMD_TASK_NAME;
+        taskParams.priority     = CPSWPROXY_RDEVCMD_TSK_PRI;
+        taskParams.arg0         = (void *)&gCpswProxy;
+        taskParams.stack        = &msgHandlerTaskBuf[0];
+        taskParams.stacksize    = sizeof(msgHandlerTaskBuf);
+
+        gCpswProxy.hMsgHandlerTsk = TaskP_create(&CpswProxy_msgHandlerTskFxn, &taskParams);
+        if (gCpswProxy.hMsgHandlerTsk == NULL)
+        {
+            System_printf("Could not create message handler task\n");
+            CpswProxy_assert(gCpswProxy.hMsgHandlerTsk != NULL);
+        }
+    }
 }
 
 void CpswProxy_deinit(void)
 {
-    SemaphoreP_delete(gCpswProxy.hRdevStartSem);
+    CpswProxy_deleteEndpts();
+
+#ifdef QNX_OS
+    ConnectDetach(gCpswProxy.coid);
+    ChannelDestroy(gCpswProxy.chid);
+#else
+    MailboxP_delete(gCpswProxy.hResMbx);
+#endif
+
     MutexP_delete(gCpswProxy.hMutex);
 }
 
 int32_t CpswProxy_connect(void)
 {
-    uint32_t remoteCoreId;
-    uint32_t remoteEndPt;
     int32_t status;
 
     /* Check if remote_device has been initialized on the server side */
     status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY,
-                                      ETHREMOTEDEVICE_REMOTEDEVICE_FRAMEWORK_SERVICE,
-                                      &remoteCoreId,
-                                      &remoteEndPt,
-                                      CPSWPROXY_RDEVFRAMEWORK_LOCATE_TIMEOUT);
+                                      ETHREMOTECFG_FRAMEWORK_SERVICE_NAME,
+                                      &gCpswProxy.masterCoreId,
+                                      &gCpswProxy.masterEndpt,
+                                      CPSWPROXY_LOCATE_TIMEOUT);
     if (status != IPC_SOK)
     {
         System_printf("Remote Device Framework Endpoint locate failed. Retrying !!!\n");
@@ -1259,10 +558,7 @@ int32_t CpswProxy_connect(void)
     else
     {
         System_printf("Remote Device Framework Endpoint located. Remote Core Id:%u, Remote End Point:%u\n",
-                      remoteCoreId, remoteEndPt);
-
-        /* Unblock client side's remote device that it can proceed */
-        SemaphoreP_post(gCpswProxy.hRdevStartSem);
+                       gCpswProxy.masterCoreId, gCpswProxy.masterEndpt);
 
         /* Create time sync notify task */
         CpswProxy_createNotifyServiceTask();
@@ -1271,7 +567,32 @@ int32_t CpswProxy_connect(void)
     return status;
 }
 
-static CpswProxy_Handle CpswProxy_getHandle(void)
+static CpswProxy_Handle CpswProxy_getHandle(uint32_t token)
+{
+    CpswProxy_Handle hProxy = NULL;
+    CpswProxy_Handle hProxyClient;
+    uint32_t i;
+
+    MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
+
+    for (i = 0U; i < ENET_ARRAYSIZE(gCpswProxy.clientObj); i++)
+    {
+        hProxyClient = &gCpswProxy.clientObj[i];
+
+        if ((hProxyClient->inUse) &&
+            (hProxyClient->token == token))
+        {
+            hProxy = hProxyClient;
+            break;
+        }
+    }
+
+    MutexP_unlock(gCpswProxy.hMutex);
+
+    return hProxy;
+}
+
+static CpswProxy_Handle CpswProxy_allocHandle(void)
 {
     CpswProxy_Handle hProxy = NULL;
     uint32_t i;
@@ -1303,33 +624,17 @@ static void CpswProxy_freeHandle(CpswProxy_Handle hProxy)
 
 static void CpswProxy_instanceInit(CpswProxy_Handle hProxy, const CpswProxy_Config *cfg)
 {
-    hProxy->cfg = *cfg;
-#ifdef QNX_OS
-    hProxy->chid = ChannelCreate(0);
-    CpswProxy_assert(hProxy->chid != -1);
-    hProxy->coid = ConnectAttach(ND_LOCAL_NODE, 0, hProxy->chid, _NTO_SIDE_CHANNEL, 0);
-    CpswProxy_assert(hProxy->coid != -1);
-#else
-    CpswProxy_createMbx(hProxy, &hProxy->hCmdMbx, true);
-    CpswProxy_createMbx(hProxy, &hProxy->hResponseMbx, false);
-#endif
-
-    CpswProxy_createRDevCmdTask(hProxy);
+    hProxy->cfg      = *cfg;
+    hProxy->features = 0U;
+    hProxy->reqId    = 0U;
+    hProxy->token    = ETHREMOTECFG_TOKEN_NONE;
 }
 
 static void CpswProxy_instanceDeinit(CpswProxy_Handle hProxy)
 {
-    CpswProxy_rdevCmd_t msg;
-
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_EXIT, &msg);
-
-#ifdef QNX_OS
-    ConnectDetach(hProxy->coid);
-    ChannelDestroy(hProxy->chid);
-#else
-    CpswProxy_deleteMbx(&hProxy->hCmdMbx);
-    CpswProxy_deleteMbx(&hProxy->hResponseMbx);
-#endif
+    memset(&hProxy->cfg, 0, sizeof(hProxy->cfg));
+    hProxy->features = 0U;
+    hProxy->reqId    = 0U;
 }
 
 CpswProxy_Handle CpswProxy_open(const CpswProxy_Config *cfg)
@@ -1337,7 +642,7 @@ CpswProxy_Handle CpswProxy_open(const CpswProxy_Config *cfg)
     CpswProxy_Handle hProxy;
 
     /* Get a handle to a free CpswProxy object, if any */
-    hProxy = CpswProxy_getHandle();
+    hProxy = CpswProxy_allocHandle();
     if (hProxy == NULL)
     {
         System_printf("All CpswProxy instances for this core are already in use\n");
@@ -1360,541 +665,327 @@ void CpswProxy_close(CpswProxy_Handle hProxy)
     CpswProxy_freeHandle(hProxy);
 }
 
-static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
-                              CpswProxy_rdevCmd_e cmd,
-                              CpswProxy_rdevCmd_t *msg)
-{
-#ifdef QNX_OS
-    int status;
-    int size = sizeof(CpswProxy_rdevCmd_t);
-
-    CpswProxy_assert(hProxy != NULL);
-    CpswProxy_assert(hProxy->coid != -1);
-
-    msg->req.cmd = cmd;
-    status = MsgSend(hProxy->coid,
-                     msg,
-                     size,
-                     msg,
-                     size);
-    CpswProxy_assert(status != -1);
-    CpswProxy_assert(msg->res.retVal == ENET_SOK);
-#else
-    Bool mbxStatus;
-    MailboxP_Handle hCmdMbx = hProxy->hCmdMbx;
-    MailboxP_Handle hResponseMbx = hProxy->hResponseMbx;
-
-    CpswProxy_assert(hCmdMbx != NULL);
-    CpswProxy_assert(hResponseMbx != NULL);
-
-    msg->req.cmd = cmd;
-    msg->req.hResponseMbx = hResponseMbx;
-    mbxStatus = MailboxP_post(hCmdMbx, msg, MailboxP_WAIT_FOREVER);
-    CpswProxy_assert(mbxStatus == MailboxP_OK);
-    mbxStatus = MailboxP_pend(hResponseMbx, msg, MailboxP_WAIT_FOREVER);
-    CpswProxy_assert(mbxStatus == MailboxP_OK);
-    CpswProxy_assert(msg->res.retVal == ENET_SOK);
-#endif
-}
-
-void CpswProxy_addHostPortEntry(CpswProxy_Handle hProxy,
-                                Enet_Handle hEnet,
-                                uint32_t coreKey,
-                                const uint8_t *macAddr)
-{
-    CpswProxy_rdevCmd_t msg;
-    uint32_t setUcastOutArgs;
-    CpswAle_SetUcastEntryInArgs setUcastInArgs;
-
-    memset(&setUcastInArgs, 0, sizeof(setUcastInArgs));
-    memcpy(&setUcastInArgs.addr.addr[0U], macAddr, sizeof(setUcastInArgs.addr.addr));
-    setUcastInArgs.addr.vlanId = 0U;
-    setUcastInArgs.info.portNum = CPSW_ALE_HOST_PORT_NUM;
-    setUcastInArgs.info.blocked = false;
-    setUcastInArgs.info.secure = true;
-    setUcastInArgs.info.super = false;
-    setUcastInArgs.info.ageable = false;
-
-    msg.req.u.ioctl.cmd = CPSW_ALE_IOCTL_ADD_UCAST;
-    msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hEnet;
-    msg.req.u.ioctl.inArgsSize = sizeof(setUcastInArgs);
-    msg.req.u.ioctl.inArgs = &setUcastInArgs;
-    msg.req.u.ioctl.outArgs = &setUcastOutArgs;
-    msg.req.u.ioctl.outArgsSize = sizeof(setUcastOutArgs);
-
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_IOCTL, &msg);
-}
-
-void CpswProxy_delAddrEntry(CpswProxy_Handle hProxy,
-                            Enet_Handle hEnet,
-                            uint32_t coreKey,
-                            const uint8_t *macAddr)
-{
-    CpswProxy_rdevCmd_t msg;
-    CpswAle_MacAddrInfo addrInfo;
-
-    memset(&addrInfo, 0, sizeof(addrInfo));
-    memcpy(&addrInfo.addr[0U], macAddr, sizeof(addrInfo.addr));
-    addrInfo.vlanId = 0U;
-
-    msg.req.u.ioctl.cmd = CPSW_ALE_IOCTL_REMOVE_ADDR;
-    msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hEnet;
-    msg.req.u.ioctl.inArgsSize = sizeof(addrInfo);
-    msg.req.u.ioctl.inArgs = &addrInfo;
-    msg.req.u.ioctl.outArgs = NULL;
-    msg.req.u.ioctl.outArgsSize = 0;
-
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_IOCTL, &msg);
-}
-
-static void CpswProxy_getRxStartFlowIdx(CpswProxy_Handle hProxy,
-                                        Enet_Handle hEnet,
-                                        uint32_t coreKey,
-                                        uint32_t *startFlowIdx)
-{
-    CpswProxy_rdevCmd_t msg;
-
-    msg.req.u.ioctl.cmd = CPSW_HOSTPORT_GET_FLOW_ID_OFFSET;
-    msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hEnet;
-    msg.req.u.ioctl.inArgsSize = 0;
-    msg.req.u.ioctl.inArgs = NULL;
-    msg.req.u.ioctl.outArgs = startFlowIdx;
-    msg.req.u.ioctl.outArgsSize = sizeof(*startFlowIdx);
-
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_IOCTL, &msg);
-}
-
-static enum rpmsg_kdrv_ethswitch_cpsw_type CpswProxy_getRdevCpswType(Enet_Type enetType)
-{
-    enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAX;
-
-    switch (enetType)
-    {
-        case ENET_CPSW_2G:
-            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MCU;
-            break;
-
-#if defined(SOC_J7200)
-        case ENET_CPSW_5G:
-            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
-            break;
-#endif
-
-#if defined(SOC_J721E) || defined(SOC_J784S4)
-        case ENET_CPSW_9G:
-            rdevCpswType = RPMSG_KDRV_TP_ETHSWITCH_CPSWTYPE_MAIN;
-            break;
-#endif
-
-        default:
-            /* Invalid Enet_Type value */
-            CpswProxy_assert(FALSE);
-            break;
-    }
-
-    return rdevCpswType;
-}
-
 void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
-                           Enet_Handle hEnet,
-                           uint32_t coreKey,
                            uint32_t *rxFlowStartIdx,
                            uint32_t *rxFlowIdx)
 {
-    CpswProxy_rdevCmd_t msg;
-    uint32_t absRxFlowIdx;
+    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_AllocRxRes res;
 
-    msg.req.u.alloc.id = (uint64_t)hEnet;
-    msg.req.u.alloc.core_key = coreKey;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ALLOCRX, &msg);
-    absRxFlowIdx = msg.res.u.rx.rx_flow_allocidx;
-    CpswProxy_getRxStartFlowIdx(hProxy, hEnet, coreKey, rxFlowStartIdx);
-    CpswProxy_assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + ENET_CFG_RM_RX_CH_MAX)));
-    *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ALLOC_RX, &req, sizeof(req), &res, sizeof(res));
+
+    *rxFlowStartIdx   = res.rxFlowIdxBase;
+    *rxFlowIdx = res.rxFlowIdxOffset;
 }
 
 void CpswProxy_allocMac(CpswProxy_Handle hProxy,
-                        Enet_Handle hEnet,
-                        uint32_t coreKey,
-                        uint8_t *macAddress)
+                        uint8_t *macAddr)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_AllocMacRes res;
 
-    msg.req.u.alloc.id = (uint64_t)hEnet;
-    msg.req.u.alloc.core_key = coreKey;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ALLOCMAC, &msg);
-    memcpy(macAddress, msg.res.u.mac.mac_address, sizeof(msg.res.u.mac.mac_address));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ALLOC_MAC, &req, sizeof(req), &res, sizeof(res));
+
+    memcpy(macAddr, res.macAddr, ETHREMOTECFG_MACADDRLEN);
 }
 
 void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
-                                     Enet_Handle hEnet,
-                                     uint32_t coreKey,
                                      uint32_t rxFlowStartIdx,
                                      uint32_t freeRxFlowIdx)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_RxDefaultFlowRegisterReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.regdefault.id = (uint64_t)hEnet;
-    msg.req.u.regdefault.core_key = coreKey;
-    msg.req.u.regdefault.rx_default_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_REGDEFAULT, &msg);
+    req.flowIdxBase = rxFlowStartIdx;
+    req.flowIdxOffset = freeRxFlowIdx;
+
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_SET_RX_DEFAULTFLOW, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
-                                       Enet_Handle hEnet,
-                                       uint32_t coreKey,
                                        uint32_t rxFlowStartIdx,
                                        uint32_t freeRxFlowIdx)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_RxDefaultFlowRegisterReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.unregdefault.id = (uint64_t)hEnet;
-    msg.req.u.unregdefault.core_key = coreKey;
-    msg.req.u.unregdefault.rx_default_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGDEFAULT, &msg);
+    req.flowIdxBase = rxFlowStartIdx;
+    req.flowIdxOffset = freeRxFlowIdx;
+
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEL_RX_DEFAULTFLOW, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
-                                    Enet_Handle hEnet,
-                                    uint32_t coreKey,
                                     uint32_t rxFlowStartIdx,
                                     uint32_t freeRxFlowIdx,
-                                    const uint8_t *macAddress)
+                                    const uint8_t *macAddr)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_MacAddrRxFlowReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.regmac.id = (uint64_t)hEnet;
-    msg.req.u.regmac.core_key = coreKey;
-    msg.req.u.regmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-    memcpy(msg.req.u.regmac.mac_address, macAddress, sizeof(msg.req.u.regmac.mac_address));
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_REGMAC, &msg);
+    req.flowIdxBase = rxFlowStartIdx;
+    req.flowIdxOffset = freeRxFlowIdx;
+    memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
+
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_MAC, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
-                                      Enet_Handle hEnet,
-                                      uint32_t coreKey,
                                       uint32_t rxFlowStartIdx,
                                       uint32_t freeRxFlowIdx,
-                                      const uint8_t *macAddress)
+                                      const uint8_t *macAddr)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_MacAddrRxFlowReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.unregmac.id = (uint64_t)hEnet;
-    msg.req.u.unregmac.core_key = coreKey;
-    msg.req.u.unregmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-    memcpy(msg.req.u.unregmac.mac_address, macAddress, sizeof(msg.req.u.unregmac.mac_address));
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGMAC, &msg);
+    req.flowIdxBase = rxFlowStartIdx;
+    req.flowIdxOffset = freeRxFlowIdx;
+    memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
+
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_MAC, &req, sizeof(req), &res, sizeof(res));
 }
 
-
 void CpswProxy_freeMac(CpswProxy_Handle hProxy,
-                       Enet_Handle hEnet,
-                       uint32_t coreKey,
-                       const uint8_t *macAddress)
+                       const uint8_t *macAddr)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_FreeMacReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.freemac.id = (uint64_t)hEnet;
-    msg.req.u.freemac.core_key = coreKey;
-    memcpy(msg.req.u.freemac.mac_address, macAddress, sizeof(msg.req.u.freemac.mac_address));
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FREEMAC, &msg);
+    memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
+
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_FREE_MAC, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
-                          Enet_Handle hEnet,
-                          uint32_t coreKey,
                           uint32_t rxFlowStartIdx,
                           uint32_t rxFlowIdx)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_FreeRxReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.freerx.id = (uint64_t)hEnet;
-    msg.req.u.freerx.core_key = coreKey;
-    msg.req.u.freerx.rx_flow_allocidx = rxFlowStartIdx + rxFlowIdx;
+    req.rxFlowIdxBase = rxFlowStartIdx;
+    req.rxFlowIdxOffset = rxFlowIdx;
 
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FREERX, &msg);
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_FREE_RX, &req, sizeof(req), &res, sizeof(res));
 }
 
 
 void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
-                         Enet_Handle hEnet,
-                         uint32_t coreKey,
                          uint32_t *txPSILThreadId)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_AllocTxRes res;
 
-    msg.req.u.alloc.id = (uint64_t)hEnet;
-    msg.req.u.alloc.core_key = coreKey;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ALLOCTX, &msg);
-    *txPSILThreadId = msg.res.u.tx.tx_id;
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ALLOC_TX, &req, sizeof(req), &res, sizeof(res));
+
+    *txPSILThreadId  = res.txPsilDstId;
 }
 
 void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
-                        Enet_Handle hEnet,
-                        uint32_t coreKey,
                         uint32_t txChNum)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_FreeTxReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.cmd = CPSWPROXY_RDEVCMD_FREETX;
-    msg.req.u.freetx.id = (uint64_t)hEnet;
-    msg.req.u.freetx.core_key = coreKey;
-    msg.req.u.freetx.tx_id = txChNum;
+    req.txPsilDstId = txChNum;
 
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FREETX, &msg);
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_FREE_TX, &req, sizeof(req), &res, sizeof(res));
 }
 
-
 void CpswProxy_attach(CpswProxy_Handle hProxy,
-                      Enet_Type enetType,
-                      Enet_Handle *pCpswHandle,
-                      uint32_t *coreKey,
+                      EthRemoteCfg_VirtPort virtPort,
                       uint32_t *rxMtu,
-                      uint32_t *txMtu,
-                      Enet_MacPort *macPort)
+                      uint32_t *txMtu)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_AttachReq req;
+    EthRemoteCfg_AttachRes res;
     uint32_t i;
-    enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
 
-    rdevCpswType = CpswProxy_getRdevCpswType(enetType);
-    msg.req.u.attach.enetType = rdevCpswType;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ATTACH, &msg);
-    *pCpswHandle = (Enet_Handle)((uintptr_t)(msg.res.u.attach.id));
-    *coreKey = msg.res.u.attach.core_key;
-    *rxMtu = msg.res.u.attach.rx_mtu;
-    for (i = 0; i < ENET_ARRAYSIZE(msg.res.u.attach.tx_mtu); i++)
-    {
-        txMtu[i] = msg.res.u.attach.tx_mtu[i];
-    }
+    req.virtPort = virtPort;
 
-    if ((msg.res.u.attach.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY) != 0U)
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ATTACH, &req, sizeof(req), &res, sizeof(res));
+
+    hProxy->token    = res.hdr.common.token;
+    hProxy->features = res.features;
+
+    *rxMtu = res.rxMtu;
+    for (i = 0U; i < ENET_ARRAYSIZE(res.txMtu); i++)
     {
-        *macPort = ENET_MACPORT_DENORM(msg.res.u.attach.mac_only_port - 1U);
-    }
-    else
-    {
-        *macPort = ENET_MAC_PORT_INV;
+        txMtu[i] = res.txMtu[i];
     }
 }
 
 void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
-                              Enet_Type enetType,
-                              Enet_Handle *pCpswHandle,
-                              uint32_t *coreKey,
+                              EthRemoteCfg_VirtPort virtPort,
                               uint32_t *rxMtu,
                               uint32_t *txMtu,
                               uint32_t *txPSILThreadId,
-                              uint32_t *rxFlowStartIdx,
-                              uint32_t *rxFlowIdx,
-                              uint8_t *macAddress,
-                              Enet_MacPort *macPort)
+                              uint32_t *rxFlowIdxBase,
+                              uint32_t *rxFlowIdxOffset,
+                              uint8_t *macAddr)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_AttachReq req;
+    EthRemoteCfg_AttachExtRes res;
     uint32_t i;
-    uint32_t absRxFlowIdx;
-    enum rpmsg_kdrv_ethswitch_cpsw_type rdevCpswType;
 
-    rdevCpswType = CpswProxy_getRdevCpswType(enetType);
-    msg.req.u.attach.enetType = rdevCpswType;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_ATTACHEXT, &msg);
-    *pCpswHandle = (Enet_Handle)((uintptr_t)(msg.res.u.attachext.id));
-    *coreKey = msg.res.u.attachext.core_key;
-    *rxMtu = msg.res.u.attachext.rx_mtu;
-    for (i = 0; i < ENET_ARRAYSIZE(msg.res.u.attachext.tx_mtu); i++)
+    req.virtPort = virtPort;
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ATTACH_EXT, &req, sizeof(req), &res, sizeof(res));
+
+    hProxy->token    = res.hdr.common.token;
+    hProxy->features = res.features;
+
+    *rxMtu = res.rxMtu;
+    for (i = 0U; i < ENET_ARRAYSIZE(res.txMtu); i++)
     {
-        txMtu[i] = msg.res.u.attachext.tx_mtu[i];
+        txMtu[i] = res.txMtu[i];
     }
 
-    *txPSILThreadId = msg.res.u.attachext.tx_id;
-    absRxFlowIdx = msg.res.u.attachext.rx_flow_allocidx;
-    CpswProxy_getRxStartFlowIdx(hProxy,
-                                *pCpswHandle,
-                                *coreKey,
-                                rxFlowStartIdx);
-    CpswProxy_assert((absRxFlowIdx >= *rxFlowStartIdx) && (absRxFlowIdx < (*rxFlowStartIdx + ENET_CFG_RM_RX_CH_MAX)));
-    *rxFlowIdx = (absRxFlowIdx - *rxFlowStartIdx);
-    memcpy(macAddress, msg.res.u.attachext.mac_address, sizeof(msg.res.u.attachext.mac_address));
+    *txPSILThreadId  = res.txPsilDstId;
+    *rxFlowIdxBase   = res.rxFlowIdxBase;
+    *rxFlowIdxOffset = res.rxFlowIdxOffset;
 
-    if ((msg.res.u.attachext.features & RPMSG_KDRV_TP_ETHSWITCH_FEATURE_MAC_ONLY) != 0U)
-    {
-        *macPort = ENET_MACPORT_DENORM(msg.res.u.attachext.mac_only_port - 1U);
-    }
-    else
-    {
-        *macPort = ENET_MAC_PORT_INV;
-    }
+    memcpy(macAddr, res.macAddr, ETHREMOTECFG_MACADDRLEN);
 }
 
-void CpswProxy_detach(CpswProxy_Handle hProxy,
-                      Enet_Handle hEnet,
-                      uint32_t coreKey)
+void CpswProxy_detach(CpswProxy_Handle hProxy)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.cmd = CPSWPROXY_RDEVCMD_DETACH;
-    msg.req.u.detach.id = (uint64_t)hEnet;
-    msg.req.u.detach.core_key = coreKey;
-
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_DETACH, &msg);
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DETACH, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
-                                Enet_Handle hEnet,
-                                uint32_t coreKey,
                                 uint8_t *macAddr,
                                 uint8_t *ipv4Addr)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_IPv4AddrRegisterReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.regipv4.id = (uint64_t)hEnet;
-    msg.req.u.regipv4.core_key = coreKey;
-    ENET_UTILS_ARRAY_COPY(msg.req.u.regipv4.mac_address, macAddr);
-    memcpy(msg.req.u.regipv4.ipv4Addr, ipv4Addr, sizeof(msg.req.u.regipv4.ipv4Addr));
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_REGIPV4, &msg);
+    memcpy(req.ipAddr, ipv4Addr, ETHREMOTECFG_IPV4ADDRLEN);
+    memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_IPv4, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
-                                  Enet_Handle hEnet,
-                                  uint32_t coreKey,
                                   uint8_t *ipv4Addr)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_IPv4AddrDeregisterReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.unregipv4.id = (uint64_t)hEnet;
-    msg.req.u.unregipv4.core_key = coreKey;
-    memcpy(msg.req.u.unregipv4.ipv4Addr, ipv4Addr, sizeof(msg.req.u.unregipv4.ipv4Addr));
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGIPV4, &msg);
+    memcpy(req.ipAddr, ipv4Addr, ETHREMOTECFG_IPV4ADDRLEN);
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_IPv4, &req, sizeof(req), &res, sizeof(res));
 }
 
-
-bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy,
-                           Enet_Handle hEnet,
-                           uint32_t coreKey,
-                           Enet_MacPort portNum)
+bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_PortLinkStatusRes res;
     bool isLinked;
 
-    msg.req.u.ioctl.cmd = ENET_PER_IOCTL_IS_PORT_LINK_UP;
-    msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hEnet;
-    msg.req.u.ioctl.inArgsSize = sizeof(portNum);
-    msg.req.u.ioctl.inArgs = &portNum;
-    msg.req.u.ioctl.outArgs = &isLinked;
-    msg.req.u.ioctl.outArgsSize = sizeof(isLinked);
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_PORT_LINK_STATUS, &req, sizeof(req), &res, sizeof(res));
 
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_IOCTL, &msg);
-    return isLinked;
-}
-
-void CpswProxy_ioctl(CpswProxy_Handle hProxy,
-                     Enet_Handle hEnet,
-                     uint32_t coreKey,
-                     uint32_t cmd,
-                     Enet_IoctlPrms *prms)
-{
-    CpswProxy_rdevCmd_t msg;
-
-    msg.req.u.ioctl.cmd = cmd;
-    msg.req.u.ioctl.core_key = coreKey;
-    msg.req.u.ioctl.id = (uint64_t)hEnet;
-    msg.req.u.ioctl.inArgsSize = prms->inArgsSize;
-    msg.req.u.ioctl.inArgs = prms->inArgs;
-    msg.req.u.ioctl.outArgs = prms->outArgs;
-    msg.req.u.ioctl.outArgsSize = prms->outArgsSize;
-
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_IOCTL, &msg);
+    return res.isLinked;
 }
 
 void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                       Enet_Handle hEnet,
-                                       uint32_t coreKey,
                                        uint32_t rxFlowStartIdx,
                                        uint32_t freeRxFlowIdx,
                                        uint16_t etherType)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_MatchEthertypeAddReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.regethtype.id = (uint64_t)hEnet;
-    msg.req.u.regethtype.core_key = coreKey;
-    msg.req.u.regethtype.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-    msg.req.u.regethtype.ether_type = etherType;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_REGETHTYPE, &msg);
+    req.ethertype = etherType;
+    req.flowIdxBase = rxFlowStartIdx;
+    req.flowIdxOffset = freeRxFlowIdx;
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_MATCH_ETHTYPE, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                      Enet_Handle hEnet,
-                                      uint32_t coreKey,
-                                      uint32_t rxFlowStartIdx,
-                                      uint32_t freeRxFlowIdx,
-                                      uint16_t etherType)
+                                         uint16_t etherType)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_MatchEthertypeDelReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.unregethtype.id = (uint64_t)hEnet;
-    msg.req.u.unregethtype.core_key = coreKey;
-    msg.req.u.unregethtype.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-    msg.req.u.unregethtype.ether_type = etherType;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGETHTYPE, &msg);
+    req.ethertype = etherType;
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_MATCH_ETHTYPE, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
-                                   Enet_Handle hEnet,
-                                   uint32_t coreKey,
                                    uint8_t timerId,
                                    uint8_t hwPushNum)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_RemoteTimerRegisterReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.regremotetimer.id = (uint64_t)hEnet;
-    msg.req.u.regremotetimer.core_key = coreKey;
-    msg.req.u.regremotetimer.timerId = timerId;
-    msg.req.u.regremotetimer.hwPushNum = hwPushNum;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_REGREMOTETIMER, &msg);
+    req.hWPushNum = hwPushNum;
+    req.timerId = timerId;
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_REMOTE_TIMER, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
-                                     Enet_Handle hEnet,
-                                     uint32_t coreKey,
                                      uint8_t hwPushNum)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_RemoteTimerDeregisterReq req;
+    EthRemoteCfg_StatusRes res;
 
-    msg.req.u.unregremotetimer.id = (uint64_t)hEnet;
-    msg.req.u.unregremotetimer.core_key = coreKey;
-    msg.req.u.unregremotetimer.hwPushNum = hwPushNum;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_UNREGREMOTETIMER, &msg);
+    req.hWPushNum = hwPushNum;
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_REMOTE_TIMER, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
-                              Enet_Handle hEnet,
-                              uint32_t coreKey,
                               bool enable)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_StatusRes res;
+    uint32_t reqType;
 
-    msg.req.u.setpromiscmode.id = (uint64_t)hEnet;
-    msg.req.u.setpromiscmode.core_key = coreKey;
-    msg.req.u.setpromiscmode.enable = enable ? 1U : 0U;
-    CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_SETPROMISCMODE, &msg);
+    reqType = enable ? ETHREMOTECFG_ENABLE_PROMISC : ETHREMOTECFG_DISABLE_PROMISC;
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, reqType, &req, sizeof(req), &res, sizeof(res));
 }
 
-int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
-                               Enet_Handle hEnet,
-                               uint32_t coreKey,
-                               uint32_t rxFlowStartIdx,
-                               uint32_t freeRxFlowIdx,
-                               const uint8_t *macAddress,
-                               uint16_t vlanId)
+void CpswProxy_getDumpStats(CpswProxy_Handle hProxy)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_StatusRes res;
+
+    req.reqType = ETHREMOTECFG_DUMP;
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, req.reqType, &req, sizeof(req), &res, sizeof(res));
+}
+
+void CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
+                            uint32_t rxFlowStartIdx,
+                            uint32_t freeRxFlowIdx,
+                            const uint8_t *macAddr,
+                            uint16_t vlanId)
+{
+    EthRemoteCfg_FilterMacAddReq req;
+    EthRemoteCfg_StatusRes res;
     int32_t status = CPSWPROXY_SOK;
 
-    if (!EnetUtils_isMcastAddr(macAddress))
+    if (!EnetUtils_isMcastAddr(macAddr))
     {
         System_printf("%s: MAC addr is not multicast\n", __func__);
         status = CPSWPROXY_EINVALIDPARAMS;
@@ -1902,29 +993,26 @@ int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
 
     if (status == CPSWPROXY_SOK)
     {
-        msg.req.u.filteraddmac.id = (uint64_t)hEnet;
-        msg.req.u.filteraddmac.core_key = coreKey;
-        msg.req.u.filteraddmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-        msg.req.u.filteraddmac.vlan_id = vlanId;
-        memcpy(msg.req.u.filteraddmac.mac_address, macAddress, sizeof(msg.req.u.filteraddmac.mac_address));
-        CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FILTERADDMAC, &msg);
-    }
+        /* Request specific params */
+        req.vlanId  = vlanId;
+        req.flowIdxBase = rxFlowStartIdx;
+        req.flowIdxOffset = freeRxFlowIdx;
+        memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
-    return status;
+        /* Send request to server and wait for response */
+        CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ADD_FILTER_MAC, &req, sizeof(req), &res, sizeof(res));
+    }
 }
 
-int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
-                               Enet_Handle hEnet,
-                               uint32_t coreKey,
-                               uint32_t rxFlowStartIdx,
-                               uint32_t freeRxFlowIdx,
-                               const uint8_t *macAddress,
-                               uint16_t vlanId)
+void CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
+                            const uint8_t *macAddr,
+                            uint16_t vlanId)
 {
-    CpswProxy_rdevCmd_t msg;
+    EthRemoteCfg_FilterMacDelReq req;
+    EthRemoteCfg_StatusRes res;
     int32_t status = CPSWPROXY_SOK;
 
-    if (!EnetUtils_isMcastAddr(macAddress))
+    if (!EnetUtils_isMcastAddr(macAddr))
     {
         System_printf("%s: MAC addr is not multicast\n", __func__);
         status = CPSWPROXY_EINVALIDPARAMS;
@@ -1932,35 +1020,144 @@ int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
 
     if (status == CPSWPROXY_SOK)
     {
-        msg.req.u.filterdelmac.id = (uint64_t)hEnet;
-        msg.req.u.filterdelmac.core_key = coreKey;
-        msg.req.u.filterdelmac.rx_flow_allocidx = (rxFlowStartIdx + freeRxFlowIdx);
-        msg.req.u.filterdelmac.vlan_id = vlanId;
-        memcpy(msg.req.u.filterdelmac.mac_address, macAddress, sizeof(msg.req.u.filterdelmac.mac_address));
-        CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_FILTERDELMAC, &msg);
-    }
+        /* Request specific params */
+        req.vlanId  = vlanId;
+        memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
-    return status;
+        /* Send request to server and wait for response */
+        CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEL_FILTER_MAC, &req, sizeof(req), &res, sizeof(res));
+    }
+}
+
+static void CpswProxy_msgHandlerTskFxn(void* arg0,
+                                       void* arg1)
+{
+    CpswProxy_Handle hProxy = (CpswProxy_Handle)arg0;
+    uint32_t remoteProcId;
+    uint32_t remoteEndpt;
+    MailboxP_Status mbxStatus;
+    uint64_t msgBuf[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];
+    bool exitTask = false;
+    int32_t status = IPC_SOK;
+    uint16_t len;
+
+    while (!exitTask)
+    {
+        status = RPMessage_recv(gCpswProxy.hEthfwServiceRpMsg,
+                                (void *)msgBuf,
+                                &len,
+                                &remoteEndpt,
+                                &remoteProcId,
+                                IPC_RPMESSAGE_TIMEOUT_FOREVER);
+        if (IPC_SOK == status)
+        {
+            CpswProxy_assert(len <= sizeof(msgBuf));
+            if ((gCpswProxy.masterCoreId != remoteProcId) ||
+                (gCpswProxy.masterEndpt != remoteEndpt))
+            {
+                status = ENET_EUNEXPECTED;
+                System_printf("Unexpected response (remoteCoreId=%u, remoteEndpt=%u)\n",
+                             remoteProcId, remoteEndpt);
+            }
+
+            if (ENET_SOK == status)
+            {
+                EthRemoteCfg_MsgHdr *msgHdr;
+
+                msgHdr = (EthRemoteCfg_MsgHdr *)msgBuf;
+                if (msgHdr->msgType == ETHREMOTECFG_MSGTYPE_RESPONSE)
+                {
+                    EthRemoteCfg_ResHdr *resHdr = (EthRemoteCfg_ResHdr *)msgHdr;
+
+                    System_printf("S2C | msgType=%u token=%u clientId=%u resId=%u status=%d\n",
+                                 resHdr->common.msgType,
+                                 resHdr->common.token,
+                                 resHdr->common.clientId,
+                                 resHdr->resId,
+                                 resHdr->status);
+
+                    if ((resHdr->common.token != ETHREMOTECFG_TOKEN_NONE) &&
+                            !(resHdr->resType == ETHREMOTECFG_ATTACH || resHdr->resType == ETHREMOTECFG_ATTACH_EXT))
+                    {
+                        hProxy = CpswProxy_getHandle(resHdr->common.token);
+
+                        if (resHdr->resId > hProxy->reqId)
+                        {
+                            System_printf("Got wrong resId (exp: %u, got: %u)\n", hProxy->reqId, resHdr->resId);
+                            CpswProxy_assert(false);
+                        }
+                    }
+
+                    mbxStatus = MailboxP_post(gCpswProxy.hResMbx, msgBuf, MailboxP_WAIT_FOREVER);
+                    CpswProxy_assert(mbxStatus == MailboxP_OK);
+                }
+                else
+                {
+                    status = ENET_EUNEXPECTED;
+                    System_printf("Unexpected message type %u\n", msgHdr->msgType);
+                }
+            }
+        }
+    }
+}
+
+static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
+                              uint32_t reqType,
+                              void *reqMsg,
+                              uint16_t reqLen,
+                              void *resMsg,
+                              uint16_t resLen)
+{
+    EthRemoteCfg_ReqHdr *hdr = (EthRemoteCfg_ReqHdr *)reqMsg;
+    uint64_t resBuf[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];
+    MailboxP_Status mbxStatus;
+    int32_t status = IPC_SOK;
+
+    CpswProxy_assert(hProxy != NULL);
+
+    hdr->common.msgType  = ETHREMOTECFG_MSGTYPE_REQUEST;
+    hdr->common.clientId = ETHREMOTECFG_CLIENTID_RTOS;
+    hdr->common.token    = hProxy->token;
+
+    hdr->reqType = reqType;
+    hdr->reqId   = hProxy->reqId++;
+
+    System_printf("C2S | msgType=%u token=%u clientId=%u reqType=%u reqId=%u\n",
+                 hdr->common.msgType,
+                 hdr->common.token,
+                 hdr->common.clientId,
+                 hdr->reqType,
+                 hdr->reqId);
+
+    status = RPMessage_send(gCpswProxy.hEthfwServiceRpMsg,
+                            gCpswProxy.masterCoreId,
+                            gCpswProxy.masterEndpt,
+                            gCpswProxy.localEndpt,
+                            (void *)reqMsg,
+                            reqLen);
+    CpswProxy_assert(IPC_SOK == status);
+
+    mbxStatus = MailboxP_pend(gCpswProxy.hResMbx, resBuf, MailboxP_WAIT_FOREVER);
+
+    memcpy(resMsg, resBuf, resLen);
 }
 
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
-                          Enet_Handle hEnet,
-                          uint32_t coreKey,
                           uint8_t notifyId,
                           uint8_t *notifyInfo,
                           uint32_t notifyInfoLength)
 {
-    CpswProxy_rdevCmd_t msg;
+#if 0
+    CpswProxy_CmdMsg msg;
 
-    msg.req.u.notify.id = (uint64_t)hEnet;
-    msg.req.u.notify.core_key = coreKey;
     msg.req.u.notify.notify_id = notifyId;
     msg.req.u.notify.notify_info = notifyInfo;
     msg.req.u.notify.notify_len = notifyInfoLength;
     CpswProxy_sendCmd(hProxy, CPSWPROXY_RDEVCMD_NOTIFY, &msg);
+#endif
 }
 
-int32_t CpswProxy_registerHwPushNotifyCb(CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
+int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_hwPushNotifyCbFxn cbFxn,
                                          void *cbArg)
 {
     CpswProxy_notifyServiceObj *notifyObj = &gCpswProxy.notifyServiceObj;
@@ -1993,3 +1190,4 @@ void CpswProxy_unregisterHwPushNotifyCb(void)
     notifyObj->cb.hwPushCb = NULL;
     notifyObj->cb.hwPushCbArg = NULL;
 }
+

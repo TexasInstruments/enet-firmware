@@ -2844,7 +2844,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_ServerStatusRes *res = (EthRemoteCfg_ServerStatusRes *)resBuf;
             appLogPrintf("GET_SERVER_STATUS | C2S | ...\n");
 
-            res->EthFwStatus = ETHREMOTECFG_SERVERSTATUS_INIT;
+            res->status = ETHREMOTECFG_SERVERSTATUS_INIT;
             resLen = sizeof(*res);
             status = ETHREMOTECFG_CMDSTATUS_OK;
 

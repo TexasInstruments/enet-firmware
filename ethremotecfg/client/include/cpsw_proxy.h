@@ -64,9 +64,9 @@
 #define __CPSWPROXY_H__
 
 #include <stdint.h>
-#include <ethremotecfg/client/include/ethremotecfg_client.h>
-#include <ethremotecfg/protocol/cpsw_remote_notify_service.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/enet.h>
 
 #ifdef __cplusplus
@@ -151,27 +151,12 @@ extern "C" {
 /*! @} */
 
 /*!
- * \brief Application Callback function pointers to notify when remote
- *        ethernet device data is received on remote core
- *
- * The client will attach to the server and the server will send the ethernet
- * device data to the server. This data is passed onto the application by means
- * of this callback.
- *
- * \param eth_dev_data Pointer to device data
- */
-typedef void (*CpswProxy_deviceDataNotifyCbFxn)(struct rpmsg_kdrv_ethswitch_device_data *eth_dev_data);
-
-/*!
- * \brief Cpsw Proxy Client Configuration structure
+ * \brief Cpsw Proxy client configuration structure
  */
 typedef struct CpswProxy_Config_s
 {
     /*! Virtual port id */
     EthRemoteCfg_VirtPort virtPort;
-
-    /*! Application provided callback function to notify ethernet remote device data */
-    CpswProxy_deviceDataNotifyCbFxn deviceDataNotifyCb;
 } CpswProxy_Config;
 
 /*!
@@ -182,24 +167,29 @@ typedef struct CpswProxy_Config_s
 typedef struct CpswProxy_ClientObj_s *CpswProxy_Handle;
 
 /*!
+ * \brief CPSW Remote hardware push notify handler
+ *
+ * \param hwPushNum Enum value of hardware psuh that triggered the event
+ * \param syncTime  Timestamp value when hardware push event was triggered
+ * \param cbArg     Callback argument
+ *
+ */
+typedef void (*CpswProxy_hwPushNotifyCbFxn)(CpswCpts_HwPush hwPushNum,
+                                            uint64_t syncTime,
+                                            void *cbArg);
+
+/*!
  * \brief Initialize CPSW Proxy on a given core
  *
  * Performs one-time initialization of the CPSW Proxy layer. It needs to be called
  * only once per core and it must be the very first CpswProxy API to be called.
- *
- * This API will initialize the underlying client-side EthSwitch remote device and
- * will block until server-side EthSwitch remote device is initialized.
- *
- * \param masterCoreId  Master core id on which the Cpsw Remote Device Server exists
- * \param masterEndpt   Master core's Cpsw Remote Device endpoint
  */
-void CpswProxy_init(uint32_t masterCoreId,
-                    uint32_t masterEndpt);
+void CpswProxy_init(void);
 
 /*!
- * \brief Deinitialize CPSW Proxy on a given core
+ * \brief De-initialize CPSW Proxy on a given core
  *
- * Performs one-time deinitialization of the CPSW Proxy layer. It needs to be called
+ * Performs one-time de-initialization of the CPSW Proxy layer. It needs to be called
  * only once per core and it must be the very last CpswProxy API to be called.
  */
 void CpswProxy_deinit(void);
@@ -221,8 +211,8 @@ int32_t CpswProxy_connect(void);
  * \brief Open CPSW proxy client instance with the given configuration
  *
  * Application will get a handle to Cpsw Proxy which will be used in all CPSW
- * Proxy APIs. Only a single proxy instance per remote core is supported
- * currently.
+ * Proxy APIs. Each virtPort will get a proxy handle, which will be used in
+ * CPSW Proxy APIs.
  *
  * \param cfg    Configuration of the CPSW Proxy client
  *
@@ -241,9 +231,9 @@ CpswProxy_Handle CpswProxy_open(const CpswProxy_Config *cfg);
 void CpswProxy_close(CpswProxy_Handle hProxy);
 
 /*!
- * \brief Attach to Ethernet Switch Remote Device
+ * \brief Attach to Ethernet device
  *
- * Clients must first attach to the ethernet switch remote device.
+ * Clients must first attach to the Ethernet device.
  * CpswProxy_attach() returns the core_key and id which are used as params for
  * all further client fucntions.
  *
@@ -253,34 +243,25 @@ void CpswProxy_close(CpswProxy_Handle hProxy);
  * handle the error in next version.
  *
  * \param hProxy      Handle to Cpsw Proxy
- * \param enetType    Enet instance type
- * \param pCpswHandle Pointer to unique opaque handle populated by this function 
- * \param coreKey     Pointer to Core key populated by this function
+ * \param virtPort    Virtual port id to attach to
  * \param rxMtu       Pointer to maximum receive packet length. Populated by
  *                    this function
  * \param txMtu       Array of maximum transmit packet length per priority
  *                    supported by ethernet switch
- * \param macPort     Underlying MAC port.  `ENET_MAC_PORT_INV` for <em>virtual
- *                    switch ports</em>, or a valid MAC port id for <em>virtual
- *                    MAC ports</em>.  This MAC port number can be used as is
- *                    in Enet DMA APIs for directed or non-directed packets.
  */
 void CpswProxy_attach(CpswProxy_Handle hProxy,
-                      Enet_Type enetType,
-                      Enet_Handle *pCpswHandle,
-                      uint32_t *coreKey,
+                      EthRemoteCfg_VirtPort virtPort,
                       uint32_t *rxMtu,
-                      uint32_t *txMtu,
-                      Enet_MacPort *macPort);
+                      uint32_t *txMtu);
 
 /*!
- * \brief Attach to Ethernet Switch Remote Device with extended response
+ * \brief Attach to Ethernet device with extended response
  *
- * Clients must first attach to the ethernet switch remote device.
+ * Clients must first attach to the Ethernet device.
  * CpswProxy_attachExtended() returns the core_key and id which are used as
  * params for all further client functions.
  *
- * For remote core clients that require only one rx/one tx and one dst MAC
+ * For remote core clients that require only one Rx/one Tx and one destination MAC
  * address, CpswProxy_attachExtended() allows a single attach call to return all
  * the required params. Client can avoid further calls to alloctx/allocrx, etc.
  *
@@ -289,14 +270,12 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy      Handle to Cpsw Proxy
- * \param enetType    Enet instance type
- * \param pCpswHandle Pointer to unique opaque handle populated by this function 
- * \param coreKey     Pointer to Core key populated by this function
- * \param rxMtu       Pointer to maximum receive packet length. Populated by
-                      this function
- * \param txMtu       Array of maximum transmit packet length per priority
- *                    supported by ethernet switch
+ * \param hProxy         Handle to Cpsw Proxy
+ * \param virtPort       Virtual port id to attach to
+ * \param rxMtu          Pointer to maximum receive packet length. Populated by
+                         this function
+ * \param txMtu          Array of maximum transmit packet length per priority
+ *                       supported by ethernet switch
  * \param txPSILThreadId Pointer to allocated Tx Channel CPSW PSIL destination
  *                       thread id populated by this function
  * \param rxFlowStartIdx Pointer to allocated Rx Flow Index Base value populated
@@ -304,27 +283,20 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
  *                       Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
  * \param rxFlowIdx      Pointer to allocated allocated Rx Flow Index offset
  *                       value populated by this function
- * \param macAddress     Pointer to allocated destination MAC address allocated
+ * \param macAddr        Pointer to allocated destination MAC address allocated
  *                       to remote core populated by this function
- * \param macPort     Underlying MAC port.  `ENET_MAC_PORT_INV` for <em>virtual
- *                    switch ports</em>, or a valid MAC port id for <em>virtual
- *                    MAC ports</em>.  This MAC port number can be used as is
- *                    in Enet DMA APIs for directed or non-directed packets.
  */
 void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
-                              Enet_Type enetType,
-                              Enet_Handle *pCpswHandle,
-                              uint32_t *coreKey,
+                              EthRemoteCfg_VirtPort virtPort,
                               uint32_t *rxMtu,
                               uint32_t *txMtu,
                               uint32_t *txPSILThreadId,
                               uint32_t *rxFlowStartIdx,
                               uint32_t *rxFlowIdx,
-                              uint8_t *macAddress,
-                              Enet_MacPort *macPort);
+                              uint8_t *macAddr);
 
 /*!
- * \brief Detach from Ethernet Switch Remote Device
+ * \brief Detach from Ethernet device
  *
  * Note: The API will send the RPC msg, block for response and if the response
  * status is not success will abort execution.
@@ -332,14 +304,8 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
  */
-void CpswProxy_detach(CpswProxy_Handle hProxy,
-                      Enet_Handle hEnet,
-                      uint32_t coreKey);
+void CpswProxy_detach(CpswProxy_Handle hProxy);
 
 /*!
  * \brief Alloc Tx Channel CPSW PSIL Destination thread id
@@ -349,17 +315,11 @@ void CpswProxy_detach(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy         Handle to Cpsw Proxy
  * \param txPSILThreadId Allocated Tx Channel CPSW PSIL Destination thread id
  *                       populated by this function
  */
 void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
-                         Enet_Handle hEnet,
-                         uint32_t coreKey,
                          uint32_t *txPSILThreadId);
 
 /*!
@@ -371,15 +331,9 @@ void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
  * \param txChNum   Tx Channel CPSW PSIL Destination thread id to be freed
  */
 void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
-                        Enet_Handle hEnet,
-                        uint32_t coreKey,
                         uint32_t txChNum);
 
 /*!
@@ -390,11 +344,7 @@ void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy          Handle to Cpsw Proxy
  * \param rxFlowStartIdx  Pointer to allocated Rx Flow Index Base value populated
  *                        by this function.
  *                        Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
@@ -402,8 +352,6 @@ void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
  *                        value  populated by this function
  */
 void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
-                           Enet_Handle hEnet,
-                           uint32_t coreKey,
                            uint32_t *rxFlowStartIdx,
                            uint32_t *rxFlowIdx);
 
@@ -415,11 +363,7 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy          Handle to Cpsw Proxy
  * \param rxFlowStartIdx  Allocated Rx Flow Index Base value populated
  *                        by this function.
  *                        Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
@@ -427,8 +371,6 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
  *                        value  populated by this function
  */
 void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
-                          Enet_Handle hEnet,
-                          uint32_t coreKey,
                           uint32_t rxFlowStartIdx,
                           uint32_t rxFlowIdx);
 
@@ -441,17 +383,11 @@ void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy     Handle to Cpsw Proxy
- * \param hEnet      Unique opaque handle returned by CpswProxy_attach() or
- *                   CpswProxy_attachExtended()
- * \param coreKey    Unique core_key returned by CpswProxy_attach() or
- *                   CpswProxy_attachExtended()
- * \param macAddress Destination MAC address. Populated by this function with
+ * \param macAddr    Destination MAC address. Populated by this function with
  *                   allocated DST MAC address
  */
 void CpswProxy_allocMac(CpswProxy_Handle hProxy,
-                        Enet_Handle hEnet,
-                        uint32_t coreKey,
-                        uint8_t *macAddress);
+                        uint8_t *macAddr);
 
 /*!
  * \brief Free Tx Channel CPSW PSIL Destination thread id
@@ -462,16 +398,10 @@ void CpswProxy_allocMac(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy     Handle to Cpsw Proxy
- * \param hEnet      Unique opaque handle returned by CpswProxy_attach() or
- *                   CpswProxy_attachExtended()
- * \param coreKey    Unique core_key returned by CpswProxy_attach() or
- *                   CpswProxy_attachExtended()
- * \param macAddress Destination MAC address to be freed
+ * \param macAddr    Destination MAC address to be freed
  */
 void CpswProxy_freeMac(CpswProxy_Handle hProxy,
-                       Enet_Handle hEnet,
-                       uint32_t coreKey,
-                       const uint8_t *macAddress);
+                       const uint8_t *macAddr);
 
 /*!
  * \brief Register Destination MAC address with the given flow index
@@ -485,23 +415,17 @@ void CpswProxy_freeMac(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy           Handle to Cpsw Proxy
  * \param rxFlowStartIdx   Rx flow Index Base value.
  *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
  * \param rxFlowOffsetIdx  Flow Id from to which the traffic with the given
  *                         DST MAC address will be directed
- * \param macAddress Destination MAC address to be registered
+ * \param macAddr          Destination MAC address to be registered
  */
 void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
-                                    Enet_Handle hEnet,
-                                    uint32_t coreKey,
                                     uint32_t rxFlowStartIdx,
                                     uint32_t rxFlowOffsetIdx,
-                                    const uint8_t *macAddress);
+                                    const uint8_t *macAddr);
 
 /*!
  * \brief Unregister Destination MAC address from the given flow index
@@ -511,23 +435,17 @@ void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy           Handle to Cpsw Proxy
  * \param rxFlowStartIdx   Rx Flow Index Base value.
  *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
  * \param rxFlowOffsetIdx  Flow Id from to which the traffic with the given
  *                         DST MAC address will no longer be directed
- * \param macAddress   Destination MAC address to be unregistered
+ * \param macAddr          Destination MAC address to be unregistered
  */
 void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
-                                      Enet_Handle hEnet,
-                                      uint32_t coreKey,
                                       uint32_t rxFlowStartIdx,
                                       uint32_t rxFlowOffsetIdx,
-                                      const uint8_t *macAddress);
+                                      const uint8_t *macAddr);
 
 /*!
  * \brief Register the given EtherType to the given rx flow id
@@ -539,11 +457,7 @@ void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy           Handle to Cpsw Proxy
  * \param rxFlowStartIdx   Rx Flow Index Base value.
  *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
  * \param rxFlowOffsetIdx  rxFlowOffsetIdx to which the EtherType packets be
@@ -551,8 +465,6 @@ void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
  * \param etherType Ethertype to be associated with the given rx flow id
  */
 void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                       Enet_Handle hEnet,
-                                       uint32_t coreKey,
                                        uint32_t rxFlowStartIdx,
                                        uint32_t rxFlowOffsetIdx,
                                        uint16_t etherType);
@@ -569,21 +481,9 @@ void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param rxFlowStartIdx   Rx Flow Index Base value.
- *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
- * \param rxFlowOffsetIdx  rxFlowOffsetIdx to which the EtherType packets
- *                         were directed
  * \param etherType Ethertype to be disassociated from the given rx flow id
  */
 void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                         Enet_Handle hEnet,
-                                         uint32_t coreKey,
-                                         uint32_t rxFlowStartIdx,
-                                         uint32_t rxFlowOffsetIdx,
                                          uint16_t etherType);
 
 /*!
@@ -597,19 +497,13 @@ void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy           Handle to Cpsw Proxy
  * \param rxFlowStartIdx   Rx Flow Index Base value.
  *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
  * \param rxFlowOffsetIdx  Default Flow Id from to which the default flow will
  *                         no longer be directed
  */
 void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
-                                     Enet_Handle hEnet,
-                                     uint32_t coreKey,
                                      uint32_t rxFlowStartIdx,
                                      uint32_t rxFlowOffsetIdx);
 
@@ -626,24 +520,15 @@ void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy            Handle to Cpsw Proxy
  * \param rxFlowStartIdx    Rx Flow Index Base value.
  *                          Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
  * \param rxFlowOffsetIdx   Default Flow Id from to which the default flow will
  *                          no longer be directed
  */
 void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
-                                       Enet_Handle hEnet,
-                                       uint32_t coreKey,
                                        uint32_t rxFlowStartIdx,
                                        uint32_t rxFlowOffsetIdx);
-
-
-
 
 /*!
  * \brief Register association of IPv4 address with MAC address by adding ARP
@@ -655,16 +540,10 @@ void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
  * \param macAddr   MAC address with which the IPv4 address will be associated
  * \param ipv4Addr  IPv4 address to be added to ARP database
  */
 void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
-                                Enet_Handle hEnet,
-                                uint32_t coreKey,
                                 uint8_t *macAddr,
                                 uint8_t *ipv4Addr);
 
@@ -678,61 +557,10 @@ void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
  * \param ipv4Addr  IPv4 address to be unregistered
  */
 void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
-                                  Enet_Handle hEnet,
-                                  uint32_t coreKey,
                                   uint8_t *ipv4Addr);
-
-/*!
- * \brief Add the given unicast macAddr as host port MAC address
- *
- * Any packets received with destination mac will be switched to the host port.
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param macAddr   Unicast MAC address to be added to the switch address
- *                  resolution table as host port entry
- */
-void CpswProxy_addHostPortEntry(CpswProxy_Handle hProxy,
-                                Enet_Handle hEnet,
-                                uint32_t coreKey,
-                                const uint8_t *macAddr);
-
-
-/*!
- * \brief Remove macAddress from the switch address resolution table
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param macAddr   MAC address to be deleted from the switch address resolution
- *                  table
- */
-void CpswProxy_delAddrEntry(CpswProxy_Handle hProxy,
-                            Enet_Handle hEnet,
-                            uint32_t coreKey,
-                            const uint8_t *macAddr);
 
 /*!
  * \brief Add multicast address to receive filter.
@@ -752,27 +580,21 @@ void CpswProxy_delAddrEntry(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy           Handle to Cpsw Proxy
  * \param rxFlowStartIdx   Rx Flow Index Base value.
- *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
+ *                         Absolute RxFlowIdx = startIdx + offsetIdx
  * \param rxFlowOffsetIdx  Default Flow Id from to which the default flow will
  *                         no longer be directed
- * \param macAddress Multicast MAC address to be added to receive filter
- * \param vlanId     VLAN id
+ * \param macAddr          Multicast MAC address to be added to receive filter
+ * \param vlanId           VLAN id
  *
  * \return Refer to \ref CpswProxy_ErrorCodes.
  */
-int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
-                               Enet_Handle hEnet,
-                               uint32_t coreKey,
-                               uint32_t rxFlowStartIdx,
-                               uint32_t rxFlowOffsetIdx,
-                               const uint8_t *macAddress,
-                               uint16_t vlanId);
+void CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
+                            uint32_t rxFlowStartIdx,
+                            uint32_t rxFlowOffsetIdx,
+                            const uint8_t *macAddr,
+                            uint16_t vlanId);
 
 /*!
  * \brief Delete multicast address from receive filter.
@@ -786,55 +608,14 @@ int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param rxFlowStartIdx   Rx Flow Index Base value.
- *                         Absolute RxFlowIdx = (rxFlowStartIdx + rxFlowIdx)
- * \param rxFlowOffsetIdx  Default Flow Id from to which the default flow will
- *                         no longer be directed
- * \param macAddress Multicast MAC address to be deleted from receive filter
- * \param vlanId     VLAN id
+ * \param macAddr   Multicast MAC address to be deleted from receive filter
+ * \param vlanId    VLAN id
  *
  * \return Refer to \ref CpswProxy_ErrorCodes.
  */
-int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
-                               Enet_Handle hEnet,
-                               uint32_t coreKey,
-                               uint32_t rxFlowStartIdx,
-                               uint32_t rxFlowOffsetIdx,
-                               const uint8_t *macAddress,
-                               uint16_t vlanId);
-
-/*!
- * \brief Invoke Cpsw IOCTL
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * NOTE: Due to limitation in IPC, maximum size of inArgs and outArgs is 128 bytes
- * If Cpsw IOCTL iargs_len/outargs_len is greater than 128 bytes for a specific 
- * IOCTL cmd then CpswProxy_ioctl will fail
- *
- *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param cmd       CPSW IOCTL CMD id. Refer CPSW LLD documentation for list of
- *                  CPSW LLD IOCTLs
- * \param prms      CPSW IOCTL params. Refer CPSW LLD documentation for details
- *                  of this structure
- */
-void CpswProxy_ioctl(CpswProxy_Handle hProxy,
-                     Enet_Handle hEnet,
-                     uint32_t coreKey,
-                     uint32_t cmd,
-                     Enet_IoctlPrms *prms);
+void CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
+                            const uint8_t *macAddr,
+                            uint16_t vlanId);
 
 /*!
  * \brief Query if the link for PHY associated with the given MAC Port is up
@@ -845,16 +626,10 @@ void CpswProxy_ioctl(CpswProxy_Handle hProxy,
  * handle the error in next version.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param portNum   MAC port for which PHY link status is queried
+ *
+ * \return Whether link is up or not.
  */
-bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy,
-                           Enet_Handle hEnet,
-                           uint32_t coreKey,
-                           Enet_MacPort portNum);
+bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy);
 
 /*!
  * \brief Send custom notification info from client to server
@@ -863,18 +638,12 @@ bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy,
  * The client and server application interpretation of the notify info should
  * match. The proxy just passes the info to the remote core
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
+ * \param hProxy           Handle to Cpsw Proxy
  * \param notifyId         Notify id
  * \param notifyInfo       Notify info to be sent to server
  * \param notifyInfoLength Notify info length
  */
 void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
-                          Enet_Handle hEnet,
-                          uint32_t coreKey,
                           uint8_t notifyId,
                           uint8_t *notifyInfo,
                           uint32_t notifyInfoLength);
@@ -887,20 +656,14 @@ void CpswProxy_sendNotify(CpswProxy_Handle hProxy,
  * The API will be modified to return error status to allow the application to
  * handle the error in next version.
  *
- * The timerId is used to indicate Ethfw about which timer's event is to be routed
- * to CPTS hardware push via Timesync router(TSR).
+ * The timerId is used to indicate EthFw about which timer's event is to be routed
+ * to CPTS hardware push via TimeSync Router(TSR).
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
  * \param timerId   Input Id number of timer in TSR
  * \param hwPushNum Hardware push number of CPTS
  */
 void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
-                                   Enet_Handle hEnet,
-                                   uint32_t coreKey,
                                    uint8_t timerId,
                                    uint8_t hwPushNum);
 
@@ -916,16 +679,11 @@ void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
  * via Timesync router(TSR).
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
  * \param hwPushNum Hardware push number of CPTS
  */
 void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
-                                     Enet_Handle hEnet,
-                                     uint32_t coreKey,
                                      uint8_t hwPushNum);
+
 
 /*!
  * \brief Register hardware push notification callback
@@ -937,7 +695,7 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
  *                  CPSWPROXY_EALREADYOPEN if callback is already registered.
  *                  CPSWPROXY_EBADARGS if invalid input arguments
  */
-int32_t CpswProxy_registerHwPushNotifyCb(CpswRemoteNotifyService_hwPushNotifyCbFxn cbFxn,
+int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_hwPushNotifyCbFxn cbFxn,
                                          void *cbArg);
 
 /*!
@@ -949,15 +707,9 @@ void CpswProxy_unregisterHwPushNotifyCb(void);
  * \brief Set promiscuous mode.
  *
  * \param hProxy    Handle to Cpsw Proxy
- * \param hEnet     Unique opaque handle returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
- * \param coreKey   Unique core_key returned by CpswProxy_attach() or
- *                  CpswProxy_attachExtended()
  * \param enable    Promiscuous mode (enable or disable)
  */
 void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
-                              Enet_Handle hEnet,
-                              uint32_t coreKey,
                               bool enable);
 
 /* @} */
