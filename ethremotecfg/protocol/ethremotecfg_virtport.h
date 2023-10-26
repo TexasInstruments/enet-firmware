@@ -85,7 +85,13 @@ extern "C" {
 /*                                 Macros                                     */
 /* ========================================================================== */
 
-/* None */
+/*!
+ * \brief De-normalize #EthRemoteCfg_VirtPort.
+ *
+ * Macro to denormalize VirtPort number. It takes a zero-based
+ * virtport number and converts it to a #EthRemoteCfg_VirtPort enum.
+ */
+#define ETHREMOTECFG_VIRTPORT_DENORM(n)                ((EthRemoteCfg_VirtPort)((n) + ETHREMOTECFG_SWITCH_PORT_0))
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -183,6 +189,19 @@ static bool EthRemoteCfg_isSwitchPort(EthRemoteCfg_VirtPort portId)
 static bool EthRemoteCfg_isMacPort(EthRemoteCfg_VirtPort portId)
 {
     return (portId >= ETHREMOTECFG_MAC_PORT_1);
+}
+
+/*!
+ * \brief Check whether port is a valid virtual port or not.
+ *
+ * \param portId [in]   Virtual port id.
+ *
+ * \return true if virtual port, false otherwise.
+ *
+ */
+static bool EthRemoteCfg_isVirtPort(EthRemoteCfg_VirtPort portId)
+{
+    return ((portId <= ETHREMOTECFG_MAC_PORT_LAST) && (portId >= ETHREMOTECFG_SWITCH_PORT_0));
 }
 
 /*!
