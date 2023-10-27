@@ -103,7 +103,7 @@ extern "C" {
 /* ========================================================================== */
 
 extern bool EthFwCallbacks_isPortLinked(struct netif *netif,
-                                        Enet_Handle hEnet);
+                                        void *handleArg);
 
 void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                         LwipifEnetAppIf_GetHandleOutArgs *outArgs);

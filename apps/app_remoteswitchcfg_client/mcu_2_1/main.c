@@ -313,17 +313,11 @@ typedef struct CpswRemoteApp_Obj_s
     /* Enet peripheral instance id */
     uint32_t instId;
 
-    /* Enet LLD handle */
-    Enet_Handle hEnet;
-
     /* Enet LLD DMA handle */
     EnetDma_Handle hEnetDma;
 
     /* Core id used for Enet LLD APIs */
     uint32_t coreId;
-
-    /* coreKey used for Enet LLD APIs */
-    uint32_t coreKey;
 
     /* Whether to use default flow or not */
     bool useDefaultRxFlow;
@@ -359,9 +353,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
     .enetType         = ENET_CPSW_5G,
     .instId           = 0U,
 #endif
-    .hEnet            = NULL,
     .hEnetDma         = NULL,
-    .coreKey          = ENET_RM_INVALIDCORE,
     .useDefaultRxFlow = false,
     .useExtAttach     = true,
     .virtNetif        =
@@ -1138,7 +1130,6 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
             virtNetif->ipv4Addr[3] = ip4_addr4_val(*ipAddr);
 
             localAssert(virtNetif->hCpswProxy != NULL);
-            localAssert(gRemoteAppObj.hEnet != NULL);
 
             if (EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
             {
@@ -1318,16 +1309,11 @@ static void CpswRemoteApp_closeLwipTxCh(CpswProxy_Handle hProxy,
 }
 
 static bool LwipifEnetAppCb_isPortLinked(struct netif *netif,
-                                         Enet_Handle hEnet)
+                                         void *handleArg)
 {
-    CpswRemoteApp_VirtNetif *virtNetif;
     bool isLinked = false;
-    uint32_t i;
 
-    virtNetif = container_of(netif, CpswRemoteApp_VirtNetif, netif);
-    localAssert(virtNetif->hCpswProxy != NULL);
-
-    isLinked = (isLinked || CpswProxy_isPhyLinked(virtNetif->hCpswProxy));
+    isLinked = (isLinked || CpswProxy_isPhyLinked((CpswProxy_Handle)handleArg));
 
     return isLinked;
 }
@@ -1346,6 +1332,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
     isSwitchPort = EthRemoteCfg_isSwitchPort(virtNetif->virtPort);
 
+    outArgs->handleArg = (void *)(virtNetif->hCpswProxy);
     outArgs->coreId = gRemoteAppObj.coreId;
     outArgs->hUdmaDrv = gRemoteAppObj.hUdmaDrv;
     outArgs->print = (Enet_Print) & printf;
@@ -1398,8 +1385,6 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                &outArgs->rxInfo[0U],
                                outArgs->hostPortRxMtu,
                                isSwitchPort);
-    gRemoteAppObj.coreKey = outArgs->coreKey;
-    gRemoteAppObj.hEnet = outArgs->hEnet;
 }
 
 void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)

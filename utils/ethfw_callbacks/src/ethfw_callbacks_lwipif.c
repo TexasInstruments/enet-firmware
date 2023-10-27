@@ -280,7 +280,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
     outArgs->coreId          = coreId;
     outArgs->coreKey         = attachInfo.coreKey;
-    outArgs->hEnet           = handleInfo.hEnet;
+    outArgs->handleArg       = (void *)handleInfo.hEnet;
     outArgs->hostPortRxMtu   = attachInfo.rxMtu;
     ENET_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
     outArgs->hUdmaDrv        = handleInfo.hUdmaDrv;
@@ -322,7 +322,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     rxInfo = &outArgs->rxInfo[1U];
 
     status = EthFwCallbacks_setupPacketDuplicationRoute(handleInfo.hEnet,
-                                                        outArgs->coreKey,
+                                                        attachInfo.coreKey,
                                                         outArgs->coreId,
                                                         &handleInfo,
                                                         rxCfg,
@@ -345,7 +345,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     rxInfo = &outArgs->rxInfo[1U];
 
     status = EthFwCallbacks_setupArpRoute(handleInfo.hEnet,
-                                          outArgs->coreKey,
+                                          attachInfo.coreKey,
                                           outArgs->coreId,
                                           &handleInfo,
                                           rxCfg,
@@ -372,6 +372,8 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetMcm_CmdIf mcmCmdIf;
     EnetDma_PktQ fqPktInfoQ;
     EnetDma_PktQ cqPktInfoQ;
+    Enet_Handle hEnet = (Enet_Handle)releaseInfo->handleArg;
+
 #if defined(SOC_J721E) || defined(SOC_J784S4)
     Enet_Type enetType = ENET_CPSW_9G;
 #elif defined(SOC_J7200)
@@ -389,7 +391,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     rxInfo = &releaseInfo->rxInfo[1U];
     freePktInfo = &releaseInfo->rxFreePkt[1U];
 
-    EthFwCallbacks_teardownPacketDuplicationRoute(releaseInfo->hEnet,
+    EthFwCallbacks_teardownPacketDuplicationRoute(hEnet,
                                                   releaseInfo->coreKey,
                                                   releaseInfo->coreId,
                                                   rxInfo->hRxFlow,
@@ -400,7 +402,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     rxInfo = &releaseInfo->rxInfo[1U];
     freePktInfo = &releaseInfo->rxFreePkt[1U];
 
-    EthFwCallbacks_teardownArpRoute(releaseInfo->hEnet,
+    EthFwCallbacks_teardownArpRoute(hEnet,
                                     releaseInfo->coreKey,
                                     releaseInfo->coreId,
                                     rxInfo->hRxFlow,
@@ -412,7 +414,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     /* Close TX channel */
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
-    EnetAppUtils_closeTxCh(releaseInfo->hEnet,
+    EnetAppUtils_closeTxCh(hEnet,
                            releaseInfo->coreKey,
                            releaseInfo->coreId,
                            &fqPktInfoQ,
@@ -428,7 +430,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
     EnetAppUtils_closeRxFlow(enetType,
-                             releaseInfo->hEnet,
+                             hEnet,
                              releaseInfo->coreKey,
                              releaseInfo->coreId,
                              useDefaultFlow,
