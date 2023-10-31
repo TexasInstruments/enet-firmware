@@ -975,6 +975,46 @@ void CpswProxy_getDumpStats(CpswProxy_Handle hProxy)
     CpswProxy_sendCmd(hProxy, req.reqType, &req, sizeof(req), &res, sizeof(res));
 }
 
+int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
+                           uint32_t flowIdxBase,
+                           uint32_t flowIdxOffset,
+                           const uint8_t *macAddr,
+                           uint16_t vlanId)
+{
+    EthRemoteCfg_VlanJoinReq req;
+    EthRemoteCfg_StatusRes res;
+
+    req.vlanId = vlanId;
+    req.flowIdxBase = flowIdxBase;
+    req.flowIdxOffset = flowIdxOffset;
+    memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_JOIN_VLAN, &req, sizeof(req), &res, sizeof(res));
+
+    return res.hdr.status;
+}
+
+int32_t CpswProxy_leaveVlan(CpswProxy_Handle hProxy,
+                            uint32_t flowIdxBase,
+                            uint32_t flowIdxOffset,
+                            const uint8_t *macAddr,
+                            uint16_t vlanId)
+{
+    EthRemoteCfg_VlanLeaveReq req;
+    EthRemoteCfg_StatusRes res;
+
+    req.vlanId = vlanId;
+    req.flowIdxBase = flowIdxBase;
+    req.flowIdxOffset = flowIdxOffset;
+    memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
+
+    /* Send request to server and wait for response */
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_LEAVE_VLAN, &req, sizeof(req), &res, sizeof(res));
+
+    return res.hdr.status;
+}
+
 void CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
                             uint32_t rxFlowStartIdx,
                             uint32_t freeRxFlowIdx,

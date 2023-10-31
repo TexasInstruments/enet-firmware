@@ -469,6 +469,29 @@ typedef enum EthRemoteCfg_CmdType_e
     ETHREMOTECFG_DEREGISTER_IPv4,
 
     /*!
+     * \brief Command to join a VLAN.
+     *
+     * Used by remote clients to join a VLAN.  Note that the remote client
+     * must be allowed in the VLAN, which is a static configuration on
+     * server side.
+     *
+     * Request (C2S): \ref EthRemoteCfg_VlanJoinReq
+     * Response (S2C): \ref EthRemoteCfg_StatusRes
+     */
+    ETHREMOTECFG_JOIN_VLAN,
+
+    /*!
+     * \brief Command to leave a VLAN.
+     *
+     * Used by remote clients to leave VLAN previously joined through
+     * \ref ETHREMOTECFG_JOIN_VLAN.
+     *
+     * Request (C2S): \ref EthRemoteCfg_VlanLeaveReq
+     * Response (S2C): \ref EthRemoteCfg_StatusRes
+     */
+    ETHREMOTECFG_LEAVE_VLAN,
+
+    /*!
      * \brief Command to add multicast MAC address to receive filter.
      *
      * Command allows remote core client to add a multicast address to
@@ -1118,6 +1141,57 @@ typedef struct EthRemoteCfg_IPv4AddrDeregisterReq_s
     /*! IP address */
     uint8_t ipAddr[ETHREMOTECFG_IPV4ADDRLEN];
 } __attribute__((packed)) EthRemoteCfg_IPv4AddrDeregisterReq;
+
+/*!
+ * \brief Request params for \ref ETHREMOTECFG_JOIN_VLAN command.
+ *
+ * Parameters provided by remote clients to join a VLAN previously setup by
+ * Ethernet Firmware.  The remote client must be allowed to join the requested
+ * \ref EthRemoteCfg_VlanJoinReq::vlanId for the request to succeed.
+ * If allowed, VLAN traffic will be routed to the RX flow provided by the client.
+ */
+typedef struct EthRemoteCfg_VlanJoinReq_s
+{
+    /*! Request message common header */
+    EthRemoteCfg_ReqHdr hdr;
+
+    /*! VLAN id */
+    uint16_t vlanId;
+
+    /*! MAC address */
+    uint8_t macAddr[ETHREMOTECFG_MACADDRLEN];
+
+    /*! RX flow index base */
+    uint32_t flowIdxBase;
+
+    /*! RX flow index offset to route unicast VLAN packets to */
+    uint32_t flowIdxOffset;
+} __attribute__((packed)) EthRemoteCfg_VlanJoinReq;
+
+/*!
+ * \brief Request params for \ref ETHREMOTECFG_LEAVE_VLAN command.
+ *
+ * Parameters provided by remote clients to leave a VLAN previously joined using
+ * \ref ETHREMOTECFG_JOIN_VLAN command.  After successfully leaving the VLAN,
+ * VLAN traffic will stop on the provided RX flow.
+ */
+typedef struct EthRemoteCfg_VlanLeaveReq_s
+{
+    /*! Request message common header */
+    EthRemoteCfg_ReqHdr hdr;
+
+    /*! VLAN id */
+    uint16_t vlanId;
+
+    /*! MAC address */
+    uint8_t macAddr[ETHREMOTECFG_MACADDRLEN];
+
+    /*! RX flow index base */
+    uint32_t flowIdxBase;
+
+    /*! RX flow index offset to route unicast VLAN packets to */
+    uint32_t flowIdxOffset;
+} __attribute__((packed)) EthRemoteCfg_VlanLeaveReq;
 
 /*!
  * \brief Request params for \ref ETHREMOTECFG_SET_RX_DEFAULTFLOW or

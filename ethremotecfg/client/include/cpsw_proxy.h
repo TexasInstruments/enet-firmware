@@ -563,6 +563,55 @@ void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
                                   uint8_t *ipv4Addr);
 
 /*!
+ * \brief Join a VLAN.
+ *
+ * Joins a client to a VLAN registered on the server side.
+ *
+ * VLAN creation is done by Ethernet Firmware server at init time, it sets up
+ * all VLANs, including the VLAN member list, flood masks, etc.  The server
+ * also defines which remote clients can join the VLAN.
+ *
+ * If the client is allowed to join the VLAN, the server will setup a route
+ * for VLAN tagged unicast packets matching the destination MAC address
+ * provided in this function.
+ *
+ * \param hProxy           Handle to Cpsw Proxy
+ * \param flowIdxBase      Client's RX flow index base value
+ * \param flowIdxOffset    Client's RX flow offset
+ * \param macAddr          Client's MAC address (unicast)
+ * \param vlanId           VLAN id to join
+ *
+ * \returns \ref CpswProxy_ErrorCodes
+ */
+int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
+                           uint32_t flowIdxBase,
+                           uint32_t flowIdxOffset,
+                           const uint8_t *macAddr,
+                           uint16_t vlanId);
+
+/*!
+ * \brief Leave a VLAN.
+ *
+ * Leaves a previously joined VLAN, registered on the server side.
+ *
+ * Client's route setup at the time of joining will be deleted after client
+ * leaves the VLAN.
+ *
+ * \param hProxy           Handle to Cpsw Proxy
+ * \param flowIdxBase      Client's RX flow index base value
+ * \param flowIdxOffset    Client's RX flow offset
+ * \param macAddr          Client's MAC address (unicast)
+ * \param vlanId           VLAN id to leave
+ *
+ * \returns \ref CpswProxy_ErrorCodes
+ */
+int32_t CpswProxy_leaveVlan(CpswProxy_Handle hProxy,
+                            uint32_t flowIdxBase,
+                            uint32_t flowIdxOffset,
+                            const uint8_t *macAddr,
+                            uint16_t vlanId);
+
+/*!
  * \brief Add multicast address to receive filter.
  *
  * This function adds a multicast address to the receive filter.  Ethernet Firmware

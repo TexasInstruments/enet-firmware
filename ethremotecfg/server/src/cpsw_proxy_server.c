@@ -86,6 +86,7 @@
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 #include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
+#include <utils/ethfw_vlan/include/ethfw_vlan.h>
 #if defined(ETHFW_VEPA_SUPPORT)
 #include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
 #endif
@@ -988,6 +989,60 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
         /* ETHFW ARP table is supported only on virtual switch ports */
         appLogPrintf("IPv4:MAC deregistration is not supported on virtual MAC ports\n");
         status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+    }
+
+    return status;
+}
+
+static int32_t CpswProxyServer_vlanJoinHandlerCb(CpswProxyServer_ClientHandle hClient,
+                                                 uint32_t coreId,
+                                                 uint16_t vlanId,
+                                                 const uint8_t *macAddr,
+                                                 uint32_t flowIdxBase,
+                                                 uint32_t flowIdxOffset)
+{
+    CpswProxyServer_Obj *hServer = NULL;
+    int32_t status = ENET_SOK;
+
+    /* Check that server itself is ready */
+    hServer = CpswProxyServer_getHandle();
+    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == true));
+
+    status = EthFwVlan_join(hClient->hEnet,
+                            hClient->virtPort,
+                            vlanId,
+                            macAddr,
+                            flowIdxOffset);
+    if (status != ENET_SOK)
+    {
+        appLogPrintf("Failed to join VLAN %u: %d\n", vlanId, status);
+    }
+
+    return status;
+}
+
+static int32_t CpswProxyServer_vlanLeaveHandlerCb(CpswProxyServer_ClientHandle hClient,
+                                                  uint32_t coreId,
+                                                  uint16_t vlanId,
+                                                  const uint8_t *macAddr,
+                                                  uint32_t flowIdxBase,
+                                                  uint32_t flowIdxOffset)
+{
+    CpswProxyServer_Obj *hServer = NULL;
+    int32_t status = ENET_SOK;
+
+    /* Check that server itself is ready */
+    hServer = CpswProxyServer_getHandle();
+    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == true));
+
+    status = EthFwVlan_leave(hClient->hEnet,
+                             hClient->virtPort,
+                             vlanId,
+                             macAddr,
+                             flowIdxOffset);
+    if (status != ENET_SOK)
+    {
+        appLogPrintf("Failed to leave VLAN %u: %d\n", vlanId, status);
     }
 
     return status;
@@ -2566,6 +2621,60 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             resLen = sizeof(*res);
 
             appLogPrintf("DEREGISTER_IPv4 | S2C | status=%d\n", status);
+            break;
+        }
+        case ETHREMOTECFG_JOIN_VLAN:
+        {
+            EthRemoteCfg_VlanJoinReq *req = (EthRemoteCfg_VlanJoinReq *)reqBuf;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
+
+            appLogPrintf("JOIN_VLAN | C2S | core=%u endpt=%u token=%u vlanId=%u "
+                         "macAdd=%x:%x:%x:%x:%x:%x flowIdx=%u,%u\n",
+                         remoteProcId, remoteEndPt, token, req->vlanId,
+                         req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
+                         req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
+                         req->flowIdxBase, req->flowIdxOffset);
+
+            /* Get client object for token */
+            hClient = CpswProxyServer_getClient(token);
+            EnetAppUtils_assert(hClient != NULL);
+
+            status = CpswProxyServer_vlanJoinHandlerCb(hClient,
+                                                       remoteProcId,
+                                                       req->vlanId,
+                                                       req->macAddr,
+                                                       req->flowIdxBase,
+                                                       req->flowIdxOffset);
+            resLen = sizeof(*res);
+
+            appLogPrintf("JOIN_VLAN | S2C | status=%d\n", status);
+            break;
+        }
+        case ETHREMOTECFG_LEAVE_VLAN:
+        {
+            EthRemoteCfg_VlanLeaveReq *req = (EthRemoteCfg_VlanLeaveReq *)reqBuf;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
+
+            appLogPrintf("LEAVE_VLAN | C2S | core=%u endpt=%u token=%u vlanId=%u "
+                         "macAdd=%x:%x:%x:%x:%x:%x flowIdx=%u,%u\n",
+                         remoteProcId, remoteEndPt, token, req->vlanId,
+                         req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
+                         req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
+                         req->flowIdxBase, req->flowIdxOffset);
+
+            /* Get client object for token */
+            hClient = CpswProxyServer_getClient(token);
+            EnetAppUtils_assert(hClient != NULL);
+
+            status = CpswProxyServer_vlanLeaveHandlerCb(hClient,
+                                                        remoteProcId,
+                                                        req->vlanId,
+                                                        req->macAddr,
+                                                        req->flowIdxBase,
+                                                        req->flowIdxOffset);
+            resLen = sizeof(*res);
+
+            appLogPrintf("LEAVE_VLAN | S2C | status=%d\n", status);
             break;
         }
         case ETHREMOTECFG_ENABLE_PROMISC:
