@@ -61,9 +61,9 @@
  */
 
 /*!
- *  \file ethfw_vepa_utils.c
+ * \file ethfw_vepa_utils.c
  *
- *  \brief VEPA utils functions for Ethernet Firmware.
+ * \brief VEPA utils functions for Ethernet Firmware.
  */
 
 /* ========================================================================== */

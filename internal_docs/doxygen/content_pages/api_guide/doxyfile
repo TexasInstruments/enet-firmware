@@ -746,7 +746,7 @@ WARN_LOGFILE           =
 @INCLUDE = ./cfg/ethremotecfg.cfg
 @INCLUDE = ./cfg/ethfwboard.cfg
 @INCLUDE = ./cfg/ethfwvepa.cfg
-
+@INCLUDE = ./cfg/ethfwcommon.cfg
 
 
 # This tag can be used to specify the character encoding of the source files

@@ -1,0 +1,19 @@
+include $(PRELUDE)
+
+TARGET      := lib_ethfw_common
+TARGETTYPE  := library
+TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
+TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
+
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4))
+  ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
+    CSOURCES := ethfw_trace.c
+
+    IDIRS := ${ETHFW_PATH}
+    IDIRS += $(PDK_PATH)/packages
+
+    DEFS += MAKEFILE_BUILD
+  endif
+endif
+
+include $(FINALE)
