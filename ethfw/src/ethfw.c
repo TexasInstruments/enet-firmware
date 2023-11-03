@@ -1392,6 +1392,8 @@ static int32_t EthFw_initMcm(void)
     mcmCfg.numMacPorts = gEthFwObj.numPorts;
     mcmCfg.periodicTaskPeriod = ENETPHY_FSM_TICK_PERIOD_MS;
     mcmCfg.print = appLogPrintf;
+    mcmCfg.traceTsFunc = NULL;
+    mcmCfg.extTraceFunc = NULL;
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
