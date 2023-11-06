@@ -153,7 +153,7 @@ void EthFwVepaUtils_initCfg(EthFwVepaUtils_Cfg *vepaCfg);
 /*!
  * \brief Initialize VEPA utils module.
  *
- * Initializes VEPA utils module. User should call \ref EthFwVepa_initCfg
+ * Initializes VEPA utils module. User should call \ref EthFwVepaUtils_initCfg
  * to initialize configuration parameters and make updates if needed
  * before calling this function.
  *
