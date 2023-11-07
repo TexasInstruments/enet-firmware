@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021 Texas Instruments Incorporated
+ * Copyright (c) 2023 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -61,94 +61,121 @@
  */
 
 /*!
- *  \file ethfw_lwip_utils.h
+ * \file ethfw_vepa.h
  *
- *  \brief Header file for Ethernet Firmware LwIP utils.
+ * \brief This file contains the type definitions, helper macros and functions
+ *        required for Ethernet Firmware VEPA support on devices with CPSW ALE
+ *        multihost feature.
  */
 
-#ifndef ETHFW_LWIP_UTILS_H_
-#define ETHFW_LWIP_UTILS_H_
+#ifndef ETHFW_VEPA_H_
+#define ETHFW_VEPA_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include "lwip/ip4_addr.h"
-#include "lwip/prot/etharp.h"
 #include "lwip/prot/ethernet.h"
 #include "netif/ethernet.h"
+#include <utils/ethfw_common/include/ethfw_types.h>
+#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*!
+ * \defgroup ETHFW_VEPA_UTILS Ethernet Firmware VEPA Utils
+ *
+ * \brief This section contains VEPA helper APIs for the Ethernet Firmware.
+ *
+ * This VEPA utils library provides helper functions to enable VEPA (Virtual
+ * Ethernet Port Aggregator) functionality in Jacinto devices with CPSW capable
+ * of multihost data flow.  _Multihost_ is a CPSW ALE feature that enables
+ * packets to be sent and received on host port, which is mandatory for VEPA.
+ *
+ * The VEPA utils library allocates a secondary RX flow exclusively for
+ * broadcast and registered multicast packets to be routed to.  This flow is
+ * in addition to the RX flows used by Ethernet Firmware to receive all other
+ * traffic (i.e. TCP/IP, gPTP).
+ *
+ * Ethernet Firmware server side (_CpswProxyServer_) registers multicast MAC
+ * addresses that need to be forwarded to remote clients.  These multicast
+ * addresses are added to an internal VEPA table, which can be printed for
+ * debug purpose.  An ALE policer entry is also added for each multicast
+ * address in the table so that when multicast packets arrive at any of the
+ * MAC ports configured in non MAC-only mode, they are routed to its dedicated
+ * flow, allocated at init time.
+ *
+ * When a multicast packet whose MAC address is registered in the VEPA table,
+ * it will be passed to a VEPA specific handle function, which then calls
+ * \ref EthFwVepa_sendRaw() to send a copy of the multicast packets to
+ * all relevant remote cores.
+ *
+ * @{
+ */
+/* @} */
+
+/*!
+ * \addtogroup ETHFW_VEPA_UTILS
+ * @{
+ */
+
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
 
-/*! \brief Success. */
-#define ETHFW_LWIP_UTILS_SOK                    (0)
-
-/*! \brief Generic failure error condition. */
-#define ETHFW_LWIP_UTILS_EFAIL                  (-1)
-
-/*! \brief Invalid parameters (i.e. value out-of-range). */
-#define ETHFW_LWIP_UTILS_EINVALIDPARAMS         (-3)
-
-/*! \brief Allocation failure. */
-#define ETHFW_LWIP_UTILS_EALLOC                 (-5)
+/*! \brief Flow index used to received packets for duplication is not defined */
+#define ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED      (0xFFFFU)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
 
-/* None */
-
-/* ========================================================================== */
-/*                         Global Variables Declarations                      */
-/* ========================================================================== */
-
-/* None */
+/*!
+ * \brief Ethernet Firmware VEPA configuration.
+ */
+typedef struct EthFwVepa_Cfg_s
+{
+    /*! Private VLAN id for each remote core */
+    uint32_t privVlanId[ETHREMOTECFG_SWITCH_PORT_LAST+1];
+} EthFwVepa_Cfg;
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-int32_t EthFwArpUtils_init(void);
+/*!
+ * \brief Sets packet duplication flow.
+ *
+ * \param flowIdx    RX flow idx to be set
+ *
+ * \returns ETHFW_SOK if packet duplication flow was set successful, or a
+ *          negative error code if failed.
+ */
+uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx);
 
-void EthFwArpUtils_deinit(void);
-
-int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
-                                struct eth_addr *hwAddr,
-                                uint16_t vlanId);
-
-int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
-                              const struct eth_addr *hwAddr,
-                              uint16_t vlanId);
-
-int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr,
-                              uint16_t vlanId);
-
-void EthFwArpUtils_printTable(void);
-
-void EthFwArpUtils_sendRaw(struct netif *netif,
-                           const struct eth_addr *ethSrcAddr,
-                           const struct eth_addr *ethDstAddr,
-                           const struct eth_addr *hwSrcAddr,
-                           const ip4_addr_t *ipSrcAddr,
-                           const struct eth_addr *hwDstAddr,
-                           const ip4_addr_t *ipDstAddr,
-                           uint16_t vlanId,
-                           const u16_t opcode);
-
-/* ========================================================================== */
-/*                        Deprecated Function Declarations                    */
-/* ========================================================================== */
-
-/* None */
+/*!
+ * \brief Sends pbuf to all the required virtual switch ports after
+ *        inserting their corresponding private VLAN.
+ *
+ * \param netif      Enet netif on which packet received
+ * \param pbuf       Pointer to the data buffer received
+ * \param ethSrcAddr Source MAC address
+ * \param ethDstAddr Destination MAC address
+ *
+ * \returns ETHFW_SOK if packet was sent successfully to required virtual
+ *          switch ports, or a negative error code if failed.
+ */
+int32_t EthFwVepa_sendRaw(struct netif *netif,
+                          struct pbuf *pbuf,
+                          struct eth_addr *ethSrcAddr,
+                          struct eth_addr *ethDstAddr);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ETHFW_LWIP_UTILS_H_ */
+/* @} */
+
+#endif /* ETHFW_VEPA_H_ */

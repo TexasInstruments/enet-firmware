@@ -85,10 +85,10 @@
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
-#include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
+#include <ethremotecfg/server/include/ethfw_arp.h>
 
 #if defined(ETHFW_VEPA_SUPPORT)
-#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
+#include <ethremotecfg/server/include/ethfw_vepa.h>
 #endif
 
 #include <utils/console_io/include/app_log.h>
@@ -500,7 +500,7 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
     /* Set packet duplication flow id */
     if (status == ENET_SOK)
     {
-        status = EthFwVepaUtils_setPacketDuplicationFlowIdx(*flowIdx);
+        status = EthFwVepa_setPacketDuplicationFlowIdx(*flowIdx);
         if (status != ENET_SOK)
         {
             appLogPrintf("Failed to set flow for packet duplication: %d\n", status);
@@ -524,7 +524,7 @@ static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
     int32_t status;
 
     /* Set packet duplication flow to be un-defined */
-    status = EthFwVepaUtils_setPacketDuplicationFlowIdx(ETHFW_VEPA_UTILS_PKT_DUP_FLOW_IDX_UNDEFINED);
+    status = EthFwVepa_setPacketDuplicationFlowIdx(ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED);
     if (status != ENET_SOK)
     {
         appLogPrintf("Failed to remove flow for packet duplication: %d\n", status);
@@ -583,7 +583,7 @@ static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
 #endif
 
     ethHdr = (struct eth_hdr *)(pbuf->payload);
-    status = EthFwVepaUtils_sendRaw(netif, pbuf, &ethHdr->src, &ethHdr->dest);
+    status = EthFwVepa_sendRaw(netif, pbuf, &ethHdr->src, &ethHdr->dest);
 
     /* Lwip stack should also consume the packet */
     return false;
@@ -789,18 +789,18 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
                  vlanId);
 #endif
 
-    status = EthFwArpUtils_getHwAddr(&dstIp, &hwAddr, vlanId);
-    if (status == ETHFW_LWIP_UTILS_SOK)
+    status = EthFwArp_getHwAddr(&dstIp, &hwAddr, vlanId);
+    if (status == ETHFW_SOK)
     {
-        EthFwArpUtils_sendRaw(netif,
-                              &hwAddr,
-                              &ethArpHdr->shwaddr,
-                              &hwAddr,
-                              &dstIp,
-                              &ethArpHdr->shwaddr,
-                              &srcIp,
-                              vlanId,
-                              ARP_REPLY);
+        EthFwArp_sendRaw(netif,
+                         &hwAddr,
+                         &ethArpHdr->shwaddr,
+                         &hwAddr,
+                         &dstIp,
+                         &ethArpHdr->shwaddr,
+                         &srcIp,
+                         vlanId,
+                         ARP_REPLY);
 
 #if defined(ETHFW_CALLBACKS_DEBUG)
         appLogPrintf("Sent ARP response\n");

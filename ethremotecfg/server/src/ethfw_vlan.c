@@ -51,8 +51,8 @@
 #include <ti/drv/enet/include/per/cpsw.h>
 
 /* EthFw utils header files */
-#include <utils/ethfw_vlan/include/ethfw_vlan.h>
 #include <utils/console_io/include/app_log.h>
+#include "ethfw_vlan_priv.h"
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */

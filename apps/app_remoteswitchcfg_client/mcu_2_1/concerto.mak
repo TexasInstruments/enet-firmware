@@ -29,7 +29,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
 
-STATIC_LIBS += lib_remoteswitchcfg_client
+STATIC_LIBS += ethfw_remotecfg_client
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)
@@ -100,7 +100,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
 
-STATIC_LIBS += lib_remoteswitchcfg_client
+STATIC_LIBS += ethfw_remotecfg_client
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)

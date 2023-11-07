@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021 Texas Instruments Incorporated
+ * Copyright (c) 20212-2023 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -61,9 +61,9 @@
  */
 
 /*!
- *  \file ethfw_lwip_utils.c
+ *  \file ethfw_arp.c
  *
- *  \brief lwIP utils functions for Ethernet Firmware.
+ *  \brief Ethernet Firmware proxy ARP implementation.
  */
 
 /* ========================================================================== */
@@ -74,29 +74,27 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ti/osal/MutexP.h>
-#include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
+#include <utils/ethfw_common/include/ethfw_types.h>
 #include <utils/console_io/include/app_log.h>
+
+/* Enet LLD header files */
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/per/cpsw.h>
+
+/* EthFw header files */
+#include "ethfw_arp_priv.h"
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
 /* Number of entries in the address table */
-#define ETHFW_ARP_UTILS_TABLE_SIZE                 (16U)
-
-/* Macro to get the size of an array */
-#define ARRAY_SIZE(x)                              (sizeof((x)) / sizeof(x[0U]))
-
-/*! Macro to set bit at given bit position */
-#define BIT(n)                                     (1U << (n))
-
-/* Macro to check if bit at given bit position is set */
-#define IS_BIT_SET(val, n)                         (((val) & BIT(n)) != 0U)
+#define ETHFW_ARP_TABLE_SIZE                       (16U)
 
 /*!
  * \brief Table entry with IP address and MAC address for remote cores.
  */
-typedef struct EthFwArpUtils_AddrEntry_s
+typedef struct EthFwArp_AddrEntry_s
 {
     /*! Remote core's IP address */
     ip4_addr_t ipAddr;
@@ -109,22 +107,22 @@ typedef struct EthFwArpUtils_AddrEntry_s
 
     /*! Whether this entry is free or not */
     bool isFree;
-} EthFwArpUtils_AddrEntry;
+} EthFwArp_AddrEntry;
 
 /*!
  * \brief lwIP ARP Utils object.
  */
-typedef struct EthFwArpUtils_Obj_s
+typedef struct EthFwArp_Obj_s
 {
     /*! ARP table */
-    EthFwArpUtils_AddrEntry remoteCoreArpTable[ETHFW_ARP_UTILS_TABLE_SIZE];
+    EthFwArp_AddrEntry remoteCoreArpTable[ETHFW_ARP_TABLE_SIZE];
 
     /*! Mutex object. Used to protect ARP table from concurrent accesses */
     MutexP_Object mutexObj;
 
     /*! Handle to ARP table mutex */
     MutexP_Handle hMutex;
-} EthFwArpUtils_Obj;
+} EthFwArp_Obj;
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
@@ -142,29 +140,29 @@ typedef struct EthFwArpUtils_Obj_s
 /*                            Global Variables                                */
 /* ========================================================================== */
 
-static EthFwArpUtils_Obj gEthFwArpObj;
+static EthFwArp_Obj gEthFwArpObj;
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-int32_t EthFwArpUtils_init(void)
+int32_t EthFwArp_init(void)
 {
-    int32_t status = ETHFW_LWIP_UTILS_SOK;
+    int32_t status = ETHFW_SOK;
     uint32_t i;
 
     /* Create mutex to protect ARP table */
     gEthFwArpObj.hMutex = MutexP_create(&gEthFwArpObj.mutexObj);
     if (gEthFwArpObj.hMutex == NULL)
     {
-        appLogPrintf("EthFwArpUtils_init() failed to create mutex\n");
-        status = ETHFW_LWIP_UTILS_EFAIL;
+        appLogPrintf("EthFwArp_init() failed to create mutex\n");
+        status = ETHFW_EFAIL;
     }
 
     /* Mark all entries in table as free */
-    if (status == ETHFW_LWIP_UTILS_SOK)
+    if (status == ETHFW_SOK)
     {
-        for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
+        for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
         {
             gEthFwArpObj.remoteCoreArpTable[i].isFree = true;
         }
@@ -173,7 +171,7 @@ int32_t EthFwArpUtils_init(void)
     return status;
 }
 
-void EthFwArpUtils_deinit(void)
+void EthFwArp_deinit(void)
 {
     if (gEthFwArpObj.hMutex != NULL)
     {
@@ -181,17 +179,17 @@ void EthFwArpUtils_deinit(void)
     }
 }
 
-int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
-                                struct eth_addr *hwAddr,
-                                uint16_t vlanId)
+int32_t EthFwArp_getHwAddr(const ip4_addr_t *ipAddr,
+                           struct eth_addr *hwAddr,
+                           uint16_t vlanId)
 {
-    EthFwArpUtils_AddrEntry *entry;
-    int32_t status = ETHFW_LWIP_UTILS_EFAIL;
+    EthFwArp_AddrEntry *entry;
+    int32_t status = ETHFW_EFAIL;
     uint32_t i;
 
     MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
 
-    for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
+    for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
     {
         entry = &gEthFwArpObj.remoteCoreArpTable[i];
 
@@ -201,7 +199,7 @@ int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
             ip4_addr_cmp(&entry->ipAddr, ipAddr))
         {
             SMEMCPY(hwAddr, &entry->hwAddr, ETH_HWADDR_LEN);
-            status = ETHFW_LWIP_UTILS_SOK;
+            status = ETHFW_SOK;
             break;
         }
     }
@@ -211,31 +209,31 @@ int32_t EthFwArpUtils_getHwAddr(const ip4_addr_t *ipAddr,
     return status;
 }
 
-int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
-                              const struct eth_addr *hwAddr,
-                              uint16_t vlanId)
+int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
+                         const struct eth_addr *hwAddr,
+                         uint16_t vlanId)
 {
-    EthFwArpUtils_AddrEntry *entry;
-    int32_t status = ETHFW_LWIP_UTILS_SOK;
+    EthFwArp_AddrEntry *entry;
+    int32_t status = ETHFW_SOK;
     uint32_t i;
     bool done = false;
 
-    if (IS_BIT_SET(hwAddr->addr[0], 0))
+    if (ETHFW_IS_BIT_SET(hwAddr->addr[0], 0))
     {
-        appLogPrintf("EthFwArpUtils_addAddr() mcast MAC address cannot be added\n");
-        status = ETHFW_LWIP_UTILS_EINVALIDPARAMS;
+        appLogPrintf("EthFwArp_addAddr() mcast MAC address cannot be added\n");
+        status = ETHFW_EINVALIDPARAMS;
     }
     else if (ip4_addr_ismulticast(ipAddr))
     {
-        appLogPrintf("EthFwArpUtils_addAddr() mcast IP address cannot be added\n");
-        status = ETHFW_LWIP_UTILS_EINVALIDPARAMS;
+        appLogPrintf("EthFwArp_addAddr() mcast IP address cannot be added\n");
+        status = ETHFW_EINVALIDPARAMS;
     }
     else
     {
         MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
 
         /* Check if an entry already in table needs to be updated */
-        for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
+        for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
         {
              entry = &gEthFwArpObj.remoteCoreArpTable[i];
 
@@ -254,7 +252,7 @@ int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
         /* Look for new entry in table */
         if (!done)
         {
-            for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
+            for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
             {
                 entry = &gEthFwArpObj.remoteCoreArpTable[i];
 
@@ -273,22 +271,22 @@ int32_t EthFwArpUtils_addAddr(const ip4_addr_t *ipAddr,
 
         MutexP_unlock(gEthFwArpObj.hMutex);
 
-        status = done ? ETHFW_LWIP_UTILS_SOK : ETHFW_LWIP_UTILS_EALLOC;
+        status = done ? ETHFW_SOK : ETHFW_EALLOC;
     }
 
     return status;
 }
 
-int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr,
-                              uint16_t vlanId)
+int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
+                         uint16_t vlanId)
 {
-    EthFwArpUtils_AddrEntry *entry;
-    int32_t status = ETHFW_LWIP_UTILS_SOK;
+    EthFwArp_AddrEntry *entry;
+    int32_t status = ETHFW_SOK;
     uint32_t i;
 
     MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
 
-    for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
+    for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
     {
         entry = &gEthFwArpObj.remoteCoreArpTable[i];
 
@@ -306,21 +304,21 @@ int32_t EthFwArpUtils_delAddr(const ip4_addr_t *ipAddr,
 
     MutexP_unlock(gEthFwArpObj.hMutex);
 
-    if (i == ETHFW_ARP_UTILS_TABLE_SIZE)
+    if (i == ETHFW_ARP_TABLE_SIZE)
     {
-        status = ETHFW_LWIP_UTILS_EALLOC;
+        status = ETHFW_EALLOC;
     }
     else
     {
-        status = ETHFW_LWIP_UTILS_SOK;
+        status = ETHFW_SOK;
     }
 
     return status;
 }
 
-void EthFwArpUtils_printTable(void)
+void EthFwArp_printTable(void)
 {
-    EthFwArpUtils_AddrEntry *entry;
+    EthFwArp_AddrEntry *entry;
     const uint8_t *hwAddr;
     uint32_t used = 0U;
     uint32_t i;
@@ -328,7 +326,7 @@ void EthFwArpUtils_printTable(void)
     appLogPrintf("\n SNo.      MAC Address        VLAN     IP Address\n");
     appLogPrintf("------  -------------------  ------  -----------------\n");
 
-    for (i = 0U; i < ETHFW_ARP_UTILS_TABLE_SIZE; i++)
+    for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
     {
         entry = &gEthFwArpObj.remoteCoreArpTable[i];
 
@@ -346,15 +344,15 @@ void EthFwArpUtils_printTable(void)
     }
 }
 
-void EthFwArpUtils_sendRaw(struct netif *netif,
-                           const struct eth_addr *ethSrcAddr,
-                           const struct eth_addr *ethDstAddr,
-                           const struct eth_addr *hwSrcAddr,
-                           const ip4_addr_t *ipSrcAddr,
-                           const struct eth_addr *hwDstAddr,
-                           const ip4_addr_t *ipDstAddr,
-                           uint16_t vlanId,
-                           const u16_t opcode)
+void EthFwArp_sendRaw(struct netif *netif,
+                      const struct eth_addr *ethSrcAddr,
+                      const struct eth_addr *ethDstAddr,
+                      const struct eth_addr *hwSrcAddr,
+                      const ip4_addr_t *ipSrcAddr,
+                      const struct eth_addr *hwDstAddr,
+                      const ip4_addr_t *ipDstAddr,
+                      uint16_t vlanId,
+                      const u16_t opcode)
 {
     struct pbuf *pbuf;
     struct eth_hdr *ethHdr;

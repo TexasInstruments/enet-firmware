@@ -29,22 +29,11 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
 
-STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
-STATIC_LIBS += ethfw_vlan
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
-STATIC_LIBS += lib_remoteswitchcfg_server
-
-ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  STATIC_LIBS += ethfw_lwip
-endif
-
-ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
-    STATIC_LIBS += ethfw_vepa
-  endif
-endif
+STATIC_LIBS += ethfw_common
+STATIC_LIBS += ethfw_remotecfg_server
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -126,22 +115,11 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
 
-STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
-STATIC_LIBS += ethfw_vlan
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
-STATIC_LIBS += lib_remoteswitchcfg_server
-
-ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  STATIC_LIBS += ethfw_lwip
-endif
-
-ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
-    STATIC_LIBS += ethfw_vepa
-  endif
-endif
+STATIC_LIBS += ethfw_common
+STATIC_LIBS += ethfw_remotecfg_server
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -216,22 +194,11 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
 
-STATIC_LIBS += ethfw
 STATIC_LIBS += ethfw_callbacks
-STATIC_LIBS += ethfw_vlan
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
-STATIC_LIBS += lib_remoteswitchcfg_server
-
-ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  STATIC_LIBS += ethfw_lwip
-endif
-
-ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
-    STATIC_LIBS += ethfw_vepa
-  endif
-endif
+STATIC_LIBS += ethfw_common
+STATIC_LIBS += ethfw_remotecfg_server
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD

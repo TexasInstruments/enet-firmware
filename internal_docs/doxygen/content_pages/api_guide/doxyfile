@@ -745,7 +745,6 @@ WARN_LOGFILE           =
 
 @INCLUDE = ./cfg/ethremotecfg.cfg
 @INCLUDE = ./cfg/ethfwboard.cfg
-@INCLUDE = ./cfg/ethfwvepa.cfg
 @INCLUDE = ./cfg/ethfwcommon.cfg
 
 

@@ -1,35 +1,59 @@
 include $(PRELUDE)
-TARGET      := lib_remoteswitchcfg_server
+TARGET      := ethfw_remotecfg_server
 TARGETTYPE  := library
 TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 
-CSOURCES    += cpsw_proxy_server.c
+# Source code files
+CSOURCES += cpsw_proxy_server.c
+CSOURCES += ethfw_vlan.c
+CSOURCES += ethfw_vepa.c
+CSOURCES += ethfw_arp.c
+CSOURCES += ethfw_api.c
 
 #include $(ETHFW_PATH)/apps/concerto_inc.mak
+
+# PDK include path
+IDIRS += $(PDK_PATH)/packages
+
+# lwIP include paths
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  IDIRS       += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
-  IDIRS       += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
-  IDIRS       += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config
-  IDIRS       += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config/${TARGET_SOC_FOLDER}
+  IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
+  IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/${TARGET_OS_LC}/include
+  IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config
+  IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config/${TARGET_SOC_FOLDER}
 endif
-IDIRS       += $(PDK_PATH)/packages
-IDIRS       += $(ETHFW_PATH)
+
+# gPTP stack include paths
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ifeq ($(TARGET_OS),FREERTOS)
+    IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
+  endif
+endif
+
+# Top-level ETHFW include path
+IDIRS += $(ETHFW_PATH)
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
 endif
 
-ifeq ($(ETHFW_CPSW_VEPA_SUPPORT), yes)
+# Feature flags: VEPA, Proxy ARP
+ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
   DEFS += ETHFW_VEPA_SUPPORT
   DEFS += ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA
 else ifeq ($(ETHFW_PROXY_ARP_SUPPORT),yes)
   DEFS += ETHFW_PROXY_ARP_HANDLING
 endif
 
-ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
-  DEFS += ETHFW_VEPA_SUPPORT
-  DEFS += ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA
+# Feature flags: ETHFW gPTP stack - for now, supported in FreeRTOS only
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ifeq ($(TARGET_OS),FREERTOS)
+    DEFS += ETHFW_GPTP_SUPPORT
+  endif
 endif
+
+ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT := ${shell cd ${ETHFW_PATH};git rev-parse --short=8 HEAD 2>/dev/null}
+DEFS += ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT="\"${ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT}\""
 
 include $(FINALE)

@@ -60,10 +60,10 @@
  *
  */
 
-/**
- *  \file ethfw.c
+/*!
+ * \file ethfw_api.c
  *
- *  \brief Main file for Ethernet Firmware
+ * \brief Ethernet Firmware remote config server API.
  */
 
 /* ========================================================================== */
@@ -72,9 +72,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-
-/* EthFw header files */
-#include <ethfw/ethfw.h>
 
 /* PDK Driver header files */
 #include <ti/osal/osal.h>
@@ -87,21 +84,17 @@
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
 /* EthFw utils header files */
-#include <utils/ethfw_vlan/include/ethfw_vlan.h>
-#include <utils/remote_service/include/app_remote_service.h>
-#include <utils/perf_stats/include/app_perf_stats.h>
-#include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
 #include <utils/console_io/include/app_log.h>
 
 /* EthFw remote configuration header files */
-#include <ethremotecfg/server/include/cpsw_proxy_server.h>
-
+#include <ethremotecfg/server/include/ethfw.h>
+#include "cpsw_proxy_server.h"
+#include "ethfw_vlan_priv.h"
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
-#include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
+#include "ethfw_arp_priv.h"
 #endif
-
 #if defined(ETHFW_VEPA_SUPPORT)
-#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
+#include "ethfw_vepa_priv.h"
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -111,7 +104,6 @@
 #include <tsn_unibase/unibase_binding.h>
 #include <tsn_gptp/gptp_config.h>
 #include <tsn_gptp/gptpman.h>
-
 #endif
 
 /* ========================================================================== */
@@ -1040,7 +1032,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
 
 #if defined(ETHFW_VEPA_SUPPORT)
     /* Initialize VEPA config params */
-    EthFwVepaUtils_initCfg(&config->vepaCfg);
+    EthFwVepa_initCfg(&config->vepaCfg);
 #endif
 
     /* Start with CPSW LLD's default configuration */
@@ -1219,8 +1211,8 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     /* Initialize lwIP ARP helper */
     if (status == ENET_SOK)
     {
-        status = EthFwArpUtils_init();
-        if (status != ETHFW_LWIP_UTILS_SOK)
+        status = EthFwArp_init();
+        if (status != ETHFW_SOK)
         {
             appLogPrintf("ETHFW: failed to init ARP utils: %d\n", status);
         }
@@ -1228,7 +1220,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 #endif
 
 #if defined(ETHFW_VEPA_SUPPORT)
-    status = EthFwVepaUtils_init(&config->vepaCfg);
+    status = EthFwVepa_init(&config->vepaCfg);
     if (status != ENET_SOK)
     {
         appLogPrintf("ETHFW: failed to init VEPA utils: %d\n", status);
@@ -1285,12 +1277,12 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
-    EthFwArpUtils_deinit();
+    EthFwArp_deinit();
 #endif
 
 #if defined(ETHFW_VEPA_SUPPORT)
     /* De-initialize VEPA table */
-    EthFwVepaUtils_deinit();
+    EthFwVepa_deinit();
 #endif
 
     /* De-initialize MCM */

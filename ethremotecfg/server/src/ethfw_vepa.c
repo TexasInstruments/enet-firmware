@@ -74,28 +74,28 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ti/osal/MutexP.h>
-#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
 #include <utils/console_io/include/app_log.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+
+/* Enet LLD header files */
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/per/cpsw.h>
+
+/* EthFw header files */
+#include "ethfw_vepa_priv.h"
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
 /* Number of entries in VEPA table */
-#define ETHFW_VEPA_UTILS_TABLE_SIZE                    (32U)
+#define ETHFW_VEPA_TABLE_SIZE                          (32U)
 
 /* Private VLAN id to use when not provided by the application */
 #define ETHFW_VEPA_PRIVATE_VLAN_ID_START               (2000U)
 
-/* Macro to set bit at given bit position */
-#define BIT(n)                                         (1U << (n))
-
-/* Macro to check if bit at given bit position is set */
-#define IS_BIT_SET(val, n)                             (((val) & BIT(n)) != 0U)
-
 /* Table entry private VLAN id and MAC address for remote cores. */
-typedef struct EthFwVepaUtils_AddrEntry_s
+typedef struct EthFwVepa_AddrEntry_s
 {
     /* Mask of which all virtual switch ports needs to send the packet */
     uint16_t virtPortMask;
@@ -108,13 +108,13 @@ typedef struct EthFwVepaUtils_AddrEntry_s
 
     /* Whether this entry is free or not */
     bool isFree;
-} EthFwVepaUtils_AddrEntry;
+} EthFwVepa_AddrEntry;
 
 /* Vepa Utils object. */
-typedef struct EthFwVepaUtils_Obj_s
+typedef struct EthFwVepa_Obj_s
 {
     /* Vepa table */
-    EthFwVepaUtils_AddrEntry remoteCoreVepaTable[ETHFW_VEPA_UTILS_TABLE_SIZE];
+    EthFwVepa_AddrEntry remoteCoreVepaTable[ETHFW_VEPA_TABLE_SIZE];
 
     /* Table to store private VLAN for each virtual switch port */
     uint16_t privVlanCfg[ETHREMOTECFG_SWITCH_PORT_LAST + 1];
@@ -130,29 +130,29 @@ typedef struct EthFwVepaUtils_Obj_s
 
     /* Flow idx where packets to be duplicated arrive at */
     uint32_t packetDuplicationFlowIdx;
-} EthFwVepaUtils_Obj;
+} EthFwVepa_Obj;
 
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-static int32_t EthFwVepaUtils_getVirtPortMask(struct eth_addr *hwAddr,
-                                              uint16_t vlanId,
-                                              uint16_t *virtPortMask);
+static int32_t EthFwVepa_getVirtPortMask(struct eth_addr *hwAddr,
+                                         uint16_t vlanId,
+                                         uint16_t *virtPortMask);
 
-static int32_t EthfwVepaUtils_addMcastPolicer(Enet_Handle hEnet,
-                                              uint32_t coreId,
-                                              uint32_t vlanId,
-                                              uint8_t *mcastAddr,
-                                              uint32_t flowIdx,
-                                              CpswAle_PolicerPartLevel policerPartLevel);
+static int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
+                                         uint32_t coreId,
+                                         uint32_t vlanId,
+                                         uint8_t *mcastAddr,
+                                         uint32_t flowIdx,
+                                         CpswAle_PolicerPartLevel policerPartLevel);
 
-static int32_t EthFwVepaUtils_delMcastPolicer(Enet_Handle hEnet,
-                                              uint32_t coreId,
-                                              uint32_t vlanId,
-                                              uint8_t *mcastAddr,
-                                              uint32_t aleEntryMask);
+static int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
+                                         uint32_t coreId,
+                                         uint32_t vlanId,
+                                         uint8_t *mcastAddr,
+                                         uint32_t aleEntryMask);
 
 static int32_t EthFwVepa_getPrivateVlanId(EthRemoteCfg_VirtPort virtPort,
                                           uint16_t *privVlanId);
@@ -161,14 +161,14 @@ static int32_t EthFwVepa_getPrivateVlanId(EthRemoteCfg_VirtPort virtPort,
 /*                            Global Variables                                */
 /* ========================================================================== */
 
-static EthFwVepaUtils_Obj gEthFwVepaObj;
+static EthFwVepa_Obj gEthFwVepaObj;
 struct eth_addr gEthFwBcastAddr = {{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}};
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-void EthFwVepaUtils_initCfg(EthFwVepaUtils_Cfg *vepaCfg)
+void EthFwVepa_initCfg(EthFwVepa_Cfg *vepaCfg)
 {
     uint32_t vlanId = ETHFW_VEPA_PRIVATE_VLAN_ID_START;
     uint32_t i;
@@ -181,7 +181,7 @@ void EthFwVepaUtils_initCfg(EthFwVepaUtils_Cfg *vepaCfg)
     }
 }
 
-int32_t EthFwVepaUtils_init(const EthFwVepaUtils_Cfg *vepaCfg)
+int32_t EthFwVepa_init(const EthFwVepa_Cfg *vepaCfg)
 {
     int32_t status = ENET_SOK;
     uint32_t i;
@@ -190,14 +190,14 @@ int32_t EthFwVepaUtils_init(const EthFwVepaUtils_Cfg *vepaCfg)
     gEthFwVepaObj.hMutex = MutexP_create(&gEthFwVepaObj.mutexObj);
     if (gEthFwVepaObj.hMutex == NULL)
     {
-        appLogPrintf("EthFwVepaUtils_init() failed to create mutex\n");
+        appLogPrintf("EthFwVepa_init() failed to create mutex\n");
         status = ENET_EFAIL;
     }
 
     /* Mark all entries in VEPA table as free */
     if (status == ENET_SOK)
     {
-        for (i = 0U; i < ETHFW_VEPA_UTILS_TABLE_SIZE; i++)
+        for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
         {
             gEthFwVepaObj.remoteCoreVepaTable[i].isFree = true;
         }
@@ -212,27 +212,27 @@ int32_t EthFwVepaUtils_init(const EthFwVepaUtils_Cfg *vepaCfg)
         }
 
         /* Initialized packet duplication flow to be un-defined */
-        gEthFwVepaObj.packetDuplicationFlowIdx = ETHFW_VEPA_UTILS_PKT_DUP_FLOW_IDX_UNDEFINED;
+        gEthFwVepaObj.packetDuplicationFlowIdx = ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED;
     }
 
     return status;
 }
 
-void EthFwVepaUtils_deinit(void)
+void EthFwVepa_deinit(void)
 {
     if (gEthFwVepaObj.hMutex != NULL)
     {
-        EthFwVepaUtils_flushTable();
+        EthFwVepa_flushTable();
         MutexP_delete(gEthFwVepaObj.hMutex);
         gEthFwVepaObj.hMutex = NULL;
     }
 }
 
-uint32_t EthFwVepaUtils_setPacketDuplicationFlowIdx(uint32_t flowIdx)
+uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx)
 {
     int32_t status = ENET_EFAIL;
 
-    if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_UTILS_PKT_DUP_FLOW_IDX_UNDEFINED)
+    if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
     {
         gEthFwVepaObj.packetDuplicationFlowIdx = flowIdx;
         status = ENET_SOK;
@@ -243,18 +243,18 @@ uint32_t EthFwVepaUtils_setPacketDuplicationFlowIdx(uint32_t flowIdx)
 
 /* Given a multicast/broadcast address, it returns virtPortMask
  * of clients to which packet will be forwarded */
-static int32_t EthFwVepaUtils_getVirtPortMask(struct eth_addr *hwAddr,
-                                              uint16_t vlanId,
-                                              uint16_t *virtPortMask)
+static int32_t EthFwVepa_getVirtPortMask(struct eth_addr *hwAddr,
+                                         uint16_t vlanId,
+                                         uint16_t *virtPortMask)
 {
-    EthFwVepaUtils_AddrEntry *entry;
+    EthFwVepa_AddrEntry *entry;
     int32_t status = ENET_EFAIL;
     uint32_t i;
 
     MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
 
     /* Check if VEPA table has a corresponding entry */
-    for (i = 0U; i < ETHFW_VEPA_UTILS_TABLE_SIZE; i++)
+    for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
     {
         entry = &gEthFwVepaObj.remoteCoreVepaTable[i];
         /* Check if MAC address matches and VLAN id matches */
@@ -292,12 +292,12 @@ static int32_t EthFwVepa_getPrivateVlanId(EthRemoteCfg_VirtPort virtPort,
 }
 
 /* Adds a multicast address in ALE Policer table */
-static int32_t EthfwVepaUtils_addMcastPolicer(Enet_Handle hEnet,
-                                              uint32_t coreId,
-                                              uint32_t vlanId,
-                                              uint8_t* mcastAddr,
-                                              uint32_t flowIdx,
-                                              CpswAle_PolicerPartLevel policerPartLevel)
+static int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
+                                         uint32_t coreId,
+                                         uint32_t vlanId,
+                                         uint8_t* mcastAddr,
+                                         uint32_t flowIdx,
+                                         CpswAle_PolicerPartLevel policerPartLevel)
 {
     CpswAle_SetPolicerEntryInPartitionInArgs polInArgs;
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
@@ -328,11 +328,11 @@ static int32_t EthfwVepaUtils_addMcastPolicer(Enet_Handle hEnet,
 }
 
 /* Deletes a multicast address in ALE Policer table, deletes ALE entry as well based on value in aleEntryMask */
-static int32_t EthFwVepaUtils_delMcastPolicer(Enet_Handle hEnet,
-                                              uint32_t coreId,
-                                              uint32_t vlanId,
-                                              uint8_t* mcastAddr,
-                                              uint32_t aleEntryMask)
+static int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
+                                         uint32_t coreId,
+                                         uint32_t vlanId,
+                                         uint8_t* mcastAddr,
+                                         uint32_t aleEntryMask)
 {
     CpswAle_DelPolicerEntryInArgs polInArgs;
     Enet_IoctlPrms prms;
@@ -357,22 +357,22 @@ static int32_t EthFwVepaUtils_delMcastPolicer(Enet_Handle hEnet,
     return status;
 }
 
-int32_t EthFwVepaUtils_addAddr(Enet_Handle hEnet,
-                               struct eth_addr *hwAddr,
-                               uint16_t vlanId,
-                               uint16_t hostId,
-                               EthRemoteCfg_VirtPort virtPort)
+int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
+                          struct eth_addr *hwAddr,
+                          uint16_t vlanId,
+                          uint16_t hostId,
+                          EthRemoteCfg_VirtPort virtPort)
 {
-    EthFwVepaUtils_AddrEntry *entry;
+    EthFwVepa_AddrEntry *entry;
     CpswAle_PolicerPartLevel policerPartLevel = CPSW_ALE_POLICER_PARTITION_DEFAULT;
-    uint32_t flowIdx = ETHFW_VEPA_UTILS_PKT_DUP_FLOW_IDX_UNDEFINED;
+    uint32_t flowIdx = ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED;
     int32_t status = ENET_EFAIL;
     uint32_t i;
     bool done = false;
 
     MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
 
-    if (gEthFwVepaObj.packetDuplicationFlowIdx != ETHFW_VEPA_UTILS_PKT_DUP_FLOW_IDX_UNDEFINED)
+    if (gEthFwVepaObj.packetDuplicationFlowIdx != ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
     {
         flowIdx = gEthFwVepaObj.packetDuplicationFlowIdx;
         status = ENET_SOK;
@@ -386,7 +386,7 @@ int32_t EthFwVepaUtils_addAddr(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         /* Check if VEPA table already has a corresponding entry */
-        for (i = 0U; i < ETHFW_VEPA_UTILS_TABLE_SIZE; i++)
+        for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
         {
             entry = &gEthFwVepaObj.remoteCoreVepaTable[i];
 
@@ -396,7 +396,7 @@ int32_t EthFwVepaUtils_addAddr(Enet_Handle hEnet,
                 EnetUtils_cmpMacAddr(entry->hwAddr.addr, hwAddr->addr))
             {
                 /* Update the port mask */
-                entry->virtPortMask |= BIT(virtPort);
+                entry->virtPortMask |= ETHFW_BIT(virtPort);
                 done = true;
                 status = ENET_SOK;
                 break;
@@ -408,22 +408,22 @@ int32_t EthFwVepaUtils_addAddr(Enet_Handle hEnet,
     if (!done &&
         (status == ENET_SOK))
     {
-        for (i = 0U; i < ETHFW_VEPA_UTILS_TABLE_SIZE; i++)
+        for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
         {
             entry = &gEthFwVepaObj.remoteCoreVepaTable[i];
 
             /* Take the first free entry */
             if (entry->isFree)
             {
-                status = EthfwVepaUtils_addMcastPolicer(hEnet, hostId,
-                                                        vlanId, hwAddr->addr,
-                                                        flowIdx,
-                                                        policerPartLevel);
+                status = EthFwVepa_addMcastPolicer(hEnet, hostId,
+                                                   vlanId, hwAddr->addr,
+                                                   flowIdx,
+                                                   policerPartLevel);
                 if (status == ENET_SOK)
                 {
                     SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
                     entry->vlanId = vlanId;
-                    entry->virtPortMask = BIT(virtPort);
+                    entry->virtPortMask = ETHFW_BIT(virtPort);
                     entry->isFree = false;
                 }
                 else
@@ -440,13 +440,13 @@ int32_t EthFwVepaUtils_addAddr(Enet_Handle hEnet,
     return status;
 }
 
-int32_t EthFwVepaUtils_delAddr(Enet_Handle hEnet,
-                               struct eth_addr *hwAddr,
-                               uint16_t vlanId,
-                               uint16_t hostId,
-                               EthRemoteCfg_VirtPort virtPort)
+int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
+                          struct eth_addr *hwAddr,
+                          uint16_t vlanId,
+                          uint16_t hostId,
+                          EthRemoteCfg_VirtPort virtPort)
 {
-    EthFwVepaUtils_AddrEntry *entry;
+    EthFwVepa_AddrEntry *entry;
     /* ALE entry mask == 0 means do not delete any ale entry, just delete the policer entry */
     uint32_t aleEntryMask = 0U;
     int32_t status = ENET_EFAIL;
@@ -455,7 +455,7 @@ int32_t EthFwVepaUtils_delAddr(Enet_Handle hEnet,
     MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
 
     /* Check if VEPA table has a corresponding entry */
-    for (i = 0U; i < ETHFW_VEPA_UTILS_TABLE_SIZE; i++)
+    for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
     {
         entry = &gEthFwVepaObj.remoteCoreVepaTable[i];
 
@@ -465,7 +465,7 @@ int32_t EthFwVepaUtils_delAddr(Enet_Handle hEnet,
             EnetUtils_cmpMacAddr(entry->hwAddr.addr, hwAddr->addr))
         {
             /* Update the port mask */
-            entry->virtPortMask &= ~BIT(virtPort);
+            entry->virtPortMask &= ~ETHFW_BIT(virtPort);
             status = ENET_SOK;
 
             /* No virtual switch port needs this multicast address, free the entry and
@@ -474,9 +474,9 @@ int32_t EthFwVepaUtils_delAddr(Enet_Handle hEnet,
             {
                 /* Put entry mask to CPSW_ALE_POLICER_TABLEENTRY_DELETE_IVLAN,
                  * if you want to delete the ale entry as well */
-                status = EthFwVepaUtils_delMcastPolicer(hEnet, hostId,
-                                                        vlanId, hwAddr->addr,
-                                                        aleEntryMask);
+                status = EthFwVepa_delMcastPolicer(hEnet, hostId,
+                                                   vlanId, hwAddr->addr,
+                                                   aleEntryMask);
                 if (status == ENET_SOK)
                 {
                     entry->isFree = true;
@@ -497,9 +497,9 @@ int32_t EthFwVepaUtils_delAddr(Enet_Handle hEnet,
     return status;
 }
 
-void EthFwVepaUtils_printTable(void)
+void EthFwVepa_printTable(void)
 {
-    EthFwVepaUtils_AddrEntry *entry;
+    EthFwVepa_AddrEntry *entry;
     uint32_t used = 0U;
     uint32_t i;
 
@@ -527,7 +527,7 @@ void EthFwVepaUtils_printTable(void)
     appLogPrintf("------   ---------    -------------    -----------------\n");
 
     /* Check if VEPA table already has a corresponding entry */
-    for (i = 0U; i < ETHFW_VEPA_UTILS_TABLE_SIZE; i++)
+    for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
     {
         entry = &gEthFwVepaObj.remoteCoreVepaTable[i];
 
@@ -545,7 +545,7 @@ void EthFwVepaUtils_printTable(void)
     }
 }
 
-void EthFwVepaUtils_flushTable(void)
+void EthFwVepa_flushTable(void)
 {
     uint32_t i;
 
@@ -553,7 +553,7 @@ void EthFwVepaUtils_flushTable(void)
 
     /* Removes all entries from the VEPA table */
     memset(gEthFwVepaObj.remoteCoreVepaTable, 0U, sizeof(gEthFwVepaObj.remoteCoreVepaTable));
-    for (i = 0U; i < ETHFW_VEPA_UTILS_TABLE_SIZE; i++)
+    for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
     {
         gEthFwVepaObj.remoteCoreVepaTable[i].isFree = true;
     }
@@ -561,12 +561,12 @@ void EthFwVepaUtils_flushTable(void)
     MutexP_unlock(gEthFwVepaObj.hMutex);
 }
 
-int32_t EthFwVepaUtils_registerClient(Enet_Handle hEnet,
-                                      uint32_t coreId,
-                                      uint32_t flowIdx,
-                                      uint16_t vlanId,
-                                      EthRemoteCfg_VirtPort virtPort,
-                                      struct eth_addr *srcAddr)
+int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
+                                 uint32_t coreId,
+                                 uint32_t flowIdx,
+                                 uint16_t vlanId,
+                                 EthRemoteCfg_VirtPort virtPort,
+                                 struct eth_addr *srcAddr)
 {
     Enet_IoctlPrms prms;
     CpswAle_VlanEntryInfo inArgs;
@@ -626,7 +626,7 @@ int32_t EthFwVepaUtils_registerClient(Enet_Handle hEnet,
 
         /* Add broadcast entry in VEPA table for virtual switch port
          * Add policer: broadcast packet of vlanId should go to packet duplication flow */
-        status = EthFwVepaUtils_addAddr(hEnet, &gEthFwBcastAddr, vlanId, coreId, virtPort);
+        status = EthFwVepa_addAddr(hEnet, &gEthFwBcastAddr, vlanId, coreId, virtPort);
         if (status != ENET_SOK)
         {
             appLogPrintf("Failed to add bcast addr for VLAN %u into VEPA table: %d\n", vlanId, status);
@@ -636,11 +636,11 @@ int32_t EthFwVepaUtils_registerClient(Enet_Handle hEnet,
     return status;
 }
 
-int32_t EthFwVepaUtils_unregisterClient(Enet_Handle hEnet,
-                                        uint32_t coreId,
-                                        uint32_t flowIdx,
-                                        uint16_t vlanId,
-                                        EthRemoteCfg_VirtPort virtPort)
+int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
+                                   uint32_t coreId,
+                                   uint32_t flowIdx,
+                                   uint16_t vlanId,
+                                   EthRemoteCfg_VirtPort virtPort)
 {
     Enet_IoctlPrms prms;
     CpswAle_VlanIdInfo inArgs;
@@ -672,7 +672,7 @@ int32_t EthFwVepaUtils_unregisterClient(Enet_Handle hEnet,
 
         /* Remove broadcast entry from VEPA table for the virtual switch port
          * Remove policer: broadcast packet of vlanId should not go to packet duplication flow */
-        status = EthFwVepaUtils_delAddr(hEnet, &gEthFwBcastAddr, vlanId, coreId, virtPort);
+        status = EthFwVepa_delAddr(hEnet, &gEthFwBcastAddr, vlanId, coreId, virtPort);
         if (status != ENET_SOK)
         {
             appLogPrintf("Failed to delete bcast addr for VLAN %u from VEPA table: %d\n", vlanId, status);
@@ -682,10 +682,10 @@ int32_t EthFwVepaUtils_unregisterClient(Enet_Handle hEnet,
     return status;
 }
 
-int32_t EthFwVepaUtils_sendRaw(struct netif *netif,
-                               struct pbuf *pbuf,
-                               struct eth_addr *ethSrcAddr,
-                               struct eth_addr *ethDstAddr)
+int32_t EthFwVepa_sendRaw(struct netif *netif,
+                          struct pbuf *pbuf,
+                          struct eth_addr *ethSrcAddr,
+                          struct eth_addr *ethDstAddr)
 {
     struct pbuf *copyPbuf = NULL;
     struct eth_hdr *ethHdr;
@@ -708,7 +708,7 @@ int32_t EthFwVepaUtils_sendRaw(struct netif *netif,
         vlanId = lwip_htons(vlanhdr->prio_vid) & 0xFFFU;
     }
 
-    status = EthFwVepaUtils_getVirtPortMask(&ethHdr->dest, vlanId, &virtPortMask);
+    status = EthFwVepa_getVirtPortMask(&ethHdr->dest, vlanId, &virtPortMask);
     if (status == ENET_SOK)
     {
         /* Allocate a pbuf for the outgoing duplicated packet, 4 bytes are added for double VLAN tag */
@@ -728,7 +728,7 @@ int32_t EthFwVepaUtils_sendRaw(struct netif *netif,
         {
             /* i'th virtual switch port will get the packet
              * Also source virtual switch port should not receive the packet */
-            if (IS_BIT_SET(virtPortMask, i) &&
+            if (ETHFW_IS_BIT_SET(virtPortMask, i) &&
                 !EnetUtils_cmpMacAddr(ethSrcAddr->addr, gEthFwVepaObj.virtPortToMacAddr[i].addr))
             {
                 status = EthFwVepa_getPrivateVlanId(i, &privVlanId);

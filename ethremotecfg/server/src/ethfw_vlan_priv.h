@@ -31,14 +31,14 @@
  */
 
 /*!
- * \file  ethfw_vlan.h
+ * \file  ethfw_vlan_priv.h
  *
- * \brief This file contains the type definitions, helper macros and functions
- *        required for Ethernet Firmware VLAN support.
+ * \brief This file contains the private type definitions, helper macros
+ *        and functions required for Ethernet Firmware VLAN support.
  */
 
-#ifndef ETHFW_VLAN_H_
-#define ETHFW_VLAN_H_
+#ifndef ETHFW_VLAN_PRIV_H_
+#define ETHFW_VLAN_PRIV_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
@@ -47,6 +47,7 @@
 #include <stdint.h>
 #include <ti/drv/enet/enet.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <ethremotecfg/server/include/ethfw_vlan.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,68 +57,13 @@ extern "C" {
 /*                                 Macros                                     */
 /* ========================================================================== */
 
-/*! Maximum number of VLANs that can be setup statically */
-#define ETHFWVLAN_VLANS_MAX                            (10U)
+/* None */
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
 
-/*!
- * \brief Static VLAN configuration.
- */
-typedef struct EthFwVlan_VlanCfg_s
-{
-    /*! VLAN id */
-    uint16_t vlanId;
-
-    /*! Member mask of hardware ports (Ethernet port and host port):
-     *  - Use `CPSW_ALE_MACPORT_TO_ALEPORT()` to set the MAC port bitmask
-     *  - Use `CPSW_ALE_HOST_PORT_MASK` to set the host port bitmask */
-    uint32_t memberMask;
-
-    /*! Member mask of virtual ports.  Use `ENET_BIT(ETHREMOTECFG_SWITCH_PORT_n)`
-     *  to create the member mask.
-     *  Note: Currently, only one virtual port is supported */
-    uint32_t virtMemberMask;
-
-    /*! Port mask where registered multicast packets will be flooded to.
-     *  Must be same as EthFwVlan_VlanCfg::memberMask or a subset of it */
-    uint32_t regMcastFloodMask;
-
-    /*! Port mask where unregistered multicast packets will be flooded to.
-     *  Must be same as EthFwVlan_VlanCfg::memberMask or a subset of it */
-    uint32_t unregMcastFloodMask;
-
-    /*! Port mask where VLAN tag must be removed on egress. Must be same
-     *  as EthFwVlan_VlanCfg::memberMask or a subset of it */
-    uint32_t untagMask;
-} EthFwVlan_VlanCfg;
-
-/*!
- * \brief Static VLAN configuration.
- */
-typedef struct EthFwVlan_Cfg_s
-{
-    /*! Pointer to the static VLANs parameters */
-    const EthFwVlan_VlanCfg *vlanCfg;
-
-    /*! Number of static VLANs in \ref EthFwVlan_Cfg::vlanCfg */
-    uint32_t numVlans;
-
-    /*! Default VLAN id used by Ethernet Firmware for switch ports
-      * (non MAC-only) */
-    uint32_t dfltVlanIdSwitchPorts;
-
-    /*! Default VLAN id used by Ethernet Firmware for MAC-only ports */
-    uint32_t dfltVlanIdMacOnlyPorts;
-
-    /*! Port mask of ports in switch mode (non MAC-only) */
-    uint32_t switchPortMask;
-
-    /*! Port mask of ports in MAC-only mode */
-    uint32_t macOnlyPortMask;
-} EthFwVlan_Cfg;
+/* None */
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
@@ -140,7 +86,7 @@ typedef struct EthFwVlan_Cfg_s
  * \param hEnet               Handle to the underlying Enet driver
  * \param cfg                 VLAN configuration parameters
  *
- * \returns ENET_SOK if VLAN was initialized correctly, or a negative error
+ * \returns ETHFW_SOK if VLAN was initialized correctly, or a negative error
  *          in case of failure.
  */
 int32_t EthFwVlan_init(Enet_Handle hEnet,
@@ -171,7 +117,7 @@ void EthFwVlan_deinit(Enet_Handle hEnet);
  * \param macAddr             Client's MAC address
  * \param flowIdx             RX flow where VLAN packets will be routed
  *
- * \returns ENET_SOK if VLAN was initialized correctly, or a negative error
+ * \returns ETHFW_SOK if VLAN was initialized correctly, or a negative error
  *          in case of failure.
  */
 int32_t EthFwVlan_join(Enet_Handle hEnet,
@@ -195,7 +141,7 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
  * \param macAddr             Client's MAC address
  * \param flowIdx             RX flow where VLAN packets werere routed
  *
- * \returns ENET_SOK if VLAN was initialized correctly, or a negative error
+ * \returns ETHFW_SOK if VLAN was initialized correctly, or a negative error
  *          in case of failure.
  */
 int32_t EthFwVlan_leave(Enet_Handle hEnet,
@@ -221,4 +167,4 @@ bool EthFwVlan_isInVlan(EthRemoteCfg_VirtPort virtPort,
 }
 #endif
 
-#endif /* ETHFW_VLAN_H_ */
+#endif /* ETHFW_VLAN_PRIV_H_ */

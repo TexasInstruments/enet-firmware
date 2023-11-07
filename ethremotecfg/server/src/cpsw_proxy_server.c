@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020 Texas Instruments Incorporated
+ * Copyright (c) 2020-2023 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -74,7 +74,6 @@
 
 #include <ti/drv/ipc/ipc.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
-#include <ethremotecfg/server/include/cpsw_proxy_server.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #include <ti/drv/enet/enet.h>
@@ -85,10 +84,11 @@
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
-#include <utils/ethfw_lwip/include/ethfw_lwip_utils.h>
-#include <utils/ethfw_vlan/include/ethfw_vlan.h>
+#include "cpsw_proxy_server.h"
+#include "ethfw_arp_priv.h"
+#include "ethfw_vlan_priv.h"
 #if defined(ETHFW_VEPA_SUPPORT)
-#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
+#include "ethfw_vepa_priv.h"
 #endif
 
 /* EthFw utils header files */
@@ -789,7 +789,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
         {
             SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
             /* vlanId of 0 indicates do not use VLAN */
-            status = EthFwVepaUtils_registerClient(hClient->hEnet, hostId, flowIdxOffset, 0, hClient->virtPort, &hwAddr);
+            status = EthFwVepa_registerClient(hClient->hEnet, hostId, flowIdxOffset, 0, hClient->virtPort, &hwAddr);
             if (status != ENET_SOK)
             {
                 appLogPrintf("Failed to register client core %u MacAddress:%x:%x:%x:%x:%x:%x into VEPA table\n",
@@ -861,7 +861,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
         else if (status == ENET_SOK)
         {
             /* vlanId of 0 indicates do not use VLAN */
-            status = EthFwVepaUtils_unregisterClient(hClient->hEnet, hostId, flowIdxOffset, 0, hClient->virtPort);
+            status = EthFwVepa_unregisterClient(hClient->hEnet, hostId, flowIdxOffset, 0, hClient->virtPort);
             if (status != ENET_SOK)
             {
                 appLogPrintf("Failed to unregister client core %u MacAddress:%x:%x:%x:%x:%x:%x into VEPA table\n",
@@ -925,15 +925,15 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
         IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
         SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
 
-        status = EthFwArpUtils_addAddr(&ip4Addr, &hwAddr, vlanId);
-        if (status != ETHFW_LWIP_UTILS_SOK)
+        status = EthFwArp_addAddr(&ip4Addr, &hwAddr, vlanId);
+        if (status != ETHFW_SOK)
         {
             appLogPrintf("Failed to add ARP entry: %d\n", status);
             status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         }
         else
         {
-            EthFwArpUtils_printTable();
+            EthFwArp_printTable();
         }
 #endif
     }
@@ -974,15 +974,15 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
         IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
 
-        status = EthFwArpUtils_delAddr(&ip4Addr, vlanId);
-        if (status != ETHFW_LWIP_UTILS_SOK)
+        status = EthFwArp_delAddr(&ip4Addr, vlanId);
+        if (status != ETHFW_SOK)
         {
             appLogPrintf("Failed to remove ARP entry: %d\n", status);
             status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         }
         else
         {
-            EthFwArpUtils_printTable();
+            EthFwArp_printTable();
         }
 #endif
     }
@@ -2107,7 +2107,7 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
             SMEMCPY(&hwAddr, &sharedMcastEntry->macAddr, ETH_HWADDR_LEN);
             /* Delete policer for packet duplication flow before deleting the ALE entry
              * Delete shared multicast entry from VEPA table as well */
-            status = EthFwVepaUtils_delAddr(hClient->hEnet, &hwAddr, vlanId, hostId, hClient->virtPort);
+            status = EthFwVepa_delAddr(hClient->hEnet, &hwAddr, vlanId, hostId, hClient->virtPort);
             if (status != ENET_SOK)
             {
                 appLogPrintf("Failed to delete MacAddress:%x:%x:%x:%x:%x:%x for client core %u from VEPA table\n",

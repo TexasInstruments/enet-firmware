@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020 Texas Instruments Incorporated
+ * Copyright (c) 2020-2023 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -76,8 +76,8 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
-#include <utils/ethfw_vlan/include/ethfw_vlan.h>
-#include <utils/ethfw_vepa/include/ethfw_vepa_utils.h>
+#include <ethremotecfg/server/include/ethfw_vlan.h>
+#include <ethremotecfg/server/include/ethfw_vepa.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -346,7 +346,7 @@ typedef struct EthFw_Config_s
     void *configPtpCbArg;
 
     /*! VEPA configuration passed from application */
-    EthFwVepaUtils_Cfg vepaCfg;
+    EthFwVepa_Cfg vepaCfg;
 
     /*! Remote client alloc object */
     EthFw_AllocCfg *allocCfg;
@@ -414,10 +414,10 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 void EthFw_deinit(EthFw_Handle hEthFw);
 
 /*!
- * \brief Initialize remote configuration server
+ * \brief Initialize remote configuration server.
  *
- * Initializes the firmware's remote configuration server, called "CPSW Proxy
- * Server" (see \ref CPSW_PROXY_SERVER_API) which is in charge of servicing remote cores.
+ * Initializes the firmware's remote configuration server which is in charge
+ * of servicing commands sent by remote cores.
  *
  * \param hEthFw      EthFw handle
  *

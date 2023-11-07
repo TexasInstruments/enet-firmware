@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2023 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -97,8 +97,6 @@
 #include <utils/intervlan/include/eth_swintervlan.h>
 #endif
 
-#include <ethfw/ethfw.h>
-
 #if defined(ETHFW_GPTP_SUPPORT)
 /* Timesync header files */
 #include <tsn_gptp/gptp_config.h>
@@ -144,6 +142,7 @@
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
+#include <ethremotecfg/server/include/ethfw.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */

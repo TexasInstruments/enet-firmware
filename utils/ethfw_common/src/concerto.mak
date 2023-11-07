@@ -1,6 +1,6 @@
 include $(PRELUDE)
 
-TARGET      := lib_ethfw_common
+TARGET      := ethfw_common
 TARGETTYPE  := library
 TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))

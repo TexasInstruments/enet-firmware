@@ -66,7 +66,7 @@
 #include <stdint.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <utils/ethfw_common/include/ethfw_types.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #ifdef __cplusplus

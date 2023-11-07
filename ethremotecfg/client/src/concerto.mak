@@ -1,5 +1,5 @@
 include $(PRELUDE)
-TARGET      := lib_remoteswitchcfg_client
+TARGET      := ethfw_remotecfg_client
 TARGETTYPE  := library
 
 CSOURCES    += cpsw_proxy.c
