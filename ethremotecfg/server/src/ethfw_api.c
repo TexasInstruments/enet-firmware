@@ -106,6 +106,8 @@
 #include <tsn_gptp/gptpman.h>
 #endif
 
+#include <utils/ethfw_common/include/ethfw_utils.h>
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -177,6 +179,9 @@
 /*! Number of MAC ports supported by the gPTP stack */
 #define ETHAPP_PTP_CFG_NUM_MAC_PORTS                  (1U)
 #endif
+
+/* Compile time check for error value consistency with Enet LLD (and CSL) */
+#define ETHFW_UTILS_COMPILETIME_ENET_CHECK(x)         ETHFW_UTILS_COMPILETIME_ASSERT(ETHFW_##x == ENET_##x)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -469,6 +474,26 @@ static uint32_t gEthFw_policerTablePartSize[CPSW_ALE_POLICER_TABLE_PART_MAX] =
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
+
+static void EthFw_compileTimeChecks(void)
+{
+    /* Verify that ETHFW error types are consistent with Enet LLD error types */
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(SOK);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(SINPROGRESS);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EFAIL);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EBADARGS);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EINVALIDPARAMS);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(ETIMEOUT);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EALLOC);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EUNEXPECTED);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EBUSY);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EALREADYOPEN);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EPERM);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(ENOTSUPPORTED);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(ENOTFOUND);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EUNKNOWNIOCTL);
+    ETHFW_UTILS_COMPILETIME_ENET_CHECK(EMALFORMEDIOCTL);
+}
 
 static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
 {
@@ -1082,6 +1107,8 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     char *time = __TIME__;
     uint32_t i;
     int32_t status = ENET_SOK;
+
+    EthFw_compileTimeChecks();
 
     EnetAppUtils_assert(config != NULL);
     EnetAppUtils_assert(config->ports != NULL);
