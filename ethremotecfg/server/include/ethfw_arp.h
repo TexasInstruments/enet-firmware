@@ -84,6 +84,13 @@
 extern "C" {
 #endif
 
+/*!
+ * \ingroup  ETHFW_SERVER
+ * \defgroup ETHFW_SERVER_ARP Proxy ARP Support
+ * @{
+ *
+ */
+
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
@@ -106,10 +113,43 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
+/*!
+ * \brief Get MAC address corresponding to a registered client's IPv4 address.
+ *
+ * Get the MAC address of a remote client that has previously registered its
+ * MAC address and IPv4 address with Ethernet Firmware through
+ * \ref ETHREMOTECFG_REGISTER_IPv4 command.
+ *
+ * \param ipAddr     IPv4 address
+ * \param hwAddr     MAC address corresponding to the IPv4 (if registered)
+ * \param vlanId     VLAN id
+ *
+ * \returns \ref ETHFW_SOK if IPv4 address was registered, or a negative
+ *          error code otherwise.
+ */
 int32_t EthFwArp_getHwAddr(const ip4_addr_t *ipAddr,
                            struct eth_addr *hwAddr,
                            uint16_t vlanId);
 
+/*!
+ * \brief Sends ARP response on behalf of a registered remote client.
+ *
+ * Sends an ARP response on behalf of a remote client that has previously
+ * registers its MAC address and IPv4 address with Ethernet Firmware through
+ * \ref ETHREMOTECFG_REGISTER_IPv4 command.
+ *
+ * This function is based on lwIP's `etharp_raw()`.
+ *
+ * \param netif      Enet netif on which ARP response will be sent
+ * \param ethSrcAddr Source MAC address for the Ethernet header
+ * \param ethDstAddr Destination MAC address for the Ethernet header
+ * \param hwSrcAddr  Source MAC address for the ARP protocol header
+ * \param ipSrcAddr  Source IP address for the ARP protocol header
+ * \param hwDstAddr  Destination MAC address for the ARP protocol header
+ * \param ipDstAddr  Destination IP address for the ARP protocol header
+ * \param vlanId     VLAN id
+ * \param opcode     Type of the ARP packet
+ */
 void EthFwArp_sendRaw(struct netif *netif,
                       const struct eth_addr *ethSrcAddr,
                       const struct eth_addr *ethDstAddr,
@@ -129,5 +169,7 @@ void EthFwArp_sendRaw(struct netif *netif,
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */
 
 #endif /* ETHFW_ARP_H_ */

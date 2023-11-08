@@ -51,6 +51,12 @@
 extern "C" {
 #endif
 
+/*!
+ * \ingroup  ETHFW_SERVER
+ * \defgroup ETHFW_SERVER_VLAN VLAN Support
+ * @{
+ */
+
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
@@ -133,5 +139,7 @@ typedef struct EthFwVlan_Cfg_s
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */
 
 #endif /* ETHFW_VLAN_H_ */

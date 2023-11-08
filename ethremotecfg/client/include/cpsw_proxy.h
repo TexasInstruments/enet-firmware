@@ -63,6 +63,10 @@
 #ifndef __CPSWPROXY_H__
 #define __CPSWPROXY_H__
 
+/* ========================================================================== */
+/*                             Include Files                                  */
+/* ========================================================================== */
+
 #include <stdint.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
@@ -74,22 +78,32 @@ extern "C" {
 #endif
 
 /*!
- * \defgroup CPSW_PROXY_API Ethernet Switch Proxy Client APIs
+ * \defgroup ETHFW_CLIENT Ethernet Firmware Proxy Client APIs
  *
- * \brief This section contains APIs for CPSW Proxy Client APIs
+ * \brief This section contains APIs for CPSW Proxy Client APIs.
  *
- * The CPSW proxy client resides on the remote cores and enables
- * clients on remote cores to configure the Ethernet Switch via RPC
+ * The CPSW Proxy client resides on the remote cores and enables clients on
+ * remote cores to configure the Ethernet Switch via RPC.
  *
- * The Cpsw Proxy APIs for switch configuration are RPC APIs
- * @{
- */        
-/* @} */
-
-/*!
- * \addtogroup CPSW_PROXY_API
+ * CPSW Proxy Client implements a subset of the commands and notifications
+ * supported by Ethernet Firmware Remote Configuration interface described
+ * in \ref ETHFW_ETHREMOTECFG.
+ *
+ * CPSW Proxy Client is currently used by remote clients running RTOS.  It
+ * may be repurposed for other OSes, but may require adaptation.
+ *
  * @{
  */
+/*! @} */
+
+/*!
+ * \addtogroup ETHFW_CLIENT
+ * @{
+ */
+
+/* ========================================================================== */
+/*                                 Macros                                     */
+/* ========================================================================== */
 
 /*!
  * \anchor CpswProxy_ErrorCodes
@@ -150,6 +164,10 @@ extern "C" {
 
 /*! @} */
 
+/* ========================================================================== */
+/*                         Structures and Enums                               */
+/* ========================================================================== */
+
 /*!
  * \brief Cpsw Proxy client configuration structure
  */
@@ -177,6 +195,16 @@ typedef struct CpswProxy_ClientObj_s *CpswProxy_Handle;
 typedef void (*CpswProxy_hwPushNotifyCbFxn)(CpswCpts_HwPush hwPushNum,
                                             uint64_t syncTime,
                                             void *cbArg);
+
+/* ========================================================================== */
+/*                         Global Variables Declarations                      */
+/* ========================================================================== */
+
+/* None */
+
+/* ========================================================================== */
+/*                          Function Declarations                             */
+/* ========================================================================== */
 
 /*!
  * \brief Initialize CPSW Proxy on a given core
@@ -667,6 +695,15 @@ void CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
                             uint16_t vlanId);
 
 /*!
+ * \brief Set promiscuous mode.
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ * \param enable    Promiscuous mode (enable or disable)
+ */
+void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
+                              bool enable);
+
+/*!
  * \brief Query if the link for PHY associated with the given MAC Port is up
  *
  * Note: The API will send the RPC msg, block for response and if the response
@@ -752,16 +789,12 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_hwPushNotifyCbFxn cbFxn,
  */
 void CpswProxy_unregisterHwPushNotifyCb(void);
 
-/*!
- * \brief Set promiscuous mode.
- *
- * \param hProxy    Handle to Cpsw Proxy
- * \param enable    Promiscuous mode (enable or disable)
- */
-void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
-                              bool enable);
+/* ========================================================================== */
+/*                        Deprecated Function Declarations                    */
+/* ========================================================================== */
 
-/* @} */
+/* None */
+/*! @} */
 
 #ifdef __cplusplus
 }

@@ -37,12 +37,6 @@
  *        mostly on server side, but also shared with utils.
  */
 
-/*!
- * \addtogroup ETHFW_SERVER_MAIN_API
- *
- * @{
- */
-
 #ifndef ETHFW_TYPES_H_
 #define ETHFW_TYPES_H_
 
@@ -53,6 +47,22 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*!
+ * \defgroup ETHFW_UTILS Ethernet Firmware Common Utilities
+ *
+ * \brief This section contains APIs for common definitions, helper macros
+ *        and other utilities used by ETHFW server and clients.
+ *
+ * @{
+ */
+/*! @} */
+
+/*!
+ * \ingroup  ETHFW_UTILS
+ * \defgroup ETHFW_UTILS_TYPES Common Types
+ * @{
+ */
 
 /* ========================================================================== */
 /*                                 Macros                                     */
@@ -162,10 +172,11 @@ extern "C" {
 
 /* None */
 
+/*! @} */
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* ETHFW_TYPES_H_ */
 
-/*! @} */

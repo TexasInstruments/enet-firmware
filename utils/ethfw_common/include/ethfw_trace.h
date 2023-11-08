@@ -36,13 +36,6 @@
  * \brief Ethernet Firmware trace funtionality interface.
  */
 
-/*!
- * \ingroup  ETHFW
- * \defgroup ETHFW_TRACE_API Ethernet Firmware Trace API
- *
- * @{
- */
-
 #ifndef ETHFW_TRACE_H_
 #define ETHFW_TRACE_H_
 
@@ -56,6 +49,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*!
+ * \ingroup  ETHFW_UTILS
+ * \defgroup ETHFW_UTILS_TRACE Ethernet Firmware Trace API
+ *
+ * @{
+ */
 
 /* ========================================================================== */
 /*                                 Macros                                     */
@@ -665,10 +665,11 @@ void EthFwTrace_trace(EthFwTrace_TraceLevel globalLevel,
 
 /* None */
 
+/*! @} */
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* ETHFW_TRACE_H_ */
 
-/*! @} */

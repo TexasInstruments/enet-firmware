@@ -57,6 +57,13 @@
 extern "C" {
 #endif
 
+/*!
+ * \ingroup  ETHFW_UTILS
+ * \defgroup ETHFW_UTILS_MISC Miscellaneous Utilities
+ *
+ * @{
+ */
+
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
@@ -194,6 +201,8 @@ static inline bool EthFwUtils_isMcastAddr(const uint8_t *addr)
 {
     return ((addr[0U] & 1U) == 1U);
 }
+
+/*! @} */
 
 #ifdef __cplusplus
 }

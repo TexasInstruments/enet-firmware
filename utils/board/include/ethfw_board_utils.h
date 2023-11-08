@@ -52,6 +52,7 @@ extern "C" {
 #endif
 
 /*!
+ * \ingroup  ETHFW_MODULE
  * \defgroup ETHFW_BOARD_UTILS Ethernet Board Utils
  *
  * \brief This section contains APIs for board initialization needed by
@@ -65,7 +66,7 @@ extern "C" {
  * reference when porting Ethernet Firmware to a different platform.
  * @{
  */
-/* @} */
+/*! @} */
 
 /*!
  * \addtogroup ETHFW_BOARD_UTILS
@@ -109,7 +110,7 @@ extern "C" {
  *  \ref ETHFW_BOARD_QENET_ENABLE. */
 #define ETHFW_BOARD_ENET_BRIDGE_ENABLE         (ENET_BIT(6))
 
-/* @} */
+/*! @} */
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -202,6 +203,6 @@ uint32_t EthFwBoard_getMacAddrPool(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
 }
 #endif
 
-/* @} */
+/*! @} */
 
 #endif /* ETHFW_BOARD_UTILS_H_ */

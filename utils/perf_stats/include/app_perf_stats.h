@@ -151,6 +151,6 @@ int32_t appPerfStatsRegisterTask(void *task_handle, char *name);
  */
 int32_t appPerfStatsDeInit();
 
-/* @} */
+/*! @} */
 
 #endif

@@ -170,6 +170,6 @@ int32_t appRemoteServiceRun(uint32_t dst_app_cpu_id, char *service_name, uint32_
  */
 int32_t appRemoteServiceDeInit();
 
-/* @} */
+/*! @} */
 
 #endif

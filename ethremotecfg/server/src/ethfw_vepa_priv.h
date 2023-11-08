@@ -225,6 +225,6 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
 }
 #endif
 
-/* @} */
+/*! @} */
 
 #endif /* ETHFW_VEPA_PRIV_H_ */

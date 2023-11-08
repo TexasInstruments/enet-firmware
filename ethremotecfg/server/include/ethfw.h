@@ -85,19 +85,19 @@ extern "C" {
 #endif
 
 /*!
- * \defgroup ETHFW_LIB_API Ethernet Firmware library APIs
+ * \defgroup ETHFW_SERVER Ethernet Firmware Server APIs
  *
  * \brief This section contains Ethernet Firmware library APIs.
  *
- * The Ethernet Firmware library APIs in this module provide a simple interface
+ * The Ethernet Firmware Server APIs in this module provide a simple interface
  * for RTOS applications to enable Ethernet switch functionality.
  *
- *  @{
+ * @{
  */
-/* @} */
+/*! @} */
 
 /*!
- * \addtogroup ETHFW_LIB_API
+ * \addtogroup ETHFW_SERVER
  * @{
  */
 
@@ -408,7 +408,7 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
 
 /* None */
 
-/* @} */
+/*! @} */
 
 #ifdef __cplusplus
 }

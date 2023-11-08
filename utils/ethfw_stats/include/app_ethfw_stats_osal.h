@@ -112,7 +112,7 @@ int32_t appEthfwStatsRemoteServiceInit(void);
  */
 void appEthfwStatsDeInit(void);
 
-/* @} */
+/*! @} */
 
 #endif
 

@@ -108,7 +108,7 @@ typedef struct
     uint64_t rx_bandwidth[APP_ETHFW_PORT_NUM_MAX];
 } app_ethfw_port_bandwidth_t;
 
-/* @} */
+/*! @} */
 
 #endif
 

@@ -88,7 +88,7 @@ extern "C" {
  *
  *  @{
  */
-/* @} */
+/*! @} */
 
 /*!
  * \addtogroup CPSW_PROXY_SERVER_API
@@ -342,7 +342,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg);
  */
 int32_t CpswProxyServer_lateAnnounce(uint32_t procId);
 
-/* @} */
+/*! @} */
 
 #ifdef __cplusplus
 }

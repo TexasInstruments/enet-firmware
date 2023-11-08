@@ -85,40 +85,31 @@ extern "C" {
 #endif
 
 /*!
- * \defgroup ETHFW_VEPA_UTILS Ethernet Firmware VEPA Utils
+ * \ingroup  ETHFW_SERVER
+ * \defgroup ETHFW_SERVER_VEPA VEPA Support
+ * @{
  *
- * \brief This section contains VEPA helper APIs for the Ethernet Firmware.
+ * Ethernet Firmware also provides support to enable VEPA (Virtual Ethernet
+ * Port Aggregator) functionality in Jacinto devices with CPSW capable of
+ * multihost data flow.  _Multihost_ is a CPSW ALE feature that enables packets
+ * to be sent and received on host port, which is mandatory for VEPA.
  *
- * This VEPA utils library provides helper functions to enable VEPA (Virtual
- * Ethernet Port Aggregator) functionality in Jacinto devices with CPSW capable
- * of multihost data flow.  _Multihost_ is a CPSW ALE feature that enables
- * packets to be sent and received on host port, which is mandatory for VEPA.
- *
- * The VEPA utils library allocates a secondary RX flow exclusively for
+ * The VEPA implementation allocates a secondary RX flow exclusively for
  * broadcast and registered multicast packets to be routed to.  This flow is
  * in addition to the RX flows used by Ethernet Firmware to receive all other
  * traffic (i.e. TCP/IP, gPTP).
  *
- * Ethernet Firmware server side (_CpswProxyServer_) registers multicast MAC
- * addresses that need to be forwarded to remote clients.  These multicast
- * addresses are added to an internal VEPA table, which can be printed for
- * debug purpose.  An ALE policer entry is also added for each multicast
- * address in the table so that when multicast packets arrive at any of the
- * MAC ports configured in non MAC-only mode, they are routed to its dedicated
- * flow, allocated at init time.
+ * Ethernet Firmware server registers multicast MAC addresses that need to be
+ * forwarded to remote clients.  These multicast addresses are added to an
+ * internal VEPA table, which can be printed for debug purpose.  An ALE policer
+ * entry is also added for each multicast address in the table so that when
+ * multicast packets arrive at any of the  MAC ports configured in non MAC-only
+ * mode, they are routed to its dedicated flow, allocated at init time.
  *
  * When a multicast packet whose MAC address is registered in the VEPA table,
  * it will be passed to a VEPA specific handle function, which then calls
- * \ref EthFwVepa_sendRaw() to send a copy of the multicast packets to
- * all relevant remote cores.
- *
- * @{
- */
-/* @} */
-
-/*!
- * \addtogroup ETHFW_VEPA_UTILS
- * @{
+ * \ref EthFwVepa_sendRaw() to send a copy of the multicast packets to all
+ * relevant remote cores.
  */
 
 /* ========================================================================== */
@@ -150,8 +141,8 @@ typedef struct EthFwVepa_Cfg_s
  *
  * \param flowIdx    RX flow idx to be set
  *
- * \returns ETHFW_SOK if packet duplication flow was set successful, or a
- *          negative error code if failed.
+ * \returns \ref ETHFW_SOK if packet duplication flow was set successful,
+ *          or a negative error code if failed.
  */
 uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx);
 
@@ -176,6 +167,6 @@ int32_t EthFwVepa_sendRaw(struct netif *netif,
 }
 #endif
 
-/* @} */
+/*! @} */
 
 #endif /* ETHFW_VEPA_H_ */

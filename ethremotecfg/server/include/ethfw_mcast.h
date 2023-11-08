@@ -51,6 +51,12 @@
 extern "C" {
 #endif
 
+/*!
+ * \ingroup  ETHFW_SERVER
+ * \defgroup ETHFW_SERVER_MCAST Multicast Support
+ * @{
+ */
+
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
@@ -195,5 +201,7 @@ typedef struct EthFwMcast_Cfg_s
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */
 
 #endif /* ETHFW_MCAST_H_ */
