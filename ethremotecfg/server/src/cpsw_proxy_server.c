@@ -85,6 +85,7 @@
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 #include "cpsw_proxy_server.h"
+#include "ethfw_mcast_priv.h"
 #include "ethfw_arp_priv.h"
 #include "ethfw_vlan_priv.h"
 #if defined(ETHFW_VEPA_SUPPORT)
@@ -241,18 +242,6 @@ typedef struct CpswProxyServer_NotifyServiceObj_s
     uint32_t                     remoteEp;
 } CpswProxyServer_NotifyServiceObj;
 
-typedef struct CpswProxyServer_SharedMcastEntry_s
-{
-    uint8_t macAddr[ENET_MAC_ADDR_LEN];
-    uint32_t refCnt;
-} CpswProxyServer_SharedMcastEntry;
-
-typedef struct CpswProxyServer_SharedMcastTable_s
-{
-    CpswProxyServer_SharedMcastEntry entry[CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN];
-    uint32_t len;
-} CpswProxyServer_SharedMcastTable;
-
 typedef struct CpswProxyServer_ClientServiceObj_s
 {
     TaskP_Handle                 hClientServiceTsk;
@@ -289,14 +278,6 @@ typedef struct CpswProxyServer_Obj_s
     CpswProxyServer_ClientServiceObj      clientServiceObj;
     /* Object for notify service required to communicate with remote clients */
     CpswProxyServer_NotifyServiceObj      notifyServiceObj;
-    /* Ethernet Firmware reserved multicast configuration */
-    CpswProxyServer_RsvdMcastCfg          rsvdMcastTbl;
-    /* Ethernet Firmware shared multicast configuration */
-    CpswProxyServer_SharedMcastTable      sharedMcastTbl;
-    /* Filter add shared multicast callback */
-    CpswProxyServer_FilterAddMacSharedCb  filterAddMacSharedCb;
-    /* Filter delete shared multicast callback */
-    CpswProxyServer_FilterDelMacSharedCb  filterDelMacSharedCb;
     /* ALE port mask for all supported MAC ports */
     uint32_t alePortMask;
     /* ALE port mask for MAC only ports */
@@ -1699,300 +1680,6 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
     return status;
 }
 
-static int32_t CpswProxyServer_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
-                                                Enet_Handle hEnet,
-                                                uint32_t hostId,
-                                                uint8_t *macAddr,
-                                                uint16_t vlan_id,
-                                                uint32_t flowIdx_offset)
-{
-    CpswProxyServer_Obj *hServer;
-    Enet_IoctlPrms prms;
-    CpswAle_GetMcastEntryInArgs lookupInArgs;
-    CpswAle_GetMcastEntryOutArgs lookupOutArgs;
-    CpswAle_SetMcastEntryInArgs mcastInArgs;
-    CpswAle_SetPolicerEntryInArgs polInArgs;
-    CpswAle_SetPolicerEntryOutArgs polOutArgs;
-    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
-    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
-    uint32_t entry;
-    int32_t status;
-
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == true));
-
-    /* Lookup for multicast address */
-    lookupInArgs.addr.vlanId = vlan_id;
-    EnetUtils_copyMacAddr(&lookupInArgs.addr.addr[0], macAddr);
-    lookupInArgs.numIgnBits = 0U;
-
-    ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupInArgs, &lookupOutArgs);
-
-    status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_LOOKUP_MCAST, &prms);
-    if (status == ENET_SOK)
-    {
-        /* Multicast address already requested, with requestor having exclusive access.
-         * Reject new caller */
-        status = CPSWPROXYSERVER_EBUSY;
-    }
-    else if (status == ENET_ENOTFOUND)
-    {
-        /* No one has requested this multicast address, caller gets it */
-        status = CPSWPROXYSERVER_SOK;
-    }
-    else
-    {
-        appLogPrintf("Failed to lookup mcast entry: %d\n", status);
-    }
-
-    /* Add multicast entry */
-    if (status == CPSWPROXYSERVER_SOK)
-    {
-        mcastInArgs.addr.vlanId = vlan_id;
-        EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], macAddr);
-
-        mcastInArgs.info.super    = false;
-        mcastInArgs.info.fwdState = CPSW_ALE_FWDSTLVL_FWD;
-        mcastInArgs.info.portMask = CPSW_ALE_HOST_PORT_MASK;
-        mcastInArgs.info.numIgnBits = 0U;
-
-        if (isMacPort)
-        {
-            mcastInArgs.info.portMask |= CPSW_ALE_MACPORT_TO_PORTMASK(macPort);
-        }
-        else
-        {
-            mcastInArgs.info.portMask |= (hServer->alePortMask &
-                                          ~hServer->aleMacOnlyPortMask);
-        }
-
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &entry);
-
-        status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to add mcast entry: %d\n", status);
-        }
-        status = CPSWPROXY_ENET2PROXY_ERR(status);
-    }
-
-    /* Setup classifier */
-    if (status == CPSWPROXYSERVER_SOK)
-    {
-        polInArgs.policerMatch.policerMatchEnMask = 0U;
-
-        /* Multicast MAC address as match criteria */
-        polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
-        polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
-        polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlan_id;
-        EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], macAddr);
-
-        /* Ingress port as match criteria to fully qualify the classifier for
-         * virtual MAC ports as directed packets will be used and could hit i2148 errata */
-        if (isMacPort)
-        {
-            polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_PORT;
-            polInArgs.policerMatch.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-            polInArgs.policerMatch.portIsTrunk = false;
-        }
-
-        polInArgs.threadIdEn = true;
-        polInArgs.threadId   = flowIdx_offset;
-        polInArgs.peakRateInBitsPerSec   = 0U;
-        polInArgs.commitRateInBitsPerSec = 0U;
-
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
-
-        status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to setup ALE classifier: %d\n", status);
-        }
-        status = CPSWPROXY_ENET2PROXY_ERR(status);
-    }
-
-    return status;
-}
-
-static int32_t CpswProxyServer_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
-                                                Enet_Handle hEnet,
-                                                uint32_t hostId,
-                                                uint8_t *macAddr,
-                                                uint16_t vlan_id)
-{
-    CpswProxyServer_Obj *hServer;
-    Enet_IoctlPrms prms;
-    CpswAle_DelPolicerEntryInArgs polInArgs;
-    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
-    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
-    int32_t status;
-
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == true));
-
-    polInArgs.policerMatch.policerMatchEnMask = 0U;
-
-    /* Multicast MAC address as match criteria */
-    polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
-    polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
-    polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlan_id;
-    EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], macAddr);
-
-    /* Ingress port as match criteria to fully qualify the classifier for
-     * virtual MAC ports as directed packets will be used and could hit i2148 errata */
-    if (isMacPort)
-    {
-        polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_PORT;
-        polInArgs.policerMatch.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-        polInArgs.policerMatch.portIsTrunk = false;
-    }
-
-    polInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ALL;
-
-    ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
-
-    status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("Failed to delete ALE classifier: %d\n", status);
-    }
-    status = CPSWPROXY_ENET2PROXY_ERR(status);
-
-    return status;
-}
-
-static int32_t CpswProxyServer_filterAddMacShared(CpswProxyServer_Obj *hServer,
-                                                  Enet_Handle hEnet,
-                                                  CpswProxyServer_SharedMcastEntry *entry,
-                                                  uint16_t vlan_id,
-                                                  uint8_t hostId)
-{
-    Enet_IoctlPrms prms;
-    CpswAle_SetMcastEntryInArgs mcastInArgs;
-    uint8_t coreId = EnetSoc_getCoreId();
-    uint32_t aleEntry;
-    int32_t status = CPSWPROXYSERVER_SOK;
-
-    /* Add multicast entry in ALE table */
-    if (entry->refCnt == 0U)
-    {
-        mcastInArgs.addr.vlanId = vlan_id;
-        EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], &entry->macAddr[0U]);
-
-        mcastInArgs.info.super    = false;
-        mcastInArgs.info.fwdState = CPSW_ALE_FWDSTLVL_FWD;
-        mcastInArgs.info.portMask = CPSW_ALE_HOST_PORT_MASK;
-        mcastInArgs.info.numIgnBits = 0U;
-
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
-
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("%s: Failed to add shared mcast entry in ALE: %d\n", __func__, status);
-        }
-        status = CPSWPROXY_ENET2PROXY_ERR(status);
-    }
-
-    /* Increase reference counter and call 'add' callback */
-    if (status == CPSWPROXYSERVER_SOK)
-    {
-        entry->refCnt++;
-        if (hServer->filterAddMacSharedCb != NULL)
-        {
-            hServer->filterAddMacSharedCb(&entry->macAddr[0U], hostId);
-        }
-    }
-
-    return status;
-}
-
-static int32_t CpswProxyServer_filterDelMacShared(CpswProxyServer_Obj *hServer,
-                                                  Enet_Handle hEnet,
-                                                  CpswProxyServer_SharedMcastEntry *entry,
-                                                  uint16_t vlanId,
-                                                  uint8_t hostId)
-{
-    Enet_IoctlPrms prms;
-    CpswAle_MacAddrInfo macAddrInfo;
-    uint8_t coreId = EnetSoc_getCoreId();
-    int32_t status = CPSWPROXYSERVER_SOK;
-
-    /* Remove mcast address from ALE table */
-    if (entry->refCnt == 1U)
-    {
-        macAddrInfo.vlanId = vlanId;
-        EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], &entry->macAddr[0U]);
-
-        ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
-
-        status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("%s: Failed to remove shared mcast entry in ALE: %d\n", __func__, status);
-        }
-        status = CPSWPROXY_ENET2PROXY_ERR(status);
-    }
-    else if (entry->refCnt == 0U)
-    {
-        appLogPrintf("Shared multicast address not in use, cannot be deleted\n");
-        status = CPSWPROXYSERVER_EFAIL;
-    }
-    else
-    {
-        status = CPSWPROXYSERVER_EBADARGS;
-    }
-
-    if (status == CPSWPROXYSERVER_SOK)
-    {
-        entry->refCnt--;
-        if (hServer->filterDelMacSharedCb != NULL)
-        {
-            hServer->filterDelMacSharedCb(&entry->macAddr[0U], hostId);
-        }
-    }
-
-    return status;
-}
-
-static bool CpswProxyServer_isRsvdMcast(CpswProxyServer_Obj *hServer,
-                                        const uint8_t *macAddr)
-
-{
-    uint32_t i;
-    bool isRsvd = false;
-
-    for (i = 0U; i < hServer->rsvdMcastTbl.numMacAddr; i++)
-    {
-        if (EnetUtils_cmpMacAddr(&hServer->rsvdMcastTbl.macAddrList[i][0U], macAddr))
-        {
-            appLogPrintf("%s: Reserved mcast cannot be added to filter\n", __func__);
-            isRsvd = true;
-            break;
-        }
-    }
-
-    return isRsvd;
-}
-
-static CpswProxyServer_SharedMcastEntry *CpswProxyServer_getSharedMcastEntry(CpswProxyServer_Obj *hServer,
-                                                                             const uint8_t *macAddr)
-{
-    CpswProxyServer_SharedMcastTable *table = &hServer->sharedMcastTbl;
-    CpswProxyServer_SharedMcastEntry *entry = NULL;
-    uint32_t i;
-
-    for (i = 0U; i < table->len; i++)
-    {
-        if (EnetUtils_cmpMacAddr(&table->entry[i].macAddr[0U], macAddr))
-        {
-            entry = &table->entry[i];
-            break;
-        }
-    }
-
-    return entry;
-}
 
 static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                      uint32_t hostId,
@@ -2003,9 +1690,6 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
 {
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
-#if defined(ETHFW_VEPA_SUPPORT)
-    struct eth_addr hwAddr;
-#endif
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -2017,52 +1701,42 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
         status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
     }
 
-    if ((status == ETHREMOTECFG_CMDSTATUS_OK) &&
-        !CpswProxyServer_isRsvdMcast(hServer, macAddr))
+    /* Check if client is part of the VLAN */
+    if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
-        CpswProxyServer_SharedMcastEntry *sharedMcastEntry;
-
-        if (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT)
+        /* If client is not in a VLAN, it will pass VLAN id 0 or VLAN_USE_DFLT,
+         * but we need to use the actual default VLAN id */
+        if ((vlanId == 0) || (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT))
         {
-            vlanId = hServer->dfltVlanIdSwitchPorts;
-        }
-
-        sharedMcastEntry = CpswProxyServer_getSharedMcastEntry(hServer, macAddr);
-        if (sharedMcastEntry != NULL)
-        {
-            status = CpswProxyServer_filterAddMacShared(hServer, hClient->hEnet, sharedMcastEntry, vlanId, hostId);
-            if (status != CPSWPROXYSERVER_SOK)
+            if (EthRemoteCfg_isSwitchPort(hClient->virtPort))
             {
-                appLogPrintf("Failed to add multicast (shared): %d\n", status);
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                vlanId = hServer->dfltVlanIdSwitchPorts;
             }
-#if defined(ETHFW_VEPA_SUPPORT)
-            else if (status == CPSWPROXYSERVER_SOK)
+            else
             {
-                SMEMCPY(&hwAddr, &sharedMcastEntry->macAddr, ETH_HWADDR_LEN);
-                status = EthFwVepaUtils_addAddr(hClient->hEnet, &hwAddr, vlanId, hostId, hClient->virtPort);
-                if (status != ENET_SOK)
-                {
-                    appLogPrintf("Failed to add MacAddress:%x:%x:%x:%x:%x:%x for client core %u into VEPA table\n",
-                                 macAddr[0],
-                                 macAddr[1],
-                                 macAddr[2],
-                                 macAddr[3],
-                                 macAddr[4],
-                                 macAddr[5],
-                                 hostId);
-                }
+                vlanId = hServer->dfltVlanIdMacOnlyPorts;
             }
-#endif
         }
         else
         {
-            status = CpswProxyServer_filterAddMacExcl(hClient->virtPort, hClient->hEnet, hostId, macAddr, vlanId, flowIdxOffset);
-            if (status != CPSWPROXYSERVER_SOK)
+            /* Check if the client has joined the VLAN */
+            if (!EthFwVlan_isInVlan(hClient->virtPort, vlanId))
             {
-                appLogPrintf("Failed to add multicast (exclusive): %d\n", status);
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                appLogPrintf("Virtual port %u is not part of VLAN %u\n", hClient->virtPort, vlanId);
+                status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
             }
+        }
+    }
+
+    /* Add multicast (shared or exclusive), reject reserved ones */
+    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    {
+        status = EthFwMcast_filterAddMac(hClient->virtPort, hClient->hEnet,
+                                         macAddr, vlanId, flowIdxOffset, hostId);
+        if (status != ETHFW_SOK)
+        {
+            appLogPrintf("Failed to remove multicast): %d\n", status);
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         }
     }
 
@@ -2076,9 +1750,6 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
 {
     CpswProxyServer_Obj *hServer;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
-#if defined(ETHFW_VEPA_SUPPORT)
-    struct eth_addr hwAddr;
-#endif
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -2090,51 +1761,42 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
         status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
     }
 
-    if ((status == ETHREMOTECFG_CMDSTATUS_OK) &&
-        !CpswProxyServer_isRsvdMcast(hServer, macAddr))
+    /* Check if client is part of the VLAN */
+    if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
-        CpswProxyServer_SharedMcastEntry *sharedMcastEntry;
-
-        if (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT)
+        if ((vlanId == 0) || (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT))
         {
-            vlanId = hServer->dfltVlanIdSwitchPorts;
-        }
-
-        sharedMcastEntry = CpswProxyServer_getSharedMcastEntry(hServer, macAddr);
-        if (sharedMcastEntry != NULL)
-        {
-#if defined(ETHFW_VEPA_SUPPORT)
-            SMEMCPY(&hwAddr, &sharedMcastEntry->macAddr, ETH_HWADDR_LEN);
-            /* Delete policer for packet duplication flow before deleting the ALE entry
-             * Delete shared multicast entry from VEPA table as well */
-            status = EthFwVepa_delAddr(hClient->hEnet, &hwAddr, vlanId, hostId, hClient->virtPort);
-            if (status != ENET_SOK)
+            /* If client is not in a VLAN, it will pass VLAN id 0 or VLAN_USE_DFLT,
+             * but we need to use the actual default VLAN id */
+            if (EthRemoteCfg_isSwitchPort(hClient->virtPort))
             {
-                appLogPrintf("Failed to delete MacAddress:%x:%x:%x:%x:%x:%x for client core %u from VEPA table\n",
-                             macAddr[0],
-                             macAddr[1],
-                             macAddr[2],
-                             macAddr[3],
-                             macAddr[4],
-                             macAddr[5],
-                             hostId);
+                vlanId = hServer->dfltVlanIdSwitchPorts;
             }
-#endif
-            status = CpswProxyServer_filterDelMacShared(hServer, hClient->hEnet, sharedMcastEntry, vlanId, hostId);
-            if (status != CPSWPROXYSERVER_SOK)
+            else
             {
-                appLogPrintf("Failed to remove multicast (shared): %d\n", status);
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                vlanId = hServer->dfltVlanIdMacOnlyPorts;
             }
         }
         else
         {
-            status = CpswProxyServer_filterDelMacExcl(hClient->virtPort, hClient->hEnet, hostId, macAddr, vlanId);
-            if (status != CPSWPROXYSERVER_SOK)
+            /* Check if the client has joined the VLAN */
+            if (!EthFwVlan_isInVlan(hClient->virtPort, vlanId))
             {
-                appLogPrintf("Failed to remove multicast (exclusive): %d\n", status);
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                appLogPrintf("Virtual port %u is not part of VLAN %u\n", hClient->virtPort, vlanId);
+                status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
             }
+        }
+    }
+
+    /* Delete multicast (shared or exclusive), reject reserved ones */
+    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    {
+        status = EthFwMcast_filterDelMac(hClient->virtPort, hClient->hEnet,
+                                         macAddr, vlanId, hostId);
+        if (status != ETHFW_SOK)
+        {
+            appLogPrintf("Failed to remove multicast): %d\n", status);
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         }
     }
 
@@ -2145,9 +1807,6 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 {
     SemaphoreP_Params sem_params;
     CpswProxyServer_Obj *hServer;
-    CpswProxyServer_RsvdMcastCfg *rsvdMcastCfg;
-    CpswProxyServer_SharedMcastCfg *sharedMcastCfg;
-    CpswProxyServer_SharedMcastEntry *entry;
     RPMessage_Params cntrlParam;
     int32_t i;
     int32_t status = CPSWPROXYSERVER_SOK;
@@ -2172,42 +1831,6 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
     hServer->aleSwitchOnlyPortMask = (hServer->alePortMask &
                                       ~hServer->aleMacOnlyPortMask);
-
-    if (status == CPSWPROXYSERVER_SOK)
-    {
-        sharedMcastCfg = &cfg->sharedMcastCfg;
-
-        if (sharedMcastCfg->numMacAddr <= CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN)
-        {
-            hServer->sharedMcastTbl.len = sharedMcastCfg->numMacAddr;
-        }
-        else
-        {
-            hServer->sharedMcastTbl.len = CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN;
-        }
-
-        for (i = 0U; i < hServer->sharedMcastTbl.len; i++)
-        {
-            entry = &hServer->sharedMcastTbl.entry[i];
-            entry->refCnt = 0U;
-            EnetUtils_copyMacAddr(&entry->macAddr[0U], &sharedMcastCfg->macAddrList[i][0U]);
-        }
-
-        hServer->filterAddMacSharedCb = sharedMcastCfg->filterAddMacSharedCb;
-        hServer->filterDelMacSharedCb = sharedMcastCfg->filterDelMacSharedCb;
-    }
-
-    if (status == CPSWPROXYSERVER_SOK)
-    {
-        rsvdMcastCfg = &cfg->rsvdMcastCfg;
-
-        memcpy(&hServer->rsvdMcastTbl, rsvdMcastCfg, sizeof(hServer->rsvdMcastTbl));
-
-        if (rsvdMcastCfg->numMacAddr > CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN)
-        {
-            hServer->rsvdMcastTbl.numMacAddr = CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN;
-        }
-    }
 
     memcpy(&hServer->allocObj, &cfg->allocObj, sizeof(cfg->allocObj));
 

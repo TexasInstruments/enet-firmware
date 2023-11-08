@@ -89,6 +89,7 @@
 /* EthFw remote configuration header files */
 #include <ethremotecfg/server/include/ethfw.h>
 #include "cpsw_proxy_server.h"
+#include "ethfw_mcast_priv.h"
 #include "ethfw_vlan_priv.h"
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
 #include "ethfw_arp_priv.h"
@@ -248,12 +249,6 @@ typedef struct EthFw_Obj_s
 
     /* Multiclient Manager (MCM) handle */
     EnetMcm_CmdIf mcmCmdIf;
-
-    /* Shared multicast configuration */
-    EthFw_SharedMcastCfg sharedMcastCfg;
-
-    /* Reserved multicast configuration */
-    EthFw_RsvdMcastCfg rsvdMcastCfg;
 
     /* Callback function for application to set port link parameters */
     EthFw_setPortCfg setPortCfg;
@@ -919,101 +914,6 @@ static void EthFw_updateEnetRm(void)
     }
 }
 
-static int32_t EthFw_getSharedMcast(const EthFw_Config *config)
-{
-    const EthFw_SharedMcastCfg *mcastCfg = &config->sharedMcastCfg;
-    const uint8_t *macAddr;
-    uint32_t i;
-    int32_t status = ENET_SOK;
-
-    if (mcastCfg->numMacAddr > ETHFW_SHARED_MCAST_LIST_LEN)
-    {
-        appLogPrintf("ETHFW: Invalid number of multicast addresses (%u), must be <= %u\n",
-                     mcastCfg->numMacAddr, ETHFW_SHARED_MCAST_LIST_LEN);
-        status = ENET_EINVALIDPARAMS;
-    }
-
-    if (status == ENET_SOK)
-    {
-        memset(&gEthFwObj.sharedMcastCfg.macAddrList[0U], 0, sizeof(gEthFwObj.sharedMcastCfg.macAddrList));
-
-        appLogPrintf("ETHFW: Shared multicasts (software fanout):\n");
-
-        for (i = 0U; i < mcastCfg->numMacAddr; i++)
-        {
-            macAddr = &mcastCfg->macAddrList[i][0U];
-            if (EnetUtils_isMcastAddr(macAddr))
-            {
-                appLogPrintf("  %02x:%02x:%02x:%02x:%02x:%02x\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
-                EnetUtils_copyMacAddr(&gEthFwObj.sharedMcastCfg.macAddrList[i][0U], macAddr);
-            }
-            else
-            {
-                appLogPrintf("ETHFW: Addr %02x:%02x:%02x:%02x:%02x:%02x is not mcast\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
-                status = ENET_EINVALIDPARAMS;
-                break;
-            }
-        }
-
-        gEthFwObj.sharedMcastCfg.numMacAddr = mcastCfg->numMacAddr;
-        gEthFwObj.sharedMcastCfg.filterAddMacSharedCb = mcastCfg->filterAddMacSharedCb;
-        gEthFwObj.sharedMcastCfg.filterDelMacSharedCb = mcastCfg->filterDelMacSharedCb;
-    }
-
-    return status;
-}
-
-static int32_t EthFw_getRsvdMcast(const EthFw_Config *config)
-{
-    const EthFw_RsvdMcastCfg *mcastCfg = &config->rsvdMcastCfg;
-    const uint8_t *macAddr;
-    uint32_t i;
-    int32_t status = ENET_SOK;
-
-    if (mcastCfg->numMacAddr > ETHFW_RSVD_MCAST_LIST_LEN)
-    {
-        appLogPrintf("ETHFW: Invalid number of multicast addresses (%u), must be <= %u\n",
-                     mcastCfg->numMacAddr, ETHFW_RSVD_MCAST_LIST_LEN);
-        status = ENET_EINVALIDPARAMS;
-    }
-
-    if ((status == ENET_SOK) &&
-        (mcastCfg->numMacAddr > 0U))
-    {
-        memset(&gEthFwObj.rsvdMcastCfg.macAddrList[0U], 0, sizeof(gEthFwObj.rsvdMcastCfg.macAddrList));
-
-        appLogPrintf("ETHFW: Reserved multicasts:\n");
-
-        for (i = 0U; i < mcastCfg->numMacAddr; i++)
-        {
-            macAddr = &mcastCfg->macAddrList[i][0U];
-            if (EnetUtils_isMcastAddr(macAddr))
-            {
-                appLogPrintf("  %02x:%02x:%02x:%02x:%02x:%02x\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
-                EnetUtils_copyMacAddr(&gEthFwObj.rsvdMcastCfg.macAddrList[i][0U], macAddr);
-            }
-            else
-            {
-                appLogPrintf("ETHFW: Addr %02x:%02x:%02x:%02x:%02x:%02x is not mcast\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
-                status = ENET_EINVALIDPARAMS;
-                break;
-            }
-        }
-
-        gEthFwObj.rsvdMcastCfg.numMacAddr = mcastCfg->numMacAddr;
-    }
-
-    return status;
-}
-
 void EthFw_initConfigParams(Enet_Type enetType,
                             EthFw_Config *config)
 {
@@ -1039,17 +939,17 @@ void EthFw_initConfigParams(Enet_Type enetType,
     config->vlanCfg = NULL;
     config->numVlans = 0U;
 
+    /* Multicast configuration */
+    config->mcastCfg.sharedMcastCfg.filterAddMacSharedCb = NULL;
+    config->mcastCfg.sharedMcastCfg.filterDelMacSharedCb = NULL;
+    config->mcastCfg.sharedMcastCfg.mcastCfg = NULL;
+    config->mcastCfg.sharedMcastCfg.numMcast = 0U;
+    config->mcastCfg.rsvdMcastCfg.mcastCfg = NULL;
+    config->mcastCfg.rsvdMcastCfg.numMcast = 0U;
+
     /* Virtual ports (bare IPC, AUTOSAR) */
     config->autosarVirtPortCfg = NULL;
     config->numAutosarVirtPorts = 0U;
-
-    /* Shared multicast config */
-    config->sharedMcastCfg.numMacAddr = 0U;
-    config->sharedMcastCfg.filterAddMacSharedCb = NULL;
-    config->sharedMcastCfg.filterDelMacSharedCb = NULL;
-
-    /* Reserved multicast config */
-    config->rsvdMcastCfg.numMacAddr = 0U;
 
     /* Default VLAN ids */
     config->dfltVlanIdMacOnlyPorts = ETHFW_MAC_ONLY_PORTS_VLAN_ID;
@@ -1164,26 +1064,6 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         EthFw_updateEnetRm();
     }
 
-    /* Get shared multicast table from app's config */
-    if (status == ENET_SOK)
-    {
-        status = EthFw_getSharedMcast(config);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: incorrect shared mcast configuration: %d\n", status);
-        }
-    }
-
-    /* Get reserved multicast table from app's config */
-    if (status == ENET_SOK)
-    {
-        status = EthFw_getRsvdMcast(config);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: incorrect reserved mcast configuration: %d\n", status);
-        }
-    }
-
     if (status == ENET_SOK)
     {
         gEthFwObj.coreId = EnetSoc_getCoreId();
@@ -1232,6 +1112,18 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         gEthFwObj.version.min[ETHFW_VERSION_MINLEN] = '\0';
         gEthFwObj.version.sec[ETHFW_VERSION_SECLEN] = '\0';
         gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
+    }
+
+    /* Initialize multicast support */
+    if (status == ENET_SOK)
+    {
+        status = EthFwMcast_init(&config->mcastCfg,
+                                 gEthFwObj.switchPortMask,
+                                 gEthFwObj.macOnlyPortMask);
+        if (status != ETHFW_SOK)
+        {
+            appLogPrintf("ETHFW: incorrect shared mcast configuration: %d\n", status);
+        }
     }
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
@@ -1311,6 +1203,8 @@ void EthFw_deinit(EthFw_Handle hEthFw)
     /* De-initialize VEPA table */
     EthFwVepa_deinit();
 #endif
+
+    EthFwMcast_deinit();
 
     /* De-initialize MCM */
     EthFw_deinitMcm();
@@ -1393,21 +1287,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         cfg.allocObj[i].virtMacPortMask = gEthFwObj.clientAllocCfg[i].virtMacPortMask;
         cfg.allocObj[i].virtSwitchPortMask = gEthFwObj.clientAllocCfg[i].virtSwitchPortMask;
     }
-
-    /* Set CPSW Proxy shared multicast config.
-     * All parameters have already been checked. */
-    cfg.sharedMcastCfg.filterAddMacSharedCb = (CpswProxyServer_FilterAddMacSharedCb)gEthFwObj.sharedMcastCfg.filterAddMacSharedCb;
-    cfg.sharedMcastCfg.filterDelMacSharedCb = (CpswProxyServer_FilterDelMacSharedCb)gEthFwObj.sharedMcastCfg.filterDelMacSharedCb;
-    cfg.sharedMcastCfg.numMacAddr = gEthFwObj.sharedMcastCfg.numMacAddr;
-    memcpy(&cfg.sharedMcastCfg.macAddrList[0U][0U],
-           &gEthFwObj.sharedMcastCfg.macAddrList[0U][0U],
-           cfg.sharedMcastCfg.numMacAddr * ENET_MAC_ADDR_LEN);
-
-    /* Set CPSW Proxy reserved multicast config */
-    cfg.rsvdMcastCfg.numMacAddr = gEthFwObj.rsvdMcastCfg.numMacAddr;
-    memcpy(&cfg.rsvdMcastCfg.macAddrList[0U][0U],
-           &gEthFwObj.rsvdMcastCfg.macAddrList[0U][0U],
-           cfg.rsvdMcastCfg.numMacAddr * ENET_MAC_ADDR_LEN);
 
     cfg.dfltVlanIdMacOnlyPorts = gEthFwObj.dfltVlanIdMacOnlyPorts;
     cfg.dfltVlanIdSwitchPorts  = gEthFwObj.dfltVlanIdSwitchPorts;

@@ -245,68 +245,6 @@ typedef struct CpswProxyServer_VirtPortCfg_s
 } CpswProxyServer_VirtPortCfg;
 
 /*!
- * \brief Filter add shared multicast callback.
- *
- * Application callback function called when a remote client requests the addition of
- * a shared multicast address to the filter.
- *
- * \param macAddr    Multicast address being added
- * \param coreId     Remote core id which originated the multicast 'add' request
- */
-typedef void (*CpswProxyServer_FilterAddMacSharedCb)(const uint8_t *macAddr,
-                                                     const uint8_t coreId);
-
-/*!
- * \brief Filter delete shared multicast callback.
- *
- * Application callback function called when a remote client requests the deletion of
- * a shared multicast address from the filter.
- *
- * \param macAddr    Multicast address being added
- * \param coreId     Remote core id which originated the multicast 'remove' request
- */
-typedef void (*CpswProxyServer_FilterDelMacSharedCb)(const uint8_t *macAddr,
-                                                     const uint8_t coreId);
-
-/*!
- * \brief Ethernet Firmware shared multicast fanout configuration.
- *
- * Ethernet Firmware configuration parameters for shared multicast fanout.
- */
-typedef struct CpswProxyServer_SharedMcastCfg_s
-{
-    /*! Shared multicast address table */
-    uint8_t macAddrList[CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
-
-    /*! Number of multicast address actually populated in the shared table.
-     *  Must be < \ref CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN */
-    uint32_t numMacAddr;
-
-    /*! Notification function called when a remote client adds a multicast to the filter. */
-    CpswProxyServer_FilterAddMacSharedCb filterAddMacSharedCb;
-
-    /*! Notification function called when a remote client deletes a multicast from the filter. */
-    CpswProxyServer_FilterDelMacSharedCb filterDelMacSharedCb;
-} CpswProxyServer_SharedMcastCfg;
-
-/*!
- * \brief Ethernet Firmware reserved multicast configuration.
- *
- * Ethernet Firmware configuration parameters for reserved multicast addresses, that is,
- * multicast addresses that are restricted to Ethernet Firmware only.  Requests from
- * remote clients to add any of these multicast addresses to the filter will be rejected.
- */
-typedef struct CpswProxyServer_RsvdMcastCfg_s
-{
-    /*! Reserved multicast address table */
-    uint8_t macAddrList[CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
-
-    /*! Number of multicast address actually populated in the reserved address table.
-     *  Must be < \ref CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN */
-    uint32_t numMacAddr;
-} CpswProxyServer_RsvdMcastCfg;
-
-/*!
  * \brief Remote client alloc object
  *
  * Alloc object per remote client holding the resources allocated for a given remote client.
@@ -378,12 +316,6 @@ typedef struct CpswProxyServer_Config_s
 
     /*! Default VLAN id to be used for MAC ports configured in switch mode (non MAC-only) */
     uint16_t dfltVlanIdSwitchPorts;
-
-    /*! Shared multicast configuration */
-    CpswProxyServer_SharedMcastCfg sharedMcastCfg;
-
-    /*! Reserved multicast configuration */
-    CpswProxyServer_RsvdMcastCfg rsvdMcastCfg;
 
     /*! Port mask of all enabled MAC ports */
     uint32_t enabledPortMask;

@@ -76,6 +76,7 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <ethremotecfg/server/include/ethfw_mcast.h>
 #include <ethremotecfg/server/include/ethfw_vlan.h>
 #include <ethremotecfg/server/include/ethfw_vepa.h>
 
@@ -127,12 +128,6 @@ extern "C" {
 
 /*! Max number of remote clients sharing resources with ETHFW(Linux, QNX, RTOS) */
 #define ETHFW_REMOTE_CLIENT_MAX           (4U)
-
-/*! Size of shared multicast address table */
-#define ETHFW_SHARED_MCAST_LIST_LEN       (8U)
-
-/*! Size of reserved multicast address table */
-#define ETHFW_RSVD_MCAST_LIST_LEN         (4U)
 
 /*! Max number of Remote clients requesting resource allocation data */
 #define ETHFW_REMOTE_CLIENT_ALLOC_MAX     (5U)
@@ -194,51 +189,6 @@ typedef struct EthFw_VirtPortCfg_s
 } EthFw_VirtPortCfg;
 
 /*!
- * \brief Filter 'add' shared multicast callback.
- *
- * Application callback function called when a remote client requests the addition of
- * a shared multicast address to the filter.
- *
- * \param macAddr    Multicast address being added
- * \param coreId     Remote core id which originated the multicast 'add' request
- */
-typedef void (*EthFw_FilterAddMacSharedCb)(const uint8_t *macAddr,
-                                           const uint8_t coreId);
-
-/*!
- * \brief Filter delete shared multicast callback.
- *
- * Application callback function called when a remote client requests the deletion of
- * a shared multicast address from the filter.
- *
- * \param macAddr    Multicast address being added
- * \param coreId     Remote core id which originated the multicast 'remove' request
- */
-typedef void (*EthFw_FilterDelMacSharedCb)(const uint8_t *macAddr,
-                                           const uint8_t coreId);
-
-/*!
- * \brief Ethernet Firmware shared multicast fanout configuration.
- *
- * Ethernet Firmware configuration parameters for shared multicast fanout.
- */
-typedef struct EthFw_SharedMcastCfg_s
-{
-    /*! Shared multicast address table */
-    uint8_t macAddrList[ETHFW_SHARED_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
-
-    /*! Number of multicast address actually populated in the shared table.
-     *  Must be < \ref ETHFW_SHARED_MCAST_LIST_LEN */
-    uint32_t numMacAddr;
-
-    /*! Application callback function to handle addition of a shared multicast address. */
-    EthFw_FilterAddMacSharedCb filterAddMacSharedCb;
-
-    /*! Application callback function to handle deletion of a shared multicast address. */
-    EthFw_FilterDelMacSharedCb filterDelMacSharedCb;
-} EthFw_SharedMcastCfg;
-
-/*!
  * \brief Remote client alloc object
  *
  * Alloc object per remote client holding the resources allocated for a given remote client.
@@ -257,22 +207,6 @@ typedef struct EthFw_AllocCfg_s
     /* virtual Mac Port MAsk */
     uint32_t virtMacPortMask;
 }EthFw_AllocCfg;
-
-/*!
- * \brief Ethernet Firmware reserved multicast configuration.
- *
- * Ethernet Firmware configuration parameters for reserved multicast addresses, that is,
- * multicast addresses that are restricted to Ethernet Firmware only.
- */
-typedef struct EthFw_RsvdMcastCfg_s
-{
-    /*! Reserved multicast address table */
-    uint8_t macAddrList[ETHFW_RSVD_MCAST_LIST_LEN][ENET_MAC_ADDR_LEN];
-
-    /*! Number of multicast address actually populated in the reserved address table.
-     *  Must be < \ref ETHFW_RSVD_MCAST_LIST_LEN */
-    uint32_t numMacAddr;
-} EthFw_RsvdMcastCfg;
 
 /*! Callback function for application to set port link parameters
  *  (MII, PHY, speed, duplexity, etc) */
@@ -323,11 +257,8 @@ typedef struct EthFw_Config_s
      *  Note: Single virtual port is supported for AUTOSAR core */
     uint32_t numAutosarVirtPorts;
 
-    /*! Shared multicast fanout configuration. */
-    EthFw_SharedMcastCfg sharedMcastCfg;
-
-    /*! Reserved multicast configuration which are exclusive to EthFw. */
-    EthFw_RsvdMcastCfg rsvdMcastCfg;
+    /*! Multicast configuration. */
+    EthFwMcast_Cfg mcastCfg;
 
     /*! Default VLAN id to be used for MAC ports configured in MAC-only mode */
     uint16_t dfltVlanIdMacOnlyPorts;

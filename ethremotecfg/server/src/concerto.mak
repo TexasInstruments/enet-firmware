@@ -5,9 +5,12 @@ TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
 TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 
 # Source code files
+ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
+  CSOURCES += ethfw_vepa.c
+endif
 CSOURCES += cpsw_proxy_server.c
+CSOURCES += ethfw_mcast.c
 CSOURCES += ethfw_vlan.c
-CSOURCES += ethfw_vepa.c
 CSOURCES += ethfw_arp.c
 CSOURCES += ethfw_api.c
 
