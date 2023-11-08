@@ -70,6 +70,9 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
+/* EthFwTrace id for this module, must be unique within ETHFW */
+#define ETHFWTRACE_MOD_ID 0x501
+
 #include <stdio.h>
 #include <stdint.h>
 

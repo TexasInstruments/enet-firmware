@@ -59,6 +59,10 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+/* EthFwTrace id for this module, must be unique within ETHFW */
+#define ETHFWTRACE_MOD_ID 0x701
+
 #include <stdio.h>
 #include <stdint.h>
 

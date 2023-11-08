@@ -41,6 +41,9 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
+/* EthFwTrace id for this module, must be unique within ETHFW */
+#define ETHFWTRACE_MOD_ID 0x405
+
 #include <ti/csl/soc.h>
 #include <ti/board/board.h>
 #include <ti/board/src/j784s4_evm/include/board_pinmux.h>
