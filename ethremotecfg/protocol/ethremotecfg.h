@@ -645,6 +645,17 @@ typedef enum EthRemoteCfg_CmdType_e
     ETHREMOTECFG_GET_SERVER_STATUS,
 
     /*!
+     * \brief Command to notify client's DMA teardown completion.
+     *
+     * Command send by remote client after tearing down the DMA channels
+     * in response to server notification \ref ETHREMOTECFG_NOTIFYTYPE_ERROR.
+     *
+     * Request (C2S): \ref EthRemoteCfg_CommonReq
+     * Response (S2C): \ref EthRemoteCfg_StatusRes
+     */
+    ETHREMOTECFG_TEARDOWN_COMPLETION,
+
+    /*!
      * \brief Command to invoke ENET LLD IOCTL from remote client
      *
      * Command allows invocation of any ENET LLD IOCTL from the remote core
@@ -709,6 +720,12 @@ typedef enum EthRemoteCfg_NotifyType_e
 
     /*! Notify type for sending CPTS HW push events to the remote clients */
     ETHREMOTECFG_NOTIFYTYPE_HWPUSH,
+
+    /*! Notify type for hardware error, typically requires a reset to recover */
+    ETHREMOTECFG_NOTIFYTYPE_HWERROR,
+
+    /*! Notify type for hardware recovery completion */
+    ETHREMOTECFG_NOTIFYTYPE_HWRECOVERY_COMPLETE,
 
     /*! Custom notify type */
     ETHREMOTECFG_NOTIFYTYPE_CUSTOM,
@@ -1514,6 +1531,17 @@ typedef struct EthRemoteCfg_NotifyServiceHwPushMsg_s
     /*! CPTS hardware push event timestamp  */
     uint64_t timeStamp;
 } __attribute__((packed)) EthRemoteCfg_NotifyServiceHwPushMsg;
+
+/*!
+ * \brief Common notification message structure.
+ *
+ * Common message structure for all notifications which carry only notify header.
+ */
+typedef struct EthRemoteCfg_CommonNotify_s
+{
+    /*! Notify message common header */
+    EthRemoteCfg_NotifyHdr hdr;
+} __attribute__((packed)) EthRemoteCfg_CommonNotify;
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
