@@ -154,7 +154,7 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-/* None */
+void appLogPrintf(const char *format, ...);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

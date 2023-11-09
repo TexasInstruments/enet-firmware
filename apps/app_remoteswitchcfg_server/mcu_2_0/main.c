@@ -786,6 +786,14 @@ static int32_t EthApp_boardInit(void)
     return status;
 }
 
+/* Trace configuration */
+static EthFwTrace_Cfg gEthApp_traceCfg =
+{
+    .print        = appLogPrintf,
+    .traceTsFunc  = NULL,
+    .extTraceFunc = NULL,
+};
+
 static void EthApp_initTaskFxn(void* arg0, void* arg1)
 {
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -798,6 +806,12 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
     /* EthFw's initial timestamp, used as offset for further profiling timestamps */
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_MAIN);
 #endif
+
+    /* Initialize EthFw trace utils */
+    if (status == ENET_SOK)
+    {
+        EthFwTrace_init(&gEthApp_traceCfg);
+    }
 
     /* Board initialization: Serdes, GPIOs, pinmux, etc */
     status = EthApp_boardInit();

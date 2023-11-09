@@ -59,8 +59,8 @@
 #include <ti/board/src/j784s4_evm/include/board_ethernet_config.h>
 #include <ti/board/src/j784s4_evm/include/board_serdes_cfg.h>
 
-#include <utils/console_io/include/app_log.h>
 #include <utils/board/include/ethfw_board_utils.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -292,6 +292,8 @@ int32_t EthFwBoard_init(uint32_t flags)
     /* Initialize board via board library */
     boardCfg |= BOARD_INIT_ENETCTRL_CPSW9G;
     boardStatus = Board_init(boardCfg);
+    ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                      "Failed to initialize board");
     EnetAppUtils_assert(boardStatus == BOARD_SOK);
 
     /* Detect expansion boards attached to main board (CPB) */
@@ -439,7 +441,7 @@ static void EthFwBoard_detectDBs(void)
     if (gEthFwBoard.i2cAllowed)
     {
         gEthFwBoard.qenetDetected = Board_detectBoard(BOARD_ID_ENET);
-        appLogPrintf("Detected boards: %s\n", gEthFwBoard.qenetDetected ? "QSGMII" : "None");
+        ETHFWTRACE_INFO("Detected boards: %s", gEthFwBoard.qenetDetected ? "QSGMII" : "None");
     }
     else
     {
@@ -468,14 +470,20 @@ static void EthFwBoard_configQenet(void)
     {
         /* Set MUX2 A <-> B2, needed for MDIO clock */
         boardStatus = Board_control(BOARD_CTRL_CMD_SET_IO_MUX_PORTB2, NULL);
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to set board's MUX2 for MDIO clock");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
 
         /* Release PHY reset */
         boardStatus = Board_cpswEnetExpPhyReset(0U);
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to release QSGMII PHY out of reset");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
 
         /* Release the COMA_MODE pin */
         boardStatus = Board_cpswEnetExpComaModeCfg(0U);
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to release QSGMII PHY Coma mode");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
     }
 
@@ -490,6 +498,8 @@ static void EthFwBoard_configQenet(void)
 
         /* Configure SerDes for QSGMII functionality */
         boardStatus = Board_serdesCfgQsgmii();
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to configure SerDes for QSGMII");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
     }
 }
@@ -511,10 +521,14 @@ static void EthFwBoard_configSerdesBridge(void)
 
         /* Configure SerDes for SGMII functionality */
         boardStatus = Board_serdesCfgSgmii();
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to configure SerDes for SGMII");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
 
         /* Set MAC mode to SGMII */
         boardStatus = Board_cpsw9gMacModeConfig(ENET_MACPORT_NORM(ENET_MAC_PORT_2), SGMII);
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to set SoC MAC mode");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
     }
 }
@@ -556,11 +570,8 @@ uint32_t EthFwBoard_getMacAddrPool(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
     if (allocCnt < poolSize)
     {
         staticCnt = EthFwBoard_getMacAddrPoolStatic(&macAddr[allocCnt], poolSize - allocCnt);
-        if (staticCnt > 0U)
-        {
-            appLogPrintf("Warning: Using %u MAC address(es) from static pool\n", staticCnt);
-        }
-
+        ETHFWTRACE_WARN_IF((staticCnt > 0U),
+                           "Warning: Using %u MAC address(es) from static pool", staticCnt);
         allocCnt += staticCnt;
     }
 
@@ -580,11 +591,20 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
     {
         /* Read number of MAC addresses in QUAD Eth board */
         boardStatus = Board_readMacAddrCount(BOARD_ID_ENET, &macAddrCnt);
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to read QpENet EEPROM");
+        ETHFWTRACE_ERR_IF((macAddrCnt <= ENET_RM_NUM_MACADDR_MAX), ETHFW_EINVALIDPARAMS,
+                          "Exceeded max number of MAC addresses %u (max %u)",
+                          macAddrCnt, ENET_RM_NUM_MACADDR_MAX);
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
         EnetAppUtils_assert(macAddrCnt <= ENET_RM_NUM_MACADDR_MAX);
 
         /* Read MAC addresses */
         boardStatus = Board_readMacAddr(BOARD_ID_ENET, macAddrBuf, sizeof(macAddrBuf), &tempCnt);
+        ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
+                          "Failed to read QpENet EEPROM");
+        ETHFWTRACE_ERR_IF((tempCnt == macAddrCnt), ETHFW_EUNEXPECTED,
+                          "Mismatching num of MAC addresses in QpENet EEPROM");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
         EnetAppUtils_assert(tempCnt == macAddrCnt);
 
@@ -597,7 +617,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
 
         if (allocCnt == 0U)
         {
-            appLogPrintf("No MAC addresses read from QENET board\n");
+            ETHFWTRACE_ERR(ETHFW_EALLOC, "No MAC addresses read from QENET board");
             EnetAppUtils_assert(false);
         }
     }

@@ -88,16 +88,11 @@
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw_arp.h>
-
 #if defined(ETHFW_VEPA_SUPPORT)
 #include <ethremotecfg/server/include/ethfw_vepa.h>
 #endif
-
-#include <utils/console_io/include/app_log.h>
-
-/* If defined, enables ARP packet handle function debug prints */
-#undef ETHFW_CALLBACKS_DEBUG
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -313,9 +308,9 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->txInfo.txPortNum = ENET_MAC_PORT_INV;
 
     macAddr = &rxInfo->macAddr[0U];
-    appLogPrintf("Host MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
-                 macAddr[0] & 0xFF, macAddr[1] & 0xFF, macAddr[2] & 0xFF,
-                 macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
+    ETHFWTRACE_INFO("Host MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
+                    macAddr[0] & 0xFF, macAddr[1] & 0xFF, macAddr[2] & 0xFF,
+                    macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
 
     rxInfo->handlePktFxn = NULL;
 
@@ -336,7 +331,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     {
         /* Just print an error as EthFw and its clients will continue to run with
          * limited functionality */
-        appLogPrintf("Failed to setup route for packet duplication: %d\n", status);
+        ETHFWTRACE_ERR(status, "Failed to setup route for packet duplication");
     }
     else
     {
@@ -359,7 +354,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     {
         /* Just print an error as EthFw and its clients will continue to run with
          * limited functionality */
-        appLogPrintf("Failed to setup route for ARP request packets: %d\n", status);
+        ETHFWTRACE_ERR(status, "Failed to setup route for ARP request packets");
     }
     else
     {
@@ -376,7 +371,6 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetDma_PktQ fqPktInfoQ;
     EnetDma_PktQ cqPktInfoQ;
     Enet_Handle hEnet = (Enet_Handle)releaseInfo->handleArg;
-
 #if defined(SOC_J721E) || defined(SOC_J784S4)
     Enet_Type enetType = ENET_CPSW_9G;
 #elif defined(SOC_J7200)
@@ -467,17 +461,15 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
 
     if (hDma == NULL)
     {
-        appLogPrintf("Failed to get Enet DMA handle for packet duplication flow\n");
         status = ENET_EFAIL;
+        ETHFWTRACE_ERR(status, "Failed to get Enet DMA handle for packet duplication flow");
     }
 
     if (status == ENET_SOK)
     {
         status = EnetAppUtils_allocRxFlow(hEnet, coreKey, coreId, rxFlowStartIdx, flowIdx);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to alloc RX flow for packet duplication traffic: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                          "Failed to alloc RX flow for packet duplication traffic");
     }
 
     /* Open RX Flow */
@@ -494,20 +486,16 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
         EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
 
         *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to open RX flow for packet duplication traffic: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                          "Failed to open RX flow for packet duplication traffic");
     }
 
     /* Set packet duplication flow id */
     if (status == ENET_SOK)
     {
         status = EthFwVepa_setPacketDuplicationFlowIdx(*flowIdx);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to set flow for packet duplication: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                          "Failed to set flow for packet duplication");
     }
 
     return status;
@@ -528,10 +516,8 @@ static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
 
     /* Set packet duplication flow to be un-defined */
     status = EthFwVepa_setPacketDuplicationFlowIdx(ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("Failed to remove flow for packet duplication: %d\n", status);
-    }
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                      "Failed to remove flow for packet duplication");
 
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
@@ -542,19 +528,15 @@ static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
 
         /* Close RX flow */
         status = EnetDma_closeRxCh(hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to close RX flow for packet duplication traffic: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                          "Failed to close RX flow for packet duplication traffic");
 
         /* Free RX flow only if channel was closed */
         if (status == ENET_SOK)
         {
             status = EnetAppUtils_freeRxFlow(hEnet, coreKey, coreId, flowIdx);
-            if (status != ENET_SOK)
-            {
-                appLogPrintf("Failed to free RX flow used for packet duplication traffic: %d\n", status);
-            }
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                              "Failed to free RX flow used for packet duplication traffic");
 
             freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
         }
@@ -566,23 +548,24 @@ static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
 {
     int32_t status;
     struct eth_hdr *ethHdr;
-#if defined(ETHFW_CALLBACKS_DEBUG)
-    uint8_t *dstMac, uint8_t *srcMac;
+#if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
+    uint8_t *dstMac;
+    uint8_t *srcMac;
 #endif
 
-#if defined(ETHFW_CALLBACKS_DEBUG)
+#if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
     dstMac = &ethHdr->dest.addr[0];
     srcMac = &ethHdr->src.addr[0];
 
-    appLogPrintf("Received packet for duplication, "
-                 "dstMac %02x:%02x:%02x:%02x:%02x:%02x and "
-                 "srcMac %02x:%02x:%02x:%02x:%02x:%02x\n",
-                 dstMac[0] & 0xFF, dstMac[1] & 0xFF,
-                 dstMac[2] & 0xFF, dstMac[3] & 0xFF,
-                 dstMac[4] & 0xFF, dstMac[5] & 0xFF,
-                 srcMac[0] & 0xFF, srcMac[1] & 0xFF,
-                 srcMac[2] & 0xFF, srcMac[3] & 0xFF,
-                 srcMac[4] & 0xFF, srcMac[5] & 0xFF);
+    ETHFWTRACE_DBG("Received packet for duplication, "
+                    "dstMac %02x:%02x:%02x:%02x:%02x:%02x and "
+                    "srcMac %02x:%02x:%02x:%02x:%02x:%02x",
+                    dstMac[0] & 0xFF, dstMac[1] & 0xFF,
+                    dstMac[2] & 0xFF, dstMac[3] & 0xFF,
+                    dstMac[4] & 0xFF, dstMac[5] & 0xFF,
+                    srcMac[0] & 0xFF, srcMac[1] & 0xFF,
+                    srcMac[2] & 0xFF, srcMac[3] & 0xFF,
+                    srcMac[4] & 0xFF, srcMac[5] & 0xFF);
 #endif
 
     ethHdr = (struct eth_hdr *)(pbuf->payload);
@@ -612,17 +595,15 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
 
     if (hDma == NULL)
     {
-        appLogPrintf("Failed to get Enet DMA handle\n");
         status = ENET_EFAIL;
+        ETHFWTRACE_ERR(status, "Failed to get Enet DMA handle");
     }
 
     if (status == ENET_SOK)
     {
         status = EnetAppUtils_allocRxFlow(hEnet, coreKey, coreId, rxFlowStartIdx, flowIdx);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to alloc RX flow for ARP traffic: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                          "Failed to alloc RX flow for ARP traffic");
     }
 
     /* Open RX Flow */
@@ -639,10 +620,8 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
         EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
 
         *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to open RX flow for ARP traffic: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                          "Failed to open RX flow for ARP traffic");
     }
 
     /* Set policer for ARP EtherType + Broadcast address matching */
@@ -672,10 +651,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
         status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to add ARP policer: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add ARP policer");
     }
 
     return status;
@@ -715,10 +691,7 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
 
     /* Delete ALE policer */
     status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("Failed to delete ARP policer: %d\n", status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ARP policer");
 
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
@@ -729,19 +702,15 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
 
         /* Close RX flow */
         status = EnetDma_closeRxCh(hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to close RX flow used for ARP traffic: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                          "Failed to close RX flow used for ARP traffic");
 
         /* Free RX flow only if channel was closed */
         if (status == ENET_SOK)
         {
             status = EnetAppUtils_freeRxFlow(hEnet, coreKey, coreId, flowIdx);
-            if (status != ENET_SOK)
-            {
-                appLogPrintf("Failed to free RX flow used for ARP traffic: %d\n", status);
-            }
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                              "Failed to free RX flow used for ARP traffic");
 
             freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
         }
@@ -755,7 +724,7 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
     struct eth_vlan_hdr *vlanHdr;
     struct etharp_hdr *ethArpHdr;
     struct eth_addr hwAddr;
-#if defined(ETHFW_CALLBACKS_DEBUG)
+#if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
     uint8_t *dstMac;
 #endif
     ip4_addr_t srcIp;
@@ -782,14 +751,14 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
     IPADDR_WORDALIGNED_COPY_TO_IP4_ADDR_T(&srcIp, &ethArpHdr->sipaddr);
     IPADDR_WORDALIGNED_COPY_TO_IP4_ADDR_T(&dstIp, &ethArpHdr->dipaddr);
 
-#if defined(ETHFW_CALLBACKS_DEBUG)
+#if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
     dstMac = &ethHdr->dest.addr[0];
 
-    appLogPrintf("Received ARP dstIp %s, dstMac %02x:%02x:%02x:%02x:%02x:%02x vlanId %u\n",
-                 ip4addr_ntoa(&dstIp),
-                 dstMac[0] & 0xFF, dstMac[1] & 0xFF, dstMac[2] & 0xFF,
-                 dstMac[3] & 0xFF, dstMac[4] & 0xFF, dstMac[5] & 0xFF,
-                 vlanId);
+    ETHFWTRACE_DBG("Received ARP dstIp %s, dstMac %02x:%02x:%02x:%02x:%02x:%02x vlanId %u",
+                   ip4addr_ntoa(&dstIp),
+                   dstMac[0] & 0xFF, dstMac[1] & 0xFF, dstMac[2] & 0xFF,
+                   dstMac[3] & 0xFF, dstMac[4] & 0xFF, dstMac[5] & 0xFF,
+                   vlanId);
 #endif
 
     status = EthFwArp_getHwAddr(&dstIp, &hwAddr, vlanId);
@@ -805,8 +774,8 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
                          vlanId,
                          ARP_REPLY);
 
-#if defined(ETHFW_CALLBACKS_DEBUG)
-        appLogPrintf("Sent ARP response\n");
+#if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
+        ETHFWTRACE_DBG("Sent ARP response");
 #endif
         handled = true;
     }

@@ -77,14 +77,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ti/osal/MutexP.h>
-#include <utils/ethfw_common/include/ethfw_types.h>
-#include <utils/console_io/include/app_log.h>
 
 /* Enet LLD header files */
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 
 /* EthFw header files */
+#include <utils/ethfw_common/include/ethfw_trace.h>
 #include "ethfw_arp_priv.h"
 
 /* ========================================================================== */
@@ -158,8 +157,8 @@ int32_t EthFwArp_init(void)
     gEthFwArpObj.hMutex = MutexP_create(&gEthFwArpObj.mutexObj);
     if (gEthFwArpObj.hMutex == NULL)
     {
-        appLogPrintf("EthFwArp_init() failed to create mutex\n");
         status = ETHFW_EFAIL;
+        ETHFWTRACE_ERR(status, "Failed to create mutex");
     }
 
     /* Mark all entries in table as free */
@@ -223,13 +222,13 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
 
     if (ETHFW_IS_BIT_SET(hwAddr->addr[0], 0))
     {
-        appLogPrintf("EthFwArp_addAddr() mcast MAC address cannot be added\n");
         status = ETHFW_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "mcast MAC address cannot be added");
     }
     else if (ip4_addr_ismulticast(ipAddr))
     {
-        appLogPrintf("EthFwArp_addAddr() mcast IP address cannot be added\n");
         status = ETHFW_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "mcast IP address cannot be added");
     }
     else
     {
@@ -275,6 +274,11 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
         MutexP_unlock(gEthFwArpObj.hMutex);
 
         status = done ? ETHFW_SOK : ETHFW_EALLOC;
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                          "Failed to add IP addr %s, HW addr %02x:%02x:%02x:%02x:%02x:%02x",
+                          ip4addr_ntoa(ipAddr),
+                          hwAddr->addr[0U], hwAddr->addr[1U], hwAddr->addr[2U],
+                          hwAddr->addr[3U], hwAddr->addr[4U], hwAddr->addr[5U]);
     }
 
     return status;
@@ -326,8 +330,8 @@ void EthFwArp_printTable(void)
     uint32_t used = 0U;
     uint32_t i;
 
-    appLogPrintf("\n SNo.      MAC Address        VLAN     IP Address\n");
-    appLogPrintf("------  -------------------  ------  -----------------\n");
+    ETHFWTRACE_INFO("\n SNo.      MAC Address        VLAN     IP Address");
+    ETHFWTRACE_INFO("------  -------------------  ------  -----------------");
 
     for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
     {
@@ -337,12 +341,12 @@ void EthFwArp_printTable(void)
         {
             hwAddr = &entry->hwAddr.addr[0U];
 
-            appLogPrintf("  %3d    %02x:%02x:%02x:%02x:%02x:%02x    %4d    %s\n",
-                         ++used,
-                         hwAddr[0] & 0xFF, hwAddr[1] & 0xFF, hwAddr[2] & 0xFF,
-                         hwAddr[3] & 0xFF, hwAddr[4] & 0xFF, hwAddr[5] & 0xFF,
-                         entry->vlanId,
-                         ip4addr_ntoa(&entry->ipAddr));
+            ETHFWTRACE_INFO("  %3d    %02x:%02x:%02x:%02x:%02x:%02x    %4d    %s",
+                            ++used,
+                            hwAddr[0] & 0xFF, hwAddr[1] & 0xFF, hwAddr[2] & 0xFF,
+                            hwAddr[3] & 0xFF, hwAddr[4] & 0xFF, hwAddr[5] & 0xFF,
+                            entry->vlanId,
+                            ip4addr_ntoa(&entry->ipAddr));
         }
     }
 }
@@ -375,7 +379,7 @@ void EthFwArp_sendRaw(struct netif *netif,
     /* could allocate a pbuf for an ARP request? */
     if (pbuf == NULL)
     {
-        appLogPrintf("Could not allocate pbuf for ARP request\n");
+        ETHFWTRACE_ERR(ETHFW_EFAIL, "Could not allocate pbuf for ARP request");
     }
     else
     {

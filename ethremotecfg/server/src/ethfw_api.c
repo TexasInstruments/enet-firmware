@@ -86,10 +86,18 @@
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
-/* EthFw utils header files */
-#include <utils/console_io/include/app_log.h>
+#if defined(ETHFW_GPTP_SUPPORT)
+/* Timesync header files */
+#include <tsn_tilld_include.h>
+#include <tsn_combase/combase.h>
+#include <tsn_unibase/unibase_binding.h>
+#include <tsn_gptp/gptp_config.h>
+#include <tsn_gptp/gptpman.h>
+#endif
 
-/* EthFw remote configuration header files */
+/* EthFw header files */
+#include <utils/ethfw_common/include/ethfw_utils.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw.h>
 #include "cpsw_proxy_server.h"
 #include "ethfw_mcast_priv.h"
@@ -101,16 +109,8 @@
 #include "ethfw_vepa_priv.h"
 #endif
 
-#if defined(ETHFW_GPTP_SUPPORT)
-/* Timesync header files */
-#include <tsn_tilld_include.h>
-#include <tsn_combase/combase.h>
-#include <tsn_unibase/unibase_binding.h>
-#include <tsn_gptp/gptp_config.h>
-#include <tsn_gptp/gptpman.h>
-#endif
-
-#include <utils/ethfw_common/include/ethfw_utils.h>
+/* EthFw utils header files */
+#include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -535,23 +535,23 @@ static int32_t EthFw_getDfltVlanId(const EthFw_Config *config)
 
     if (config->dfltVlanIdMacOnlyPorts > ETHFW_VLAN_ID_MAX)
     {
-        appLogPrintf("ETHFW: default VLAN id %u for MAC-only ports is out-of-range\n",
-                     config->dfltVlanIdMacOnlyPorts);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Default VLAN id %u for MAC-only ports is out-of-range",
+                     config->dfltVlanIdMacOnlyPorts);
     }
 
     if (config->dfltVlanIdSwitchPorts > ETHFW_VLAN_ID_MAX)
     {
-        appLogPrintf("ETHFW: default VLAN id %u for switch ports is out-of-range\n",
-                     config->dfltVlanIdSwitchPorts);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Default VLAN id %u for switch ports is out-of-range",
+                     config->dfltVlanIdSwitchPorts);
     }
 
     if (config->dfltVlanIdMacOnlyPorts == config->dfltVlanIdSwitchPorts)
     {
-        appLogPrintf("ETHFW: default VLAN Id should not be same for MAC-only and switch ports (%u)\n",
-                     config->dfltVlanIdSwitchPorts);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Default VLAN Id should not be same for MAC-only and switch ports (%u)",
+                     config->dfltVlanIdSwitchPorts);
     }
 
     if (status == ENET_SOK)
@@ -572,29 +572,29 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
 
     if (config->setPortCfg == NULL)
     {
-        appLogPrintf("ETHFW: Invalid setPortCfg callback\n");
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Invalid setPortCfg callback");
     }
 
     if (config->numPorts > ETHFW_MAC_PORT_MAX)
     {
-        appLogPrintf("ETHFW: Too many MAC ports requested (%u), max is %u\n",
-                     config->numPorts, ETHFW_MAC_PORT_MAX);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Too many MAC ports requested (%u), max is %u",
+                     config->numPorts, ETHFW_MAC_PORT_MAX);
     }
 
     if (config->numVirtPorts > ETHFW_REMOTE_CLIENT_MAX)
     {
-        appLogPrintf("ETHFW: Too many virtual ports requested (%u), max is %u\n",
-                     config->numVirtPorts, ETHFW_REMOTE_CLIENT_MAX);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Too many virtual ports requested (%u), max is %u",
+                       config->numVirtPorts, ETHFW_REMOTE_CLIENT_MAX);
     }
 
     if (config->numAutosarVirtPorts > CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX)
     {
-        appLogPrintf("ETHFW: Too many AUTOSAR virtual ports requested (%u), max is %u\n",
-                     config->numAutosarVirtPorts, CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Too many AUTOSAR virtual ports requested (%u), max is %u",
+                       config->numAutosarVirtPorts, CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
     }
 
     if (status == ENET_SOK)
@@ -710,11 +710,15 @@ static int32_t EthFw_setupVlan(const EthFw_Config *config)
     vlanCfg.macOnlyPortMask = gEthFwObj.macOnlyPortMask;
 
     hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-
-    status = EthFwVlan_init(hEnet, &vlanCfg);
-    if (status != ENET_SOK)
+    if (hEnet != NULL)
     {
-        appLogPrintf("ETHFW: Incorrect VLAN configuration: %d\n", status);
+        status = EthFwVlan_init(hEnet, &vlanCfg);
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Incorrect VLAN configuration");
+    }
+    else
+    {
+        status = ENET_EFAIL;
+        ETHFWTRACE_ERR(status, "Failed to get Enet handle");
     }
 
     return status;
@@ -906,14 +910,14 @@ static void EthFw_updateEnetRm(void)
     /* Pool size provided by application is too small, warn user about it */
     if (resCfg->macList.numMacAddress == 0U)
     {
-        appLogPrintf("ETHFW: Empty MAC address pool\n");
+        ETHFWTRACE_ERR(ENET_EALLOC, "Empty MAC address pool");
         EnetAppUtils_assert(false);
     }
     else if (resCfg->macList.numMacAddress < req)
     {
-        appLogPrintf("ETHFW: MAC address pool size is too small (req=%u alloc=%u)\n"
-                     "       may not be sufficient depending on concurrent usage\n",
-                     req, resCfg->macList.numMacAddress);
+        ETHFWTRACE_WARN("MAC address pool size is too small (req=%u alloc=%u),"
+                        "may not be sufficient depending on concurrent usage",
+                        req, resCfg->macList.numMacAddress);
     }
 }
 
@@ -1046,10 +1050,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     if (status == ENET_SOK)
     {
         status = EthFw_getPortConfig(config);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: incorrect port configuration: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Incorrect port configuration");
     }
 
     /* Set MAC port's default VLAN id */
@@ -1123,10 +1124,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         status = EthFwMcast_init(&config->mcastCfg,
                                  gEthFwObj.switchPortMask,
                                  gEthFwObj.macOnlyPortMask);
-        if (status != ETHFW_SOK)
-        {
-            appLogPrintf("ETHFW: incorrect shared mcast configuration: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Incorrect shared mcast configuration");
     }
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
@@ -1134,29 +1132,20 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     if (status == ENET_SOK)
     {
         status = EthFwArp_init();
-        if (status != ETHFW_SOK)
-        {
-            appLogPrintf("ETHFW: failed to init ARP utils: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init ARP utils");
     }
 #endif
 
 #if defined(ETHFW_VEPA_SUPPORT)
     status = EthFwVepa_init(&config->vepaCfg);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("ETHFW: failed to init VEPA utils: %d\n", status);
-    }
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init VEPA utils");
 #endif
 
     /* Initialize MCM */
     if (status == ENET_SOK)
     {
         status = EthFw_initMcm();
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: failed to init CPSW MCM: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to init CPSW MCM");
         EnetAppUtils_assert(status == ENET_SOK);
     }
 
@@ -1172,10 +1161,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     if (status == ENET_SOK)
     {
         status = EthFw_setupVlan(config);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: Failed to setup static VLANs: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup static VLANs");
     }
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1298,10 +1284,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.macOnlyPortMask = gEthFwObj.macOnlyPortMask;
 
     status = CpswProxyServer_init(&cfg);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("EthFw_initRemoteConfig() failed to init CPSW Proxy: %d\n", status);
-    }
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init CPSW Proxy");
 
     return status;
 }
@@ -1315,10 +1298,7 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
 
     /* Late announcement of server's endpoint to remote processor */
     status = CpswProxyServer_lateAnnounce(procId);
-    if (status != IPC_SOK)
-    {
-        appLogPrintf("EthFw_lateAnnounce: late announcement to proc %u failed: %d\n", procId, status);
-    }
+    ETHFWTRACE_ERR_IF((status != IPC_SOK), status, "Late announcement to proc %u failed", procId);
 
     return status;
 }
@@ -1407,8 +1387,7 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
     status = gEthFwObj.setPortCfg(macPort, macCfg, mii, phyCfg, linkCfg);
     if (status != ENET_SOK)
     {
-        appLogPrintf("EthFw_initLinkArgs() Failed to set MAC port %u config: %d\n",
-                     ENET_MACPORT_ID(macPort), status);
+        ETHFWTRACE_ERR(status, "Failed to set MAC port %u config", ENET_MACPORT_ID(macPort));
         EnetAppUtils_assert(false);
     }
 
@@ -1443,10 +1422,7 @@ static int32_t EthFw_setAleBcastEntry(void)
                         gEthFwObj.coreId,
                         CPSW_ALE_IOCTL_ADD_MCAST,
                         &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("EthFw_setAleBcastEntry() ADD_MULTICAST ioctl failed: %d\n", status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add bcast ALE entry");
 
     return status;
 }
@@ -1567,7 +1543,7 @@ static void EthFw_startLogTask(void)
     gEthFwObj.hLogTask = TaskP_create(&EthFw_logTask, &params);
     if (NULL == gEthFwObj.hLogTask)
     {
-        appLogPrintf("ETHFW: Failed to create log task!\n");
+        ETHFWTRACE_ERR(ENET_EFAIL, "Failed to create log task");
         EnetAppUtils_assert(false);
     }
 }
@@ -1577,6 +1553,7 @@ static void EthFw_gptpTask(void *a0,
 {
     char **netdevs = (char **)a0;
     int32_t i;
+    int32_t status;
 
     /* Count the number of netdevs */
     for (i = 0; netdevs[i]; i++)
@@ -1585,10 +1562,8 @@ static void EthFw_gptpTask(void *a0,
     }
 
     /* This function start gPTP, it has a true loop inside */
-    if (gptpman_run(netdevs, i, 1, NULL) < 0)
-    {
-        appLogPrintf("ETHFW: gptpman_run() error\n");
-    }
+    status = gptpman_run(netdevs, i, 1, NULL);
+    ETHFWTRACE_ERR_IF((status < 0), status, "gptpman_run() failed");
 }
 
 static void EthFw_tsnInit(void)
@@ -1658,7 +1633,7 @@ static void EthFw_gptpStart(char *netdevs[])
         gEthFwObj.hPtpTask = TaskP_create(&EthFw_gptpTask, &params);
         if (NULL == gEthFwObj.hPtpTask)
         {
-            appLogPrintf("ETHFW: Failed to create gptp task!\n");
+            ETHFWTRACE_ERR(ETHFW_EFAIL, "Failed to create gptp task");
             EnetAppUtils_assert(false);
         }
         else
@@ -1695,18 +1670,16 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
                 ethdevs[j].macport = macPort;
                 memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
 
-                appLogPrintf("ETHFW: Enable gPTP on MAC port %u (%s)\n",
-                             ENET_MACPORT_ID(macPort), gEthFwObj.gPtpNetDevs[j]);
-
+                ETHFWTRACE_INFO("Enable gPTP on MAC port %u (%s)",
+                                ENET_MACPORT_ID(macPort), gEthFwObj.gPtpNetDevs[j]);
                 j++;
             }
             else
             {
-                appLogPrintf("ETHFW: Can't enable gPTP on MAC port %u, exceeded max number of ports (%u)\n",
-                             ENET_MACPORT_ID(macPort), ETHAPP_PTP_CFG_NUM_MAC_PORTS);
                 status = ENET_EINVALIDPARAMS;
+                ETHFWTRACE_ERR(status, "Can't enable gPTP on MAC port %u, exceeded max number of ports (%u)",
+                               ENET_MACPORT_ID(macPort), ETHAPP_PTP_CFG_NUM_MAC_PORTS);
                 EnetAppUtils_assert(false);
-
             }
         }
     }
@@ -1715,11 +1688,8 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
      * its MAC port and mac addr (if any) */
     if (status == ENET_SOK)
     {
-        if (cb_lld_init_devs_table(ethdevs, j, gEthFwObj.enetType, gEthFwObj.instId) < 0)
-        {
-            appLogPrintf("ETHFW: Failed to int devs table\n");
-            status = ENET_EFAIL;
-        }
+        status  = cb_lld_init_devs_table(ethdevs, j, gEthFwObj.enetType, gEthFwObj.instId);
+        ETHFWTRACE_ERR_IF((status < 0), status, "Failed to int devs table");
     }
 
     /* CPSW has a single clock for all the ports */
@@ -1733,11 +1703,12 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
 
     EthFw_gptpStart(gEthFwObj.gPtpNetDevs);
 
-    appLogPrintf("ETHFW: TimeSync PTP enabled\n");
+    ETHFWTRACE_INFO("TimeSync PTP enabled");
 
     return status;
 #else
-    appLogPrintf("ETHFW: Warning - TimeSync is not supported\n");
+    ETHFWTRACE_WARN("TimeSync is not supported");
+
     return ENET_SOK;
 #endif
 }

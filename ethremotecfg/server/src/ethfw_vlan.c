@@ -53,8 +53,8 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 
-/* EthFw utils header files */
-#include <utils/console_io/include/app_log.h>
+/* EthFw header files */
+#include <utils/ethfw_common/include/ethfw_trace.h>
 #include "ethfw_vlan_priv.h"
 
 /* ========================================================================== */
@@ -165,18 +165,15 @@ int32_t EthFwVlan_init(Enet_Handle hEnet,
     gEthFwVlanObj.hMutex = MutexP_create(&gEthFwVlanObj.mutexObj);
     if (gEthFwVlanObj.hMutex == NULL)
     {
-        appLogPrintf("ETHFW: Failed to create mutex\n");
         status = ENET_EFAIL;
+        ETHFWTRACE_ERR(status, "Failed to create mutex");
     }
 
     /* Check config params and save VLAN configuration */
     if (status == ENET_SOK)
     {
         status = EthFwVlan_getCfg(cfg);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: Incorrect static VLAN params: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Incorrect static VLAN params");
     }
 
     /* Add VLAN and broadcast entries in ALE */
@@ -193,16 +190,10 @@ int32_t EthFwVlan_init(Enet_Handle hEnet,
                                          vlan->regMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
                                          vlan->unregMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
                                          vlan->untagMask & ~CPSW_ALE_HOST_PORT_MASK);
-            if (status != ENET_SOK)
-            {
-                appLogPrintf("ETHFW: Failed to setup VLANs in ALE: %d\n", status);
-            }
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup VLANs in ALE");
         }
 
-        if (status == ENET_SOK)
-        {
-            appLogPrintf("ETHFW: %u VLAN entries added in ALE table\n", i);
-        }
+        ETHFWTRACE_INFO_IF((status == ETHFW_SOK), "%u VLAN entries added in ALE table", i);
     }
 
     return status;
@@ -213,11 +204,8 @@ void EthFwVlan_deinit(Enet_Handle hEnet)
     EthFwVlan_Vlan *vlan;
     int32_t i;
 
-    if (vlan->virtActiveMask != 0U)
-    {
-        appLogPrintf("ETHFW: Virtual ports still active 0x%x\n",
-                     vlan->virtActiveMask);
-    }
+    ETHFWTRACE_ERR_IF((vlan->virtActiveMask != 0U), ENET_EUNEXPECTED,
+                      "Virtual ports still active 0x%x", vlan->virtActiveMask);
 
     /* Delete all static VLANs */
     for (i = 0U; i < gEthFwVlanObj.numVlans; i++)
@@ -247,11 +235,11 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
     /* MAC address should be client's unicast address */
     if (EnetUtils_isMcastAddr(macAddr))
     {
-        appLogPrintf("ETHFW: Cannot join VLAN %u with mcast MAC addr macAdd=%x:%x:%x:%x:%x:%x\n",
-                     vlanId,
-                     macAddr[0U], macAddr[1U], macAddr[2U],
-                     macAddr[3U], macAddr[4U], macAddr[5U]);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Cannot join VLAN %u with mcast addr %02x:%02x:%02x:%02x:%02x:%02x",
+                       vlanId,
+                       macAddr[0U], macAddr[1U], macAddr[2U],
+                       macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
     MutexP_lock(gEthFwVlanObj.hMutex, MutexP_WAIT_FOREVER);
@@ -262,9 +250,8 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
         vlan = EthFwVlan_getVlan(vlanId);
         if (vlan == NULL)
         {
-            appLogPrintf("ETHFW: VLAN %u is not register, virtual port %u cannot join\n",
-                         vlanId, virtPort);
             status = ENET_EINVALIDPARAMS;
+            ETHFWTRACE_ERR(status, "VLAN %u is not registered, virtual port %u cannot join", vlanId, virtPort);
         }
     }
 
@@ -273,9 +260,8 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
     {
         if (!ENET_IS_BIT_SET(vlan->virtMemberMask, virtPort))
         {
-            appLogPrintf("ETHFW: Virtual port %u is not allowed in VLAN %u\n",
-                         virtPort, vlanId);
             status = ENET_EPERM;
+            ETHFWTRACE_ERR(status, "Virtual port %u is not allowed in VLAN %u", virtPort, vlanId);
         }
     }
 
@@ -288,21 +274,15 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
                                      vlan->regMcastFloodMask,
                                      vlan->unregMcastFloodMask,
                                      vlan->untagMask);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: Failed to update VLAN %u in ALE: %d\n", vlanId, status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to update VLAN %u in ALE", vlanId);
     }
 
     /* Setup ALE classifier for remote client's MAC address and VLAN */
     if (status == ENET_SOK)
     {
         status = EthFwVlan_setupClassifier(hEnet, macAddr, vlanId, flowIdx);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: Failed to setup VLAN %u classifier for virtual port %u: %d\n",
-                         vlanId, virtPort, status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                          "Failed to setup VLAN %u classifier for virtual port %u", vlanId, virtPort);
     }
 
     /* Mark virtual port as active in the VLAN */
@@ -328,11 +308,11 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
     /* MAC address should be client's unicast address */
     if (EnetUtils_isMcastAddr(macAddr))
     {
-        appLogPrintf("ETHFW: Cannot join VLAN %u with mcast MAC addr macAdd=%x:%x:%x:%x:%x:%x\n",
-                     vlanId,
-                     macAddr[0U], macAddr[1U], macAddr[2U],
-                     macAddr[3U], macAddr[4U], macAddr[5U]);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Cannot leave VLAN %u with mcast addr %02x:%02x:%02x:%02x:%02x:%02x",
+                       vlanId,
+                       macAddr[0U], macAddr[1U], macAddr[2U],
+                       macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
     MutexP_lock(gEthFwVlanObj.hMutex, MutexP_WAIT_FOREVER);
@@ -341,9 +321,8 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
     vlan = EthFwVlan_getVlan(vlanId);
     if (vlan == NULL)
     {
-        appLogPrintf("ETHFW: VLAN %u is not register, virtual port %u cannot join\n",
-                     vlanId, virtPort);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "VLAN %u is not registered, virtual port %u cannot leave", vlanId, virtPort);
     }
 
     /* Check if the virtual port is allowed in the VLAN */
@@ -351,9 +330,8 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
     {
         if (!ENET_IS_BIT_SET(vlan->virtMemberMask, virtPort))
         {
-            appLogPrintf("ETHFW: Virtual port %u is not allowed in VLAN %u\n",
-                         virtPort, vlanId);
             status = ENET_EPERM;
+            ETHFWTRACE_ERR(status, "Virtual port %u is not allowed in VLAN %u", virtPort, vlanId);
         }
     }
 
@@ -362,9 +340,8 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
     {
         if (!ENET_IS_BIT_SET(vlan->virtActiveMask, virtPort))
         {
-            appLogPrintf("ETHFW: Virtual port %u had not joined VLAN %u\n",
-                         virtPort, vlanId);
             status = ENET_EINVALIDPARAMS;
+            ETHFWTRACE_ERR(status, "Virtual port %u had not joined VLAN %u", virtPort);
         }
     }
 
@@ -382,22 +359,16 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
                                          vlan->regMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
                                          vlan->unregMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
                                          vlan->untagMask & ~CPSW_ALE_HOST_PORT_MASK);
-            if (status != ENET_SOK)
-            {
-                appLogPrintf("ETHFW: Failed to setup VLANs in ALE: %d\n", status);
-            }
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup VLANs in ALE");
         }
     }
 
     /* Delete the classifier, but keep the ALE VLAN entries */
     if (status == ENET_SOK)
     {
-        EthFwVlan_deleteClassifier(hEnet, macAddr, vlanId, flowIdx);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: Failed to delete classifier for VLAN %u: %d\n",
-                         vlanId, flowIdx);
-        }
+        status = EthFwVlan_deleteClassifier(hEnet, macAddr, vlanId, flowIdx);
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                          "Failed to delete classifier for VLAN %u flowIdx %u", vlanId, flowIdx);
     }
 
     MutexP_unlock(gEthFwVlanObj.hMutex);
@@ -468,9 +439,8 @@ static int32_t EthFwVlan_getCfg(const EthFwVlan_Cfg *cfg)
     /* Check that number of VLAN has not been exceeded (this is a software limitation) */
     if (cfg->numVlans > ETHFWVLAN_VLANS_MAX)
     {
-        appLogPrintf("ETHFW: Too many VLANs (%u), max is %u\n",
-                     cfg->numVlans, ETHFWVLAN_VLANS_MAX);
         status = ENET_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Too many VLANs (%u), max is %u", cfg->numVlans, ETHFWVLAN_VLANS_MAX);
     }
 
     /* Check all VLAN config params and add them to local VLAN info table */
@@ -487,11 +457,9 @@ static int32_t EthFwVlan_getCfg(const EthFwVlan_Cfg *cfg)
             if ((vlanId == cfg->dfltVlanIdSwitchPorts) ||
                 (vlanId == cfg->dfltVlanIdMacOnlyPorts))
             {
-                appLogPrintf("ETHFW: VLAN id %u cannot be same as default VLAN ids (%u, %u)\n",
-                             vlanId,
-                             cfg->dfltVlanIdSwitchPorts,
-                             cfg->dfltVlanIdMacOnlyPorts);
                 status = ENET_EINVALIDPARAMS;
+                ETHFWTRACE_ERR(status, "VLAN id %u cannot be same as default VLAN ids (%u, %u)",
+                               vlanId, cfg->dfltVlanIdSwitchPorts, cfg->dfltVlanIdMacOnlyPorts);
                 break;
             }
 
@@ -501,9 +469,9 @@ static int32_t EthFwVlan_getCfg(const EthFwVlan_Cfg *cfg)
                 if (ENET_NOT_ZERO(memberMask & aleSwitchPortMask) &&
                     ENET_NOT_ZERO(memberMask & aleMacOnlyPortMask))
                 {
-                    appLogPrintf("ETHFW: VLAN %u: member list 0x%x cannot be both MAC-only and switch ports\n",
-                                 vlanId, memberMask);
                     status = ENET_EINVALIDPARAMS;
+                    ETHFWTRACE_ERR(status, "VLAN %u member list 0x%x cannot be both MAC-only and switch ports",
+                                   vlanId, memberMask);
                     break;
                 }
             }
@@ -514,9 +482,9 @@ static int32_t EthFwVlan_getCfg(const EthFwVlan_Cfg *cfg)
                 memberMask &= aleMacOnlyPortMask;
                 if (EthFwVlan_popcount(memberMask) > 1U)
                 {
-                    appLogPrintf("ETHFW: VLAN %u: member list %x cannot have multiple MAC-only ports\n",
-                                 vlanId, memberMask);
                     status = ENET_EINVALIDPARAMS;
+                    ETHFWTRACE_ERR(status, "VLAN %u member list %x cannot have multiple MAC-only ports",
+                                   vlanId, memberMask);
                     break;
                 }
             }
@@ -536,14 +504,14 @@ static int32_t EthFwVlan_getCfg(const EthFwVlan_Cfg *cfg)
                 vlan->virtActiveMask      = 0U;
                 gEthFwVlanObj.numVlans++;
 
-                appLogPrintf("ETHFW: VLAN %u member=0x%x virtMember=0x%x "
-                             "regMcastFlood=0x%x unregMcastFlood=0x%x untag=0x%x\n",
-                             vlan->vlanId,
-                             vlan->memberMask,
-                             vlan->virtMemberMask,
-                             vlan->regMcastFloodMask,
-                             vlan->unregMcastFloodMask,
-                             vlan->untagMask);
+                ETHFWTRACE_INFO("VLAN %u member=0x%x virtMember=0x%x "
+                                "regMcastFlood=0x%x unregMcastFlood=0x%x untag=0x%x",
+                                vlan->vlanId,
+                                vlan->memberMask,
+                                vlan->virtMemberMask,
+                                vlan->regMcastFloodMask,
+                                vlan->unregMcastFloodMask,
+                                vlan->untagMask);
             }
         }
     }
@@ -583,11 +551,7 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &vlanInArgs, &aleEntry);
 
     status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_VLAN, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("ETHFW: Failed to add ALE VLAN %u entry: %d\n",
-                     vlanId, status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add ALE VLAN %u entry", vlanId);
 
     /* Add broadcast entry for the VLAN */
     if (status == ENET_SOK)
@@ -602,11 +566,7 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
         status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: Failed to add VLAN %u bcast ALE entry: %d\n",
-                         vlanId, status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add VLAN %u bcast ALE entry", vlanId);
     }
 
     return status;
@@ -630,11 +590,7 @@ static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
     ENET_IOCTL_SET_IN_ARGS(&prms, &mcastInArgs);
 
     status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("ETHFW: Failed to delete VLAN %u bcast entry: %d\n",
-                     vlanId, status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete VLAN %u bcast entry", vlanId);
 
     /* Delete VLAN entry */
     vlanInArgs.vlanId  = vlanId;
@@ -643,11 +599,7 @@ static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
     ENET_IOCTL_SET_IN_ARGS(&prms, &vlanInArgs);
 
     status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_VLAN, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("ETHFW: Failed to delete ALE VLAN %u entry: %d\n",
-                     vlanId, status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ALE VLAN %u entry", vlanId);
 }
 
 static int32_t EthFwVlan_setupClassifier(Enet_Handle hEnet,
@@ -678,11 +630,7 @@ static int32_t EthFwVlan_setupClassifier(Enet_Handle hEnet,
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
     status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("ETHFW: Failed to setup ALE classifier VLAN %u: %d\n",
-                     vlanId, status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup ALE classifier VLAN %u", vlanId);
 
     return status;
 }
@@ -710,14 +658,11 @@ static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &polMatchInArgs, &polOutArgs);
 
     status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_GET_POLICER, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("ETHFW: Failed to find ALE classifier for VLAN %u macAdd=%x:%x:%x:%x:%x:%x: %d\n",
-                     vlanId,
-                     macAddr[0U], macAddr[1U], macAddr[2U],
-                     macAddr[3U], macAddr[4U], macAddr[5U],
-                     status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                      "Failed to find ALE classifier for VLAN %u macAdd=%02x:%02x:%02x:%02x:%02x:%02x",
+                      vlanId,
+                      macAddr[0U], macAddr[1U], macAddr[2U],
+                      macAddr[3U], macAddr[4U], macAddr[5U]);
 
     /* Check if classifier was routing packets to client's flow */
     if (status == ENET_SOK)
@@ -725,9 +670,9 @@ static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
         if ((polOutArgs.threadIdEn != true) ||
             (polOutArgs.threadId != flowIdxOffset))
         {
-            appLogPrintf("ETHFW: Invalid VLAN %u policer thread cfg (threadIdEn=%u threadId=%u)\n",
-                         vlanId, polOutArgs.threadIdEn, polOutArgs.threadId);
-            status = ENET_EUNEXPECTED;
+            status = ETHFW_EUNEXPECTED;
+            ETHFWTRACE_ERR(status, "Invalid VLAN %u policer thread cfg (threadIdEn=%u threadId=%u)",
+                           vlanId, polOutArgs.threadIdEn, polOutArgs.threadId);
         }
     }
 
@@ -740,11 +685,7 @@ static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
         ENET_IOCTL_SET_IN_ARGS(&prms, &delPolInArgs);
 
         status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("ETHFW: Invalid VLAN %u policer: %d\n",
-                         vlanId, status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Invalid VLAN %u policer", vlanId);
     }
 
     return status;

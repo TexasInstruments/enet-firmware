@@ -79,6 +79,7 @@
 #include <ethremotecfg/server/include/ethfw_mcast.h>
 #include <ethremotecfg/server/include/ethfw_vlan.h>
 #include <ethremotecfg/server/include/ethfw_vepa.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
 
 #ifdef __cplusplus
 extern "C" {

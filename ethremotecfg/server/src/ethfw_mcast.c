@@ -53,9 +53,8 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 
-/* EthFw utils header files */
-#include <utils/console_io/include/app_log.h>
-
+/* EthFw header files */
+#include <utils/ethfw_common/include/ethfw_trace.h>
 #include "ethfw_mcast_priv.h"
 #if defined(ETHFW_VEPA_SUPPORT)
 #include "ethfw_vepa_priv.h"
@@ -198,28 +197,22 @@ int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
     gEthFwMcastObj.hMutex = MutexP_create(&gEthFwMcastObj.mutexObj);
     if (gEthFwMcastObj.hMutex == NULL)
     {
-        appLogPrintf("ETHFW: Failed to create mutex\n");
         status = ETHFW_EFAIL;
+        ETHFWTRACE_ERR(status, "Failed to create mutex");
     }
 
     /* Get shared multicast configuration */
     if (status == ETHFW_SOK)
     {
         status = EthFwMcast_getSharedMcastCfg(&cfg->sharedMcastCfg);
-        if (status != ETHFW_SOK)
-        {
-            appLogPrintf("ETHFW: Failed to get shared mcast config: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get shared mcast config");
     }
 
     /* Get reserved multicast configuration */
     if (status == ETHFW_SOK)
     {
         status = EthFwMcast_getRsvdMcastCfg(&cfg->rsvdMcastCfg);
-        if (status != ETHFW_SOK)
-        {
-            appLogPrintf("ETHFW: Failed to get reserved mcast config: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get reserved mcast config");
     }
 
     if (status ==  ETHFW_SOK)
@@ -262,20 +255,15 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
         if (mcastInfo != NULL)
         {
             status = EthFwMcast_filterAddMacShared(virtPort, hEnet, mcastInfo, macAddr, vlanId);
-            if (status != ETHFW_SOK)
-            {
-                appLogPrintf("Failed to add shared mcast address\n");
-            }
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to add shared mcast address");
 
 #if defined(ETHFW_VEPA_SUPPORT)
             if (status == ETHFW_SOK)
             {
                 SMEMCPY(&hwAddr, &macAddr, ETH_HWADDR_LEN);
                 status = EthFwVepa_addAddr(hEnet, &hwAddr, vlanId, hostId, virtPort);
-                if (status != ETHFW_SOK)
-                {
-                    appLogPrintf("Failed to add shared mcast forcore %u into VEPA table\n", hostId);
-                }
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                  "Failed to add shared mcast forcore %u into VEPA table", hostId);
             }
 #endif
         }
@@ -285,13 +273,11 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
         }
     }
 
-    if (status != ETHFW_SOK)
-    {
-        appLogPrintf("Failed to add %s mcast addr %02x:%02x:%02x:%02x:%02x:%02x\n",
-                     isRsvd ? "reserved" : "",
-                     macAddr[0U], macAddr[1U], macAddr[2U],
-                     macAddr[3U], macAddr[4U], macAddr[5U]);
-    }
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                      "Failed to add %smcast addr %02x:%02x:%02x:%02x:%02x:%02x",
+                      isRsvd ? "reserved " : "",
+                      macAddr[0U], macAddr[1U], macAddr[2U],
+                      macAddr[3U], macAddr[4U], macAddr[5U]);
 
     return status;
 }
@@ -319,10 +305,8 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
             SMEMCPY(&hwAddr, &mcastInfo->macAddr, ETH_HWADDR_LEN);
 
             status = EthFwVepa_delAddr(hEnet, &hwAddr, vlanId, hostId, virtPort);
-            if (status != ETHFW_SOK)
-            {
-                appLogPrintf("Failed to delete shared mcast for client core %u from VEPA table\n", hostId);
-            }
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                              "Failed to delete shared mcast for client core %u from VEPA table", hostId);
 #endif
             if (status == ETHFW_SOK)
             {
@@ -336,13 +320,11 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
         }
     }
 
-    if (status != ETHFW_SOK)
-    {
-        appLogPrintf("Failed to delete mcast addr %02x:%02x:%02x:%02x:%02x:%02x\n",
-                     isRsvd ? "reserved" : "",
-                     macAddr[0U], macAddr[1U], macAddr[2U],
-                     macAddr[3U], macAddr[4U], macAddr[5U]);
-    }
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                      "Failed to delete %smcast addr %02x:%02x:%02x:%02x:%02x:%02x",
+                      isRsvd ? "reserved " : "",
+                      macAddr[0U], macAddr[1U], macAddr[2U],
+                      macAddr[3U], macAddr[4U], macAddr[5U]);
 
     return status;
 }
@@ -357,14 +339,14 @@ static int32_t EthFwMcast_getSharedMcastCfg(const EthFwMcast_SharedMcastCfg *cfg
 
     if (cfg->numMcast > ETHFW_SHARED_MCAST_LIST_LEN)
     {
-        appLogPrintf("ETHFW: Invalid number of multicast addresses (%u), must be <= %u\n",
-                     cfg->numMcast, ETHFW_SHARED_MCAST_LIST_LEN);
         status = ETHFW_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Invalid number of multicast addresses (%u), must be <= %u",
+                       cfg->numMcast, ETHFW_SHARED_MCAST_LIST_LEN);
     }
 
     if (status == ETHFW_SOK)
     {
-        appLogPrintf("ETHFW: Shared multicasts:\n");
+        ETHFWTRACE_INFO("Shared multicasts:");
 
         gEthFwMcastObj.sharedMcastTable.len = 0U;
 
@@ -376,9 +358,9 @@ static int32_t EthFwMcast_getSharedMcastCfg(const EthFwMcast_SharedMcastCfg *cfg
 
             if (EnetUtils_isMcastAddr(macAddr))
             {
-                appLogPrintf("  %02x:%02x:%02x:%02x:%02x:%02x\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
+                ETHFWTRACE_INFO("  %02x:%02x:%02x:%02x:%02x:%02x",
+                                macAddr[0U], macAddr[1U], macAddr[2U],
+                                macAddr[3U], macAddr[4U], macAddr[5U]);
 
                 EnetUtils_copyMacAddr(&entry->macAddr[0U], macAddr);
                 entry->vlanId       = mcastCfg->vlanId;
@@ -390,10 +372,10 @@ static int32_t EthFwMcast_getSharedMcastCfg(const EthFwMcast_SharedMcastCfg *cfg
             }
             else
             {
-                appLogPrintf("ETHFW: Addr %02x:%02x:%02x:%02x:%02x:%02x is not mcast\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
                 status = ETHFW_EINVALIDPARAMS;
+                ETHFWTRACE_ERR(status, "Addr %02x:%02x:%02x:%02x:%02x:%02x is not mcast",
+                               macAddr[0U], macAddr[1U], macAddr[2U],
+                               macAddr[3U], macAddr[4U], macAddr[5U]);
                 break;
             }
         }
@@ -422,15 +404,15 @@ static int32_t EthFwMcast_getRsvdMcastCfg(const EthFwMcast_RsvdMcastCfg *cfg)
 
     if (cfg->numMcast > ETHFW_RSVD_MCAST_LIST_LEN)
     {
-        appLogPrintf("ETHFW: Invalid number of multicast addresses (%u), must be <= %u\n",
-                     cfg->numMcast, ETHFW_RSVD_MCAST_LIST_LEN);
         status = ETHFW_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Invalid number of multicast addresses (%u), must be <= %u",
+                       cfg->numMcast, ETHFW_RSVD_MCAST_LIST_LEN);
     }
 
     if ((status == ETHFW_SOK) &&
         (cfg->numMcast > 0U))
     {
-        appLogPrintf("ETHFW: Reserved multicasts:\n");
+        ETHFWTRACE_INFO("Reserved multicasts:");
 
         gEthFwMcastObj.rsvdMcastTable.len = 0U;
 
@@ -442,9 +424,9 @@ static int32_t EthFwMcast_getRsvdMcastCfg(const EthFwMcast_RsvdMcastCfg *cfg)
 
             if (EnetUtils_isMcastAddr(macAddr))
             {
-                appLogPrintf("  %02x:%02x:%02x:%02x:%02x:%02x\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
+                ETHFWTRACE_INFO("  %02x:%02x:%02x:%02x:%02x:%02x",
+                                macAddr[0U], macAddr[1U], macAddr[2U],
+                                macAddr[3U], macAddr[4U], macAddr[5U]);
 
                 EnetUtils_copyMacAddr(&entry->macAddr[0U], macAddr);
                 entry->vlanId   = mcastCfg->vlanId;
@@ -454,10 +436,10 @@ static int32_t EthFwMcast_getRsvdMcastCfg(const EthFwMcast_RsvdMcastCfg *cfg)
             }
             else
             {
-                appLogPrintf("ETHFW: Addr %02x:%02x:%02x:%02x:%02x:%02x is not mcast\n",
-                             macAddr[0U], macAddr[1U], macAddr[2U],
-                             macAddr[3U], macAddr[4U], macAddr[5U]);
                 status = ETHFW_EINVALIDPARAMS;
+                ETHFWTRACE_ERR(status, "Addr %02x:%02x:%02x:%02x:%02x:%02x is not mcast",
+                               macAddr[0U], macAddr[1U], macAddr[2U],
+                               macAddr[3U], macAddr[4U], macAddr[5U]);
                 break;
             }
         }
@@ -536,10 +518,7 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
         status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to add shared mcast entry in ALE: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add shared mcast entry in ALE");
     }
 
     /* Increase reference counter and call 'add' callback */
@@ -575,19 +554,17 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
         ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
 
         status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to remove shared mcast entry in ALE: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
     }
     else if (mcastInfo->refCnt == 0U)
     {
-        appLogPrintf("Shared multicast address not in use, cannot be deleted\n");
         status = ETHFW_EFAIL;
+        ETHFWTRACE_ERR(status, "Shared multicast address not in use, cannot be deleted");
     }
     else
     {
-        status = ETHFW_EBADARGS;
+        status = ETHFW_EUNEXPECTED;
+        ETHFWTRACE_ERR(status, "Unexpected shared multicast ref count %u", mcastInfo->refCnt);
     }
 
     if (status == ETHFW_SOK)
@@ -634,6 +611,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
         /* Multicast address already requested, with requestor having exclusive access.
          * Reject new caller */
         status = ETHFW_EBUSY;
+        ETHFWTRACE_ERR(status, "Exclusive mcast already owned by another client");
     }
     else if (status == ENET_ENOTFOUND)
     {
@@ -642,7 +620,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
     }
     else
     {
-        appLogPrintf("Failed to lookup mcast entry: %d\n", status);
+        ETHFWTRACE_ERR(status, "Failed to lookup mcast entry");
     }
 
     /* Add multicast entry */
@@ -668,10 +646,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
         status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to add mcast entry: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add mcast entry");
     }
 
     /* Setup classifier */
@@ -702,10 +677,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
         status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-        if (status != ENET_SOK)
-        {
-            appLogPrintf("Failed to setup ALE classifier: %d\n", status);
-        }
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup ALE classifier");
     }
 
     return status;
@@ -745,10 +717,7 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
     ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
 
     status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("Failed to delete ALE classifier: %d\n", status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ALE classifier");
 
     return status;
 }
