@@ -642,6 +642,17 @@ typedef enum EthRemoteCfg_CmdType_e
     ETHREMOTECFG_CMD_GET_SERVER_STATUS,
 
     /*!
+     * \brief Command to notify client's DMA teardown completion.
+     *
+     * Command send by remote client after tearing down the DMA channels
+     * in response to server notification \ref ETHREMOTECFG_NOTIFY_HWERROR.
+     *
+     * Request (C2S): \ref EthRemoteCfg_CommonReq
+     * Response (S2C): \ref EthRemoteCfg_StatusRes
+     */
+    ETHREMOTECFG_CMD_TEARDOWN_COMPLETION,
+
+    /*!
      * \brief Command to invoke ENET LLD IOCTL from remote client.
      *
      * Command allows invocation of any ENET LLD IOCTL from the remote core
@@ -714,6 +725,20 @@ typedef enum EthRemoteCfg_NotifyType_e
      * Params (S2C): \ref EthRemoteCfg_NotifyServiceHwPushMsg
      */
     ETHREMOTECFG_NOTIFY_HWPUSH,
+
+    /*!
+     * \brief Notify type for hardware error, typically requires a reset to recover.
+     *
+     * Params (S2C): \ref EthRemoteCfg_CommonNotify
+     */
+    ETHREMOTECFG_NOTIFY_HWERROR,
+
+    /*!
+     * \brief Notify type for hardware recovery completion.
+     *
+     * Params (S2C): \ref EthRemoteCfg_CommonNotify
+     */
+    ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE,
 
     /*!
      * \brief Custom notify type.
