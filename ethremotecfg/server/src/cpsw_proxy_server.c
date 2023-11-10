@@ -2209,8 +2209,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             status = CpswProxyServer_registerIPv4MacHandlerCb(hClient,
                                                               remoteProcId,
-                                                              req->ipAddr,
-                                                              req->macAddr);
+                                                              req->macAddr,
+                                                              req->ipAddr);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to register IPv4 addr");
 
             resLen = sizeof(*res);
