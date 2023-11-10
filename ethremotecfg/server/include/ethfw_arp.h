@@ -118,7 +118,7 @@ extern "C" {
  *
  * Get the MAC address of a remote client that has previously registered its
  * MAC address and IPv4 address with Ethernet Firmware through
- * \ref ETHREMOTECFG_REGISTER_IPv4 command.
+ * \ref ETHREMOTECFG_CMD_REGISTER_IPv4 command.
  *
  * \param ipAddr     IPv4 address
  * \param hwAddr     MAC address corresponding to the IPv4 (if registered)
@@ -136,7 +136,7 @@ int32_t EthFwArp_getHwAddr(const ip4_addr_t *ipAddr,
  *
  * Sends an ARP response on behalf of a remote client that has previously
  * registers its MAC address and IPv4 address with Ethernet Firmware through
- * \ref ETHREMOTECFG_REGISTER_IPv4 command.
+ * \ref ETHREMOTECFG_CMD_REGISTER_IPv4 command.
  *
  * This function is based on lwIP's `etharp_raw()`.
  *

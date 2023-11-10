@@ -449,7 +449,7 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
                 header = (EthRemoteCfg_NotifyHdr *)data;
                 switch(header->notifyType)
                 {
-                case ETHREMOTECFG_NOTIFYTYPE_HWPUSH:
+                case ETHREMOTECFG_NOTIFY_HWPUSH:
                     {
                         hwPushMsg = (EthRemoteCfg_NotifyServiceHwPushMsg *)data;
                         if (len <= sizeof(data))
@@ -672,10 +672,10 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
                            uint32_t *rxFlowStartIdx,
                            uint32_t *rxFlowIdx)
 {
-    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_CommonReq req;
     EthRemoteCfg_AllocRxRes res;
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ALLOC_RX, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_RX, &req, sizeof(req), &res, sizeof(res));
 
     *rxFlowStartIdx   = res.rxFlowIdxBase;
     *rxFlowIdx = res.rxFlowIdxOffset;
@@ -684,10 +684,10 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
 void CpswProxy_allocMac(CpswProxy_Handle hProxy,
                         uint8_t *macAddr)
 {
-    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_CommonReq req;
     EthRemoteCfg_AllocMacRes res;
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ALLOC_MAC, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_MAC, &req, sizeof(req), &res, sizeof(res));
 
     memcpy(macAddr, res.macAddr, ETHREMOTECFG_MACADDRLEN);
 }
@@ -702,7 +702,7 @@ void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
     req.flowIdxBase = rxFlowStartIdx;
     req.flowIdxOffset = freeRxFlowIdx;
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_SET_RX_DEFAULTFLOW, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_SET_RX_DEFAULTFLOW, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
@@ -715,7 +715,7 @@ void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
     req.flowIdxBase = rxFlowStartIdx;
     req.flowIdxOffset = freeRxFlowIdx;
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEL_RX_DEFAULTFLOW, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DEL_RX_DEFAULTFLOW, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
@@ -730,7 +730,7 @@ void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
     req.flowIdxOffset = freeRxFlowIdx;
     memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_MAC, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_REGISTER_MAC, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
@@ -745,7 +745,7 @@ void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
     req.flowIdxOffset = freeRxFlowIdx;
     memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_MAC, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DEREGISTER_MAC, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_freeMac(CpswProxy_Handle hProxy,
@@ -756,7 +756,7 @@ void CpswProxy_freeMac(CpswProxy_Handle hProxy,
 
     memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_FREE_MAC, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_FREE_MAC, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
@@ -769,17 +769,17 @@ void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
     req.rxFlowIdxBase = rxFlowStartIdx;
     req.rxFlowIdxOffset = rxFlowIdx;
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_FREE_RX, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_FREE_RX, &req, sizeof(req), &res, sizeof(res));
 }
 
 
 void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
                          uint32_t *txPSILThreadId)
 {
-    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_CommonReq req;
     EthRemoteCfg_AllocTxRes res;
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ALLOC_TX, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_TX, &req, sizeof(req), &res, sizeof(res));
 
     *txPSILThreadId  = res.txPsilDstId;
 }
@@ -792,7 +792,7 @@ void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
 
     req.txPsilDstId = txChNum;
 
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_FREE_TX, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_FREE_TX, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_attach(CpswProxy_Handle hProxy,
@@ -807,7 +807,7 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
     req.virtPort = virtPort;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ATTACH, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH, &req, sizeof(req), &res, sizeof(res));
 
     hProxy->token    = res.hdr.common.token;
     hProxy->features = res.features;
@@ -835,7 +835,7 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
     req.virtPort = virtPort;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ATTACH_EXT, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH_EXT, &req, sizeof(req), &res, sizeof(res));
 
     hProxy->token    = res.hdr.common.token;
     hProxy->features = res.features;
@@ -855,11 +855,11 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
 
 void CpswProxy_detach(CpswProxy_Handle hProxy)
 {
-    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DETACH, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DETACH, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
@@ -873,7 +873,7 @@ void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
     memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_IPv4, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_REGISTER_IPv4, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
@@ -885,17 +885,17 @@ void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
     memcpy(req.ipAddr, ipv4Addr, ETHREMOTECFG_IPV4ADDRLEN);
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_IPv4, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DEREGISTER_IPv4, &req, sizeof(req), &res, sizeof(res));
 }
 
 bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy)
 {
-    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_CommonReq req;
     EthRemoteCfg_PortLinkStatusRes res;
     bool isLinked;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_PORT_LINK_STATUS, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_PORT_LINK_STATUS, &req, sizeof(req), &res, sizeof(res));
 
     return res.isLinked;
 }
@@ -913,7 +913,7 @@ void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
     req.flowIdxOffset = freeRxFlowIdx;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_MATCH_ETHTYPE, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_REGISTER_MATCH_ETHTYPE, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
@@ -925,7 +925,7 @@ void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
     req.ethertype = etherType;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_MATCH_ETHTYPE, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DEREGISTER_MATCH_ETHTYPE, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
@@ -935,11 +935,11 @@ void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
     EthRemoteCfg_RemoteTimerRegisterReq req;
     EthRemoteCfg_StatusRes res;
 
-    req.hWPushNum = hwPushNum;
+    req.hwPushNum = hwPushNum;
     req.timerId = timerId;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_REGISTER_REMOTE_TIMER, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_REGISTER_REMOTE_TIMER, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
@@ -948,20 +948,20 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
     EthRemoteCfg_RemoteTimerDeregisterReq req;
     EthRemoteCfg_StatusRes res;
 
-    req.hWPushNum = hwPushNum;
+    req.hwPushNum = hwPushNum;
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEREGISTER_REMOTE_TIMER, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DEREGISTER_REMOTE_TIMER, &req, sizeof(req), &res, sizeof(res));
 }
 
 void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
                               bool enable)
 {
-    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
     uint32_t reqType;
 
-    reqType = enable ? ETHREMOTECFG_ENABLE_PROMISC : ETHREMOTECFG_DISABLE_PROMISC;
+    reqType = enable ? ETHREMOTECFG_CMD_ENABLE_PROMISC : ETHREMOTECFG_CMD_DISABLE_PROMISC;
 
     /* Send request to server and wait for response */
     CpswProxy_sendCmd(hProxy, reqType, &req, sizeof(req), &res, sizeof(res));
@@ -969,13 +969,11 @@ void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
 
 void CpswProxy_getDumpStats(CpswProxy_Handle hProxy)
 {
-    EthRemoteCfg_ReqHdr req;
+    EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
 
-    req.reqType = ETHREMOTECFG_DUMP;
-
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, req.reqType, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DUMP, &req, sizeof(req), &res, sizeof(res));
 }
 
 int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
@@ -993,7 +991,7 @@ int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
     memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_JOIN_VLAN, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_JOIN_VLAN, &req, sizeof(req), &res, sizeof(res));
 
     return res.hdr.status;
 }
@@ -1013,7 +1011,7 @@ int32_t CpswProxy_leaveVlan(CpswProxy_Handle hProxy,
     memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
 
     /* Send request to server and wait for response */
-    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_LEAVE_VLAN, &req, sizeof(req), &res, sizeof(res));
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_LEAVE_VLAN, &req, sizeof(req), &res, sizeof(res));
 
     return res.hdr.status;
 }
@@ -1043,7 +1041,7 @@ void CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
         memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
         /* Send request to server and wait for response */
-        CpswProxy_sendCmd(hProxy, ETHREMOTECFG_ADD_FILTER_MAC, &req, sizeof(req), &res, sizeof(res));
+        CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ADD_FILTER_MAC, &req, sizeof(req), &res, sizeof(res));
     }
 }
 
@@ -1068,7 +1066,7 @@ void CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
         memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
         /* Send request to server and wait for response */
-        CpswProxy_sendCmd(hProxy, ETHREMOTECFG_DEL_FILTER_MAC, &req, sizeof(req), &res, sizeof(res));
+        CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DEL_FILTER_MAC, &req, sizeof(req), &res, sizeof(res));
     }
 }
 
@@ -1120,7 +1118,7 @@ static void CpswProxy_msgHandlerTskFxn(void* arg0,
                                  resHdr->status);
 
                     if ((resHdr->common.token != ETHREMOTECFG_TOKEN_NONE) &&
-                            !(resHdr->resType == ETHREMOTECFG_ATTACH || resHdr->resType == ETHREMOTECFG_ATTACH_EXT))
+                            !(resHdr->resType == ETHREMOTECFG_CMD_ATTACH || resHdr->resType == ETHREMOTECFG_CMD_ATTACH_EXT))
                     {
                         hProxy = CpswProxy_getHandle(resHdr->common.token);
 

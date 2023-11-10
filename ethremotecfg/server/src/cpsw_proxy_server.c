@@ -543,11 +543,6 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
     {
         *pFeatures |= ETHREMOTECFG_FEATURE_TXCSUM;
     }
-
-    if (isMacPort)
-    {
-        *pFeatures |= ETHREMOTECFG_FEATURE_MAC_ONLY;
-    }
     else
     {
         *pFeatures |= ETHREMOTECFG_FEATURE_MC_FILTER;
@@ -1885,11 +1880,11 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
     switch (reqHdr->reqType)
     {
-        case ETHREMOTECFG_OFFER_VIRT_PORT:
+        case ETHREMOTECFG_CMD_VIRT_PORT_INFO:
         {
             EthRemoteCfg_OfferVirtPortRes *res = (EthRemoteCfg_OfferVirtPortRes *)resBuf;
 
-            ETHFWTRACE_INFO("OFFER_VIRT_PORT | C2S | core=%u endpt=%u",
+            ETHFWTRACE_INFO("VIRT_PORT_INFO | C2S | core=%u endpt=%u",
                             remoteProcId, remoteEndPt);
 
             status = CpswProxyServer_VirtPortAllocCb(clientId,
@@ -1901,11 +1896,11 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             resLen = sizeof(*res);
 
-            ETHFWTRACE_INFO("OFFER_VIRT_PORT | S2C | switchPortMask=%x macPortMask=%x",
+            ETHFWTRACE_INFO("VIRT_PORT_INFO | S2C | switchPortMask=%x macPortMask=%x",
                             res->switchPortMask, res->macPortMask);
             break;
         }
-        case ETHREMOTECFG_ATTACH:
+        case ETHREMOTECFG_CMD_ATTACH:
         {
             EthRemoteCfg_AttachReq *req = (EthRemoteCfg_AttachReq *)reqBuf;
             EthRemoteCfg_AttachRes *res = (EthRemoteCfg_AttachRes *)resBuf;
@@ -1935,7 +1930,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             token, res->rxMtu, res->features);
             break;
         }
-        case ETHREMOTECFG_ATTACH_EXT:
+        case ETHREMOTECFG_CMD_ATTACH_EXT:
         {
             EthRemoteCfg_AttachReq *req = (EthRemoteCfg_AttachReq *)reqBuf;
             EthRemoteCfg_AttachExtRes *res = (EthRemoteCfg_AttachExtRes *)resBuf;
@@ -1974,7 +1969,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             res->macAddr[3U], res->macAddr[4U], res->macAddr[5U]);
             break;
         }
-        case ETHREMOTECFG_DETACH:
+        case ETHREMOTECFG_CMD_DETACH:
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
@@ -1997,7 +1992,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DETACH | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_ALLOC_TX:
+        case ETHREMOTECFG_CMD_ALLOC_TX:
         {
             EthRemoteCfg_AllocTxRes *res = (EthRemoteCfg_AllocTxRes *)resBuf;
 
@@ -2019,7 +2014,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             res->txPsilDstId, status);
             break;
         }
-        case ETHREMOTECFG_ALLOC_RX:
+        case ETHREMOTECFG_CMD_ALLOC_RX:
         {
             EthRemoteCfg_AllocRxRes *res = (EthRemoteCfg_AllocRxRes *)resBuf;
 
@@ -2042,7 +2037,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             res->rxFlowIdxBase, res->rxFlowIdxOffset, status);
             break;
         }
-        case ETHREMOTECFG_ALLOC_MAC:
+        case ETHREMOTECFG_CMD_ALLOC_MAC:
         {
             EthRemoteCfg_AllocMacRes *res = (EthRemoteCfg_AllocMacRes *)resBuf;
 
@@ -2065,7 +2060,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             res->macAddr[3U], res->macAddr[4U], res->macAddr[5U]);
             break;
         }
-        case ETHREMOTECFG_FREE_TX:
+        case ETHREMOTECFG_CMD_FREE_TX:
         {
             EthRemoteCfg_FreeTxReq *req = (EthRemoteCfg_FreeTxReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2087,7 +2082,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("FREE_TX | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_FREE_RX:
+        case ETHREMOTECFG_CMD_FREE_RX:
         {
             EthRemoteCfg_FreeRxReq *req = (EthRemoteCfg_FreeRxReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2110,7 +2105,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("FREE_RX | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_FREE_MAC:
+        case ETHREMOTECFG_CMD_FREE_MAC:
         {
             EthRemoteCfg_FreeMacReq *req = (EthRemoteCfg_FreeMacReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2135,7 +2130,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("FREE_MAC | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_REGISTER_MAC:
+        case ETHREMOTECFG_CMD_REGISTER_MAC:
         {
             EthRemoteCfg_MacAddrRxFlowReq *req = (EthRemoteCfg_MacAddrRxFlowReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2163,7 +2158,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("REGISTER_MAC | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_DEREGISTER_MAC:
+        case ETHREMOTECFG_CMD_DEREGISTER_MAC:
         {
             EthRemoteCfg_MacAddrRxFlowReq *req = (EthRemoteCfg_MacAddrRxFlowReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2191,7 +2186,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DEREGISTER_MAC | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_REGISTER_IPv4:
+        case ETHREMOTECFG_CMD_REGISTER_IPv4:
         {
             EthRemoteCfg_IPv4AddrRegisterReq *req = (EthRemoteCfg_IPv4AddrRegisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2218,7 +2213,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("REGISTER_IPv4 | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_DEREGISTER_IPv4:
+        case ETHREMOTECFG_CMD_DEREGISTER_IPv4:
         {
             EthRemoteCfg_IPv4AddrDeregisterReq *req = (EthRemoteCfg_IPv4AddrDeregisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2241,7 +2236,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DEREGISTER_IPv4 | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_JOIN_VLAN:
+        case ETHREMOTECFG_CMD_JOIN_VLAN:
         {
             EthRemoteCfg_VlanJoinReq *req = (EthRemoteCfg_VlanJoinReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2270,7 +2265,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("JOIN_VLAN | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_LEAVE_VLAN:
+        case ETHREMOTECFG_CMD_LEAVE_VLAN:
         {
             EthRemoteCfg_VlanLeaveReq *req = (EthRemoteCfg_VlanLeaveReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2299,7 +2294,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("LEAVE_VLAN | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_ENABLE_PROMISC:
+        case ETHREMOTECFG_CMD_ENABLE_PROMISC:
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
@@ -2320,7 +2315,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("ENABLE_PROMISC | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_DISABLE_PROMISC:
+        case ETHREMOTECFG_CMD_DISABLE_PROMISC:
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
@@ -2341,7 +2336,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DISABLE_PROMISC | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_SET_RX_DEFAULTFLOW:
+        case ETHREMOTECFG_CMD_SET_RX_DEFAULTFLOW:
         {
             EthRemoteCfg_RxDefaultFlowRegisterReq *req = (EthRemoteCfg_RxDefaultFlowRegisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
@@ -2364,7 +2359,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("SET_RX_DEFAULTFLOW | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_DEL_RX_DEFAULTFLOW:
+        case ETHREMOTECFG_CMD_DEL_RX_DEFAULTFLOW:
         {
             EthRemoteCfg_RxDefaultFlowRegisterReq *req = (EthRemoteCfg_RxDefaultFlowRegisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
@@ -2387,7 +2382,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DEL_RX_DEFAULTFLOW | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_REGISTER_MATCH_ETHTYPE:
+        case ETHREMOTECFG_CMD_REGISTER_MATCH_ETHTYPE:
         {
             EthRemoteCfg_MatchEthertypeAddReq *req = (EthRemoteCfg_MatchEthertypeAddReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
@@ -2413,7 +2408,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("REGISTER_MATCH_ETHTYPE | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_DEREGISTER_MATCH_ETHTYPE:
+        case ETHREMOTECFG_CMD_DEREGISTER_MATCH_ETHTYPE:
         {
             EthRemoteCfg_MatchEthertypeDelReq *req = (EthRemoteCfg_MatchEthertypeDelReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
@@ -2435,7 +2430,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DEREGISTER_MATCH_ETHTYPE | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_ADD_FILTER_MAC:
+        case ETHREMOTECFG_CMD_ADD_FILTER_MAC:
         {
             EthRemoteCfg_FilterMacAddReq *req = (EthRemoteCfg_FilterMacAddReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
@@ -2464,7 +2459,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("ADD_FILTER_MAC | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_DEL_FILTER_MAC:
+        case ETHREMOTECFG_CMD_DEL_FILTER_MAC:
         {
             EthRemoteCfg_FilterMacDelReq *req = (EthRemoteCfg_FilterMacDelReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
@@ -2491,7 +2486,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DEL_FILTER_MAC | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_PORT_LINK_STATUS:
+        case ETHREMOTECFG_CMD_PORT_LINK_STATUS:
         {
             EthRemoteCfg_PortLinkStatusRes *res = (EthRemoteCfg_PortLinkStatusRes *)resBuf;
 
@@ -2509,7 +2504,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             resLen = sizeof(*res);
             break;
         }
-        case ETHREMOTECFG_READ_REGISTER:
+        case ETHREMOTECFG_CMD_READ_REGISTER:
         {
             EthRemoteCfg_RegReadReq *req = (EthRemoteCfg_RegReadReq *)reqBuf;
             EthRemoteCfg_RegReadRes *res = (EthRemoteCfg_RegReadRes *)resBuf;
@@ -2530,7 +2525,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("READ_REGISTER | S2C | val=0x%08x", res->val);
             break;
         }
-        case ETHREMOTECFG_WRITE_REGISTER:
+        case ETHREMOTECFG_CMD_WRITE_REGISTER:
         {
             EthRemoteCfg_RegWriteReq *req = (EthRemoteCfg_RegWriteReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
@@ -2551,7 +2546,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("WRITE_REGISTER | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_REGISTER_REMOTE_TIMER:
+        case ETHREMOTECFG_CMD_REGISTER_REMOTE_TIMER:
         {
             EthRemoteCfg_RemoteTimerRegisterReq *req = (EthRemoteCfg_RemoteTimerRegisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2566,7 +2561,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             status = CpswProxyServer_registerRemoteTimerHandlerCb(hClient,
                                                                   remoteProcId,
                                                                   req->timerId,
-                                                                  req->hWPushNum);
+                                                                  req->hwPushNum);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to register remote timer");
 
             resLen = sizeof(*res);
@@ -2574,7 +2569,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("REGISTER_REMOTE_TIMER | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_DEREGISTER_REMOTE_TIMER:
+        case ETHREMOTECFG_CMD_DEREGISTER_REMOTE_TIMER:
         {
             EthRemoteCfg_RemoteTimerDeregisterReq *req = (EthRemoteCfg_RemoteTimerDeregisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
@@ -2588,7 +2583,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             status = CpswProxyServer_unregisterRemoteTimerHandlerCb(hClient,
                                                                     remoteProcId,
-                                                                    req->hWPushNum);
+                                                                    req->hwPushNum);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to unregister remote timer");
 
             resLen = sizeof(*res);
@@ -2596,7 +2591,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("DEREGISTER_REMOTE_TIMER | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_GET_SERVER_STATUS:
+        case ETHREMOTECFG_CMD_GET_SERVER_STATUS:
         {
             EthRemoteCfg_ServerStatusRes *res = (EthRemoteCfg_ServerStatusRes *)resBuf;
 
@@ -2611,7 +2606,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("GET_SERVER_STATUS | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_IOCTL:
+        case ETHREMOTECFG_CMD_IOCTL:
         {
             EthRemoteCfg_IoctlReq *req = (EthRemoteCfg_IoctlReq *)reqBuf;
             EthRemoteCfg_IoctlRes *res;
@@ -2643,7 +2638,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             res->cmd, res->outArgsLen, status);
             break;
         }
-        case ETHREMOTECFG_DUMP:
+        case ETHREMOTECFG_CMD_DUMP:
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
@@ -3020,7 +3015,7 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
                         remoteCoreId = hServer->notifyServiceObj.hwPush2CoreIdMap[i];
 
                         memset(hwPushMsg, 0, sizeof(*hwPushMsg));
-                        hwPushMsg->hdr.notifyType = ETHREMOTECFG_NOTIFYTYPE_HWPUSH;
+                        hwPushMsg->hdr.notifyType = ETHREMOTECFG_NOTIFY_HWPUSH;
                         hwPushMsg->hwPushNum = i + 1U;
 
                         lookupEventInArgs.eventType = CPSW_CPTS_EVENTTYPE_HW_TS_PUSH;
@@ -3090,7 +3085,7 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
         EnetAppUtils_assert(hServer->initEthfwDeviceDataCb != NULL);
         hServer->initEthfwDeviceDataCb(&deviceData);
 
-        deviceData.hdr.notifyType = ETHREMOTECFG_NOTIFYTYPE_FWINFO;
+        deviceData.hdr.notifyType = ETHREMOTECFG_NOTIFY_FWINFO;
         deviceData.hdr.common.clientId = ETHREMOTECFG_CLIENTID_NONE;
         deviceData.hdr.common.msgType = ETHREMOTECFG_MSGTYPE_NOTIFY;
         deviceData.hdr.common.token = ETHREMOTECFG_TOKEN_NONE;
@@ -3182,7 +3177,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
 
     switch (notifyid)
     {
-        case ETHREMOTECFG_NOTIFYTYPE_CUSTOM:
+        case ETHREMOTECFG_NOTIFY_CUSTOM:
         {
             if (hServer->notifyCb != NULL)
             {
