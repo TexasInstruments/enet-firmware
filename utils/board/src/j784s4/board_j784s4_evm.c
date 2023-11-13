@@ -593,7 +593,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
         boardStatus = Board_readMacAddrCount(BOARD_ID_ENET, &macAddrCnt);
         ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
                           "Failed to read QpENet EEPROM");
-        ETHFWTRACE_ERR_IF((macAddrCnt <= ENET_RM_NUM_MACADDR_MAX), ETHFW_EINVALIDPARAMS,
+        ETHFWTRACE_ERR_IF((macAddrCnt > ENET_RM_NUM_MACADDR_MAX), ETHFW_EINVALIDPARAMS,
                           "Exceeded max number of MAC addresses %u (max %u)",
                           macAddrCnt, ENET_RM_NUM_MACADDR_MAX);
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
@@ -603,7 +603,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
         boardStatus = Board_readMacAddr(BOARD_ID_ENET, macAddrBuf, sizeof(macAddrBuf), &tempCnt);
         ETHFWTRACE_ERR_IF((boardStatus != BOARD_SOK), boardStatus,
                           "Failed to read QpENet EEPROM");
-        ETHFWTRACE_ERR_IF((tempCnt == macAddrCnt), ETHFW_EUNEXPECTED,
+        ETHFWTRACE_ERR_IF((tempCnt != macAddrCnt), ETHFW_EUNEXPECTED,
                           "Mismatching num of MAC addresses in QpENet EEPROM");
         EnetAppUtils_assert(boardStatus == BOARD_SOK);
         EnetAppUtils_assert(tempCnt == macAddrCnt);
