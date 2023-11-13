@@ -177,6 +177,9 @@ static inline void EthFwUtils_assertLocal(bool condition,
     if (!condition)
     {
         appLogPrintf("Assertion @ Line: %d in %s: %s\n", lineNum, fileName, str);
+#ifdef QNX_OS
+        gEthFwAssertWaitInLoop = false;
+#endif
         while (gEthFwAssertWaitInLoop)
         {
             /* Do nothing */
