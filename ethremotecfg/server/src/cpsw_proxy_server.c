@@ -187,6 +187,9 @@ typedef struct CpswProxyServer_ClientObj_s
     /* Remote core id */
     uint32_t coreId;
 
+    /* Client Id */
+    uint32_t clientId;
+
     /* Handle to Enet LLD */
     Enet_Handle hEnet;
 
@@ -210,6 +213,9 @@ typedef struct CpswProxyServer_ClientObj_s
 
     /* End point of respective remote client */
     uint32_t remoteEp;
+
+    /* If the client object has finished its teardown and became idle */
+    bool isIdle;
 } CpswProxyServer_ClientObj;
 
 /*
@@ -340,7 +346,11 @@ static void CpswProxyServer_hwPushNotifyFxn(void *arg, CpswCpts_HwPush hwPushNum
 
 static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1);
 
-static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer, CpswProxyServer_Config_t * cfg);
+static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer,
+                                                   CpswProxyServer_Config_t * cfg);
+
+static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
+                                          uint32_t notifyId);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -400,6 +410,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteE
             hClient->inUse = true;
             hClient->token = ETHREMOTECFG_TOKEN_NONE;
             hClient->remoteEp = remoteEndPt;
+            hClient->isIdle = false;
             break;
         }
     }
@@ -443,6 +454,97 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t token)
     MutexP_unlock(hServer->hMutex);
 
     return hClient;
+}
+
+int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
+                                         uint32_t *idleClients)
+{
+    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_ClientHandle hClient = NULL;
+    int32_t status = CPSWPROXYSERVER_SOK;
+    *attachedClients = 0U;
+    *idleClients = 0U;
+    uint32_t i;
+
+    for (i = 0U; i < ENET_ARRAYSIZE(hServer->clientObj); i++)
+    {
+        hClient = &hServer->clientObj[i];
+
+        if (hClient->inUse && (hClient->token != ETHREMOTECFG_TOKEN_NONE))
+        {
+            (*attachedClients)++;
+
+            if (hClient->isIdle)
+            {
+                (*idleClients)++;
+            }
+        }
+    }
+    return status;
+}
+
+static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
+                                          uint32_t notifyId)
+{
+    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    EthRemoteCfg_CommonNotify notifyMsg;
+    RPMessage_Handle handle = NULL;
+    uint32_t srcEndPt;
+    uint32_t clientInst;
+    int32_t status = CPSWPROXYSERVER_SOK;
+
+    notifyMsg.hdr.common.msgType = ETHREMOTECFG_MSGTYPE_NOTIFY;
+    notifyMsg.hdr.common.clientId = hClient->clientId;
+    notifyMsg.hdr.common.token = hClient->token;
+    notifyMsg.hdr.notifyType = notifyId;
+
+    if (hClient->clientId == ETHREMOTECFG_CLIENTID_AUTOSAR)
+    {
+        for (clientInst = 0U; clientInst < CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX; clientInst++)
+        {
+            if( hServer->ethDrvObj[clientInst].dstProc == hClient->coreId)
+            {
+                handle = hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp;
+                srcEndPt = hServer->ethDrvObj[clientInst].localEp;
+                break;
+            }
+        }
+    }
+    else
+    {
+        handle = hServer->clientServiceObj.hClientServicRpMsgEp;
+        srcEndPt = hServer->clientServiceObj.localEp;
+    }
+
+    if (handle == NULL)
+    {
+        ETHFWTRACE_ERR(ETHFW_EFAIL, "Couldn't find core %u client handle", hClient->coreId);
+    }
+
+    status = RPMessage_send(handle, hClient->coreId, hClient->remoteEp, srcEndPt, &notifyMsg, sizeof(notifyMsg));
+
+    return status;
+}
+
+int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
+{
+    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_ClientHandle hClient = NULL;
+    int32_t status = CPSWPROXYSERVER_SOK;
+    uint32_t i;
+
+    for (i = 0U; i < ENET_ARRAYSIZE(hServer->clientObj); i++)
+    {
+        hClient = &hServer->clientObj[i];
+
+        if (hClient->inUse)
+        {
+            status = CpswProxyServer_sendNotify(hClient, notifyId);
+        }
+        TaskP_sleep(50);
+    }
+
+    return status;
 }
 
 static int32_t CpswProxyServer_getPortMask(uint32_t clientId,
@@ -1924,6 +2026,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                               req->virtPort, remoteProcId);
 
             token = hClient->token;
+            hClient->clientId = clientId;
             resLen = sizeof(EthRemoteCfg_AttachRes);
 
             ETHFWTRACE_INFO("ATTACH | S2C | token=%u rxMtu=%u features=%x",
@@ -1958,6 +2061,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                               req->virtPort, remoteProcId);
 
             token = hClient->token;
+            hClient->clientId = clientId;
             resLen = sizeof(EthRemoteCfg_AttachExtRes);
 
             ETHFWTRACE_INFO("ATTACH_EXT | S2C | token=%u rxMtu=%u features=%x flow=%u,%u "
@@ -2606,6 +2710,25 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("GET_SERVER_STATUS | S2C | status=%d", status);
             break;
         }
+        case ETHREMOTECFG_CMD_TEARDOWN_COMPLETION:
+        {
+            EthRemoteCfg_CommonReq *req = (EthRemoteCfg_CommonReq *)reqBuf;
+            EthRemoteCfg_StatusRes *res;
+
+            ETHFWTRACE_INFO("TEARDOWN_COMPLETION | C2S | core=%u endpt=%u token=%u",
+                            remoteProcId, remoteEndPt, token);
+
+            /* Get client object for token */
+            hClient = CpswProxyServer_getClient(token);
+            EnetAppUtils_assert(hClient != NULL);
+
+            hClient->isIdle = true;
+            resLen = sizeof(*res);
+            status = ETHREMOTECFG_CMDSTATUS_OK;
+
+            ETHFWTRACE_INFO("TEARDOWN_COMPLETION | S2C | status=%d", status);
+            break;
+        }
         case ETHREMOTECFG_CMD_IOCTL:
         {
             EthRemoteCfg_IoctlReq *req = (EthRemoteCfg_IoctlReq *)reqBuf;
@@ -2675,7 +2798,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
     resHdr->resId           = reqHdr->reqId;
     resHdr->status          = status;
 
-    ETHFWTRACE_DBG("S2C | msgType=%u token=%u clientId=%u resId=%u status=%d (ep=%u->%u)",
+    ETHFWTRACE_INFO("S2C | msgType=%u token=%u clientId=%u resId=%u status=%d (ep=%u->%u)",
                    resHdr->common.msgType,
                    resHdr->common.token,
                    resHdr->common.clientId,

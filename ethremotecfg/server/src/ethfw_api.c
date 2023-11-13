@@ -397,7 +397,7 @@ static void EthFw_stopMonitorTask(void);
 static void EthFw_monitorTask(void *a0,
                               void *a1);
 
-static int32_t EthFw_resetHandler(void);
+static int32_t EthFw_resetHandler(uint32_t numTotalClients);
 
 #if defined(ETHFW_GPTP_SUPPORT)
 static void EthFw_tsnInit(void);
@@ -1886,7 +1886,10 @@ static void EthFw_monitorTask(void *a0,
     Enet_MacPort portNum;
     uint32_t i;
     int32_t status = ENET_SOK;
-
+    bool isTeardownComplete = false;
+    uint32_t numTotalClients  = 0U;
+    uint32_t numActiveClients  = 0U;
+    uint32_t numIdleClients = 0U;
     Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
 
     while(gEthFwObj.monitorTaskRun)
@@ -1929,8 +1932,38 @@ static void EthFw_monitorTask(void *a0,
             /* Stop periodic ticks to Mcm */
             EnetMcm_stopPeriodicTick(&gEthFwObj.mcmCmdIf);
 
+            /* Get the clients status */
+            CpswProxyServer_getIdleClientCnt(&numTotalClients,&numIdleClients);
+
+            if(numTotalClients == 0U)
+            {
+                ETHFWTRACE_INFO("No clients are attached");
+            }
+            else
+            {
+                ETHFWTRACE_INFO("Number of clients attached: %d", numTotalClients);
+				
+                /* Notify the clients about the HW error */
+                CpswProxyServer_bcastNotify(ETHREMOTECFG_NOTIFY_HWERROR);
+
+                /* Wait for clients to complete their DMA teardown */
+                while (!isTeardownComplete)
+                {
+                    /* get the client status */
+                    CpswProxyServer_getIdleClientCnt(&numActiveClients,&numIdleClients);
+
+                    if (numIdleClients == numTotalClients)
+                    {
+                        isTeardownComplete = true;
+                    }
+
+                    TaskP_sleep(100);
+                }
+            }
+
             /* Call the  EthFw reset handler. */
-            status = EthFw_resetHandler();
+            ETHFWTRACE_INFO("Triggering Reset Recovery Handler");
+            status = EthFw_resetHandler(numTotalClients);
 
             if (status != ENET_SOK)
             {
@@ -2031,6 +2064,13 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
     /* start the gPTP DMA channels */
     LLDEnetDmaOpen();
 #endif
+
+    /* Reset is completed here, send recovery completion notification to clients before opening the MAC Ports */
+    if(numTotalClients != 0U)
+    {
+        /* Notify the clients about the HW error recovery completion */
+        CpswProxyServer_bcastNotify(ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE);
+    }
 
     /* Open MAC Ports */
     status = EnetMcm_openMacPorts(&gEthFwObj.mcmCmdIf);

@@ -233,6 +233,33 @@ typedef void  (*CpswProxyServer_NotifyCb)(uint32_t hostId,
                                           uint32_t notifyInfoLen);
 
 /*!
+ * \brief Application function to broadcast the notify message for all the
+ *        attached active remote clients
+ *
+ * This function is called from the application when the server needs to
+ * notify all the remote clients
+ *
+ * \param notifyId     The type of notify send to the remote clients
+ *
+ * \returns status
+ */
+int32_t CpswProxyServer_bcastNotify(uint32_t notifyId);
+
+/*!
+ * \brief Application function to get the count of both the attached clients
+ *        and idle clients.
+ *
+ * This would be a periodic application call which asks for the status of the
+ * remote clients and starts recovery once all clients have achieved idle state.
+ *
+ * \params attach clients attach clients count
+ * \params idle clients count
+ *
+ * \returns status
+ */
+int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
+                                         uint32_t *idleClients);
+/*!
  * \brief Cpsw Proxy Server Virtual Port Configuration structure
  */
 typedef struct CpswProxyServer_VirtPortCfg_s

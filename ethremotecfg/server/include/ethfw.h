@@ -291,7 +291,10 @@ typedef struct EthFw_Config_s
 
     /*! Number of remote clients with resource allocation */
     uint32_t numAlloc;
-	
+
+    /*! Number of remote client alloc objects */
+    uint32_t numAllocObj;
+
     /*! Argument for opening or closing the Lwip DMA channel to be passed ot callback function*/
     void *lwipDmaCbArg;
 

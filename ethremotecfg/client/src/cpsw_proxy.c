@@ -139,6 +139,10 @@
 
 #define CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY          (2U)
 
+#define CPSWPROXY_NOTIFY_HANDLER_CB_TASK_STACKSIZE      (16U * 1024U)
+
+#define CPSWPROXY_NOTIFY_HANDLER_CB_TASK_STACKALIGN     CPSWPROXY_NOTIFY_HANDLER_CB_TASK_STACKSIZE
+
 #if defined(__KLOCWORK__)
 #define CpswProxy_assert(cond)               do { if (!(cond)) abort(); } while (0)
 #else
@@ -198,6 +202,9 @@ typedef struct CpswProxy_ClientObj_s
 
     /* Features supported by related virtual port */
     uint32_t features;
+
+    /*! Argument for opening or closing the Lwip DMA channel to be passed ot callback function*/
+    void *lwipDmaCbArg;
 } CpswProxy_ClientObj;
 
 typedef struct CpswProxy_Obj_s
@@ -240,6 +247,18 @@ typedef struct CpswProxy_Obj_s
 
     /* Task handle for message handling */
     TaskP_Handle hMsgHandlerTsk;
+
+    /* Semaphore handle for teardown notification handling */
+    SemaphoreP_Handle hNotifyCbSem;
+
+    /* Argument for teardown notification handling task */
+    uint32_t *hNotifyCbArg;
+
+    /*! Callback for closing the Lwip DMA channels from the application */
+    EthFw_closeLwipDmaCb closeLwipDmaCb;
+
+    /*! Callback for closing the Lwip DMA channels from the application */
+    EthFw_openLwipDmaCb openLwipDmaCb;
 } CpswProxy_Obj;
 
 /* ========================================================================== */
@@ -255,6 +274,9 @@ static void CpswProxy_sendCmd(CpswProxy_Handle hProxy,
 
 static void CpswProxy_msgHandlerTskFxn(void* arg0,
                                        void* arg1);
+
+static void CpswProxy_notifyHandlerTskFxn(void* arg0,
+                                          void* arg1);
 
 static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1);
 
@@ -275,6 +297,8 @@ static CpswProxy_Obj gCpswProxy;
 static uint8_t gCpswProxyClientRpMsgbuf[ETHREMOTECFG_IPC_DATA_SIZE] __attribute__ ((aligned(1024)));
 
 static uint8_t msgHandlerTaskBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(CPSWPROXY_IPC_TASK_STACKALIGN)));
+
+static uint8_t notifyHandlerCbBuf[CPSWPROXY_NOTIFY_HANDLER_CB_TASK_STACKSIZE] __attribute__ ((aligned(CPSWPROXY_NOTIFY_HANDLER_CB_TASK_STACKALIGN)));
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -479,6 +503,7 @@ static void CpswProxy_notifyServiceTskFxn(void* a0, void* a1)
 void CpswProxy_init(void)
 {
     int32_t status = ENET_SOK;
+    SemaphoreP_Params semParams;
 #ifndef QNX_OS
     MailboxP_Params params;
 #endif
@@ -509,6 +534,33 @@ void CpswProxy_init(void)
     if (status != ENET_SOK)
     {
         System_printf("Failed to create all required endpts: %d\n", status);
+    }
+
+    if (ENET_SOK == status)
+    {
+        SemaphoreP_Params_init(&semParams);
+        semParams.mode = SemaphoreP_Mode_BINARY;
+        gCpswProxy.hNotifyCbSem = SemaphoreP_create(1U, &semParams);
+
+        if (gCpswProxy.hNotifyCbSem == NULL)
+        {
+            System_printf("Could not create Message callback handler semaphore task\n");
+            CpswProxy_assert(gCpswProxy.hNotifyCbSem != NULL);
+        }
+    }
+
+    if (ENET_SOK == status)
+    {
+        /* Initialize the task params */
+        TaskP_Params_init(&taskParams);
+        params.name             = "CPSW Proxy MessageCb Task";
+        taskParams.priority     = CPSWPROXY_RDEVCMD_TSK_PRI;
+        taskParams.arg0         = (void *)&gCpswProxy;
+        taskParams.arg1         = (void *)&gCpswProxy.hNotifyCbArg;
+        taskParams.stack        = &notifyHandlerCbBuf[0];
+        taskParams.stacksize    = sizeof(notifyHandlerCbBuf);
+
+        TaskP_create(&CpswProxy_notifyHandlerTskFxn, &taskParams);
     }
 
     if (ENET_SOK == status)
@@ -556,11 +608,11 @@ int32_t CpswProxy_connect(void)
                                       CPSWPROXY_LOCATE_TIMEOUT);
     if (status != IPC_SOK)
     {
-        System_printf("Remote Device Framework Endpoint locate failed. Retrying !!!\n");
+        System_printf("CPSW Proxy Client Endpoint locate failed. Retrying !!!\n");
     }
     else
     {
-        System_printf("Remote Device Framework Endpoint located. Remote Core Id:%u, Remote End Point:%u\n",
+        System_printf("CPSW Proxy Client Endpoint located. Remote Core Id:%u, Remote End Point:%u\n",
                        gCpswProxy.masterCoreId, gCpswProxy.masterEndpt);
 
         /* Create time sync notify task */
@@ -770,6 +822,14 @@ void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
     req.rxFlowIdxOffset = rxFlowIdx;
 
     CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_FREE_RX, &req, sizeof(req), &res, sizeof(res));
+}
+
+void CpswProxy_sendTeardown(CpswProxy_Handle hProxy)
+{
+    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_StatusRes res;
+
+    CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_TEARDOWN_COMPLETION, &req, sizeof(req), &res, sizeof(res));
 }
 
 
@@ -1080,6 +1140,7 @@ static void CpswProxy_msgHandlerTskFxn(void* arg0,
     uint64_t msgBuf[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];
     bool exitTask = false;
     int32_t status = IPC_SOK;
+    uint32_t i;
     uint16_t len;
 
     while (!exitTask)
@@ -1132,12 +1193,76 @@ static void CpswProxy_msgHandlerTskFxn(void* arg0,
                     mbxStatus = MailboxP_post(gCpswProxy.hResMbx, msgBuf, MailboxP_WAIT_FOREVER);
                     CpswProxy_assert(mbxStatus == MailboxP_OK);
                 }
-                else
+                else if (msgHdr->msgType == ETHREMOTECFG_MSGTYPE_NOTIFY)
                 {
-                    status = ENET_EUNEXPECTED;
-                    System_printf("Unexpected message type %u\n", msgHdr->msgType);
+                    EthRemoteCfg_NotifyHdr *notifyHdr = (EthRemoteCfg_NotifyHdr *)msgHdr;
+
+                    System_printf("S2C | msgType=%u token=%u clientId=%u notifyType=%u\n",
+                            notifyHdr->common.msgType,
+                            notifyHdr->common.token,
+                            notifyHdr->common.clientId,
+                            notifyHdr->notifyType);
+
+                    switch(notifyHdr->notifyType)
+                    {
+                        case ETHREMOTECFG_NOTIFY_HWERROR:
+                        {
+                            for (i = 0U; i < ENET_ARRAYSIZE(gCpswProxy.clientObj); i++)
+                            {
+                                if (msgHdr->token == gCpswProxy.clientObj[i].token)
+                                {
+                                    if(gCpswProxy.clientObj[i].lwipDmaCbArg != NULL)
+                                    {
+                                        /*post the semaphore to notification handler task to perform teardown */
+                                        gCpswProxy.hNotifyCbArg = (uint32_t *)gCpswProxy.clientObj[i].lwipDmaCbArg;
+                                        SemaphoreP_post(gCpswProxy.hNotifyCbSem);
+                                        break;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                        case ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE:
+                        {
+                            for (i = 0U; i < ENET_ARRAYSIZE(gCpswProxy.clientObj); i++)
+                            {
+                                if (msgHdr->token == gCpswProxy.clientObj[i].token)
+                                {
+                                    if (gCpswProxy.clientObj[i].lwipDmaCbArg != NULL)
+                                    {
+                                        gCpswProxy.openLwipDmaCb(gCpswProxy.clientObj[i].lwipDmaCbArg);
+                                        break;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                        default:
+                        {
+                            System_printf("CpswProxy_msgHandlerTskFxn: Received unknown notification type: %u\n", notifyHdr->notifyType);
+                            break;
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+static void CpswProxy_notifyHandlerTskFxn(void* arg0,
+                                          void* arg1)
+{
+    uint32_t **hNotifyCbArg = (uint32_t **)arg1;
+    bool exitTask = false;
+
+    while (!exitTask)
+    {
+        SemaphoreP_pend(gCpswProxy.hNotifyCbSem, SemaphoreP_WAIT_FOREVER);
+
+        if ((gCpswProxy.closeLwipDmaCb != NULL))
+        {
+            /* calling DMA teardown handler callback */
+            gCpswProxy.closeLwipDmaCb((void *)*hNotifyCbArg);
         }
     }
 }
@@ -1232,3 +1357,54 @@ void CpswProxy_unregisterHwPushNotifyCb(void)
     notifyObj->cb.hwPushCbArg = NULL;
 }
 
+int32_t CpswProxy_registercloseLwipDmaCb(EthFw_closeLwipDmaCb cbFxn,
+                                         uint32_t clientIdx,
+                                         void *cbArg)
+{
+    int status = CPSWPROXY_SOK;
+
+    if (NULL != cbFxn)
+    {
+        if (gCpswProxy.closeLwipDmaCb == NULL)
+        {
+            gCpswProxy.closeLwipDmaCb = cbFxn;
+            gCpswProxy.clientObj[clientIdx].lwipDmaCbArg = cbArg;
+        }
+        else
+        {
+            status = CPSWPROXY_EALREADYOPEN;
+        }
+    }
+    else
+    {
+        status = CPSWPROXY_EBADARGS;
+    }
+
+    return status;
+}
+
+int32_t CpswProxy_registeropenLwipDmaCb(EthFw_openLwipDmaCb cbFxn,
+                                        uint32_t clientIdx,
+                                        void *cbArg)
+{
+    int status = CPSWPROXY_SOK;
+
+    if (NULL != cbFxn)
+    {
+        if (gCpswProxy.openLwipDmaCb == NULL)
+        {
+            gCpswProxy.openLwipDmaCb = cbFxn;
+            gCpswProxy.clientObj[clientIdx].lwipDmaCbArg = cbArg;
+        }
+        else
+        {
+            status = CPSWPROXY_EALREADYOPEN;
+        }
+    }
+    else
+    {
+        status = CPSWPROXY_EBADARGS;
+    }
+
+    return status;
+}

@@ -196,6 +196,12 @@ typedef void (*CpswProxy_hwPushNotifyCbFxn)(CpswCpts_HwPush hwPushNum,
                                             uint64_t syncTime,
                                             void *cbArg);
 
+/*! Callback for closing the Lwip DMA channels from the application */
+typedef void (*EthFw_closeLwipDmaCb)(void *arg);
+
+/*! Callback for opening the Lwip DMA channels from the application */
+typedef void (*EthFw_openLwipDmaCb)(void *arg);
+
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
 /* ========================================================================== */
@@ -788,6 +794,43 @@ int32_t CpswProxy_registerHwPushNotifyCb(CpswProxy_hwPushNotifyCbFxn cbFxn,
  * \brief Unregister hardware push notification callback
  */
 void CpswProxy_unregisterHwPushNotifyCb(void);
+
+/*!
+ * \brief Send DMA teardown completion notification.
+ *
+ * \param hProxy    Handle to Cpsw Proxy
+ */
+void CpswProxy_sendTeardown(CpswProxy_Handle hProxy);
+
+/*!
+ * \brief Register LWIP Dma channels close callback.
+ *
+ * \param cbFxn    callback function
+ * \param clientIdx    client id
+ * \param cbArg    argument for the callback function
+ *
+ * \return status   CPSWPROXY_SOK if registered callback successfully
+ *                  CPSWPROXY_EALREADYOPEN if callback is already registered.
+ *                  CPSWPROXY_EBADARGS if invalid input arguments
+ */
+int32_t CpswProxy_registercloseLwipDmaCb(EthFw_closeLwipDmaCb cbFxn,
+                                         uint32_t clientIdx,
+                                         void *cbArg);
+
+/*!
+ * \brief Register LWIP Dma channels open callback.
+ *
+ * \param cbFxn    callback function
+ * \param clientIdx    client id
+ * \param cbArg    argument for the callback function
+ *
+ * \return status   CPSWPROXY_SOK if registered callback successfully
+ *                  CPSWPROXY_EALREADYOPEN if callback is already registered.
+ *                  CPSWPROXY_EBADARGS if invalid input arguments
+ */
+int32_t CpswProxy_registeropenLwipDmaCb(EthFw_openLwipDmaCb cbFxn,
+                                        uint32_t clientIdx,
+                                        void *cbArg);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

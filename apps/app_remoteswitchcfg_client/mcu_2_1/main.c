@@ -117,6 +117,7 @@
 
 #include <ti/drv/enet/lwipif/inc/default_netif.h>
 #include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 #include <ti/drv/enet/lwipific/inc/netif_ic.h>
@@ -411,6 +412,10 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif);
 static void EthApp_virtNetifStatusCb(struct netif *netif);
 
 static void EthApp_lwipNetifStatusCb(struct netif *netif);
+
+static void EthApp_closeDmaCb(void *arg);
+
+static void EthApp_openDmaCb(void *arg);
 
 static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
                                              uint64_t syncTime,
@@ -977,6 +982,10 @@ static void EthApp_initLwip(void *arg)
     for (i = 0U; i < ENET_ARRAYSIZE(gRemoteAppObj.virtNetif); i++)
     {
         EthApp_initNetif(&gRemoteAppObj.virtNetif[i]);
+
+        /* Register for LWIP DMA open/close callbacks */
+        CpswProxy_registercloseLwipDmaCb(EthApp_closeDmaCb, i, (void *)&gRemoteAppObj.virtNetif[i].netif);
+        CpswProxy_registeropenLwipDmaCb(EthApp_openDmaCb, i, (void *)&gRemoteAppObj.virtNetif[i].netif);
     }
 
 #if defined(ETHAPP_ENABLE_IPERF_SERVER)
@@ -1170,6 +1179,39 @@ static void EthApp_lwipNetifStatusCb(struct netif *netif)
     {
         appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
     }
+}
+
+static void EthApp_closeDmaCb(void *arg)
+{
+    struct netif *netif = (struct netif *)arg;
+    CpswRemoteApp_VirtNetif *virtNetif;
+    bool isSwitchPort;
+
+    virtNetif = container_of(netif, CpswRemoteApp_VirtNetif, netif);
+    localAssert(virtNetif->hCpswProxy != NULL);
+
+    /* Issue link down to Lwip stack and close the Lwip DMA channels */
+    sys_lock_tcpip_core();
+    netif_set_link_down(netif);
+    sys_unlock_tcpip_core();
+	
+    /* Close the lwip dma channels */
+    LWIPIF_LWIP_closeDma(netif);
+
+    /* Send teardown completion */
+    CpswProxy_sendTeardown(virtNetif->hCpswProxy);
+}
+
+static void EthApp_openDmaCb(void *arg)
+{
+    struct netif *netif = (struct netif *)arg;
+
+    /* Open the lwip dma channels and issue link up to Lwip stack */
+    LWIPIF_LWIP_openDma(netif);
+
+    sys_lock_tcpip_core();
+    netif_set_link_up(netif);
+    sys_unlock_tcpip_core();
 }
 
 static void CpswRemoteApp_openLwipRxCh(CpswProxy_Handle hProxy,
@@ -1417,5 +1459,76 @@ void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInf
                                 isSwitchPort);
 
     CpswProxy_detach(virtNetif->hCpswProxy);
+}
+
+void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
+                             LwipifEnetAppIf_GetHandleOutArgs *outArgs)
+{
+    EnetUdma_OpenTxChPrms cpswTxChCfg;
+    EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
+    LwipifEnetAppIf_RxHandleInfo *rxInfo;
+    LwipifEnetAppIf_RxConfig *rxCfg;
+
+    /* Set configuration parameters */
+    EnetDma_initTxChParams(&cpswTxChCfg);
+    EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
+    cpswTxChCfg.hUdmaDrv  = outArgs->hUdmaDrv;
+    cpswTxChCfg.useProxy  = true;
+    cpswTxChCfg.numTxPkts = inArgs->txCfg.numPackets;
+    cpswTxChCfg.cbArg     = inArgs->txCfg.cbArg;
+    cpswTxChCfg.notifyCb  = inArgs->txCfg.notifyCb;
+    cpswTxChCfg.chNum     = outArgs->txInfo.txChNum;
+
+    outArgs->txInfo.hTxChannel = EnetDma_openTxCh(gRemoteAppObj.hEnetDma, &cpswTxChCfg);
+    localAssert(NULL != outArgs->txInfo.hTxChannel);
+
+    rxInfo = &outArgs->rxInfo[0U];
+    rxCfg = &inArgs->rxCfg[0U];
+
+    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
+
+    cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
+    cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
+    cpswRxFlowCfg.hUdmaDrv  = outArgs->hUdmaDrv;;
+    cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
+    cpswRxFlowCfg.useProxy  = true;
+    cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
+    cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
+
+    outArgs->rxInfo[0U].hRxFlow = EnetDma_openRxCh(gRemoteAppObj.hEnetDma, &cpswRxFlowCfg);
+    localAssert(outArgs->rxInfo[0U].hRxFlow != NULL);
+}
+
+void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
+{
+    EnetDma_PktQ fqPktInfoQ;
+    EnetDma_PktQ cqPktInfoQ;
+    int32_t status = ENET_SOK;
+
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+
+    localAssert(NULL != releaseInfo->txInfo.hTxChannel);
+    localAssert(NULL != releaseInfo->rxInfo[0U].hRxFlow);
+
+    EnetDma_disableTxEvent(releaseInfo->txInfo.hTxChannel);
+    status = EnetDma_closeTxCh(releaseInfo->txInfo.hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
+    releaseInfo->txInfo.hTxChannel = NULL;
+
+    releaseInfo->txFreePkt.cb(releaseInfo->txFreePkt.cbArg, &fqPktInfoQ, &cqPktInfoQ);
+
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+
+    EnetDma_disableRxEvent(releaseInfo->rxInfo[0U].hRxFlow);
+
+    status = EnetDma_closeRxCh(releaseInfo->rxInfo[0U].hRxFlow,
+                               &fqPktInfoQ,
+                               &cqPktInfoQ);
+    releaseInfo->rxInfo[0U].hRxFlow = NULL;
+
+    releaseInfo->rxFreePkt[0U].cb(releaseInfo->rxFreePkt[0U].cbArg, &fqPktInfoQ, &cqPktInfoQ);
+
 }
 
