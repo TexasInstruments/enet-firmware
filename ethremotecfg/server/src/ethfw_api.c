@@ -93,6 +93,7 @@
 #include <tsn_unibase/unibase_binding.h>
 #include <tsn_gptp/gptp_config.h>
 #include <tsn_gptp/gptpman.h>
+#include <tsn_combase/tilld/lldenet.h>
 #endif
 
 /* EthFw header files */
@@ -202,6 +203,9 @@
 /*! Monitor Task polling period */
 #define ETHFW_MON_TASK_POLL_PERIOD_MS                 (100U)
 
+/*! Value of seconds in nanoseconds. Useful for calculations */
+#define ETHFW_TIME_SEC_TO_NS                          (1000000000U)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -291,6 +295,15 @@ typedef struct EthFw_Obj_s
 
     /* Monitor Task stack buffer */
     uint8_t monTaskStackBuf[ETHFW_MON_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_MON_TASK_STACK_ALIGN)));
+
+    /*! Lwip DMA callback argument */
+    void *lwipDmaCbArg;
+
+    /*! Lwip DMA close callback from App */
+    EthFw_closeLwipDmaCb closeLwipDmaCb;
+
+    /*! Lwip DMA open callback from App */
+    EthFw_openLwipDmaCb openLwipDmaCb;
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Whether TSN stack has been initialized or not */
@@ -1075,6 +1088,9 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
+    gEthFwObj.lwipDmaCbArg   = config->lwipDmaCbArg;
+    gEthFwObj.closeLwipDmaCb = config->closeLwipDmaCb;
+    gEthFwObj.openLwipDmaCb  = config->openLwipDmaCb;
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Save gPTP stack config callback */
@@ -1910,6 +1926,9 @@ static void EthFw_monitorTask(void *a0,
             /* Stop the clock during reset recovery handling */
             ClockP_stop(gEthFwObj.hMonitorClock);
 
+            /* Stop periodic ticks to Mcm */
+            EnetMcm_stopPeriodicTick(&gEthFwObj.mcmCmdIf);
+
             /* Call the  EthFw reset handler. */
             status = EthFw_resetHandler();
 
@@ -1925,7 +1944,110 @@ static void EthFw_monitorTask(void *a0,
 
 }
 
-static int32_t EthFw_resetHandler(void)
+uint64_t EthFw_getCurrentTime(uint32_t *nanoSeconds,
+                          uint64_t *seconds)
 {
- 
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    int32_t status = ENET_SOK;
+    Enet_IoctlPrms prms;
+    uint64_t tsVal = 0U;
+
+    /* Software Time stamp Push event */
+    ENET_IOCTL_SET_OUT_ARGS(&prms, &tsVal);
+    status = Enet_ioctl(hEnet,
+                gEthFwObj.coreId,
+                ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP,
+                &prms);
+    EnetAppUtils_assert(status == ENET_SOK);
+
+    *nanoSeconds = (uint32_t)(tsVal % (uint64_t)ETHFW_TIME_SEC_TO_NS);
+    *seconds = tsVal / (uint64_t)ETHFW_TIME_SEC_TO_NS;
+
+    tsVal = (uint64_t)(((uint64_t)*seconds * (uint64_t)ETHFW_TIME_SEC_TO_NS) + *nanoSeconds);
+
+    return tsVal;
+}
+
+void EthFw_setCurrentTime(uint64_t *time)
+{
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    int32_t status = ENET_SOK;
+    Enet_IoctlPrms prms;
+
+    /* Update the CPTS time */
+    ENET_IOCTL_SET_IN_ARGS(&prms, time);
+
+    status = Enet_ioctl(hEnet, gEthFwObj.coreId,
+                        ENET_TIMESYNC_IOCTL_SET_TIMESTAMP, &prms);
+
+    EnetAppUtils_assert(status == ENET_SOK);
+}
+
+static int32_t EthFw_resetHandler(uint32_t numTotalClients)
+{
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    uint32_t nanoSeconds = 0U;
+    uint64_t seconds = 0U;
+    uint64_t preResetTime;
+    uint64_t postResetTime;
+    uint64_t currentTime;
+    uint64_t updatedTime;
+    int32_t status = ENET_SOK;
+
+    /* Get current CPTS time */
+    currentTime = EthFw_getCurrentTime(&nanoSeconds, &seconds);
+
+    /* Get OS time before triggering a reset */
+    preResetTime = TimerP_getTimeInUsecs();
+
+    /* Close MAC Ports */
+    status = EnetMcm_closeMacPorts(&gEthFwObj.mcmCmdIf);
+    EnetAppUtils_assert(status == ENET_SOK);
+    
+    /* Call App callback to close the Lwip Dma channels */
+    gEthFwObj.closeLwipDmaCb(gEthFwObj.lwipDmaCbArg);
+
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* Close the gPTP DMA channels */
+    LLDEnetDmaClose();
+#endif
+
+    /* Save the context */
+    EnetMcm_saveCtxt(&gEthFwObj.mcmCmdIf);
+
+    /* Reset the CPSW */
+    EnetAppUtils_turnCpswOff();
+    EnetAppUtils_delayInUsec(5000U);
+    EnetAppUtils_turnCpswOn();
+
+    /* Restore the context */
+    status = EnetMcm_restoreCtxt(&gEthFwObj.mcmCmdIf);
+    EnetAppUtils_assert(status == ENET_SOK);
+
+    /* Call App callback to open the Lwip Dma channels */
+    gEthFwObj.openLwipDmaCb(gEthFwObj.lwipDmaCbArg);
+
+#if defined(ETHFW_GPTP_SUPPORT)
+    /* start the gPTP DMA channels */
+    LLDEnetDmaOpen();
+#endif
+
+    /* Open MAC Ports */
+    status = EnetMcm_openMacPorts(&gEthFwObj.mcmCmdIf);
+    EnetAppUtils_assert(status == ENET_SOK);
+
+    /* Get OS time post reset is done */
+    postResetTime = TimerP_getTimeInUsecs();
+
+    /* Calculate the updated time( current time + (time taken by during reset)*1000U (convert to nanoseconds))
+    * in nanoseconds to be set into CPTS */
+    updatedTime = currentTime + (postResetTime - preResetTime)*1000U;
+
+    /* Update CPTS time with the time taken by reset recovery */
+    EthFw_setCurrentTime(&updatedTime);
+    
+    /* Start periodic ticks to Mcm */
+    EnetMcm_startPeriodicTick(&gEthFwObj.mcmCmdIf);
+
+    return status;
 }

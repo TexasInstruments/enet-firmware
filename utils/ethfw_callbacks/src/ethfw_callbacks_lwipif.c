@@ -444,6 +444,248 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetMcm_releaseCmdIf(enetType, &mcmCmdIf);
 }
 
+void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
+                             LwipifEnetAppIf_GetHandleOutArgs *outArgs)
+{
+    LwipifEnetAppIf_RxHandleInfo *rxInfo;
+    LwipifEnetAppIf_RxConfig *rxCfg;
+    EnetUdma_OpenTxChPrms cpswTxChCfg;
+    EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
+    EnetUdma_UdmaRingPrms *pFqRingPrms;
+    EnetDma_Handle hDma;
+    bool useRingMon = true;
+    int32_t status = ENET_SOK;
+    uint32_t coreId = EnetSoc_getCoreId();
+    Enet_Handle hEnet = (Enet_Handle)outArgs->handleArg;
+
+#if defined(ETHFW_PROXY_ARP_HANDLING)
+    const uint8_t bcastAddr[ENET_MAC_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    CpswAle_SetPolicerEntryInArgs polInArgs;
+    CpswAle_SetPolicerEntryOutArgs polOutArgs;
+    Enet_IoctlPrms prms;
+#endif
+
+#if defined(SOC_J721E) || defined(SOC_J784S4)
+    Enet_Type enetType = ENET_CPSW_9G;
+#elif defined(SOC_J7200)
+    Enet_Type enetType = ENET_CPSW_5G;
+#endif
+
+    EnetAppUtils_assert(hEnet != ENET_SOK);
+
+    /* Open TX channel */
+    EnetDma_initTxChParams(&cpswTxChCfg);
+    EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
+
+    cpswTxChCfg.hUdmaDrv            = outArgs->hUdmaDrv;
+    cpswTxChCfg.numTxPkts           = inArgs->txCfg.numPackets;
+    cpswTxChCfg.cbArg               = inArgs->txCfg.cbArg;
+    cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
+    cpswTxChCfg.useProxy            = true;
+    cpswTxChCfg.chNum               = outArgs->txInfo.txChNum;
+
+    hDma = Enet_getDmaHandle(hEnet);
+    EnetAppUtils_assert(hDma != NULL);
+
+    outArgs->txInfo.hTxChannel = EnetDma_openTxCh(hDma, &cpswTxChCfg);
+    EnetAppUtils_assert(outArgs->txInfo.hTxChannel != NULL);
+
+    /* Open first RX channel/flow */
+    rxInfo = &outArgs->rxInfo[0U];
+    rxCfg = &inArgs->rxCfg[0U];
+
+    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
+
+    cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
+    cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
+    cpswRxFlowCfg.hUdmaDrv  = outArgs->hUdmaDrv;;
+    cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
+    cpswRxFlowCfg.useProxy  = true;
+    cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
+    cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
+    rxInfo->handlePktFxn    = NULL;
+
+    /* Use ring monitor for the CQ ring of RX flow */
+    pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
+    pFqRingPrms->useRingMon = useRingMon;
+    pFqRingPrms->ringMonCfg.mode = TISCI_MSG_VALUE_RM_MON_MODE_THRESHOLD;
+    /* Ring mon low threshold */
+
+#if defined _DEBUG_
+    /* In debug mode as CPU is processing lesser packets per event, keep threshold more */
+    pFqRingPrms->ringMonCfg.data0 = (rxCfg->numPackets - 10U);
+#else
+    pFqRingPrms->ringMonCfg.data0 = (rxCfg->numPackets - 20U);
+#endif
+    /* Ring mon high threshold - to get only low  threshold event, setting high threshold as more than ring depth*/
+    pFqRingPrms->ringMonCfg.data1 = rxCfg->numPackets;
+
+    rxInfo->hRxFlow = EnetDma_openRxCh(hDma, &cpswRxFlowCfg);
+    EnetAppUtils_assert(rxInfo->hRxFlow != NULL);
+
+    status = EnetAppUtils_regDfltRxFlow(hEnet,
+                                        outArgs->coreKey,
+                                        coreId,
+                                        rxInfo->rxFlowStartIdx,
+                                        rxInfo->rxFlowIdx);
+    EnetAppUtils_assert(status == ENET_SOK);
+
+#if defined(ETHFW_VEPA_SUPPORT) || defined(ETHFW_PROXY_ARP_HANDLING)
+    /* Open second RX flow */
+    rxCfg  = &inArgs->rxCfg[1U];
+    rxInfo = &outArgs->rxInfo[1U];
+
+    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
+
+    cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
+    cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
+    cpswRxFlowCfg.hUdmaDrv  = outArgs->hUdmaDrv;;
+    cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
+    cpswRxFlowCfg.useProxy  = true;
+    cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
+    cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
+
+    rxInfo->hRxFlow = EnetDma_openRxCh(hDma, &cpswRxFlowCfg);
+    EnetAppUtils_assert(rxInfo->hRxFlow != NULL);
+
+#if defined(ETHFW_VEPA_SUPPORT)
+    status = EthFwVepa_setPacketDuplicationFlowIdx(rxInfo->rxFlowIdx);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                      "Failed to set flow for packet duplication", status);
+
+    rxInfo->handlePktFxn = EthFwCallbacks_handlePacketDuplicationRxPktFxn;
+#elif defined(ETHFW_PROXY_ARP_HANDLING)
+    /* Set policer for ARP EtherType + Broadcast address matching */
+    if (status == ENET_SOK)
+    {
+        /* Set policer params for ARP EtherType matching */
+        polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+        polInArgs.policerMatch.etherType = ETHTYPE_ARP;
+        polInArgs.policerMatch.portIsTrunk = false;
+
+        /* Set policer params for broadcast address matching
+         * Note that policer IOCTL takes a port number not a port mask which is what
+         * we really need (mask = CPSW_ALE_ALL_PORTS_MASK).  So, we would have to
+         * amend the ALE broadcast entry with another IOCTL, but the EthFw library
+         * creates such broadcast entry (see EthFw_setAleBcastEntry(), so we
+         * intentionally won't do it here. */
+        polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
+        polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
+        polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
+        EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], &bcastAddr[0]);
+
+        polInArgs.threadIdEn = true;
+        polInArgs.threadId   = rxInfo->rxFlowIdx;
+        polInArgs.peakRateInBitsPerSec   = 0U;
+        polInArgs.commitRateInBitsPerSec = 0U;
+
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
+
+        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add ARP policer: %d\n", status);
+    }
+    rxInfo->handlePktFxn = EthFwCallbacks_handleArpRxPktFxn;
+#endif
+#endif
+}
+
+void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
+{
+    Enet_Handle hEnet = (Enet_Handle)releaseInfo->handleArg;
+    LwipifEnetAppIf_RxHandleInfo *rxInfo;
+    Lwip2EnetAppIf_FreePktInfo *freePktInfo;
+    EnetDma_PktQ fqPktInfoQ;
+    EnetDma_PktQ cqPktInfoQ;
+    int32_t status = ENET_SOK;
+
+#if defined(ETHFW_PROXY_ARP_HANDLING)
+    const uint8_t bcastAddr[ENET_MAC_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    CpswAle_DelPolicerEntryInArgs polInArgs;
+    Enet_IoctlPrms prms;
+#endif
+
+
+#if defined(SOC_J721E) || defined(SOC_J784S4)
+    Enet_Type enetType = ENET_CPSW_9G;
+#elif defined(SOC_J7200)
+    Enet_Type enetType = ENET_CPSW_5G;
+#endif
+
+    EnetAppUtils_assert(hEnet != ENET_SOK);
+
+#if defined(ETHFW_VEPA_SUPPORT) || defined(ETHFW_PROXY_ARP_HANDLING)
+    /* Close second RX channel/flow */
+    freePktInfo = &releaseInfo->rxFreePkt[1U];
+    rxInfo = &releaseInfo->rxInfo[1U];
+
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* Set packet duplication flow to be un-defined */
+    status = EthFwVepa_setPacketDuplicationFlowIdx(ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                      "Failed to remove flow for packet duplication");
+#elif defined(ETHFW_PROXY_ARP_HANDLING)
+     /* Set policer params for ARP EtherType matching */
+     polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+     polInArgs.policerMatch.etherType = ETHTYPE_ARP;
+     polInArgs.policerMatch.portIsTrunk = false;
+
+     /* Set policer params for broadcast address matching */
+     polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
+     polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
+     polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
+     EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], &bcastAddr[0]);
+
+     /* We didn't add broadcast entry for all ports, so we won't delete anything either */
+     polInArgs.aleEntryMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+
+     ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
+
+     /* Delete ALE policer */
+     status = Enet_ioctl(hEnet, releaseInfo->coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to delete ARP policer");
+#endif
+
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+
+    status = EnetDma_closeRxCh(rxInfo->hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+    EnetAppUtils_assert(status == ENET_SOK);
+
+    freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
+#endif
+
+        /* Close TX channel */
+        EnetQueue_initQ(&fqPktInfoQ);
+        EnetQueue_initQ(&cqPktInfoQ);
+
+        EnetDma_disableTxEvent(releaseInfo->txInfo.hTxChannel);
+        status = EnetDma_closeTxCh(releaseInfo->txInfo.hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
+        EnetAppUtils_assert(status == ENET_SOK);
+
+        releaseInfo->txFreePkt.cb(releaseInfo->txFreePkt.cbArg, &fqPktInfoQ, &cqPktInfoQ);
+
+    /* Close first RX channel/flow */
+    freePktInfo = &releaseInfo->rxFreePkt[0U];
+    rxInfo = &releaseInfo->rxInfo[0U];
+
+    EnetQueue_initQ(&fqPktInfoQ);
+    EnetQueue_initQ(&cqPktInfoQ);
+
+    status = EnetAppUtils_unregDfltRxFlow(hEnet,
+                                          releaseInfo->coreKey,
+                                          releaseInfo->coreId,
+                                          rxInfo->rxFlowStartIdx,
+                                          rxInfo->rxFlowIdx);
+    EnetAppUtils_assert(status == ENET_SOK);
+
+    status = EnetDma_closeRxCh(rxInfo->hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+    EnetAppUtils_assert(status == ENET_SOK);
+
+    freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
+}
+
 #if defined(ETHFW_VEPA_SUPPORT)
 /* Setup flow for packet duplication */
 static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,

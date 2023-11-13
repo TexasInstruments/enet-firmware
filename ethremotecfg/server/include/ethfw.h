@@ -220,6 +220,12 @@ typedef int32_t (*EthFw_setPortCfg)(Enet_MacPort macPort,
 /*! Callback for setting gPTP config parameters from the application */
 typedef void (*EthFw_configPtpCb)(void *arg);
 
+/*! Callback for closing the Lwip DMA channels from the application */
+typedef void (*EthFw_closeLwipDmaCb)(void *arg);
+
+/*! Callback for opening the Lwip DMA channels from the application */
+typedef void (*EthFw_openLwipDmaCb)(void *arg);
+
 /*!
  * \brief Ethernet Firmware configuration
  *
@@ -285,6 +291,15 @@ typedef struct EthFw_Config_s
 
     /*! Number of remote clients with resource allocation */
     uint32_t numAlloc;
+	
+    /*! Argument for opening or closing the Lwip DMA channel to be passed ot callback function*/
+    void *lwipDmaCbArg;
+
+    /*! Callback for closing the Lwip DMA channels from the application */
+    EthFw_closeLwipDmaCb closeLwipDmaCb;
+
+    /*! Callback for closing the Lwip DMA channels from the application */
+    EthFw_openLwipDmaCb openLwipDmaCb;
 } EthFw_Config;
 
 /*!
