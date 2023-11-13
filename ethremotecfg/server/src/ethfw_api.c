@@ -187,6 +187,21 @@
 /* Compile time check for error value consistency with Enet LLD (and CSL) */
 #define ETHFW_UTILS_COMPILETIME_ENET_CHECK(x)         ETHFW_UTILS_COMPILETIME_ASSERT(ETHFW_##x == ENET_##x)
 
+/*! Monitor Task priority */
+#define ETHFW_MON_TASK_PRIORITY                       (10U)
+
+/*! Monitor Task stack size and alignment */
+#if defined(SAFERTOS)
+#define ETHFW_MON_TASK_STACK_SIZE                     (16U * 1024U)
+#define ETHFW_MON_TASK_STACK_ALIGN                    ETHFW_MON_TASK_STACK_SIZE
+#else
+#define ETHFW_MON_TASK_STACK_SIZE                     (16U * 1024U)
+#define ETHFW_MON_TASK_STACK_ALIGN                    (32U)
+#endif 
+
+/*! Monitor Task polling period */
+#define ETHFW_MON_TASK_POLL_PERIOD_MS                 (100U)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -261,6 +276,21 @@ typedef struct EthFw_Obj_s
 
     /* Number of remote clients with resource allocation */
     uint32_t numClients;
+
+    /*! Clock handle for Monitor Task */
+    ClockP_Handle hMonitorClock;
+
+    /*! Semaphore handle for Monitor Task */
+    SemaphoreP_Handle hMonitorSem;
+
+    /*! Task handle for Monitor Task */
+    TaskP_Handle hMonitorTask;
+
+    /* To run Monitor Task */
+    bool monitorTaskRun;
+
+    /* Monitor Task stack buffer */
+    uint8_t monTaskStackBuf[ETHFW_MON_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_MON_TASK_STACK_ALIGN)));
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Whether TSN stack has been initialized or not */
@@ -346,6 +376,15 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
                                           EthRemoteCfg_NotifyType notifyid,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len);
+
+static int32_t EthFw_startMonitorTask(void);
+
+static void EthFw_stopMonitorTask(void);
+
+static void EthFw_monitorTask(void *a0,
+                              void *a1);
+
+static int32_t EthFw_resetHandler(void);
 
 #if defined(ETHFW_GPTP_SUPPORT)
 static void EthFw_tsnInit(void);
@@ -1172,6 +1211,13 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     }
 #endif
 
+    /* Start the Monitor Task */
+    if (status == ENET_SOK)
+    {
+        status = EthFw_startMonitorTask();
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to start Monitor Task");
+    }
+
     return (status == ENET_SOK) ? &gEthFwObj : NULL;
 }
 
@@ -1194,6 +1240,9 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 #endif
 
     EthFwMcast_deinit();
+	
+    /* Stop the Monitor Task */
+    EthFw_stopMonitorTask();
 
     /* De-initialize MCM */
     EthFw_deinitMcm();
@@ -1711,4 +1760,172 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
 
     return ENET_SOK;
 #endif
+}
+
+static void Ethfw_MonitorclockCb(void *arg)
+{
+    /* Post semaphore to Monitor Task */
+    SemaphoreP_post(gEthFwObj.hMonitorSem);
+}
+
+static int32_t EthFw_startMonitorTask(void)
+{
+    SemaphoreP_Params semParams;
+    ClockP_Params clkParams;
+    TaskP_Params params;
+    int32_t status = ENET_SOK;
+
+    SemaphoreP_Params_init(&semParams);
+    semParams.mode = SemaphoreP_Mode_BINARY;
+    gEthFwObj.hMonitorSem = SemaphoreP_create(1U, &semParams);
+
+    if (gEthFwObj.hMonitorSem == NULL)
+    {
+        status = ETHFW_EALLOC;
+        ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor clock semaphore");
+        EnetAppUtils_assert(false);
+    }
+
+    if (status == ENET_SOK)
+    {
+        /* Create Monitor Task to monitor and detect EthFw's failure. */
+        TaskP_Params_init(&params);
+        params.priority  = ETHFW_MON_TASK_PRIORITY;
+        params.stack     = &gEthFwObj.monTaskStackBuf[0];
+        params.stacksize = sizeof(gEthFwObj.monTaskStackBuf);
+        params.name      = "ETHFW Monitor Task";
+        gEthFwObj.monitorTaskRun = true;
+
+        gEthFwObj.hMonitorTask = TaskP_create(&EthFw_monitorTask, &params);
+        
+        if (gEthFwObj.hMonitorTask == NULL)
+        {
+            status = ETHFW_EALLOC;
+            ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor task");
+            EnetAppUtils_assert(false);
+        }
+    }
+
+    if (status == ENET_SOK)
+    {
+        ClockP_Params_init(&clkParams);
+        clkParams.startMode = ClockP_StartMode_AUTO;
+        clkParams.period    =  ETHFW_MON_TASK_POLL_PERIOD_MS;
+        clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
+
+        /* Creating clock and setting clock callback function */
+        gEthFwObj.hMonitorClock = ClockP_create((void*) &Ethfw_MonitorclockCb,
+                                        &clkParams);
+        if (gEthFwObj.hMonitorClock == NULL)
+        {
+            status = ETHFW_EALLOC;
+            ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor clock");
+            EnetAppUtils_assert(false);
+        }
+    }
+    return status;
+}
+
+static void EthFw_stopMonitorTask(void)
+{
+
+    gEthFwObj.monitorTaskRun = false;
+
+    if (gEthFwObj.hMonitorTask != NULL)
+    {
+        TaskP_delete(gEthFwObj.hMonitorTask);
+        gEthFwObj.hMonitorTask = NULL;
+    }
+
+    /* Delete semaphore */
+    SemaphoreP_delete(gEthFwObj.hMonitorSem);
+
+    /* Stop and delete the clock */
+    ClockP_stop(gEthFwObj.hMonitorClock);
+    ClockP_delete(gEthFwObj.hMonitorClock);
+}
+
+static int32_t EthFw_analyzePortStats(CpswStats_PortStats currPortStats)
+{
+    int32_t status = ENET_SOK;
+
+    CpswStats_MacPort_Ng *cpsw9gCurrPortStats = (CpswStats_MacPort_Ng *)&currPortStats;
+
+    /* Monitor port statistics to detect and CPSW peripheral failure.
+    * Current Ethfw Monitor task looks for rxBottomOfFifoDrop value.
+    * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
+    * so resetting the Enet Peripheral. */
+    if (cpsw9gCurrPortStats->rxBottomOfFifoDrop > 0U)
+    {
+        status = ENET_EFAIL;
+    }
+    return status;
+}
+
+static void EthFw_monitorTask(void *a0,
+                              void *a1)
+{
+    CpswStats_PortStats currPortStats;
+    Enet_IoctlPrms prms;
+    Enet_MacPort portNum;
+    uint32_t i;
+    int32_t status = ENET_SOK;
+
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+
+    while(gEthFwObj.monitorTaskRun)
+    {
+        SemaphoreP_pend(gEthFwObj.hMonitorSem, SemaphoreP_WAIT_FOREVER);
+
+        for (i = 0U; i < gEthFwObj.numPorts; i++)
+        {
+            portNum = ENET_MACPORT_DENORM(i);
+
+            if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, portNum) == true)
+            {
+                /* Collect MAC port statistics */
+                ENET_IOCTL_SET_INOUT_ARGS(&prms, &portNum, &currPortStats);
+                status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+
+                if (status == ENET_SOK)
+                {
+                    status = EthFw_analyzePortStats(currPortStats);
+
+                    if (status != ENET_SOK)
+                    {
+                        status = ENET_EFAIL;
+                        /* Error detected, break the loop and trigger EthFw reset handler. */
+                        break;
+                    }
+                }
+                else
+                {
+                    ETHFWTRACE_ERR(status, "Error in collecting MAC port stats");
+                }
+            }
+        }
+
+        if (status != ENET_SOK)
+        {
+            /* Stop the clock during reset recovery handling */
+            ClockP_stop(gEthFwObj.hMonitorClock);
+
+            /* Call the  EthFw reset handler. */
+            status = EthFw_resetHandler();
+
+            if (status != ENET_SOK)
+            {
+                ETHFWTRACE_ERR(status, "Reset handler failed");
+                EnetAppUtils_assert(status == ENET_SOK);
+            }
+
+            ClockP_start(gEthFwObj.hMonitorClock);
+        }
+    }
+
+}
+
+static int32_t EthFw_resetHandler(void)
+{
+ 
 }
