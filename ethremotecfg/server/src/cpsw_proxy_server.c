@@ -672,9 +672,15 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
                                                   uint32_t *pRxFlowIdxBase,
                                                   uint32_t *pRxFlowIdxOffset,
                                                   uint32_t *pTxPsilDstId,
+                                                  uint32_t *pRxPsilSrcId,
                                                   uint8_t *macAddr)
 {
+    CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ENET_SOK;
+
+    /* Check that server itself is ready */
+    hServer = CpswProxyServer_getHandle();
+    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == true));
 
     /* Actual attach operation */
     status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, txMtuArraySize, pFeatures);
@@ -712,6 +718,9 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
                                        macAddr);
     }
 
+    /* RX PSIL thread id */
+    *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
+
     /* Save parameters in client object */
     hClient->flowIdxBase   = *pRxFlowIdxBase;
     hClient->flowIdxOffset = *pRxFlowIdxOffset;
@@ -738,9 +747,17 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
 static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                 uint32_t hostId,
                                                 uint32_t *pRxFlowIdxBase,
-                                                uint32_t *pRxFlowIdxOffset)
+                                                uint32_t *pRxFlowIdxOffset,
+                                                uint32_t *pRxPsilSrcId)
 {
+    CpswProxyServer_Obj *hServer = NULL;
     int32_t status;
+
+    /* Check that server itself is ready */
+    hServer = CpswProxyServer_getHandle();
+    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == true));
+
+    *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
 
     status = EnetAppUtils_allocRxFlow(hClient->hEnet,
                                       hClient->coreKey,
@@ -2055,6 +2072,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                                                         &res->rxFlowIdxBase,
                                                         &res->rxFlowIdxOffset,
                                                         &res->txPsilDstId,
+                                                        &res->rxPsilSrcId,
                                                         &res->macAddr[0U]);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to attach (ext) virtual port %u core %u",
@@ -2065,10 +2083,10 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             resLen = sizeof(EthRemoteCfg_AttachExtRes);
 
             ETHFWTRACE_INFO("ATTACH_EXT | S2C | token=%u rxMtu=%u features=%x flow=%u,%u "
-                            "psil=%u macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
+                            "rxPsil=0x%x txPsil=0x%x macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
                             token, res->rxMtu, res->features,
                             res->rxFlowIdxBase, res->rxFlowIdxOffset,
-                            res->txPsilDstId,
+                            res->rxPsilSrcId, res->txPsilDstId,
                             res->macAddr[0U], res->macAddr[1U], res->macAddr[2U],
                             res->macAddr[3U], res->macAddr[4U], res->macAddr[5U]);
             break;
@@ -2132,13 +2150,14 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             status = CpswProxyServer_allocRxHandlerCb(hClient,
                                                       remoteProcId,
                                                       &res->rxFlowIdxBase,
-                                                      &res->rxFlowIdxOffset);
+                                                      &res->rxFlowIdxOffset,
+                                                      &res->rxPsilSrcId);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc RX flow");
 
             resLen = sizeof(*res);
 
-            ETHFWTRACE_INFO("ALLOC_RX | S2C | rxflow=%u,%u, status=%d",
-                            res->rxFlowIdxBase, res->rxFlowIdxOffset, status);
+            ETHFWTRACE_INFO("ALLOC_RX | S2C | rxPsil=0x%x flow=%u,%u status=%d",
+                            res->rxPsilSrcId, res->rxFlowIdxBase, res->rxFlowIdxOffset, status);
             break;
         }
         case ETHREMOTECFG_CMD_ALLOC_MAC:

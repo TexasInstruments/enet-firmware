@@ -971,6 +971,9 @@ typedef struct EthRemoteCfg_AttachExtRes_s
 
     /*! Feature bitmask based on \ref EthRemoteCfg_FeatureMask. */
     uint32_t features;
+
+    /*! Rx PSIL peer source thread id */
+    uint32_t rxPsilSrcId;
 } __attribute__((packed)) EthRemoteCfg_AttachExtRes;
 
 /*!
@@ -989,6 +992,9 @@ typedef struct EthRemoteCfg_AllocRxRes_s
 
     /*! Allocated flow index offset. */
     uint32_t rxFlowIdxOffset;
+
+    /*! Rx PSIL peer source thread id */
+    uint32_t rxPsilSrcId;
 } __attribute__((packed)) EthRemoteCfg_AllocRxRes;
 
 /*!
