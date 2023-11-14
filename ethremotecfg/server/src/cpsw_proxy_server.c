@@ -2082,6 +2082,12 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             hClient->clientId = clientId;
             resLen = sizeof(EthRemoteCfg_AttachExtRes);
 
+            /* Workaround: For compatibility with AUTOSAR VirtMAC */
+            if (reqHdr->common.clientId == ETHREMOTECFG_CLIENTID_AUTOSAR)
+            {
+                resLen -= 4U;
+            }
+
             ETHFWTRACE_INFO("ATTACH_EXT | S2C | token=%u rxMtu=%u features=%x flow=%u,%u "
                             "rxPsil=0x%x txPsil=0x%x macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
                             token, res->rxMtu, res->features,
