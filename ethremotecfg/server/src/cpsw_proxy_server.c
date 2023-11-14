@@ -335,8 +335,8 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
                                               uint32_t flowIdx);
 
 static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
-                                                uint32_t remoteCoreId,
                                                 uint32_t coreKey,
+                                                uint32_t remoteCoreId,
                                                 Enet_MacPort macPort,
                                                 uint8_t *macAddr,
                                                 uint32_t flowStartIdx,
@@ -842,7 +842,8 @@ static int32_t CpswProxyServer_freeMacHandlerCb(CpswProxyServer_ClientHandle hCl
 
     status = EnetAppUtils_freeMac(hClient->hEnet,
                                   hClient->coreKey,
-                                  hostId, macAddr);
+                                  hostId,
+                                  macAddr);
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
@@ -961,7 +962,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
 
         /* Teardown MAC port based classifier */
         status = CpswProxyServer_unregMacPortFlow(hClient->hEnet,
-                                                  hClient->coreId,
+                                                  hClient->coreKey,
                                                   hostId,
                                                   macPort,
                                                   macAddr,
@@ -1233,8 +1234,8 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
 }
 
 static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
-                                                uint32_t remoteCoreId,
                                                 uint32_t coreKey,
+                                                uint32_t remoteCoreId,
                                                 Enet_MacPort macPort,
                                                 uint8_t *macAddr,
                                                 uint32_t flowStartIdx,
