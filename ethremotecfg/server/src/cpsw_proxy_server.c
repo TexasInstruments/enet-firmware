@@ -1504,10 +1504,14 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
             status = Enet_ioctl(hClient->hEnet, hostId, ENET_PHY_IOCTL_GET_LINK_MODE, &prms);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                               "Failed to get port %u link params", ENET_MACPORT_ID(phyInArgs.macPort));
+
+            if (status == ENET_SOK)
+            {
+                *speed  = phyOutArgs.speed;
+                *duplex = phyOutArgs.duplexity;
+            }
         }
 
-        *speed  = phyOutArgs.speed;
-        *duplex = phyOutArgs.duplexity;
         status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
     else
