@@ -980,7 +980,7 @@ typedef struct EthRemoteCfg_AttachExtRes_s
  * \brief Response params \ref ETHREMOTECFG_CMD_ALLOC_RX command.
  *
  * This response holds the information of the  allocated Rx flow which is
- * `rxflowIdxbase` and `rxflowIdxoffset` for the given virtual port.
+ * `rxFlowIdxbase` and `rxFlowIdxoffset` for the given virtual port.
  */
 typedef struct EthRemoteCfg_AllocRxRes_s
 {

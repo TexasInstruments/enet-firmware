@@ -521,6 +521,21 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
         ETHFWTRACE_ERR(ETHFW_EFAIL, "Couldn't find core %u client handle", hClient->coreId);
     }
 
+    ETHFWTRACE_INFO("NOTIFY | S2C | core=%u endpt=%u token=%d notifyType=%u",
+                    hClient->coreId,
+                    hClient->remoteEp,
+                    (int32_t)notifyMsg.hdr.common.token,
+                    notifyId);
+
+    ETHFWTRACE_DBG("S2C | msgType=%u token=%d clientId=%u notifyType=%u len=%u (%u.%u->%u.%u)",
+                   notifyMsg.hdr.common.msgType,
+                   (int32_t)notifyMsg.hdr.common.token,
+                   notifyMsg.hdr.common.clientId,
+                   notifyMsg.hdr.notifyType,
+                   sizeof(notifyMsg),
+                   EnetSoc_getCoreId(), srcEndPt,
+                   hClient->coreId, hClient->remoteEp);
+
     status = RPMessage_send(handle, hClient->coreId, hClient->remoteEp, srcEndPt, &notifyMsg, sizeof(notifyMsg));
 
     return status;
@@ -2047,8 +2062,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             hClient->clientId = clientId;
             resLen = sizeof(EthRemoteCfg_AttachRes);
 
-            ETHFWTRACE_INFO("ATTACH | S2C | token=%u rxMtu=%u features=%x",
-                            token, res->rxMtu, res->features);
+            ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x",
+                            (int32_t)token, res->rxMtu, res->features);
             break;
         }
         case ETHREMOTECFG_CMD_ATTACH_EXT:
@@ -2089,9 +2104,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                 resLen -= 4U;
             }
 
-            ETHFWTRACE_INFO("ATTACH_EXT | S2C | token=%u rxMtu=%u features=%x flow=%u,%u "
+            ETHFWTRACE_INFO("ATTACH_EXT | S2C | token=%d rxMtu=%u features=%x flow=%u,%u "
                             "rxPsil=0x%x txPsil=0x%x macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
-                            token, res->rxMtu, res->features,
+                            (int32_t)token, res->rxMtu, res->features,
                             res->rxFlowIdxBase, res->rxFlowIdxOffset,
                             res->rxPsilSrcId, res->txPsilDstId,
                             res->macAddr[0U], res->macAddr[1U], res->macAddr[2U],
@@ -2102,8 +2117,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("DETACH | C2S | core=%u endpt=%u token=%u",
-                            remoteProcId, remoteEndPt, token);
+            ETHFWTRACE_INFO("DETACH | C2S | core=%u endpt=%u token=%d",
+                            remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2125,8 +2140,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_AllocTxRes *res = (EthRemoteCfg_AllocTxRes *)resBuf;
 
-            ETHFWTRACE_INFO("ALLOC_TX | C2S | core=%u endpt=%u token=%u",
-                            remoteProcId, remoteEndPt, token);
+            ETHFWTRACE_INFO("ALLOC_TX | C2S | core=%u endpt=%u token=%d",
+                            remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2139,7 +2154,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             resLen = sizeof(*res);
 
-            ETHFWTRACE_INFO("ALLOC_TX | S2C | psil=%u, status=%d",
+            ETHFWTRACE_INFO("ALLOC_TX | S2C | txPsil=0x%x status=%d",
                             res->txPsilDstId, status);
             break;
         }
@@ -2147,8 +2162,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_AllocRxRes *res = (EthRemoteCfg_AllocRxRes *)resBuf;
 
-            ETHFWTRACE_INFO("ALLOC_RX | C2S | core=%u endpt=%u token=%u",
-                            remoteProcId, remoteEndPt, token);
+            ETHFWTRACE_INFO("ALLOC_RX | C2S | core=%u endpt=%u token=%d",
+                            remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2163,16 +2178,16 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             resLen = sizeof(*res);
 
-            ETHFWTRACE_INFO("ALLOC_RX | S2C | rxPsil=0x%x flow=%u,%u status=%d",
-                            res->rxPsilSrcId, res->rxFlowIdxBase, res->rxFlowIdxOffset, status);
+            ETHFWTRACE_INFO("ALLOC_RX | S2C | flow=%u,%u rxPsil=0x%x status=%d",
+                            res->rxFlowIdxBase, res->rxFlowIdxOffset, res->rxPsilSrcId, status);
             break;
         }
         case ETHREMOTECFG_CMD_ALLOC_MAC:
         {
             EthRemoteCfg_AllocMacRes *res = (EthRemoteCfg_AllocMacRes *)resBuf;
 
-            ETHFWTRACE_INFO("ALLOC_MAC | C2S | core=%u endpt=%u token=%u",
-                            remoteProcId, remoteEndPt, token);
+            ETHFWTRACE_INFO("ALLOC_MAC | C2S | core=%u endpt=%u token=%d",
+                            remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2185,9 +2200,10 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             resLen = sizeof(*res);
 
-            ETHFWTRACE_INFO("ALLOC_MAC | S2C | psil=%u, macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
+            ETHFWTRACE_INFO("ALLOC_MAC | S2C | macAddr=%02x:%02x:%02x:%02x:%02x:%02x status=%d",
                             res->macAddr[0U], res->macAddr[1U], res->macAddr[2U],
-                            res->macAddr[3U], res->macAddr[4U], res->macAddr[5U]);
+                            res->macAddr[3U], res->macAddr[4U], res->macAddr[5U],
+                            status);
             break;
         }
         case ETHREMOTECFG_CMD_FREE_TX:
@@ -2195,8 +2211,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_FreeTxReq *req = (EthRemoteCfg_FreeTxReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("FREE_TX | C2S | core=%u endpt=%u token=%u psil=%u",
-                            remoteProcId, remoteEndPt, token, req->txPsilDstId);
+            ETHFWTRACE_INFO("FREE_TX | C2S | core=%u endpt=%u token=%d txPsil=0x%x",
+                            remoteProcId, remoteEndPt, (int32_t)token, req->txPsilDstId);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2217,8 +2233,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_FreeRxReq *req = (EthRemoteCfg_FreeRxReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("FREE_RX | C2S | core=%u endpt=%u token=%u flowidx=%u,%u",
-                            remoteProcId, remoteEndPt, token, req->rxFlowIdxBase, req->rxFlowIdxOffset);
+            ETHFWTRACE_INFO("FREE_RX | C2S | core=%u endpt=%u token=%d flowidx=%u,%u",
+                            remoteProcId, remoteEndPt, (int32_t)token,
+                            req->rxFlowIdxBase, req->rxFlowIdxOffset);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2240,9 +2257,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_FreeMacReq *req = (EthRemoteCfg_FreeMacReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("FREE_MAC | C2S | core=%u endpt=%u token=%u "
+            ETHFWTRACE_INFO("FREE_MAC | C2S | core=%u endpt=%u token=%d "
                             "macAdd=%02x:%02x:%02x:%02x:%02x:%02x",
-                            remoteProcId, remoteEndPt, token,
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U]);
 
@@ -2265,9 +2282,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_MacAddrRxFlowReq *req = (EthRemoteCfg_MacAddrRxFlowReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("REGISTER_MAC | C2S | core=%u endpt=%u token=%u "
+            ETHFWTRACE_INFO("REGISTER_MAC | C2S | core=%u endpt=%u token=%d "
                             "macAdd=%02x:%02x:%02x:%02x:%02x:%02x flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token,
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
                             req->flowIdxBase, req->flowIdxOffset);
@@ -2293,9 +2310,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_MacAddrRxFlowReq *req = (EthRemoteCfg_MacAddrRxFlowReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("DEREGISTER_MAC | C2S | core=%u endpt=%u token=%u "
+            ETHFWTRACE_INFO("DEREGISTER_MAC | C2S | core=%u endpt=%u token=%d "
                             "macAdd=%02x:%02x:%02x:%02x:%02x:%02x flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token,
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
                             req->flowIdxBase, req->flowIdxOffset);
@@ -2321,9 +2338,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_IPv4AddrRegisterReq *req = (EthRemoteCfg_IPv4AddrRegisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("REGISTER_IPv4 | C2S | core=%u endpt=%u token=%u "
+            ETHFWTRACE_INFO("REGISTER_IPv4 | C2S | core=%u endpt=%u token=%d "
                             "ipAddr=%u.%u.%u.%u macAdd=%02x:%02x:%02x:%02x:%02x:%02x",
-                            remoteProcId, remoteEndPt, token,
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->ipAddr[0U], req->ipAddr[1U], req->ipAddr[2U], req->ipAddr[3U],
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U]);
@@ -2348,8 +2365,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_IPv4AddrDeregisterReq *req = (EthRemoteCfg_IPv4AddrDeregisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("DEREGISTER_IPv4 | C2S | core=%u endpt=%u token=%u ipAddr=%u.%u.%u.%u",
-                            remoteProcId, remoteEndPt, token,
+            ETHFWTRACE_INFO("DEREGISTER_IPv4 | C2S | core=%u endpt=%u token=%d ipAddr=%u.%u.%u.%u",
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->ipAddr[0U], req->ipAddr[1U], req->ipAddr[2U], req->ipAddr[3U]);
 
             /* Get client object for token */
@@ -2371,9 +2388,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_VlanJoinReq *req = (EthRemoteCfg_VlanJoinReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("JOIN_VLAN | C2S | core=%u endpt=%u token=%u vlanId=%u "
+            ETHFWTRACE_INFO("JOIN_VLAN | C2S | core=%u endpt=%u token=%d vlanId=%u "
                             "macAdd=%x:%x:%x:%x:%x:%x flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token, req->vlanId,
+                            remoteProcId, remoteEndPt, (int32_t)token, req->vlanId,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
                             req->flowIdxBase, req->flowIdxOffset);
@@ -2400,9 +2417,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_VlanLeaveReq *req = (EthRemoteCfg_VlanLeaveReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("LEAVE_VLAN | C2S | core=%u endpt=%u token=%u vlanId=%u "
+            ETHFWTRACE_INFO("LEAVE_VLAN | C2S | core=%u endpt=%u token=%d vlanId=%u "
                             "macAdd=%x:%x:%x:%x:%x:%x flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token, req->vlanId,
+                            remoteProcId, remoteEndPt, (int32_t)token, req->vlanId,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
                             req->flowIdxBase, req->flowIdxOffset);
@@ -2428,8 +2445,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("ENABLE_PROMISC | C2S | core=%u endpt=%u token=%u",
-                            remoteProcId, remoteEndPt, token);
+            ETHFWTRACE_INFO("ENABLE_PROMISC | C2S | core=%u endpt=%u token=%d",
+                            remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2449,8 +2466,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            ETHFWTRACE_INFO("DISABLE_PROMISC | C2S | core=%u endpt=%u token=%u",
-                            remoteProcId, remoteEndPt, token);
+            ETHFWTRACE_INFO("DISABLE_PROMISC | C2S | core=%u endpt=%u token=%d",
+                            remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2471,8 +2488,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_RxDefaultFlowRegisterReq *req = (EthRemoteCfg_RxDefaultFlowRegisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
-            ETHFWTRACE_INFO("SET_RX_DEFAULTFLOW | C2S | core=%u endpt=%u token=%u flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token, req->flowIdxBase, req->flowIdxOffset);
+            ETHFWTRACE_INFO("SET_RX_DEFAULTFLOW | C2S | core=%u endpt=%u token=%d flowIdx=%u,%u",
+                            remoteProcId, remoteEndPt, (int32_t)token,
+                            req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2494,8 +2512,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_RxDefaultFlowRegisterReq *req = (EthRemoteCfg_RxDefaultFlowRegisterReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
-            ETHFWTRACE_INFO("DEL_RX_DEFAULTFLOW | C2S | core=%u endpt=%u token=%u flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token, req->flowIdxBase, req->flowIdxOffset);
+            ETHFWTRACE_INFO("DEL_RX_DEFAULTFLOW | C2S | core=%u endpt=%u token=%d flowIdx=%u,%u",
+                            remoteProcId, remoteEndPt, (int32_t)token,
+                            req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2517,9 +2536,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_MatchEthertypeAddReq *req = (EthRemoteCfg_MatchEthertypeAddReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
-            ETHFWTRACE_INFO("REGISTER_MATCH_ETHTYPE | C2S | core=%u endpt=%u token=%u "
+            ETHFWTRACE_INFO("REGISTER_MATCH_ETHTYPE | C2S | core=%u endpt=%u token=%d "
                             "ethType=%x flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token,
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->ethertype, req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
@@ -2543,8 +2562,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_MatchEthertypeDelReq *req = (EthRemoteCfg_MatchEthertypeDelReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
-            ETHFWTRACE_INFO("DEREGISTER_MATCH_ETHTYPE | C2S | core=%u endpt=%u token=%u ethType=%x",
-                            remoteProcId, remoteEndPt, token, req->ethertype);
+            ETHFWTRACE_INFO("DEREGISTER_MATCH_ETHTYPE | C2S | core=%u endpt=%u token=%d ethType=%x",
+                            remoteProcId, remoteEndPt, (int32_t)token, req->ethertype);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2565,9 +2584,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_FilterMacAddReq *req = (EthRemoteCfg_FilterMacAddReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
-            ETHFWTRACE_INFO("ADD_FILTER_MAC | C2S | core=%u endpt=%u token=%u "
+            ETHFWTRACE_INFO("ADD_FILTER_MAC | C2S | core=%u endpt=%u token=%d "
                             "macAdd=%x:%x:%x:%x:%x:%x vlanId=%u flowIdx=%u,%u",
-                            remoteProcId, remoteEndPt, token,
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
                             req->vlanId, req->flowIdxBase,req->flowIdxOffset);
@@ -2594,9 +2613,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_FilterMacDelReq *req = (EthRemoteCfg_FilterMacDelReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
-            ETHFWTRACE_INFO("DEL_FILTER_MAC | C2S | core=%u endpt=%u token=%u "
+            ETHFWTRACE_INFO("DEL_FILTER_MAC | C2S | core=%u endpt=%u token=%d "
                             "macAdd=%x:%x:%x:%x:%x:%x vlanId=%u",
-                            remoteProcId, remoteEndPt, token,
+                            remoteProcId, remoteEndPt, (int32_t)token,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
                             req->vlanId);
@@ -2620,6 +2639,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_PortLinkStatusRes *res = (EthRemoteCfg_PortLinkStatusRes *)resBuf;
 
+            ETHFWTRACE_VERBOSE("PORT_LINK_STATUS | C2S | core=%u endpt=%u token=%d",
+                               remoteProcId, remoteEndPt, (int32_t)token);
+
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
             EnetAppUtils_assert(hClient != NULL);
@@ -2632,6 +2654,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get port link params");
 
             resLen = sizeof(*res);
+
+            ETHFWTRACE_VERBOSE("PORT_LINK_STATUS | S2C | isLinked=%u speed=%u duplex=%u status=%d",
+                               res->isLinked, res->speed, res->duplexity, status);
             break;
         }
         case ETHREMOTECFG_CMD_READ_REGISTER:
@@ -2741,8 +2766,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_CommonReq *req = (EthRemoteCfg_CommonReq *)reqBuf;
             EthRemoteCfg_StatusRes *res;
 
-            ETHFWTRACE_INFO("TEARDOWN_COMPLETION | C2S | core=%u endpt=%u token=%u",
-                            remoteProcId, remoteEndPt, token);
+            ETHFWTRACE_INFO("TEARDOWN_COMPLETION | C2S | core=%u endpt=%u token=%d",
+                            remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(token);
@@ -2824,13 +2849,27 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
     resHdr->resId           = reqHdr->reqId;
     resHdr->status          = status;
 
-    ETHFWTRACE_INFO("S2C | msgType=%u token=%u clientId=%u resId=%u status=%d (ep=%u->%u)",
-                   resHdr->common.msgType,
-                   resHdr->common.token,
-                   resHdr->common.clientId,
-                   resHdr->resId,
-                   resHdr->status,
-                   localEp, remoteEndPt);
+    ETHFWTRACE_DBG_IF((resHdr->resType != ETHREMOTECFG_CMD_PORT_LINK_STATUS),
+                      "S2C | msgType=%u token=%d clientId=%u resId=%u status=%d len=%u (%u.%u->%u.%u)",
+                      resHdr->common.msgType,
+                      (int32_t)resHdr->common.token,
+                      resHdr->common.clientId,
+                      resHdr->resId,
+                      resHdr->status,
+                      resLen,
+                      EnetSoc_getCoreId(), localEp,
+                      remoteProcId, remoteEndPt);
+
+    ETHFWTRACE_VERBOSE_IF((resHdr->resType == ETHREMOTECFG_CMD_PORT_LINK_STATUS),
+                          "S2C | msgType=%u token=%d clientId=%u resId=%u status=%d len=%u (%u.%u->%u.%u)",
+                          resHdr->common.msgType,
+                          (int32_t)resHdr->common.token,
+                          resHdr->common.clientId,
+                          resHdr->resId,
+                          resHdr->status,
+                          resLen,
+                          EnetSoc_getCoreId(), localEp,
+                          remoteProcId, remoteEndPt);
 
     rtnVal = RPMessage_send(hMsgHandle, remoteProcId, remoteEndPt, localEp, &resBuf, resLen);
     ETHFWTRACE_ERR_IF((rtnVal != IPC_SOK), rtnVal, "Failed to send msg via IPC");
@@ -3182,6 +3221,21 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
                             {
                                 hwPushMsg->timeStamp = lookupEventOutArgs.tsVal;
 
+                                ETHFWTRACE_DBG("NOTIFY | S2C | core=%u endpt=%u token=%d notifyType=%u",
+                                               remoteCoreId,
+                                               ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID,
+                                               (int32_t)hwPushMsg->hdr.common.token,
+                                               hwPushMsg->hdr.notifyType);
+
+                                ETHFWTRACE_DBG("S2C | msgType=%u token=%d clientId=%u notifyType=%u len=%u (%u.%u->%u.%u)",
+                                               hwPushMsg->hdr.common.msgType,
+                                               (int32_t)hwPushMsg->hdr.common.token,
+                                               hwPushMsg->hdr.common.clientId,
+                                               hwPushMsg->hdr.notifyType,
+                                               sizeof(*hwPushMsg),
+                                               EnetSoc_getCoreId(), hServer->notifyServiceObj.localEp,
+                                               remoteCoreId, ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID);
+
                                 rtnVal = RPMessage_send(hServer->notifyServiceObj.hNotifyServicRpMsgEp,
                                                         remoteCoreId,
                                                         ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID,
@@ -3352,7 +3406,7 @@ static void CpswProxyServer_initClientHandle(CpswProxyServer_Config_t *cfg)
 
     if (CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX < cfg->numAllocObj)
     {
-        ETHFWTRACE_ERR(ETHFW_EINVALIDPARAMS, "Invalid number of alloc objects%u, max %u",
+        ETHFWTRACE_ERR(ETHFW_EINVALIDPARAMS, "Invalid number of alloc objects %u, max %u",
                        cfg->numAllocObj, CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX);
     }
 
