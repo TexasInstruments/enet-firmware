@@ -30,6 +30,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 STATIC_LIBS += ethfw_remotecfg_client
+STATIC_LIBS += ethfw_common
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)
@@ -101,6 +102,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 STATIC_LIBS += ethfw_remotecfg_client
+STATIC_LIBS += ethfw_common
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)

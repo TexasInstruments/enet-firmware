@@ -79,6 +79,7 @@
 #include <ti/csl/cslr_gtc.h>
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
 
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
 #include <ti/drv/ipc/ipc.h>
@@ -163,9 +164,23 @@
 #define ETHAPP_LWIP_TASK_STACKALIGN             ETHAPP_LWIP_TASK_STACKSIZE
 #define ETHAPP_IPC_TASK_STACKALIGN              IPC_TASK_STACKSIZE
 #else
-#define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
+#define ETHAPP_LWIP_TASK_STACKSIZE              (16U * 1024U)
 #define ETHAPP_LWIP_TASK_STACKALIGN             (32U)
 #define ETHAPP_IPC_TASK_STACKALIGN              (8192U)
+#endif
+
+#define ETHAPP_HWRECOVERY_TASK_PRI              (2U)
+
+/* Mailbox used to pass virtual netifs to be closed for recovery */
+#define ETHAPP_VIRTNETIF_MBX_MSGSIZE            (sizeof(CpswRemoteApp_VirtNetif))
+#define ETHAPP_VIRTNETIF_MBX_MSGCOUNT           (2U)
+#if defined(SAFERTOS)
+#define ETHAPP_VIRTNETIF_MBX_SIZE               ((ETHAPP_VIRTNETIF_MBX_MSGSIZE * \
+                                                  ETHAPP_VIRTNETIF_MBX_MSGCOUNT) + \
+                                                 safertosapiQUEUE_OVERHEAD_BYTES)
+#else
+#define ETHAPP_VIRTNETIF_MBX_SIZE               (ETHAPP_VIRTNETIF_MBX_MSGSIZE * \
+                                                 ETHAPP_VIRTNETIF_MBX_MSGCOUNT)
 #endif
 
 /* lwIP features that EthFw relies on */
@@ -190,6 +205,10 @@
 #define ETHFW_CLIENT_GW_MAC_PORT(addr)          IP4_ADDR((addr), 192,168,2,1)
 #define ETHFW_CLIENT_NETMASK_MAC_PORT(addr)     IP4_ADDR((addr), 255,255,255,0)
 #endif
+
+static uint8_t gEthAppRecoveryStackBuf[ETHAPP_LWIP_TASK_STACKSIZE]
+__attribute__ ((section(".bss:taskStackSection")))
+__attribute__((aligned(ETHAPP_LWIP_TASK_STACKSIZE)));
 
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
@@ -332,7 +351,21 @@ typedef struct CpswRemoteApp_Obj_s
 
     /* Virtual network interface data */
     CpswRemoteApp_VirtNetif virtNetif[CPSW_REMOTE_APP_REMOTE_NETIF_MAX];
+
+    /* Mailbox of virtual netifs to be closed during CPSW recovery */
+    MailboxP_Handle hMbx;
+
+    /* Mailbox buffer for storing all the command messages */
+    uint8_t mbxBuf[ETHAPP_VIRTNETIF_MBX_SIZE] __attribute__ ((aligned(32)));
 } CpswRemoteApp_Obj;
+
+/* Trace configuration */
+static EthFwTrace_Cfg gRemoteApp_traceCfg =
+{
+    .print        = (EthFwTrace_Print)&System_printf,
+    .traceTsFunc  = NULL,
+    .extTraceFunc = NULL,
+};
 
 /* Link status on these ports will be used to determine link up on virtual switch port */
 static Enet_MacPort gRemoteAppMacPorts[] =
@@ -413,13 +446,20 @@ static void EthApp_virtNetifStatusCb(struct netif *netif);
 
 static void EthApp_lwipNetifStatusCb(struct netif *netif);
 
-static void EthApp_closeDmaCb(void *arg);
+static void EthApp_openDma(struct netif *netif);
 
-static void EthApp_openDmaCb(void *arg);
+static void EthApp_closeDma(struct netif *netif);
 
-static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
-                                             uint64_t syncTime,
+static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
+                                             void *notifyArg,
                                              void *cbArg);
+
+static void CpswRemoteApp_hwRecoveryTask(void *a0,
+                                         void *a1);
+
+static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
+                                           void *notifyArg,
+                                           void *cbArg);
 
 // hack for release mode build fix TODO fix this
 void localAssert(bool cond)
@@ -449,7 +489,7 @@ static void CpswRemoteApp_ipcPrint(const char *str)
 
 static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
 {
-    int32_t status;
+    int32_t status = CPSWPROXY_SOK;
 
     memset(&virtNetif->syncTimerObj, 0, sizeof(CpswRemoteApp_SyncTimerObj));
 
@@ -457,27 +497,31 @@ static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
     CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x0U);
 
     /* Register callback */
-    status = CpswProxy_registerHwPushNotifyCb(CpswRemoteApp_calcSyncTimeParams,
-                                              (void *)virtNetif);
-    if (status == ENET_EALREADYOPEN)
+    status = CpswProxy_registerNotifyCb(virtNetif->hCpswProxy,
+                                        ETHREMOTECFG_NOTIFY_HWPUSH,
+                                        CpswRemoteApp_calcSyncTimeParams,
+                                        (void *)virtNetif);
+    if (status != CPSWPROXY_SOK)
     {
-        System_printf("CpswProxy_registerHwPushNotifyCb(): Callback is registered already\n");
+        System_printf("Failed to register to HW push notification\n");
     }
+    else
+    {
+        /* Configure GTC push event */
+        CSL_REG32_WR(CSL_GTC0_GTC_CFG0_BASE + CSL_GTC_CFG0_PUSHEVT,
+                     CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL);
 
-    /* Configure GTC push event */
-    CSL_REG32_WR(CSL_GTC0_GTC_CFG0_BASE + CSL_GTC_CFG0_PUSHEVT,
-                 CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL);
+        /* Send request to Ethfw to configure TSR */
+        CpswProxy_registerRemoteTimer(virtNetif->hCpswProxy,
+                                      CSLR_TIMESYNC_INTRTR0_IN_GTC0_GTC_PUSH_EVENT_0,
+                                      (uint8_t)virtNetif->hwPushNum);
 
-    /* Send request to Ethfw to configure TSR */
-    CpswProxy_registerRemoteTimer(virtNetif->hCpswProxy,
-                                  CSLR_TIMESYNC_INTRTR0_IN_GTC0_GTC_PUSH_EVENT_0,
-                                  (uint8_t)virtNetif->hwPushNum);
+        /* Enable GTC */
+        CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
 
-    /* Enable GTC */
-    CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
-
-    /* Set sync timer init status */
-    virtNetif->syncTimerInitDone = true;
+        /* Set sync timer init status */
+        virtNetif->syncTimerInitDone = true;
+    }
 }
 
 static uint64_t CpswRemoteApp_getLocalTime(void)
@@ -506,11 +550,15 @@ static uint64_t CpswRemoteApp_getSynchronizedTime(CpswRemoteApp_SyncTimerObj *hS
     return synchronizedTime;
 }
 
-static void CpswRemoteApp_calcSyncTimeParams(CpswCpts_HwPush hwPushNum,
-                                             uint64_t syncTime,
+
+static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
+                                             void *notifyArg,
                                              void *cbArg)
 {
     CpswRemoteApp_VirtNetif *virtNetif = (CpswRemoteApp_VirtNetif *)cbArg;
+    CpswProxy_HwPushNotifyParams *params = (CpswProxy_HwPushNotifyParams *)notifyArg;
+    CpswCpts_HwPush hwPushNum = (CpswCpts_HwPush)params->hwPushNum;
+    uint64_t syncTime = params->timestamp;
 
     if (hwPushNum == virtNetif->hwPushNum)
     {
@@ -637,8 +685,13 @@ static void CpswRemoteApp_initTask(void* a0,
     Ipc_VirtIoParams vqParam;
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
+    MailboxP_Params mbxParams;
     int32_t status;
     uint32_t i;
+
+    /* Initialize ETHFW Trace with INFO log level and higher */
+    EthFwTrace_init(&gRemoteApp_traceCfg);
+    EthFwTrace_setLevel(ETHFW_TRACE_INFO);
 
     /* Step1 : Initialize the multiproc */
     status = Ipc_mpSetConfig(selfProcId, numProc, &gRemoteProc[0]);
@@ -726,6 +779,26 @@ static void CpswRemoteApp_initTask(void* a0,
 #endif
 
     TaskP_create(&EthApp_lwipMain, &params);
+
+    /* Step 7: Create mailbox to pass virtual netifs to close during recovery */
+    MailboxP_Params_init(&mbxParams);
+    mbxParams.name    = (uint8_t *)"VirtNetif Mbox";
+    mbxParams.size    = ETHAPP_VIRTNETIF_MBX_MSGSIZE;
+    mbxParams.count   = ETHAPP_VIRTNETIF_MBX_MSGCOUNT;
+    mbxParams.buf     = (void *)&gRemoteAppObj.mbxBuf[0U];
+    mbxParams.bufsize = sizeof(gRemoteAppObj.mbxBuf);
+
+    gRemoteAppObj.hMbx = MailboxP_create(&mbxParams);
+
+    /* Step 8: Create HW recovery task */
+    TaskP_Params_init(&params);
+    params.name      = "HW Recovery Task";
+    params.priority  = ETHAPP_HWRECOVERY_TASK_PRI;
+    params.arg0      = (void *)&gRemoteAppObj;
+    params.stack     = &gEthAppRecoveryStackBuf[0];
+    params.stacksize = sizeof(gEthAppRecoveryStackBuf);
+
+    TaskP_create(&CpswRemoteApp_hwRecoveryTask, &params);
 }
 
 int main(void)
@@ -936,6 +1009,16 @@ static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
     if (hProxy != NULL)
     {
         virtNetif->hCpswProxy = hProxy;
+
+        CpswProxy_registerNotifyCb(virtNetif->hCpswProxy,
+                                   ETHREMOTECFG_NOTIFY_HWERROR,
+                                   CpswRemoteApp_hwRecoveryNotify,
+                                   (void *)virtNetif);
+
+        CpswProxy_registerNotifyCb(virtNetif->hCpswProxy,
+                                   ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE,
+                                   CpswRemoteApp_hwRecoveryNotify,
+                                   (void *)virtNetif);
     }
     else
     {
@@ -982,10 +1065,6 @@ static void EthApp_initLwip(void *arg)
     for (i = 0U; i < ENET_ARRAYSIZE(gRemoteAppObj.virtNetif); i++)
     {
         EthApp_initNetif(&gRemoteAppObj.virtNetif[i]);
-
-        /* Register for LWIP DMA open/close callbacks */
-        CpswProxy_registercloseLwipDmaCb(EthApp_closeDmaCb, i, (void *)&gRemoteAppObj.virtNetif[i].netif);
-        CpswProxy_registeropenLwipDmaCb(EthApp_openDmaCb, i, (void *)&gRemoteAppObj.virtNetif[i].netif);
     }
 
 #if defined(ETHAPP_ENABLE_IPERF_SERVER)
@@ -1179,39 +1258,6 @@ static void EthApp_lwipNetifStatusCb(struct netif *netif)
     {
         appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
     }
-}
-
-static void EthApp_closeDmaCb(void *arg)
-{
-    struct netif *netif = (struct netif *)arg;
-    CpswRemoteApp_VirtNetif *virtNetif;
-    bool isSwitchPort;
-
-    virtNetif = container_of(netif, CpswRemoteApp_VirtNetif, netif);
-    localAssert(virtNetif->hCpswProxy != NULL);
-
-    /* Issue link down to Lwip stack and close the Lwip DMA channels */
-    sys_lock_tcpip_core();
-    netif_set_link_down(netif);
-    sys_unlock_tcpip_core();
-	
-    /* Close the lwip dma channels */
-    LWIPIF_LWIP_closeDma(netif);
-
-    /* Send teardown completion */
-    CpswProxy_sendTeardown(virtNetif->hCpswProxy);
-}
-
-static void EthApp_openDmaCb(void *arg)
-{
-    struct netif *netif = (struct netif *)arg;
-
-    /* Open the lwip dma channels and issue link up to Lwip stack */
-    LWIPIF_LWIP_openDma(netif);
-
-    sys_lock_tcpip_core();
-    netif_set_link_up(netif);
-    sys_unlock_tcpip_core();
 }
 
 static void CpswRemoteApp_openLwipRxCh(CpswProxy_Handle hProxy,
@@ -1530,5 +1576,64 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
 
     releaseInfo->rxFreePkt[0U].cb(releaseInfo->rxFreePkt[0U].cbArg, &fqPktInfoQ, &cqPktInfoQ);
 
+}
+
+static void EthApp_openDma(struct netif *netif)
+{
+    /* Open the lwIP DMA channels and issue link up to lwIP stack */
+    LWIPIF_LWIP_openDma(netif);
+
+    sys_lock_tcpip_core();
+    netif_set_link_up(netif);
+    sys_unlock_tcpip_core();
+}
+
+static void EthApp_closeDma(struct netif *netif)
+{
+    /* Issue link down to lwIP stack and close the lwIP DMA channels */
+    sys_lock_tcpip_core();
+    netif_set_link_down(netif);
+    sys_unlock_tcpip_core();
+
+    /* Close the lwIP DMA channels */
+    LWIPIF_LWIP_closeDma(netif);
+}
+
+static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
+                                           void *notifyArg,
+                                           void *cbArg)
+{
+    CpswRemoteApp_VirtNetif *virtNetif = (CpswRemoteApp_VirtNetif *)cbArg;
+
+    if (notifyType == ETHREMOTECFG_NOTIFY_HWERROR)
+    {
+        appLogPrintf("VirtPort %u: HWRECOVERY_HWERROR notification received\n", virtNetif->virtPort);
+        MailboxP_post(gRemoteAppObj.hMbx, (void *)&virtNetif, MailboxP_WAIT_FOREVER);
+    }
+    else if (notifyType == ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE)
+    {
+        appLogPrintf("VirtPort %u: HWRECOVERY_COMPLETE notification received\n", virtNetif->virtPort);
+        EthApp_openDma(&virtNetif->netif);
+    }
+}
+
+static void CpswRemoteApp_hwRecoveryTask(void *a0,
+                                         void *a1)
+{
+    CpswRemoteApp_VirtNetif *virtNetif;
+    volatile bool exitTask = false;
+
+    while (!exitTask)
+    {
+        MailboxP_pend(gRemoteAppObj.hMbx, (void *)&virtNetif, MailboxP_WAIT_FOREVER);
+
+        /* Close DMA channel/flow */
+        appLogPrintf("VirtPort %u: Initiating DMA channel teardown...\n", virtNetif->virtPort);
+        EthApp_closeDma(&virtNetif->netif);
+
+        /* Send teardown completion */
+        appLogPrintf("VirtPort %u: DMA teardown complete, sending notification to ETHFW\n", virtNetif->virtPort);
+        CpswProxy_teardownCompletion(virtNetif->hCpswProxy);
+    }
 }
 
