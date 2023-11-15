@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020 Texas Instruments Incorporated
+ * Copyright (c) 2020-2023 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -490,10 +490,10 @@ void CpswProxy_close(CpswProxy_Handle hProxy)
     CpswProxy_freeHandle(hProxy);
 }
 
-void CpswProxy_attach(CpswProxy_Handle hProxy,
-                      EthRemoteCfg_VirtPort virtPort,
-                      uint32_t *rxMtu,
-                      uint32_t *txMtu)
+int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
+                         EthRemoteCfg_VirtPort virtPort,
+                         uint32_t *rxMtu,
+                         uint32_t *txMtu)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachRes res;
@@ -522,19 +522,20 @@ void CpswProxy_attach(CpswProxy_Handle hProxy,
         }
     }
 
-    ETHFWTRACE_INFO_IF((status == CPSWPROXY_SOK),
-                       "ATTACH | S2C | token=%u rxMtu=%u features=%x status=%d",
-                       (int32_t)hProxy->token, res.rxMtu, res.features, status);
+    ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x status=%d",
+                    (int32_t)res.hdr.common.token, res.rxMtu, res.features, status);
+
+    return status;
 }
 
-void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
-                              EthRemoteCfg_VirtPort virtPort,
-                              uint32_t *rxMtu,
-                              uint32_t *txMtu,
-                              uint32_t *txPSILThreadId,
-                              uint32_t *rxFlowIdxBase,
-                              uint32_t *rxFlowIdxOffset,
-                              uint8_t *macAddr)
+int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
+                                 EthRemoteCfg_VirtPort virtPort,
+                                 uint32_t *rxMtu,
+                                 uint32_t *txMtu,
+                                 uint32_t *txPSILThreadId,
+                                 uint32_t *rxFlowIdxBase,
+                                 uint32_t *rxFlowIdxOffset,
+                                 uint8_t *macAddr)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachExtRes res;
@@ -551,7 +552,7 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                                &res.hdr, sizeof(res));
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send ATTACH_EXT cmd");
 
-    if (status == CPSWPROXY_STATUS)
+    if (status == CPSWPROXY_SOK)
     {
         hProxy->token    = res.hdr.common.token;
         hProxy->features = res.features;
@@ -576,9 +577,11 @@ void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                     res.rxPsilSrcId, res.txPsilDstId,
                     res.macAddr[0U], res.macAddr[1U], res.macAddr[2U],
                     res.macAddr[3U], res.macAddr[4U], res.macAddr[5U]);
+
+    return status;
 }
 
-void CpswProxy_detach(CpswProxy_Handle hProxy)
+int32_t CpswProxy_detach(CpswProxy_Handle hProxy)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
@@ -593,10 +596,12 @@ void CpswProxy_detach(CpswProxy_Handle hProxy)
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send DETACH cmd");
 
     ETHFWTRACE_INFO("DETACH | S2C | status=%d", status);
+
+    return status;
 }
 
-void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
-                         uint32_t *txPSILThreadId)
+int32_t CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
+                            uint32_t *txPSILThreadId)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_AllocTxRes res;
@@ -613,10 +618,12 @@ void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("ALLOC_TX | S2C | token=%d txPsil=0x%x status=%d",
                     (int32_t)hProxy->token, res.txPsilDstId, status);
+
+    return status;
 }
 
-void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
-                        uint32_t txChNum)
+int32_t CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
+                           uint32_t txChNum)
 {
     EthRemoteCfg_FreeTxReq req;
     EthRemoteCfg_StatusRes res;
@@ -632,11 +639,13 @@ void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send FREE_TX cmd");
 
     ETHFWTRACE_INFO("FREE_TX | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
-                           uint32_t *rxFlowIdxBase,
-                           uint32_t *rxFlowIdxOffset)
+int32_t CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
+                              uint32_t *rxFlowIdxBase,
+                              uint32_t *rxFlowIdxOffset)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_AllocRxRes res;
@@ -655,11 +664,13 @@ void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
     ETHFWTRACE_INFO("ALLOC_RX | S2C | token=%d flow=%u,%u rxPsil=0x%x status=%d",
                     (int32_t)hProxy->token, res.rxFlowIdxBase, res.rxFlowIdxOffset,
                     res.rxPsilSrcId, status);
+
+    return status;
 }
 
-void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
-                          uint32_t rxFlowIdxBase,
-                          uint32_t rxFlowIdxOffset)
+int32_t CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
+                             uint32_t rxFlowIdxBase,
+                             uint32_t rxFlowIdxOffset)
 {
     EthRemoteCfg_FreeRxReq req;
     EthRemoteCfg_StatusRes res;
@@ -677,10 +688,12 @@ void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send FREE_RX cmd");
 
     ETHFWTRACE_INFO("FREE_RX | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_allocMac(CpswProxy_Handle hProxy,
-                        uint8_t *macAddr)
+int32_t CpswProxy_allocMac(CpswProxy_Handle hProxy,
+                           uint8_t *macAddr)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_AllocMacRes res;
@@ -700,10 +713,12 @@ void CpswProxy_allocMac(CpswProxy_Handle hProxy,
                     res.macAddr[0U], res.macAddr[1U], res.macAddr[2U],
                     res.macAddr[3U], res.macAddr[4U], res.macAddr[5U],
                     status);
+
+    return status;
 }
 
-void CpswProxy_freeMac(CpswProxy_Handle hProxy,
-                       const uint8_t *macAddr)
+int32_t CpswProxy_freeMac(CpswProxy_Handle hProxy,
+                          const uint8_t *macAddr)
 {
     EthRemoteCfg_FreeMacReq req;
     EthRemoteCfg_StatusRes res;
@@ -722,11 +737,13 @@ void CpswProxy_freeMac(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send FREE_MAC cmd");
 
     ETHFWTRACE_INFO("FREE_MAC | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
-                                     uint32_t flowIdxBase,
-                                     uint32_t flowIdxOffset)
+int32_t CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
+                                        uint32_t flowIdxBase,
+                                        uint32_t flowIdxOffset)
 {
     EthRemoteCfg_RxDefaultFlowRegisterReq req;
     EthRemoteCfg_StatusRes res;
@@ -744,11 +761,13 @@ void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send SET_RX_DEFAULTFLOW cmd");
 
     ETHFWTRACE_INFO("SET_RX_DEFAULTFLOW | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
-                                       uint32_t flowIdxBase,
-                                       uint32_t flowIdxOffset)
+int32_t CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
+                                          uint32_t flowIdxBase,
+                                          uint32_t flowIdxOffset)
 {
     EthRemoteCfg_RxDefaultFlowRegisterReq req;
     EthRemoteCfg_StatusRes res;
@@ -766,12 +785,14 @@ void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send DEL_RX_DEFAULTFLOW cmd");
 
     ETHFWTRACE_INFO("DEL_RX_DEFAULTFLOW | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
-                                    uint32_t flowIdxBase,
-                                    uint32_t flowIdxOffset,
-                                    const uint8_t *macAddr)
+int32_t CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
+                                       uint32_t flowIdxBase,
+                                       uint32_t flowIdxOffset,
+                                       const uint8_t *macAddr)
 {
     EthRemoteCfg_MacAddrRxFlowReq req;
     EthRemoteCfg_StatusRes res;
@@ -790,12 +811,14 @@ void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send REGISTER_MAC cmd");
 
     ETHFWTRACE_INFO("REGISTER_MAC | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
-                                      uint32_t flowIdxBase,
-                                      uint32_t flowIdxOffset,
-                                      const uint8_t *macAddr)
+int32_t CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
+                                         uint32_t flowIdxBase,
+                                         uint32_t flowIdxOffset,
+                                         const uint8_t *macAddr)
 {
     EthRemoteCfg_MacAddrRxFlowReq req;
     EthRemoteCfg_StatusRes res;
@@ -814,11 +837,13 @@ void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send DEREGISTER_MAC cmd");
 
     ETHFWTRACE_INFO("DEREGISTER_MAC | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
-                                uint8_t *macAddr,
-                                uint8_t *ipv4Addr)
+int32_t CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
+                                   uint8_t *macAddr,
+                                   uint8_t *ipv4Addr)
 {
     EthRemoteCfg_IPv4AddrRegisterReq req;
     EthRemoteCfg_StatusRes res;
@@ -840,10 +865,12 @@ void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send REGISTER_IPv4 cmd");
 
     ETHFWTRACE_INFO("REGISTER_IPv4 | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
-                                  uint8_t *ipv4Addr)
+int32_t CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
+                                     uint8_t *ipv4Addr)
 {
     EthRemoteCfg_IPv4AddrDeregisterReq req;
     EthRemoteCfg_StatusRes res;
@@ -862,12 +889,15 @@ void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send DEREGISTER_IPv4 cmd");
 
     ETHFWTRACE_INFO("UNREGISTER_IPv4 | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
 bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_PortLinkStatusRes res;
+    bool isLinked;
     int32_t status;
 
     ETHFWTRACE_VERBOSE("PORT_LINK_STATUS | C2S | token=%d", (int32_t)hProxy->token);
@@ -882,7 +912,9 @@ bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy)
                        (int32_t)hProxy->token, res.speed, res.duplexity ? "half" : "full",
                        res.isLinked ? "yes":"no", status);
 
-    return res.isLinked;
+    isLinked = (status == CPSWPROXY_SOK) ? res.isLinked : false;
+
+    return isLinked;
 }
 
 int32_t CpswProxy_teardownCompletion(CpswProxy_Handle hProxy)
@@ -905,10 +937,10 @@ int32_t CpswProxy_teardownCompletion(CpswProxy_Handle hProxy)
     return status;
 }
 
-void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                       uint32_t flowIdxBase,
-                                       uint32_t flowIdxOffset,
-                                       uint16_t etherType)
+int32_t CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
+                                          uint32_t flowIdxBase,
+                                          uint32_t flowIdxOffset,
+                                          uint16_t etherType)
 {
     EthRemoteCfg_MatchEthertypeAddReq req;
     EthRemoteCfg_StatusRes res;
@@ -929,10 +961,12 @@ void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("REGISTER_MATCH_ETHERTYPE | S2C | token=%d status=%d",
                     (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                         uint16_t etherType)
+int32_t CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
+                                            uint16_t etherType)
 {
     EthRemoteCfg_MatchEthertypeDelReq req;
     EthRemoteCfg_StatusRes res;
@@ -951,11 +985,13 @@ void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("DEREGISTER_MATCH_ETHERTYPE | S2C | token=%d status=%d",
                     (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
-                                   uint8_t timerId,
-                                   uint8_t hwPushNum)
+int32_t CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
+                                      uint8_t timerId,
+                                      uint8_t hwPushNum)
 {
     EthRemoteCfg_RemoteTimerRegisterReq req;
     EthRemoteCfg_StatusRes res;
@@ -976,10 +1012,12 @@ void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("REGISTER_REMOTE_TIMER | S2C | token=%d status=%d",
                     (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
-                                     uint8_t hwPushNum)
+int32_t CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
+                                        uint8_t hwPushNum)
 {
     EthRemoteCfg_RemoteTimerDeregisterReq req;
     EthRemoteCfg_StatusRes res;
@@ -998,10 +1036,12 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("DEREGISTER_REMOTE_TIMER | S2C | token=%d status=%d",
                     (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
-                              bool enable)
+int32_t CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
+                                 bool enable)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
@@ -1022,6 +1062,8 @@ void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("%s | S2C | token=%d status=%d",
                     enable ? "ENABLE_PROMISC" : "DISABLE_PROMISC", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
 int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
@@ -1053,7 +1095,7 @@ int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("JOIN_VLAN | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
 
-    return res.hdr.status;
+    return status;
 }
 
 int32_t CpswProxy_leaveVlan(CpswProxy_Handle hProxy,
@@ -1085,10 +1127,10 @@ int32_t CpswProxy_leaveVlan(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("LEAVE_VLAN | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
 
-    return res.hdr.status;
+    return status;
 }
 
-void CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
+int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
                             uint32_t flowIdxBase,
                             uint32_t flowIdxOffset,
                             const uint8_t *macAddr,
@@ -1126,11 +1168,13 @@ void CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
     }
 
     ETHFWTRACE_INFO("ADD_FILTER_MAC | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
-                            const uint8_t *macAddr,
-                            uint16_t vlanId)
+int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
+                               const uint8_t *macAddr,
+                               uint16_t vlanId)
 {
     EthRemoteCfg_FilterMacDelReq req;
     EthRemoteCfg_StatusRes res;
@@ -1162,9 +1206,11 @@ void CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
     }
 
     ETHFWTRACE_INFO("DEL_FILTER_MAC | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
-void CpswProxy_dumpStats(CpswProxy_Handle hProxy)
+int32_t CpswProxy_dumpStats(CpswProxy_Handle hProxy)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
@@ -1178,6 +1224,8 @@ void CpswProxy_dumpStats(CpswProxy_Handle hProxy)
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send DUMP cmd");
 
     ETHFWTRACE_INFO("DUMP | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
 }
 
 int32_t CpswProxy_registerNotifyCb(CpswProxy_Handle hProxy,

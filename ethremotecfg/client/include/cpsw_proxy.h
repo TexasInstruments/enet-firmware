@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2023 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -80,17 +80,16 @@ extern "C" {
 /*!
  * \defgroup ETHFW_CLIENT Ethernet Firmware Proxy Client APIs
  *
- * \brief This section contains APIs for CPSW Proxy Client APIs.
- *
- * The CPSW Proxy client resides on the remote cores and enables clients on
- * remote cores to configure the Ethernet Switch via RPC.
+ * This section contains APIs for CPSW Proxy Client.  The CPSW Proxy Client
+ * resides on the remote cores and enables clients on remote cores to configure
+ * the Ethernet device via RPC.
  *
  * CPSW Proxy Client implements a subset of the commands and notifications
  * supported by Ethernet Firmware Remote Configuration interface described
  * in \ref ETHFW_ETHREMOTECFG.
  *
  * CPSW Proxy Client is currently used by remote clients running RTOS.  It
- * may be repurposed for other OSes, but may require adaptation.
+ * could be repurposed for other OSes, but may or may not require porting.
  *
  * @{
  */
@@ -192,7 +191,7 @@ typedef struct CpswProxy_ClientObj_s *CpswProxy_Handle;
 typedef struct CpswProxy_HwPushNotifyParams_s
 {
     /* CPTS HW push number */
-    uint32_t hwPushNum;
+    uint8_t hwPushNum;
 
     /* CPTS timestamp */
     uint64_t timestamp;
@@ -228,7 +227,8 @@ typedef void (*CpswProxy_NotifyCbFxn)(uint32_t notifyType,
  * Performs one-time initialization of the CPSW Proxy layer. It needs to be called
  * only once per core and it must be the very first CpswProxy API to be called.
  *
- * \return       CPSWPROXY_SOK in case of success. Negative error otherwise.
+ * \returns \ref CPSWPROXY_SOK if initialization was successful, or negative
+ *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_init(void);
 
@@ -247,9 +247,10 @@ void CpswProxy_deinit(void);
  * its initialization steps which are dependent on server.
  *
  * Application should call this function until connection is established before calling
- * CpswProxy_open() or any other CpswProxy API.
+ * \ref CpswProxy_open() or any other CpswProxy API.
  *
- * \return       IPC_SOK in case of success. Negative IPC error otherwise.
+ * \returns \ref CPSWPROXY_SOK if able to connect to CPSW Proxy server, or negative
+ *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_connect(void);
 
@@ -260,10 +261,10 @@ int32_t CpswProxy_connect(void);
  * Proxy APIs. Each virtPort will get a proxy handle, which will be used in
  * CPSW Proxy APIs.
  *
- * \param cfg    Configuration of the CPSW Proxy client
+ * \param cfg    Configuration of the CPSW Proxy client.
  *
- * \return       Cpsw Proxy Handle which will be used in all Cpsw Proxy APIs.
- *               NULL value indicates CpswProxy_open() failed
+ * \returns      Cpsw Proxy Handle which will be used in all Cpsw Proxy APIs.
+ *               NULL value indicates \ref CpswProxy_open() failed.
  */
 CpswProxy_Handle CpswProxy_open(const CpswProxy_Config *cfg);
 
@@ -277,336 +278,327 @@ CpswProxy_Handle CpswProxy_open(const CpswProxy_Config *cfg);
 void CpswProxy_close(CpswProxy_Handle hProxy);
 
 /*!
- * \brief Attach to Ethernet device
+ * \brief Attach to Ethernet device.
  *
- * Clients must first attach to the Ethernet device.
- * CpswProxy_attach() returns the core_key and id which are used as params for
- * all further client fucntions.
+ * This is the first function to be called by a client after the connection with
+ * the remote Ethernet device has been established via \ref CpswProxy_open().
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Alternatively, clients that require a single Rx and single Tx channel could
+ * use \ref CpswProxy_attachExtended() which provides the same functionality as
+ * this function, but it also performs allocation of one Tx channel, one Rx
+ * flow and one MAC address.
  *
- * \param hProxy      Handle to Cpsw Proxy
- * \param virtPort    Virtual port id to attach to
+ * \param hProxy      Handle to Cpsw Proxy.
+ * \param virtPort    Virtual port id to attach to.
  * \param rxMtu       Pointer to maximum receive packet length. Populated by
- *                    this function
+ *                    this function.
  * \param txMtu       Array of maximum transmit packet length per priority
- *                    supported by ethernet switch
+ *                    supported by the Ethernet device.
+ *
+ * \returns \ref CPSWPROXY_SOK if client has been successfully attached, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_attach(CpswProxy_Handle hProxy,
-                      EthRemoteCfg_VirtPort virtPort,
-                      uint32_t *rxMtu,
-                      uint32_t *txMtu);
+int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
+                         EthRemoteCfg_VirtPort virtPort,
+                         uint32_t *rxMtu,
+                         uint32_t *txMtu);
 
 /*!
- * \brief Attach to Ethernet device with extended response
+ * \brief Attach to Ethernet device with extended response.
  *
- * Clients must first attach to the Ethernet device.
- * CpswProxy_attachExtended() returns the core_key and id which are used as
- * params for all further client functions.
+ * This is the first function to be called by a client after the connection with
+ * the remote Ethernet device has been established via \ref CpswProxy_open().
  *
- * For remote core clients that require only one Rx/one Tx and one destination MAC
- * address, CpswProxy_attachExtended() allows a single attach call to return all
- * the required params. Client can avoid further calls to alloctx/allocrx, etc.
+ * It's an alternative option to \ref CpswProxy_attach() that can be used in
+ * clients that require a single Rx and single Tx channel.  In addition to
+ * attaching to the remote Ethernet device, this function also allocates one
+ * Tx channel, one Rx flow and one MAC address.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy          Handle to Cpsw Proxy
- * \param virtPort        Virtual port id to attach to
+ * \param hProxy          Handle to Cpsw Proxy.
+ * \param virtPort        Virtual port id to attach to.
  * \param rxMtu           Pointer to maximum receive packet length. Populated by
-                          this function
+                          this function.
  * \param txMtu           Array of maximum transmit packet length per priority
- *                        supported by ethernet switch
+ *                        supported by Ethernet device.
  * \param txPSILThreadId  Pointer to allocated Tx Channel CPSW PSIL destination
- *                        thread id populated by this function
- * \param rxFlowIdxBase   Pointer to allocated Rx Flow Index Base value populated
- *                        by this function:
- *                        Absolute flowIdx = (rxFlowIdxBase + rxFlowIdxOffset)
- * \param rxFlowIdxOffset Pointer to allocated allocated Rx Flow Index offset
- *                        value populated by this function
+ *                        thread id populated by this function.
+ * \param rxFlowIdxBase   Pointer to RX flow index base value.
+ * \param rxFlowIdxOffset Pointer to RX flow offset to be allocated.
  * \param macAddr         Pointer to allocated destination MAC address allocated
- *                        to remote core populated by this function
+ *                        to remote core populated by this function.
+ *
+ * \returns \ref CPSWPROXY_SOK if client has been successfully attached, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_attachExtended(CpswProxy_Handle hProxy,
-                              EthRemoteCfg_VirtPort virtPort,
-                              uint32_t *rxMtu,
-                              uint32_t *txMtu,
-                              uint32_t *txPSILThreadId,
+int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
+                                 EthRemoteCfg_VirtPort virtPort,
+                                 uint32_t *rxMtu,
+                                 uint32_t *txMtu,
+                                 uint32_t *txPSILThreadId,
+                                 uint32_t *rxFlowIdxBase,
+                                 uint32_t *rxFlowIdxOffset,
+                                 uint8_t *macAddr);
+
+/*!
+ * \brief Detach from Ethernet device.
+ *
+ * Detaches the local client from remote Ethernet device.
+ *
+ * \param hProxy    Handle to Cpsw Proxy.
+ *
+ * \returns \ref CPSWPROXY_SOK if client has been detached, or negative error in
+ *          case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_detach(CpswProxy_Handle hProxy);
+
+/*!
+ * \brief Allocate Tx channel.
+ *
+ * Allocates a TX channel to be used exclusively by this client.  The channel
+ * is returned as a Tx PSIL destination thread id which client can use to
+ * configure the DMA channel.
+ *
+ * \param hProxy         Handle to Cpsw Proxy.
+ * \param txPSILThreadId Allocated Tx channel CPSW PSIL destination thread id,
+ *                       populated by this function.
+ *
+ * \returns \ref CPSWPROXY_SOK if TX channel has been successfully allocated, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
+                            uint32_t *txPSILThreadId);
+
+/*!
+ * \brief Free Tx channel.
+ *
+ * Deallocates a TX channel previously allocated through \ref CpswProxy_allocTxCh()
+ * or \ref CpswProxy_attachExtended().
+ *
+ * \param hProxy    Handle to Cpsw Proxy.
+ * \param txChNum   Tx channel CPSW PSIL destination thread id to be freed.
+ *
+ * \returns \ref CPSWPROXY_SOK if TX channel has been freed, or negative error
+ *          in case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
+                           uint32_t txChNum);
+
+/*!
+ * \brief Alloc Rx flow.
+ *
+ * Allocates a Rx flow to be used exclusively by this client.  The Rx flow idx is
+ * returned as a pair of base and offset values.  The absolute flow idx is:
+ * `rxFlowIdxBase + rxFlowIdxOffset`.
+ *
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param rxFlowIdxBase    Pointer to RX flow index base value.
+ * \param rxFlowIdxOffset  Pointer to RX flow offset to be allocated.
+ *
+ * \returns \ref CPSWPROXY_SOK if RX flow has been successfully allocated, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
                               uint32_t *rxFlowIdxBase,
-                              uint32_t *rxFlowIdxOffset,
-                              uint8_t *macAddr);
+                              uint32_t *rxFlowIdxOffset);
 
 /*!
- * \brief Detach from Ethernet device
+ * \brief Free Rx flow.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Frees a Rx flow previously allocated through \ref CpswProxy_allocRxFlow() or
+ * \ref CpswProxy_attachExtended().
  *
- * \param hProxy    Handle to Cpsw Proxy
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param rxFlowIdxBase    RX flow index base value.
+ * \param rxFlowIdxOffset  RX flow offset to be freed.
+ *
+ * \returns \ref CPSWPROXY_SOK if RX flow has been freed, or negative error
+ *          in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_detach(CpswProxy_Handle hProxy);
+int32_t CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
+                             uint32_t rxFlowIdxBase,
+                             uint32_t rxFlowIdxOffset);
 
 /*!
- * \brief Alloc Tx Channel CPSW PSIL Destination thread id
+ * \brief Allocate MAC address.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy         Handle to Cpsw Proxy
- * \param txPSILThreadId Allocated Tx Channel CPSW PSIL Destination thread id
- *                       populated by this function
- */
-void CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
-                         uint32_t *txPSILThreadId);
-
-/*!
- * \brief Free Tx Channel CPSW PSIL Destination thread id
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy    Handle to Cpsw Proxy
- * \param txChNum   Tx Channel CPSW PSIL Destination thread id to be freed
- */
-void CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
-                        uint32_t txChNum);
-
-/*!
- * \brief Alloc Rx flow Id
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy          Handle to Cpsw Proxy
- * \param rxFlowIdxBase   Pointer to allocated Rx flow index base value populated
- *                        by this function.
- *                        Absolute flowIdx = (rxFlowIdxBase + rxFlowIdxOffset)
- * \param rxFlowIdxOffset Pointer to allocated allocated Rx flow index offset
- *                        value populated by this function
- */
-void CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
-                           uint32_t *rxFlowIdxBase,
-                           uint32_t *rxFlowIdxOffset);
-
-/*!
- * \brief Free Rx flow Id
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy          Handle to Cpsw Proxy
- * \param rxFlowIdxBase   Allocated Rx flow index base value populated by this
- *                        function.
- *                        Absolute flowIdx = (rxFlowIdxBase + rxFlowIdxOffset)
- * \param flowIdxOffset   Allocated Rx flow index offset value populated by
- *                        this function
- */
-void CpswProxy_freeRxFlow(CpswProxy_Handle hProxy,
-                          uint32_t rxFlowIdxBase,
-                          uint32_t rxFlowIdxOffset);
-
-/*!
- * \brief Alloc Destination MAC address
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Allocates a MAC address from server's MAC address pool.  Client may choose to
+ * use a locally allocated MAC address instead, in which case this function is
+ * not required.
  *
  * \param hProxy     Handle to Cpsw Proxy
- * \param macAddr    Destination MAC address. Populated by this function with
- *                   allocated DST MAC address
+ * \param macAddr    Pointer to MAC address to be allocated.
+ *
+ * \returns \ref CPSWPROXY_SOK if MAC address has been successfully allocated,
+ *          or negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_allocMac(CpswProxy_Handle hProxy,
-                        uint8_t *macAddr);
+int32_t CpswProxy_allocMac(CpswProxy_Handle hProxy,
+                           uint8_t *macAddr);
 
 /*!
- * \brief Free Tx Channel CPSW PSIL Destination thread id
+ * \brief Free MAC address.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Frees a MAC address previously allocated through \ref CpswProxy_allocMac() or
+ * \ref CpswProxy_attachExtended().
  *
- * \param hProxy     Handle to Cpsw Proxy
- * \param macAddr    Destination MAC address to be freed
+ * \param hProxy     Handle to Cpsw Proxy.
+ * \param macAddr    MAC address to be freed.
+ *
+ * \returns \ref CPSWPROXY_SOK if MAC address has been freed, or negative error
+ *          in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_freeMac(CpswProxy_Handle hProxy,
-                       const uint8_t *macAddr);
+int32_t CpswProxy_freeMac(CpswProxy_Handle hProxy,
+                          const uint8_t *macAddr);
 
 /*!
- * \brief Register Destination MAC address with the given flow index
+ * \brief Register destination MAC address with the given flow index.
  *
- * This function registers the destination MAC to the given rx flow index.
- * This causes all packets with the given destination MAC address to be 
- * routed to the given rx flow index.
+ * Registers the destination MAC to the given Rx flow index.  This causes all
+ * packets with the given destination MAC address to be routed to the given
+ * Rx flow index (flowIdxBase + flowIdxOffset).
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * RX flow idx must be set up prior to calling this function.
  *
- * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Rx flow index base value.
- *                         Absolute flowIdx = (flowIdxBase + flowIdxOffset)
- * \param flowIdxOffset    Flow idx from to which the traffic with the given
- *                         DST MAC address will be directed
- * \param macAddr          Destination MAC address to be registered
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
+ * \param macAddr          Destination MAC address to be registered.
+ *
+ * \returns \ref CPSWPROXY_SOK if RX flow has been registered, or negative error
+ *          in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
-                                    uint32_t flowIdxBase,
-                                    uint32_t flowIdxOffset,
-                                    const uint8_t *macAddr);
-
-/*!
- * \brief Unregister Destination MAC address from the given flow index
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Rx flow index base value.
- *                         Absolute flowIdx = (flowIdxBase + flowIdxOffset)
- * \param flowIdxOffset    Flow idx from to which the traffic with the given
- *                         DST MAC address will no longer be directed
- * \param macAddr          Destination MAC address to be unregistered
- */
-void CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
-                                      uint32_t flowIdxBase,
-                                      uint32_t flowIdxOffset,
-                                      const uint8_t *macAddr);
-
-/*!
- * \brief Register the given EtherType to the given rx flow id
- *
- * Any packets received with given EtherType mac will have the specific flow id.
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Rx flow index base value.
- *                         Absolute flowIdx = (flowIdxBase + flowIdxOffset)
- * \param flowIdxOffset    Flow idx offset to which the EtherType packets be
- *                         directed
- * \param etherType        Ethertype to be associated with the given Rx flow idx.
- */
-void CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
+int32_t CpswProxy_registerDstMacRxFlow(CpswProxy_Handle hProxy,
                                        uint32_t flowIdxBase,
                                        uint32_t flowIdxOffset,
-                                       uint16_t etherType);
+                                       const uint8_t *macAddr);
+
+/*!
+ * \brief Unregister destination MAC address from the given flow index.
+ *
+ * Unregister a destination MAC address previously registered via
+ * \ref CpswProxy_registerDstMacRxFlow(). Upon successful unregistration,
+ * packets with the provided MAC address will no longer be routed to
+ * RX flow index (flowIdxBase + flowIdxBase).
+ *
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
+ * \param macAddr          Destination MAC address to be unregistered.
+ *
+ * \returns \ref CPSWPROXY_SOK if RX flow has been unregistered, or negative
+ *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_unregisterDstMacRxFlow(CpswProxy_Handle hProxy,
+                                         uint32_t flowIdxBase,
+                                         uint32_t flowIdxOffset,
+                                         const uint8_t *macAddr);
+
+/*!
+ * \brief Register EtherType to the given Rx flow id.
+ *
+ * Registers an EtherType-based route to the provided flow idx.
+ *
+ * RX flow idx must be set up prior to calling this function.
+ *
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
+ * \param etherType        EtherType to be associated with the Rx flow idx.
+ *
+ * \returns \ref CPSWPROXY_SOK if RX flow has been registered, or negative
+ *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_registerEthertypeRxFlow(CpswProxy_Handle hProxy,
+                                          uint32_t flowIdxBase,
+                                          uint32_t flowIdxOffset,
+                                          uint16_t etherType);
 
 /*!
  * \brief Unregister the given EtherType to the given rx flow id
  *
- * Any packets received with given EtherType MAC will be directed to the
- * default flow.
+ * Unregisters the EtherType-based route.  Upon successful unregistration,
+ * packets with the given EtherType will be routed to the default flow.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
- *
- * \param hProxy    Handle to Cpsw Proxy
+ * \param hProxy    Handle to Cpsw Proxy.
  * \param etherType Ethertype to be disassociated from the given Rx flow idx.
+ *
+ * \returns \ref CPSWPROXY_SOK if RX flow has been unregistered, or negative
+ *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
-                                         uint16_t etherType);
+int32_t CpswProxy_unregisterEthertypeRxFlow(CpswProxy_Handle hProxy,
+                                            uint16_t etherType);
 
 /*!
  * \brief Register default flow to the given flow index.
  *
- * This function enables routing of default traffic (traffic not matching any
- * classifier with thread id configured) to the given rx flow_idx.
+ * Enables routing of default traffic (traffic not matching any classifier with
+ * thread id configured) to the given Rx flowIdx.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * RX flow idx must be set up prior to calling this function.
  *
- * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Rx flow index base value.
- *                         Absolute flowIdx = (flowIdxBase + flowIdxOffset)
- * \param flowIdxOffset    Default flow idx offset from to which the default
- *                         flow will no longer be directed.
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
+ *
+ * \returns \ref CPSWPROXY_SOK if default RX flow has been registered, or negative
+ *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
-                                     uint32_t flowIdxBase,
-                                     uint32_t flowIdxOffset);
+int32_t CpswProxy_registerDefaultRxFlow(CpswProxy_Handle hProxy,
+                                        uint32_t flowIdxBase,
+                                        uint32_t flowIdxOffset);
 
 /*!
- * \brief Unregister Default flow from the given flow index.
+ * \brief Unregister default flow from the given flow index.
  *
- * This function disables routing of default traffic (traffic not matching any
- * classifier with thread id configured) to the given rx flow_idx. Once disabled,
- * all default traffic will be routed to the reserved flow resulting in all
- * packets of default flow being dropped
+ * Disables routing of default traffic (traffic not matching any classifier with
+ * thread id configured) to the given Rx flowIdx. Once disabled, all default
+ * traffic will be routed to the reserved flow resulting in all packets of
+ * default flow being dropped.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
  *
- * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Rx flow index base value.
- *                         Absolute flowIdx = (flowIdxBase + flowIdxOffset)
- * \param flowIdxOffset    Default flow idx offset from to which the default
- *                         flow will no longer be directed.
+ * \returns \ref CPSWPROXY_SOK if default RX flow has been unregistered, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
-                                       uint32_t flowIdxBase,
-                                       uint32_t flowIdxOffset);
+int32_t CpswProxy_unregisterDefaultRxFlow(CpswProxy_Handle hProxy,
+                                          uint32_t flowIdxBase,
+                                          uint32_t flowIdxOffset);
 
 /*!
  * \brief Register association of IPv4 address with MAC address by adding ARP
- *        entry in the master core
+ *        entry in the master core.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Register an IPv4 address in master core ARP table which will respond to
+ * ARP request messages on behalf of the client.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param macAddr   MAC address with which the IPv4 address will be associated
- * \param ipv4Addr  IPv4 address to be added to ARP database
+ * \param hProxy    Handle to Cpsw Proxy.
+ * \param macAddr   MAC address with which the IPv4 address will be associated.
+ * \param ipv4Addr  IPv4 address to be added to ARP database.
+ *
+ * \returns \ref CPSWPROXY_SOK if successfully registered IPv4 address, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
-                                uint8_t *macAddr,
-                                uint8_t *ipv4Addr);
+int32_t CpswProxy_registerIPV4Addr(CpswProxy_Handle hProxy,
+                                   uint8_t *macAddr,
+                                   uint8_t *ipv4Addr);
 
 /*!
  * \brief Unregister association of IPv4 address with MAC address by removing
- *        ARP entry in the master core
+ *        ARP entry in the master core.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Unregisters an IPv4 address from master core ARP table.  Upon successful
+ * unregistration, the remote core will no longer respond to ARP request messages
+ * for the IPv4 address.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param ipv4Addr  IPv4 address to be unregistered
+ * \param hProxy    Handle to Cpsw Proxy.
+ * \param ipv4Addr  IPv4 address to be unregistered.
+ *
+ * \returns \ref CPSWPROXY_SOK if successfully unregistered IPv4 address, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
-                                  uint8_t *ipv4Addr);
+int32_t CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
+                                     uint8_t *ipv4Addr);
 
 /*!
  * \brief Join a VLAN.
@@ -621,13 +613,16 @@ void CpswProxy_unregisterIPV4Addr(CpswProxy_Handle hProxy,
  * for VLAN tagged unicast packets matching the destination MAC address
  * provided in this function.
  *
- * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Client's RX flow index base value
- * \param flowIdxOffset    Client's RX flow offset
- * \param macAddr          Client's MAC address (unicast)
- * \param vlanId           VLAN id to join
+ * RX flow idx must be set up prior to calling this function.
  *
- * \returns \ref CpswProxy_ErrorCodes
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
+ * \param macAddr          MAC address (unicast).
+ * \param vlanId           VLAN id to join.
+ *
+ * \returns \ref CPSWPROXY_SOK if successfully joined VLAN, or negative error
+ *          in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
                            uint32_t flowIdxBase,
@@ -643,13 +638,14 @@ int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
  * Client's route setup at the time of joining will be deleted after client
  * leaves the VLAN.
  *
- * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Client's RX flow index base value
- * \param flowIdxOffset    Client's RX flow offset
- * \param macAddr          Client's MAC address (unicast)
- * \param vlanId           VLAN id to leave
+ * \param hProxy           Handle to Cpsw Proxy.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
+ * \param macAddr          MAC address (unicast).
+ * \param vlanId           VLAN id to leave.
  *
- * \returns \ref CpswProxy_ErrorCodes
+ * \returns \ref CPSWPROXY_SOK if successfully left VLAN, or negative error
+ *          in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_leaveVlan(CpswProxy_Handle hProxy,
                             uint32_t flowIdxBase,
@@ -660,76 +656,80 @@ int32_t CpswProxy_leaveVlan(CpswProxy_Handle hProxy,
 /*!
  * \brief Add multicast address to receive filter.
  *
- * This function adds a multicast address to the receive filter.  Ethernet Firmware
- * differentiates multicast addresses as shared or exclusive.
+ * Adds a multicast address to the receive filter.  Ethernet Firmware differentiates
+ * multicast addresses as _shared_ or _exclusive).
  *
- * - Exclusive multicast address - Use is allowed only on a single remote client,
+ * - _Exclusive_ multicast address - Use is allowed only on a single remote client,
  *   the first one to request it.  Traffic received with exclusive address is
  *   routed to the remote client in hardware to the given RX flow index.
- * - Shared multicast address - Traffic received with shared address is fanned out
+ * - _Shared_ multicast address - Traffic received with shared address is fanned out
  *   to all remote clients that request it via virtual intercore interface. RX
  *   flow index is not relevant in this case.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * RX flow idx must be set up prior to calling this function.
  *
  * \param hProxy           Handle to Cpsw Proxy
- * \param flowIdxBase      Rx flow index base value.
- *                         Absolute flowIdx = flowIdxBase + flowIdxOffset.
- * \param flowIdxOffset    Default flow idx from to which the default flow will
- *                         no longer be directed.
+ * \param flowIdxBase      RX flow index base value.
+ * \param flowIdxOffset    RX flow offset.
  * \param macAddr          Multicast MAC address to be added to receive filter.
- * \param vlanId           VLAN id
+ * \param vlanId           VLAN id.
  *
- * \return Refer to \ref CpswProxy_ErrorCodes.
+ * \returns \ref CPSWPROXY_SOK if multicast address has been successfully added
+ *          to the filter, or negative error in case of a failure, see
+ *          \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
-                            uint32_t flowIdxBase,
-                            uint32_t flowIdxOffset,
-                            const uint8_t *macAddr,
-                            uint16_t vlanId);
+int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
+                               uint32_t flowIdxBase,
+                               uint32_t flowIdxOffset,
+                               const uint8_t *macAddr,
+                               uint16_t vlanId);
 
 /*!
  * \brief Delete multicast address from receive filter.
  *
- * This function deletes a multicast address to the receive filter which was
- * previous added via CpswProxy_addFilterAdddr().
- *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Deletes a multicast address to the receive filter previous added through
+ * \ref CpswProxy_filterAddMac().
  *
  * \param hProxy    Handle to Cpsw Proxy.
  * \param macAddr   Multicast MAC address to be deleted from receive filter.
  * \param vlanId    VLAN id.
  *
- * \return Refer to \ref CpswProxy_ErrorCodes.
+ * \returns \ref CPSWPROXY_SOK if multicast address has been deleted from
+ *          filter, or negative error in case of a failure, see
+ *          \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
-                            const uint8_t *macAddr,
-                            uint16_t vlanId);
+int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
+                               const uint8_t *macAddr,
+                               uint16_t vlanId);
 
 /*!
  * \brief Set promiscuous mode.
  *
+ * Enables or disables promiscuous mode in virtual MAC ports.  This operation
+ * is not supported in virtual switch ports.
+ *
  * \param hProxy    Handle to Cpsw Proxy
  * \param enable    Promiscuous mode (enable or disable)
+ *
+ * \returns \ref CPSWPROXY_SOK if promiscuous mode has been set, or negative
+ *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
-                              bool enable);
+int32_t CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
+                                 bool enable);
 
 /*!
- * \brief Query if the link for PHY associated with the given MAC Port is up
+ * \brief Query the link status.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Queries the link status of the virtual port which depends on the virtual
+ * port type:
  *
- * \param hProxy    Handle to Cpsw Proxy
+ * - Virtual switch ports - They are not associated with a specific hardware
+ *   Ethernet port, so their link status is always reported as linked.
+ * - Virtual MAC ports - They are associated with one actual Ethernet port
+ *   on the Ethernet device, so the status reported by this function is the
+ *   actual link state between the MAC port and the link partner.
+ *
+ * \param hProxy    Handle to Cpsw Proxy.
  *
  * \return Whether link is up or not.
  */
@@ -741,9 +741,10 @@ bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy);
  * Sends a DMA tear-down completion notification to ETHFW so it can proceed
  * with Ethernet device recovery.
  *
- * \param hProxy    Handle to Cpsw Proxy
+ * \param hProxy    Handle to Cpsw Proxy.
  *
- * \returns \ref CpswProxy_ErrorCodes
+ * \returns \ref CPSWPROXY_SOK if teardown completion notification was sent,
+ *          or negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_teardownCompletion(CpswProxy_Handle hProxy);
 
@@ -753,45 +754,47 @@ int32_t CpswProxy_teardownCompletion(CpswProxy_Handle hProxy);
  * Request network statistics, ALE table, policer table to be dumped into
  * ETHFW logs.
  *
- * \param hProxy    Handle to Cpsw Proxy
+ * \param hProxy    Handle to Cpsw Proxy.
+ *
+ * \returns \ref CPSWPROXY_SOK if successful, or negative error in case of a
+ *          failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_dumpStats(CpswProxy_Handle hProxy);
+int32_t CpswProxy_dumpStats(CpswProxy_Handle hProxy);
 
 /*!
- * \brief Register remote core's timer for synchronization
+ * \brief Register remote core's timer for synchronization.
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Register the remote core's timer with Ethernet Firmware, which will configure
+ * the Time Sync Router (TSR) to route timer `timerId` events to the given
+ * CPTS hardware push number.
  *
- * The timerId is used to indicate EthFw about which timer's event is to be routed
- * to CPTS hardware push via TimeSync Router(TSR).
+ * \param hProxy    Handle to Cpsw Proxy.
+ * \param timerId   Input Id number of timer in TSR.
+ * \param hwPushNum CPTS hardware push number.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param timerId   Input Id number of timer in TSR
- * \param hwPushNum Hardware push number of CPTS
+ * \returns \ref CPSWPROXY_SOK if remote timer is registered successfully,
+ *          or negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
-                                   uint8_t timerId,
-                                   uint8_t hwPushNum);
+int32_t CpswProxy_registerRemoteTimer(CpswProxy_Handle hProxy,
+                                      uint8_t timerId,
+                                      uint8_t hwPushNum);
 
 /*!
- * \brief Unregister remote core's timer for synchronization
+ * \brief Unregister remote core's timer for synchronization,
  *
- * Note: The API will send the RPC msg, block for response and if the response
- * status is not success will abort execution.
- * The API will be modified to return error status to allow the application to
- * handle the error in next version.
+ * Unregisters the remote core's timer previously registered through
+ * \ref CpswProxy_registerRemoteTimer().  Ethernet Firmware will clear
+ * the Time Sync Router (TSR) configuration previously done for the given
+ * CPTS hardware push number.
  *
- * The timerId is used to indicate Ethfw to stop routing done
- * via Timesync router(TSR).
+ * \param hProxy    Handle to Cpsw Proxy.
+ * \param hwPushNum Hardware push number of CPTS.
  *
- * \param hProxy    Handle to Cpsw Proxy
- * \param hwPushNum Hardware push number of CPTS
+ * \returns \ref CPSWPROXY_SOK if remote timer is unregistered successfully,
+ *          or negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
-                                     uint8_t hwPushNum);
+int32_t CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
+                                        uint8_t hwPushNum);
 
 /*!
  * \brief Register notification callback.
@@ -799,13 +802,13 @@ void CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
  * Registers a callback function for the provided notification type in oder to
  * get notified of events on the Ethernet Firmware remote side.
  *
- * \param hProxy      Handle to Cpsw Proxy
+ * \param hProxy      Handle to Cpsw Proxy.
  * \param notifyType  Notification type, see \ref EthRemoteCfg_NotifyType.
  * \param cbFxn       Callback function to be called when event occurs.
  * \param cbArg       App's specific callback arguments.
  *
- * \returns \ref CPSWPROXY_SOK if callback is registered successfully, a negative
- *          error otherwise, see \ref CpswProxy_ErrorCodes.
+ * \returns \ref CPSWPROXY_SOK if callback is registered successfully, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_registerNotifyCb(CpswProxy_Handle hProxy,
                                    uint32_t notifyType,
@@ -817,11 +820,11 @@ int32_t CpswProxy_registerNotifyCb(CpswProxy_Handle hProxy,
  *
  * Unregisters a callback function for the provided notification type.
  *
- * \param hProxy      Handle to Cpsw Proxy
+ * \param hProxy      Handle to Cpsw Proxy.
  * \param notifyType  Notification type, see \ref EthRemoteCfg_NotifyType.
  *
- * \returns \ref CPSWPROXY_SOK if callback is unregistered successfully, a
- *          negative error otherwise, see \ref CpswProxy_ErrorCodes.
+ * \returns \ref CPSWPROXY_SOK if callback is unregistered successfully, or
+ *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_unregisterNotifyCb(CpswProxy_Handle hProxy,
                                      uint32_t notifyType);
