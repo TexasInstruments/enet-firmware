@@ -62,10 +62,12 @@ extern "C" {
 /* ========================================================================== */
 
 /*! \brief Line terminator to be used by all EthFwTrace macros */
+#ifndef ETHFW_CFG_TRACE_LINE_TERM
 #define ETHFW_CFG_TRACE_LINE_TERM             "\n"
+#endif
 
 /*! \brief Trace print buffer length. */
-#define ETHFW_CFG_PRINT_BUF_LEN               (1024U) //FIXME
+#define ETHFW_CFG_PRINT_BUF_LEN               (1024U)
 
 /*!
  * \anchor EthFwTrace_TraceLevels
