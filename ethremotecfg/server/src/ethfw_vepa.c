@@ -676,9 +676,9 @@ int32_t EthFwVepa_sendRaw(struct netif *netif,
     struct eth_hdr *ethHdr;
     struct eth_vlan_hdr *vlanhdr;
     uint16_t ethType;
-    uint16_t virtPortMask;
+    uint16_t virtPortMask = 0U;
     uint16_t i;
-    uint16_t privVlanId;
+    uint16_t privVlanId = 0U;
     uint16_t vlanId = 0U;
     int32_t status = ETHFW_SOK;
     /* Priority code point and drop eligible indicator

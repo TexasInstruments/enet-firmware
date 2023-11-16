@@ -788,7 +788,7 @@ static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
 static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
                                                            struct pbuf *pbuf)
 {
-    int32_t status;
+    int32_t status = ETHFW_SOK;
     struct eth_hdr *ethHdr;
 #if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
     uint8_t *dstMac;
@@ -811,9 +811,15 @@ static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
 #endif
 
     ethHdr = (struct eth_hdr *)(pbuf->payload);
+    ETHFWTRACE_ERR_IF(EnetUtils_isMcastAddr(&ethHdr->dest.addr[0]), ENET_EFAIL,
+                     "Error: Unicast packet received on packet duplication flow");
+
     status = EthFwVepa_sendRaw(netif, pbuf, &ethHdr->src, &ethHdr->dest);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                     "Failed to send packet for packet duplication");
 
     /* Lwip stack should also consume the packet */
+    /* Returning false implies that packet will be consumed by Lwip stack */
     return false;
 }
 
