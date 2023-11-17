@@ -1538,7 +1538,9 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
     cpswRxFlowCfg.hUdmaDrv  = outArgs->hUdmaDrv;;
     cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
-    cpswRxFlowCfg.useProxy  = true;
+    cpswRxFlowCfg.useGlobalEvt  = true;
+    cpswRxFlowCfg.useProxy  = false;
+    cpswRxFlowCfg.rxFlowMtu = outArgs->hostPortRxMtu;
     cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
     cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
 
@@ -1572,6 +1574,10 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
     status = EnetDma_closeRxCh(releaseInfo->rxInfo[0U].hRxFlow,
                                &fqPktInfoQ,
                                &cqPktInfoQ);
+
+    /* Put some delay for flow to close by Sciclient.
+     * Temp change will be removed when gPTP_stop issue is resolved. */
+    TaskP_sleep(200U);
     releaseInfo->rxInfo[0U].hRxFlow = NULL;
 
     releaseInfo->rxFreePkt[0U].cb(releaseInfo->rxFreePkt[0U].cbArg, &fqPktInfoQ, &cqPktInfoQ);
