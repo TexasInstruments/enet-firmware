@@ -70,8 +70,6 @@
 #include <stdint.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/enet.h>
 
 #ifdef __cplusplus
 extern "C" {

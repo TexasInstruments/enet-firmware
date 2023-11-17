@@ -516,7 +516,7 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
         hProxy->features = res.features;
 
         *rxMtu = res.rxMtu;
-        for (i = 0U; i < ENET_ARRAYSIZE(res.txMtu); i++)
+        for (i = 0U; i < ETHFW_ARRAYSIZE(res.txMtu); i++)
         {
             txMtu[i] = res.txMtu[i];
         }
@@ -558,7 +558,7 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
         hProxy->features = res.features;
 
         *rxMtu = res.rxMtu;
-        for (i = 0U; i < ENET_ARRAYSIZE(res.txMtu); i++)
+        for (i = 0U; i < ETHFW_ARRAYSIZE(res.txMtu); i++)
         {
             txMtu[i] = res.txMtu[i];
         }
@@ -1146,7 +1146,7 @@ int32_t CpswProxy_filterAddMac(CpswProxy_Handle hProxy,
                     macAddr[3U], macAddr[4U], macAddr[5U],
                     vlanId, flowIdxBase, flowIdxOffset);
 
-    if (!EnetUtils_isMcastAddr(macAddr))
+    if (!EthFwUtils_isMcastAddr(macAddr))
     {
         status = CPSWPROXY_EINVALIDPARAMS;
         ETHFWTRACE_ERR(status, "MAC addr is not multicast");
@@ -1186,7 +1186,7 @@ int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
                     macAddr[3U], macAddr[4U], macAddr[5U],
                     vlanId);
 
-    if (!EnetUtils_isMcastAddr(macAddr))
+    if (!EthFwUtils_isMcastAddr(macAddr))
     {
         status = CPSWPROXY_EINVALIDPARAMS;
         ETHFWTRACE_ERR(status, "MAC addr is not multicast");
@@ -1270,7 +1270,7 @@ static CpswProxy_Handle CpswProxy_getHandle(uint32_t token)
 
     MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
 
-    for (i = 0U; i < ENET_ARRAYSIZE(gCpswProxy.clientObj); i++)
+    for (i = 0U; i < ETHFW_ARRAYSIZE(gCpswProxy.clientObj); i++)
     {
         hProxyClient = &gCpswProxy.clientObj[i];
 
@@ -1294,7 +1294,7 @@ static CpswProxy_Handle CpswProxy_allocHandle(void)
 
     MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
 
-    for (i = 0U; i < ENET_ARRAYSIZE(gCpswProxy.clientObj); i++)
+    for (i = 0U; i < ETHFW_ARRAYSIZE(gCpswProxy.clientObj); i++)
     {
         if (!gCpswProxy.clientObj[i].inUse)
         {
