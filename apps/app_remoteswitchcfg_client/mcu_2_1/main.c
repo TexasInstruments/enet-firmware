@@ -206,9 +206,11 @@
 #define ETHFW_CLIENT_NETMASK_MAC_PORT(addr)     IP4_ADDR((addr), 255,255,255,0)
 #endif
 
+#if defined(ETHFW_MONITOR_SUPPORT)
 static uint8_t gEthAppRecoveryStackBuf[ETHAPP_LWIP_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
 __attribute__((aligned(ETHAPP_LWIP_TASK_STACKSIZE)));
+#endif
 
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
@@ -352,11 +354,13 @@ typedef struct CpswRemoteApp_Obj_s
     /* Virtual network interface data */
     CpswRemoteApp_VirtNetif virtNetif[CPSW_REMOTE_APP_REMOTE_NETIF_MAX];
 
+#if defined(ETHFW_MONITOR_SUPPORT)
     /* Mailbox of virtual netifs to be closed during CPSW recovery */
     MailboxP_Handle hMbx;
 
     /* Mailbox buffer for storing all the command messages */
     uint8_t mbxBuf[ETHAPP_VIRTNETIF_MBX_SIZE] __attribute__ ((aligned(32)));
+#endif
 } CpswRemoteApp_Obj;
 
 /* Trace configuration */
@@ -446,13 +450,10 @@ static void EthApp_virtNetifStatusCb(struct netif *netif);
 
 static void EthApp_lwipNetifStatusCb(struct netif *netif);
 
+#if defined(ETHFW_MONITOR_SUPPORT)
 static void EthApp_openDma(struct netif *netif);
 
 static void EthApp_closeDma(struct netif *netif);
-
-static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
-                                             void *notifyArg,
-                                             void *cbArg);
 
 static void CpswRemoteApp_hwRecoveryTask(void *a0,
                                          void *a1);
@@ -460,6 +461,12 @@ static void CpswRemoteApp_hwRecoveryTask(void *a0,
 static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
                                            void *notifyArg,
                                            void *cbArg);
+#endif
+
+static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
+                                             void *notifyArg,
+                                             void *cbArg);
+
 
 // hack for release mode build fix TODO fix this
 void localAssert(bool cond)
@@ -780,6 +787,7 @@ static void CpswRemoteApp_initTask(void* a0,
 
     TaskP_create(&EthApp_lwipMain, &params);
 
+#if defined(ETHFW_MONITOR_SUPPORT)
     /* Step 7: Create mailbox to pass virtual netifs to close during recovery */
     MailboxP_Params_init(&mbxParams);
     mbxParams.name    = (uint8_t *)"VirtNetif Mbox";
@@ -799,6 +807,7 @@ static void CpswRemoteApp_initTask(void* a0,
     params.stacksize = sizeof(gEthAppRecoveryStackBuf);
 
     TaskP_create(&CpswRemoteApp_hwRecoveryTask, &params);
+#endif
 }
 
 int main(void)
@@ -1010,6 +1019,7 @@ static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
     {
         virtNetif->hCpswProxy = hProxy;
 
+#if defined(ETHFW_MONITOR_SUPPORT)
         CpswProxy_registerNotifyCb(virtNetif->hCpswProxy,
                                    ETHREMOTECFG_NOTIFY_HWERROR,
                                    CpswRemoteApp_hwRecoveryNotify,
@@ -1019,6 +1029,7 @@ static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
                                    ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE,
                                    CpswRemoteApp_hwRecoveryNotify,
                                    (void *)virtNetif);
+#endif
     }
     else
     {
@@ -1507,6 +1518,7 @@ void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInf
     CpswProxy_detach(virtNetif->hCpswProxy);
 }
 
+#if defined(ETHFW_MONITOR_SUPPORT)
 void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                              LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
@@ -1642,4 +1654,4 @@ static void CpswRemoteApp_hwRecoveryTask(void *a0,
         CpswProxy_teardownCompletion(virtNetif->hCpswProxy);
     }
 }
-
+#endif

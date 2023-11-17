@@ -30,6 +30,10 @@ else ifeq ($(ETHFW_PROXY_ARP_SUPPORT),yes)
   DEFS += ETHFW_PROXY_ARP_HANDLING
 endif
 
+ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
+  DEFS += ETHFW_MONITOR_SUPPORT
+endif
+
 endif
 
 include $(FINALE)

@@ -357,9 +357,11 @@ static void EthApp_initNetif(void);
 
 static void EthApp_netifStatusCb(struct netif *netif);
 
+#if defined(ETHFW_MONITOR_SUPPORT)
 static void EthApp_closeDmaCb(void *arg);
 
 static void EthApp_openDmaCb(void *arg);
+#endif
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1);
 
@@ -1092,10 +1094,12 @@ static int32_t EthApp_initEthFw(void)
     ethFwCfg.allocCfg = &gEthApp_allocCfg[0];
     ethFwCfg.numAlloc = ARRAY_SIZE(gEthApp_allocCfg);
 
+#if defined(ETHFW_MONITOR_SUPPORT)
     /* Save the Lwip Dma parametrers */
     ethFwCfg.lwipDmaCbArg   = (void *)&netif;
     ethFwCfg.closeLwipDmaCb = EthApp_closeDmaCb;
     ethFwCfg.openLwipDmaCb  = EthApp_openDmaCb;
+#endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* gPTP stack config parameters */
@@ -1429,6 +1433,7 @@ static void EthApp_netifStatusCb(struct netif *netif)
     }
 }
 
+#if defined(ETHFW_MONITOR_SUPPORT)
 static void EthApp_closeDmaCb(void *arg)
 {
     struct netif *netif = (struct netif *)arg;
@@ -1452,6 +1457,7 @@ static void EthApp_openDmaCb(void *arg)
     netif_set_link_up(netif);
     sys_unlock_tcpip_core();
 }
+#endif
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1)
 {

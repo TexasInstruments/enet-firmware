@@ -57,6 +57,10 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   endif
 endif
 
+ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
+  DEFS += ETHFW_MONITOR_SUPPORT
+endif
+
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
 endif
@@ -121,6 +125,10 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 # Intercore virtual Ethernet currently not supported in QNX
+
+ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
+  DEFS += ETHFW_MONITOR_SUPPORT
+endif
 
 # iperf server support
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)

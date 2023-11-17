@@ -233,27 +233,24 @@ typedef void  (*CpswProxyServer_NotifyCb)(uint32_t hostId,
                                           uint32_t notifyInfoLen);
 
 /*!
- * \brief Application function to broadcast the notify message for all the
- *        attached active remote clients
+ * \brief Function to broadcast a notification for all attached clients.
  *
- * This function is called from the application when the server needs to
- * notify all the remote clients
+ * Function to broadcast a notification event to all the remote clients.
  *
- * \param notifyId     The type of notify send to the remote clients
+ * \param notifyId     The type of notify send to the remote clients.
  *
  * \returns status
  */
 int32_t CpswProxyServer_bcastNotify(uint32_t notifyId);
 
 /*!
- * \brief Application function to get the count of both the attached clients
- *        and idle clients.
+ * \brief Function to get the status of active and idle clients.
  *
- * This would be a periodic application call which asks for the status of the
- * remote clients and starts recovery once all clients have achieved idle state.
+ * Function to get the status of active and idle clients.  A client is
+ * considered to be idled after it has torn down its DMA channel/flow.
  *
- * \params attach clients attach clients count
- * \params idle clients count
+ * \params attachedClients  Number of attached clients.
+ * \params idleClients      Number of idled clients.
  *
  * \returns status
  */

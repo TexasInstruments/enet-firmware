@@ -492,7 +492,7 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
     RPMessage_Handle handle = NULL;
     uint32_t srcEndPt;
     uint32_t clientInst;
-    int32_t status = CPSWPROXYSERVER_SOK;
+    int32_t status = ETHFW_SOK;
 
     notifyMsg.hdr.common.msgType = ETHREMOTECFG_MSGTYPE_NOTIFY;
     notifyMsg.hdr.common.clientId = hClient->clientId;
@@ -519,25 +519,35 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
 
     if (handle == NULL)
     {
-        ETHFWTRACE_ERR(ETHFW_EFAIL, "Couldn't find core %u client handle", hClient->coreId);
+        status = ETHFW_EFAIL;
+        ETHFWTRACE_ERR(status, "Couldn't find core %u client handle", hClient->coreId);
     }
 
-    ETHFWTRACE_INFO("NOTIFY | S2C | core=%u endpt=%u token=%d notifyType=%u",
-                    hClient->coreId,
-                    hClient->remoteEp,
-                    (int32_t)notifyMsg.hdr.common.token,
-                    notifyId);
+    if (status == ETHFW_SOK)
+    {
+        ETHFWTRACE_INFO("NOTIFY | S2C | core=%u endpt=%u token=%d notifyType=%u",
+                        hClient->coreId,
+                        hClient->remoteEp,
+                        (int32_t)notifyMsg.hdr.common.token,
+                        notifyId);
 
-    ETHFWTRACE_DBG("S2C | msgType=%u token=%d clientId=%u notifyType=%u len=%u (%u.%u->%u.%u)",
-                   notifyMsg.hdr.common.msgType,
-                   (int32_t)notifyMsg.hdr.common.token,
-                   notifyMsg.hdr.common.clientId,
-                   notifyMsg.hdr.notifyType,
-                   sizeof(notifyMsg),
-                   EnetSoc_getCoreId(), srcEndPt,
-                   hClient->coreId, hClient->remoteEp);
+        ETHFWTRACE_DBG("S2C | msgType=%u token=%d clientId=%u notifyType=%u len=%u (%u.%u->%u.%u)",
+                       notifyMsg.hdr.common.msgType,
+                       (int32_t)notifyMsg.hdr.common.token,
+                       notifyMsg.hdr.common.clientId,
+                       notifyMsg.hdr.notifyType,
+                       sizeof(notifyMsg),
+                       EnetSoc_getCoreId(), srcEndPt,
+                       hClient->coreId, hClient->remoteEp);
 
-    status = RPMessage_send(handle, hClient->coreId, hClient->remoteEp, srcEndPt, &notifyMsg, sizeof(notifyMsg));
+        status = RPMessage_send(handle,
+                                hClient->coreId,
+                                hClient->remoteEp,
+                                srcEndPt,
+                                &notifyMsg,
+                                sizeof(notifyMsg));
+        ETHFWTRACE_ERR_IF((status != IPC_SOK), status, "Failed to send notify msg via IPC");
+    }
 
     return status;
 }

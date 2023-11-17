@@ -70,6 +70,10 @@ ifeq ($(ETHFW_GPTP_SUPPORT),yes)
   endif
 endif
 
+ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
+  DEFS += ETHFW_MONITOR_SUPPORT
+endif
+
 # iperf server support
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
@@ -146,6 +150,10 @@ ifeq ($(ETHFW_GPTP_SUPPORT),yes)
   ifeq ($(TARGET_OS),FREERTOS)
     DEFS += ETHFW_GPTP_SUPPORT
   endif
+endif
+
+ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
+  DEFS += ETHFW_MONITOR_SUPPORT
 endif
 
 # iperf server support
@@ -232,6 +240,10 @@ ifeq ($(ETHFW_GPTP_SUPPORT),yes)
   ifeq ($(TARGET_OS),FREERTOS)
     DEFS += ETHFW_GPTP_SUPPORT
   endif
+endif
+
+ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
+  DEFS += ETHFW_MONITOR_SUPPORT
 endif
 
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)

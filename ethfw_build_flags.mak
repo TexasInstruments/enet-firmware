@@ -93,6 +93,9 @@ endif
 # gPTP stack support - currently supported in FreeRTOS build only
 ETHFW_GPTP_SUPPORT?=yes
 
+# Enable EthFw Monitor - to monitor the EthFw status and handle any HW Errors if detected.
+ETHFW_MONITOR_SUPPORT?=yes
+
 # Enable iperf server (TCP only) by default
 ETHFW_IPERF_SERVER_SUPPORT?=yes
 

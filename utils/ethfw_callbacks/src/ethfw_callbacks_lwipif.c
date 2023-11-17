@@ -444,6 +444,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetMcm_releaseCmdIf(enetType, &mcmCmdIf);
 }
 
+#if defined(ETHFW_MONITOR_SUPPORT)
 void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                              LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
@@ -685,6 +686,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
 
     freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
 }
+#endif
 
 #if defined(ETHFW_VEPA_SUPPORT)
 /* Setup flow for packet duplication */
