@@ -1643,7 +1643,9 @@ static void CpswProxy_cmdHandlerTask(void *arg0,
             {
                 case ETHREMOTECFG_MSGTYPE_RESPONSE:
                 {
+#if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
                     EthRemoteCfg_ResHdr *resHdr = (EthRemoteCfg_ResHdr *)msg.buf;
+#endif
 
                     ETHFWTRACE_DBG_IF((resHdr->resType != ETHREMOTECFG_CMD_PORT_LINK_STATUS),
                                       "S2C | msgType=%u token=%d clientId=%u resType=%u resId=%u "
