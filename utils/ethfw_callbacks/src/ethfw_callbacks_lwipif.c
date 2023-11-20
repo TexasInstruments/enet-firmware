@@ -813,7 +813,7 @@ static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
 #endif
 
     ethHdr = (struct eth_hdr *)(pbuf->payload);
-    ETHFWTRACE_ERR_IF(EnetUtils_isMcastAddr(&ethHdr->dest.addr[0]), ENET_EFAIL,
+    ETHFWTRACE_ERR_IF((EnetUtils_isMcastAddr(&ethHdr->dest.addr[0]) != true), ENET_EFAIL,
                      "Error: Unicast packet received on packet duplication flow");
 
     status = EthFwVepa_sendRaw(netif, pbuf, &ethHdr->src, &ethHdr->dest);
