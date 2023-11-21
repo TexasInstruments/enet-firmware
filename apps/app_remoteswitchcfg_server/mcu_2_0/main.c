@@ -1113,7 +1113,7 @@ static int32_t EthApp_initEthFw(void)
     /* Save the Lwip Dma parametrers */
     ethFwCfg.monitorCfg.lwipDmaCbArg      = (void *)&netif;
     ethFwCfg.monitorCfg.openLwipDmaCb     = EthApp_openDmaCb;
-    ethFwCfg.monitorCfg.closeLwipDmaCb    = NULL;
+    ethFwCfg.monitorCfg.closeLwipDmaCb    = EthApp_closeDmaCb;
     ethFwCfg.monitorCfg.statsMonHostEvtCb = EthApp_statsMonHostEvtCb;
     ethFwCfg.monitorCfg.statsMonMacEvtCb  = EthApp_statsMonMacEvtCb;
     ethFwCfg.monitorCfg.statsMonCbArg     = NULL;
