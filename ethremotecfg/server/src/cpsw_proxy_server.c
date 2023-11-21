@@ -490,7 +490,7 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
     CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
     EthRemoteCfg_CommonNotify notifyMsg;
     RPMessage_Handle handle = NULL;
-    uint32_t srcEndPt;
+    uint32_t srcEndPt = 0U;
     uint32_t clientInst;
     int32_t status = ETHFW_SOK;
 
@@ -1006,7 +1006,6 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
                                                         uint8_t *ipAddr)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    uint32_t ipaddr;
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
     struct eth_addr hwAddr;
@@ -1056,7 +1055,6 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
                                                           uint8_t *ipAddr)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    uint32_t ipaddr;
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
 #endif
@@ -1502,6 +1500,8 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
         phyInArgs.macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &phyInArgs, isLinked);
+
+        memset(&phyOutArgs, 0, sizeof(phyOutArgs));
 
         status = Enet_ioctl(hClient->hEnet, hostId, ENET_PHY_IOCTL_IS_LINKED, &prms);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
@@ -2781,7 +2781,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_TEARDOWN_COMPLETION:
         {
             EthRemoteCfg_CommonReq *req = (EthRemoteCfg_CommonReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("TEARDOWN_COMPLETION | C2S | core=%u endpt=%u token=%d",
                             remoteProcId, remoteEndPt, (int32_t)token);
@@ -2800,7 +2800,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_IOCTL:
         {
             EthRemoteCfg_IoctlReq *req = (EthRemoteCfg_IoctlReq *)reqBuf;
-            EthRemoteCfg_IoctlRes *res;
+            EthRemoteCfg_IoctlRes *res = (EthRemoteCfg_IoctlRes *)resBuf;
 
             ETHFWTRACE_INFO("IOCTL | C2S | core=%u endpt=%u cmd=%x inArgsLen=%u inArgs=%p outArgsLen=%u",
                             remoteProcId, remoteEndPt, req->cmd,
@@ -3399,6 +3399,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
     EnetAppUtils_assert(hEnet != NULL);
 
     coreKey = hClient->coreKey;
+    enetType = hServer->enetType;
 
     switch (notifyid)
     {

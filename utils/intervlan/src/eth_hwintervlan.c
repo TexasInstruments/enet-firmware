@@ -624,9 +624,11 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
     Cpsw_SetTxShortIpgCfgInArgs setShortIPGInArgs;
     int32_t status;
 
+    memset(&setShortIPGInArgs, 0, sizeof(setShortIPGInArgs));
+
     ENET_IOCTL_SET_IN_ARGS(&prms, &setShortIPGInArgs);
     setShortIPGInArgs.configureGapThresh = FALSE;
-    setShortIPGInArgs.numMacPorts = 2;
+    setShortIPGInArgs.numMacPorts = 2U;
     setShortIPGInArgs.portShortIpgCfg[0].macPort = CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM;
     setShortIPGInArgs.portShortIpgCfg[0].shortIpgCfg.txShortGapEn = false;
     setShortIPGInArgs.portShortIpgCfg[0].shortIpgCfg.txShortGapLimitEn = false;

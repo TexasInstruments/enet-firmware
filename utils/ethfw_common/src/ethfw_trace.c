@@ -213,7 +213,7 @@ void EthFwTrace_trace(EthFwTrace_TraceLevel globalLevel,
     int32_t n;
     int32_t w;
     va_list ap;
-    char *buf;
+    char *buf = NULL;
 
     MutexP_lock(gEthFwTraceObj.hMutex, MutexP_WAIT_FOREVER);
 
@@ -274,9 +274,9 @@ void EthFwTrace_trace(EthFwTrace_TraceLevel globalLevel,
             {
                 w = snprintf(buf + p, n, ETHFW_CFG_TRACE_LINE_TERM);
             }
-        }
 
-        gEthFwTraceObj.print(buf);
+            gEthFwTraceObj.print(buf);
+        }
     }
 
     MutexP_unlock(gEthFwTraceObj.hMutex);

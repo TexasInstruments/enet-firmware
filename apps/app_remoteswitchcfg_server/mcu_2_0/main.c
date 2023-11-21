@@ -1412,7 +1412,6 @@ static void EthApp_initNetif(void)
 
 static void EthApp_netifStatusCb(struct netif *netif)
 {
-    Enet_MacPort macPort = ENET_MAC_PORT_1;
     int32_t status;
 
     if (netif_is_up(netif))
@@ -1525,7 +1524,9 @@ static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1)
 {
-    while (1)
+	bool exitTask = false;
+
+    while (!exitTask)
     {
         TaskP_sleepInMsecs(ETHAPP_TRACEBUF_FLUSH_PERIOD_IN_MSEC);
         EthApp_traceBufCacheWb();

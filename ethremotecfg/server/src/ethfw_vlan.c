@@ -204,13 +204,13 @@ void EthFwVlan_deinit(Enet_Handle hEnet)
     EthFwVlan_Vlan *vlan;
     int32_t i;
 
-    ETHFWTRACE_ERR_IF((vlan->virtActiveMask != 0U), ENET_EUNEXPECTED,
-                      "Virtual ports still active 0x%x", vlan->virtActiveMask);
-
     /* Delete all static VLANs */
     for (i = 0U; i < gEthFwVlanObj.numVlans; i++)
     {
         vlan = &gEthFwVlanObj.vlan[i];
+
+        ETHFWTRACE_ERR_IF((vlan->virtActiveMask != 0U), ENET_EUNEXPECTED,
+                           "Virtual ports still active 0x%x", vlan->virtActiveMask);
 
         EthFwVlan_deleteVlan(hEnet, vlan->vlanId);
     }

@@ -1507,6 +1507,7 @@ static int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     int32_t status = CPSWPROXY_SOK;
 
     EthFw_assert(hProxy != NULL);
+    memset(res, 0, resLen);
 
     MutexP_lock(gCpswProxy.cmdSvc.hMutex, MutexP_WAIT_FOREVER);
 
