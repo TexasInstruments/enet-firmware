@@ -258,6 +258,9 @@
                                                 gEthAppObj.bootTs[ETHFW_BOOT_PROFILING_TS_MAIN])
 #endif
 
+/* Define it to enable logs in the stats monitoring event callbacks */
+#undef ETHAPP_STATSMON_EVT_LOG_EN
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -361,6 +364,17 @@ static void EthApp_netifStatusCb(struct netif *netif);
 static void EthApp_closeDmaCb(void *arg);
 
 static void EthApp_openDmaCb(void *arg);
+
+static void EthApp_statsMonHostEvtCb(uint32_t evtMask,
+                                     const EthFw_MonStats *monStats,
+                                     const CpswStats_HostPort_Ng *stats,
+                                     void *arg);
+
+static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
+                                    uint32_t evtMask,
+                                    const EthFw_MonStats *monStats,
+                                    const CpswStats_MacPort_Ng *stats,
+                                    void *arg);
 #endif
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1);
@@ -1096,9 +1110,12 @@ static int32_t EthApp_initEthFw(void)
 
 #if defined(ETHFW_MONITOR_SUPPORT)
     /* Save the Lwip Dma parametrers */
-    ethFwCfg.monitorCfg.lwipDmaCbArg   = (void *)&netif;
-    ethFwCfg.monitorCfg.closeLwipDmaCb = EthApp_closeDmaCb;
-    ethFwCfg.monitorCfg.openLwipDmaCb  = EthApp_openDmaCb;
+    ethFwCfg.monitorCfg.lwipDmaCbArg      = (void *)&netif;
+    ethFwCfg.monitorCfg.openLwipDmaCb     = EthApp_openDmaCb;
+    ethFwCfg.monitorCfg.closeLwipDmaCb    = NULL;
+    ethFwCfg.monitorCfg.statsMonHostEvtCb = EthApp_statsMonHostEvtCb;
+    ethFwCfg.monitorCfg.statsMonMacEvtCb  = EthApp_statsMonMacEvtCb;
+    ethFwCfg.monitorCfg.statsMonCbArg     = NULL;
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1456,6 +1473,52 @@ static void EthApp_openDmaCb(void *arg)
     sys_lock_tcpip_core();
     netif_set_link_up(netif);
     sys_unlock_tcpip_core();
+}
+
+static void EthApp_statsMonHostEvtCb(uint32_t evtMask,
+                                     const EthFw_MonStats *monStats,
+                                     const CpswStats_HostPort_Ng *stats,
+                                     void *arg)
+{
+#if defined(ETHAPP_STATSMON_EVT_LOG_EN)
+    appLogPrintf("Host port stats monitor (%x): rxBottomOfFifoDrop=%llu rxTopOfFifoDrop=%llu "
+                 "txPriDrop=%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+                 evtMask,
+                 monStats->rxBottomOfFifoDrop,
+                 monStats->rxTopOfFifoDrop,
+                 monStats->txPriDrop[0U],
+                 monStats->txPriDrop[1U],
+                 monStats->txPriDrop[2U],
+                 monStats->txPriDrop[3U],
+                 monStats->txPriDrop[4U],
+                 monStats->txPriDrop[5U],
+                 monStats->txPriDrop[6U],
+                 monStats->txPriDrop[7]);
+#endif
+}
+
+static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
+                                    uint32_t evtMask,
+                                    const EthFw_MonStats *monStats,
+                                    const CpswStats_MacPort_Ng *stats,
+                                    void *arg)
+{
+#if defined(ETHAPP_STATSMON_EVT_LOG_EN)
+    appLogPrintf("MAC port %u stats monitor (%x): rxBottomOfFifoDrop=%llu txBottomOfFifoDrop=%llu "
+                 "txPriDrop=%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+                 ENET_MACPORT_ID(macPort),
+                 evtMask,
+                 monStats->rxBottomOfFifoDrop,
+                 monStats->rxTopOfFifoDrop,
+                 monStats->txPriDrop[0U],
+                 monStats->txPriDrop[1U],
+                 monStats->txPriDrop[2U],
+                 monStats->txPriDrop[3U],
+                 monStats->txPriDrop[4U],
+                 monStats->txPriDrop[5U],
+                 monStats->txPriDrop[6U],
+                 monStats->txPriDrop[7]);
+#endif
 }
 #endif
 
