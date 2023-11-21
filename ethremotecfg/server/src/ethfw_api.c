@@ -292,6 +292,9 @@ typedef struct EthFw_Obj_s
     uint32_t numClients;
 
 #if defined(ETHFW_MONITOR_SUPPORT)
+    /* Monitor and recovery callbacks */
+    EthFw_MonitorCfg monitor;
+
     /*! Clock handle for Monitor Task */
     ClockP_Handle hMonitorClock;
 
@@ -306,15 +309,6 @@ typedef struct EthFw_Obj_s
 
     /* Monitor Task stack buffer */
     uint8_t monTaskStackBuf[ETHFW_MON_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_MON_TASK_STACK_ALIGN)));
-
-    /*! Lwip DMA callback argument */
-    void *lwipDmaCbArg;
-
-    /*! Lwip DMA close callback from App */
-    EthFw_closeLwipDmaCb closeLwipDmaCb;
-
-    /*! Lwip DMA open callback from App */
-    EthFw_openLwipDmaCb openLwipDmaCb;
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -990,6 +984,9 @@ static void EthFw_updateEnetRm(void)
 void EthFw_initConfigParams(Enet_Type enetType,
                             EthFw_Config *config)
 {
+#if defined(ETHFW_MONITOR_SUPPORT)
+    EthFw_MonitorCfg *monCfg = &config->monitorCfg;
+#endif
     Cpsw_Cfg *cpswCfg = &config->cpswCfg;
     CpswAle_Cfg *aleCfg = &cpswCfg->aleCfg;
     Cpsw_VlanCfg *vlanCfg = &cpswCfg->vlanCfg;
@@ -1070,6 +1067,13 @@ void EthFw_initConfigParams(Enet_Type enetType,
 #endif
 
     EthFw_initAleCfg(aleCfg);
+
+#if defined(ETHFW_MONITOR_SUPPORT)
+    monCfg->periodInMsecs     = ETHFW_MON_TASK_POLL_PERIOD_MS;
+    monCfg->openLwipDmaCb     = NULL;
+    monCfg->closeLwipDmaCb    = NULL;
+    monCfg->lwipDmaCbArg      = NULL;
+#endif
 }
 
 EthFw_Handle EthFw_init(Enet_Type enetType,
@@ -1104,9 +1108,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     gEthFwObj.cpswCfg = config->cpswCfg;
 
 #if defined(ETHFW_MONITOR_SUPPORT)
-    gEthFwObj.lwipDmaCbArg   = config->lwipDmaCbArg;
-    gEthFwObj.closeLwipDmaCb = config->closeLwipDmaCb;
-    gEthFwObj.openLwipDmaCb  = config->openLwipDmaCb;
+    gEthFwObj.monitor = config->monitorCfg;
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1117,6 +1119,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
     /* Get default VLAN ids for MAC-only and switch ports */
     status = EthFw_getDfltVlanId(config);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get default VLAN ids");
 
     /* Save hardware and virtual port configuration */
     if (status == ENET_SOK)
@@ -1848,12 +1851,11 @@ static int32_t EthFw_startMonitorTask(void)
     {
         ClockP_Params_init(&clkParams);
         clkParams.startMode = ClockP_StartMode_AUTO;
-        clkParams.period    =  ETHFW_MON_TASK_POLL_PERIOD_MS;
+        clkParams.period    = gEthFwObj.monitor.periodInMsecs;
         clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
 
         /* Creating clock and setting clock callback function */
-        gEthFwObj.hMonitorClock = ClockP_create((void*) &EthFw_monitorClockCb,
-                                        &clkParams);
+        gEthFwObj.hMonitorClock = ClockP_create((void*)&EthFw_monitorClockCb, &clkParams);
         if (gEthFwObj.hMonitorClock == NULL)
         {
             status = ETHFW_EALLOC;
@@ -1885,18 +1887,18 @@ static void EthFw_stopMonitorTask(void)
 
 static int32_t EthFw_analyzePortStats(CpswStats_PortStats currPortStats)
 {
+    CpswStats_MacPort_Ng *stats = (CpswStats_MacPort_Ng *)&currPortStats;
     int32_t status = ENET_SOK;
 
-    CpswStats_MacPort_Ng *cpsw9gCurrPortStats = (CpswStats_MacPort_Ng *)&currPortStats;
-
     /* Monitor port statistics to detect and CPSW peripheral failure.
-    * Current EthFw Monitor task looks for rxBottomOfFifoDrop value.
-    * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
-    * so resetting the Enet Peripheral. */
-    if (cpsw9gCurrPortStats->rxBottomOfFifoDrop > 0U)
+     * Current EthFw Monitor task looks for rxBottomOfFifoDrop value.
+     * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
+     * so resetting the Enet Peripheral. */
+    if (stats->rxBottomOfFifoDrop > 0U)
     {
         status = ENET_EFAIL;
     }
+
     return status;
 }
 
@@ -2000,7 +2002,6 @@ static void EthFw_monitorTask(void *a0,
             ClockP_start(gEthFwObj.hMonitorClock);
         }
     }
-
 }
 
 uint64_t EthFw_getCurrentTime(uint32_t *nanoSeconds,
@@ -2065,7 +2066,7 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
     EnetAppUtils_assert(status == ENET_SOK);
     
     /* Call App callback to close the Lwip Dma channels */
-    gEthFwObj.closeLwipDmaCb(gEthFwObj.lwipDmaCbArg);
+    gEthFwObj.monitor.closeLwipDmaCb(gEthFwObj.monitor.lwipDmaCbArg);
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Close the gPTP DMA channels */
@@ -2085,7 +2086,7 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
     EnetAppUtils_assert(status == ENET_SOK);
 
     /* Call App callback to open the Lwip Dma channels */
-    gEthFwObj.openLwipDmaCb(gEthFwObj.lwipDmaCbArg);
+    gEthFwObj.monitor.openLwipDmaCb(gEthFwObj.monitor.lwipDmaCbArg);
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* start the gPTP DMA channels */

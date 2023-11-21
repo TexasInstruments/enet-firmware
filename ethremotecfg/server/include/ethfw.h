@@ -227,6 +227,24 @@ typedef void (*EthFw_closeLwipDmaCb)(void *arg);
 typedef void (*EthFw_openLwipDmaCb)(void *arg);
 
 /*!
+ * \brief Monitor and recovery configuration parameters.
+ */
+typedef struct EthFw_MonitorCfg_s
+{
+    /*! Monitor period in milliseconds */
+    uint32_t periodInMsecs;
+
+    /*! Argument for opening or closing the Lwip DMA channel to be passed ot callback function */
+    void *lwipDmaCbArg;
+
+    /*! Callback for closing the Lwip DMA channels from the application */
+    EthFw_closeLwipDmaCb closeLwipDmaCb;
+
+    /*! Callback for closing the Lwip DMA channels from the application */
+    EthFw_openLwipDmaCb openLwipDmaCb;
+} EthFw_MonitorCfg;
+
+/*!
  * \brief Ethernet Firmware configuration
  *
  * Ethernet Firmware configuration parameters.
@@ -295,14 +313,8 @@ typedef struct EthFw_Config_s
     /*! Number of remote client alloc objects */
     uint32_t numAllocObj;
 
-    /*! Argument for opening or closing the Lwip DMA channel to be passed ot callback function*/
-    void *lwipDmaCbArg;
-
-    /*! Callback for closing the Lwip DMA channels from the application */
-    EthFw_closeLwipDmaCb closeLwipDmaCb;
-
-    /*! Callback for closing the Lwip DMA channels from the application */
-    EthFw_openLwipDmaCb openLwipDmaCb;
+    /*! CPSW monitor and recovery configuration */
+    EthFw_MonitorCfg monitorCfg;
 } EthFw_Config;
 
 /*!

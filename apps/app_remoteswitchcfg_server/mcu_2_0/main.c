@@ -1096,9 +1096,9 @@ static int32_t EthApp_initEthFw(void)
 
 #if defined(ETHFW_MONITOR_SUPPORT)
     /* Save the Lwip Dma parametrers */
-    ethFwCfg.lwipDmaCbArg   = (void *)&netif;
-    ethFwCfg.closeLwipDmaCb = EthApp_closeDmaCb;
-    ethFwCfg.openLwipDmaCb  = EthApp_openDmaCb;
+    ethFwCfg.monitorCfg.lwipDmaCbArg   = (void *)&netif;
+    ethFwCfg.monitorCfg.closeLwipDmaCb = EthApp_closeDmaCb;
+    ethFwCfg.monitorCfg.openLwipDmaCb  = EthApp_openDmaCb;
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
