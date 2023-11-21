@@ -292,6 +292,9 @@ typedef struct EthFw_Obj_s
     uint32_t numClients;
 
 #if defined(ETHFW_MONITOR_SUPPORT)
+    /* Whether recovery is enabled or not */
+    bool recoveryEn;
+
     /* Monitor and recovery callbacks */
     EthFw_MonitorCfg monitor;
 
@@ -1109,6 +1112,9 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
 #if defined(ETHFW_MONITOR_SUPPORT)
     gEthFwObj.monitor = config->monitorCfg;
+    gEthFwObj.recoveryEn = ((gEthFwObj.monitor.openLwipDmaCb != NULL) &&
+                            (gEthFwObj.monitor.closeLwipDmaCb != NULL));
+    ETHFWTRACE_INFO_IF(!gEthFwObj.recoveryEn, "CPSW recovery is not enabled");
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1948,7 +1954,7 @@ static void EthFw_monitorTask(void *a0,
             }
         }
 
-        if (status != ENET_SOK)
+        if ((status != ENET_SOK) && gEthFwObj.recoveryEn)
         {
             /* Stop the clock during reset recovery handling */
             ClockP_stop(gEthFwObj.hMonitorClock);
