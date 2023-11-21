@@ -133,6 +133,27 @@ extern "C" {
 /*! Max number of Remote clients requesting resource allocation data */
 #define ETHFW_REMOTE_CLIENT_ALLOC_MAX     (5U)
 
+/*!
+ * \anchor EthFw_StatsMonEvt
+ * \name Statistics Monitor Events
+ *
+ * Event flags reported by Ethernet Firmware when specific statistics being montired
+ * had increased.
+ *
+ * @{
+ */
+/*! CPSW Rx Bottom of FIFO Drop - Frames received on a port overran the port's receive
+ *  FIFO and were dropped. */
+#define ETHFW_STATSMON_RXBOTTOMOFFIFODROP        ETHFW_BIT(0)
+/*! CPSW Rx Top of FIFO Drop - Frames received on a port that had a start-of-frame (SOF)
+ *  overrun on any destination port egress (when attempting to load a packet from the
+ *  top of the ingress port receive FIFO into any other port's transmit FIFO). */
+#define ETHFW_STATSMON_RXTOPOFFIFODROP           ETHFW_BIT(1)
+/*! CPSW Transmit Priority 0-7 Drop - Frames on the port that overran the transmit FIFO
+ *  priority 0-7 and were dropped. */
+#define ETHFW_STATSMON_TXPRIDROP                 ETHFW_BIT(2)
+/*! @} */
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
@@ -227,6 +248,34 @@ typedef void (*EthFw_closeLwipDmaCb)(void *arg);
 typedef void (*EthFw_openLwipDmaCb)(void *arg);
 
 /*!
+ * \brief Statistics being monitored.
+ */
+typedef struct EthFw_MonStats_s
+{
+    /* RX bottom of FIFO drop counter */
+    uint64_t rxBottomOfFifoDrop;
+
+    /* RX top of FIFO drop counter */
+    uint64_t rxTopOfFifoDrop;
+
+    /* TX priority drop counters */
+    uint64_t txPriDrop[ENET_PRI_NUM];
+} EthFw_MonStats;
+
+/*! Callback when a host port monitored statistics counter has increased */
+typedef void (*EthFw_StatsMonHostPortEvtCb)(uint32_t evtMask,
+                                            const EthFw_MonStats *monStats,
+                                            const CpswStats_HostPort_Ng *stats,
+                                            void *arg);
+
+/*! Callback when a MAC port monitored statistics counter has increased */
+typedef void (*EthFw_StatsMonMacPortEvtCb)(Enet_MacPort macPort,
+                                           uint32_t evtMask,
+                                           const EthFw_MonStats *monStats,
+                                           const CpswStats_MacPort_Ng *stats,
+                                           void *arg);
+
+/*!
  * \brief Monitor and recovery configuration parameters.
  */
 typedef struct EthFw_MonitorCfg_s
@@ -242,6 +291,15 @@ typedef struct EthFw_MonitorCfg_s
 
     /*! Callback for closing the Lwip DMA channels from the application */
     EthFw_openLwipDmaCb openLwipDmaCb;
+
+    /*! Callback to receive notifications when a host port monitored statistics has increased */
+    EthFw_StatsMonHostPortEvtCb statsMonHostEvtCb;
+
+    /*! Callback to receive notifications when a MAC port monitored statistics has increased */
+    EthFw_StatsMonMacPortEvtCb statsMonMacEvtCb;
+
+    /*! Argument passed in statistics monitor callbacks */
+    void *statsMonCbArg;
 } EthFw_MonitorCfg;
 
 /*!

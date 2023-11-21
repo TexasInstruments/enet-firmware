@@ -298,6 +298,12 @@ typedef struct EthFw_Obj_s
     /* Monitor and recovery callbacks */
     EthFw_MonitorCfg monitor;
 
+    /* Saved statistics counters */
+    EthFw_MonStats monStats[ETHFW_MAC_PORT_MAX + 1U];
+
+    /* CPSW statistics block */
+    CpswStats_PortStats cpswStats;
+
     /*! Clock handle for Monitor Task */
     ClockP_Handle hMonitorClock;
 
@@ -1076,6 +1082,9 @@ void EthFw_initConfigParams(Enet_Type enetType,
     monCfg->openLwipDmaCb     = NULL;
     monCfg->closeLwipDmaCb    = NULL;
     monCfg->lwipDmaCbArg      = NULL;
+    monCfg->statsMonHostEvtCb = NULL;
+    monCfg->statsMonMacEvtCb  = NULL;
+    monCfg->statsMonCbArg     = NULL;
 #endif
 }
 
@@ -1891,29 +1900,154 @@ static void EthFw_stopMonitorTask(void)
     ClockP_delete(gEthFwObj.hMonitorClock);
 }
 
-static int32_t EthFw_analyzePortStats(CpswStats_PortStats currPortStats)
+static bool EthFw_analyzeHostStats(void)
 {
-    CpswStats_MacPort_Ng *stats = (CpswStats_MacPort_Ng *)&currPortStats;
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    const CpswStats_HostPort_Ng *stats = (const CpswStats_HostPort_Ng *)&gEthFwObj.cpswStats;
+    EthFw_MonStats *monStats;
+    EthFw_MonStats diffStats;
+    Enet_IoctlPrms prms;
+    bool needsRecovery = false;
+    uint32_t evt = 0U;
+    uint32_t i;
     int32_t status = ENET_SOK;
 
-    /* Monitor port statistics to detect and CPSW peripheral failure.
-     * Current EthFw Monitor task looks for rxBottomOfFifoDrop value.
-     * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
-     * so resetting the Enet Peripheral. */
-    if (stats->rxBottomOfFifoDrop > 0U)
+    monStats = &gEthFwObj.monStats[0U];
+
+    /* Get host port stats counters */
+    ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwObj.cpswStats);
+    status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
+
+    /* Check stats counters we are monitoring */
+    if (status == ENET_SOK)
     {
-        status = ENET_EFAIL;
+        /* Monitor port statistics to detect and CPSW peripheral failure.
+         * Current EthFw Monitor task looks for rxBottomOfFifoDrop value.
+         * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
+         * so resetting the Enet Peripheral. */
+        if (stats->rxBottomOfFifoDrop > monStats->rxBottomOfFifoDrop)
+        {
+            evt |= ETHFW_STATSMON_RXBOTTOMOFFIFODROP;
+            needsRecovery = true;
+        }
+
+        if (stats->rxTopOfFifoDrop > monStats->rxTopOfFifoDrop)
+        {
+            evt |= ETHFW_STATSMON_RXTOPOFFIFODROP;
+        }
+
+        for (i = 0U; i < ENET_PRI_NUM; i++)
+        {
+            if (stats->txPriDrop[i] > monStats->txPriDrop[i])
+            {
+                evt |= ETHFW_STATSMON_TXPRIDROP;
+                break;
+            }
+        }
     }
 
-    return status;
+    /* Call application callback if one has been provided */
+    if ((status == ETHFW_SOK) &&
+        (evt != 0U) &&
+        (gEthFwObj.monitor.statsMonHostEvtCb != NULL))
+    {
+        diffStats.rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop - monStats->rxBottomOfFifoDrop;
+        diffStats.rxTopOfFifoDrop    = stats->rxTopOfFifoDrop - monStats->rxTopOfFifoDrop;
+        for (i = 0U; i < ENET_PRI_NUM; i++)
+        {
+            diffStats.txPriDrop[i] = stats->txPriDrop[i] - monStats->txPriDrop[i];
+        }
+
+        gEthFwObj.monitor.statsMonHostEvtCb(evt, &diffStats, stats,
+                                            gEthFwObj.monitor.statsMonCbArg);
+
+        monStats->rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop;
+        monStats->rxTopOfFifoDrop    = stats->rxTopOfFifoDrop;
+        memcpy(monStats->txPriDrop, stats->txPriDrop, sizeof(monStats->txPriDrop));
+    }
+
+    return needsRecovery;
+}
+
+static bool EthFw_analyzePortStats(Enet_MacPort macPort)
+{
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    const CpswStats_MacPort_Ng *stats = (const CpswStats_MacPort_Ng *)&gEthFwObj.cpswStats;
+    EthFw_MonStats *monStats;
+    EthFw_MonStats diffStats;
+    Enet_IoctlPrms prms;
+    bool needsRecovery = false;
+    uint32_t evt = 0U;
+    uint32_t portNum = ENET_MACPORT_NORM(macPort);
+    uint32_t i;
+    int32_t status = ENET_SOK;
+
+    monStats = &gEthFwObj.monStats[portNum + 1U];
+
+    /* Get MAC port stats counters */
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwObj.cpswStats);
+    status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                      "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
+
+    /* Check stats counters we are monitoring */
+    if (status == ENET_SOK)
+    {
+        /* Monitor port statistics to detect and CPSW peripheral failure.
+         * Current EthFw Monitor task looks for rxBottomOfFifoDrop value.
+         * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
+         * so resetting the Enet Peripheral. */
+        if (stats->rxBottomOfFifoDrop > monStats->rxBottomOfFifoDrop)
+        {
+            evt |= ETHFW_STATSMON_RXBOTTOMOFFIFODROP;
+            needsRecovery = true;
+        }
+
+        if (stats->rxTopOfFifoDrop > monStats->rxTopOfFifoDrop)
+        {
+            evt |= ETHFW_STATSMON_RXTOPOFFIFODROP;
+        }
+
+        for (i = 0U; i < ENET_PRI_NUM; i++)
+        {
+            if (stats->txPriDrop[i] > monStats->txPriDrop[i])
+            {
+                evt |= ETHFW_STATSMON_TXPRIDROP;
+                break;
+            }
+        }
+    }
+
+    /* Call application callback if one has been provided */
+    if ((status == ETHFW_SOK) &&
+        (evt != 0U) &&
+        (gEthFwObj.monitor.statsMonMacEvtCb != NULL))
+    {
+        diffStats.rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop - monStats->rxBottomOfFifoDrop;
+        diffStats.rxTopOfFifoDrop    = stats->rxTopOfFifoDrop - monStats->rxTopOfFifoDrop;
+        for (i = 0U; i < ENET_PRI_NUM; i++)
+        {
+            diffStats.txPriDrop[i] = stats->txPriDrop[i] - monStats->txPriDrop[i];
+        }
+
+        gEthFwObj.monitor.statsMonMacEvtCb(macPort, evt, &diffStats, stats,
+                                           gEthFwObj.monitor.statsMonCbArg);
+
+        monStats->rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop;
+        monStats->rxTopOfFifoDrop    = stats->rxTopOfFifoDrop;
+        memcpy(monStats->txPriDrop, stats->txPriDrop, sizeof(monStats->txPriDrop));
+    }
+
+    return needsRecovery;
 }
 
 static void EthFw_monitorTask(void *a0,
                               void *a1)
 {
-    CpswStats_PortStats currPortStats;
-    Enet_IoctlPrms prms;
-    Enet_MacPort portNum;
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    Enet_MacPort macPort;
+    bool needsRecovery = false;
     uint32_t i;
     int32_t status = ENET_SOK;
     bool isTeardownComplete = false;
@@ -1921,40 +2055,23 @@ static void EthFw_monitorTask(void *a0,
     uint32_t numActiveClients  = 0U;
     uint32_t numIdleClients = 0U;
     uint32_t teardownLoopCnt = 0U;
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
 
     while(gEthFwObj.monitorTaskRun)
     {
         SemaphoreP_pend(gEthFwObj.hMonitorSem, SemaphoreP_WAIT_FOREVER);
 
-        for (i = 0U; i < gEthFwObj.numPorts; i++)
+        needsRecovery = EthFw_analyzeHostStats();
+
+        for (i = 0U; (i < gEthFwObj.numPorts) && !needsRecovery; i++)
         {
-            portNum = ENET_MACPORT_DENORM(i);
-
-            if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, portNum) == true)
+            macPort = ENET_MACPORT_DENORM(i);
+            if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, macPort) == true)
             {
-                /* Collect MAC port statistics */
-                ENET_IOCTL_SET_INOUT_ARGS(&prms, &portNum, &currPortStats);
-                status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
-
-                if (status == ENET_SOK)
-                {
-                    status = EthFw_analyzePortStats(currPortStats);
-
-                    if (status != ENET_SOK)
-                    {
-                        /* Error detected, break the loop and trigger EthFw reset handler. */
-                        break;
-                    }
-                }
-                else
-                {
-                    ETHFWTRACE_ERR(status, "Error in collecting MAC port stats");
-                }
+                needsRecovery = EthFw_analyzePortStats(macPort);
             }
         }
 
-        if ((status != ENET_SOK) && gEthFwObj.recoveryEn)
+        if (needsRecovery  && gEthFwObj.recoveryEn)
         {
             /* Stop the clock during reset recovery handling */
             ClockP_stop(gEthFwObj.hMonitorClock);
@@ -2086,6 +2203,9 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
     EnetAppUtils_turnCpswOff();
     EnetAppUtils_delayInUsec(5000U);
     EnetAppUtils_turnCpswOn();
+
+    /* Clear local stats counters */
+    memset(gEthFwObj.monStats, 0, sizeof(gEthFwObj.monStats));
 
     /* Restore the context */
     status = EnetMcm_restoreCtxt(&gEthFwObj.mcmCmdIf);
