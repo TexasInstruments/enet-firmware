@@ -62,6 +62,7 @@
 
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x701
+#define ETHFWTRACE_MOD_NAME "RTOS-App"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -363,10 +364,12 @@ typedef struct CpswRemoteApp_Obj_s
 #endif
 } CpswRemoteApp_Obj;
 
+void appLogPrintf(const char *format, ...);
+
 /* Trace configuration */
 static EthFwTrace_Cfg gRemoteApp_traceCfg =
 {
-    .print        = (EthFwTrace_Print)&System_printf,
+    .print        = appLogPrintf,
     .traceTsFunc  = NULL,
     .extTraceFunc = NULL,
 };
@@ -510,7 +513,7 @@ static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
                                         (void *)virtNetif);
     if (status != CPSWPROXY_SOK)
     {
-        System_printf("Failed to register to HW push notification\n");
+        ETHFWTRACE_ERR(status, "Failed to register to HW push notification");
     }
     else
     {
@@ -615,8 +618,8 @@ static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
             hSyncTimerObj->offset = temp1 - temp2;
 
             synchronizedTime = CpswRemoteApp_getSynchronizedTime(hSyncTimerObj);
-            System_printf("Current Synchronized time via HWPUSH_%u in Epoch format: %lld\n",
-                          hwPushNum, synchronizedTime);
+            ETHFWTRACE_INFO("Current synchronized time via HWPUSH_%u in Epoch format: %lld",
+                            hwPushNum, synchronizedTime);
         }
 
         hSyncTimerObj->prevLocalTime = gtcTime;
@@ -639,19 +642,13 @@ static void rpmsg_vdevMonitorFxn(void* arg0,
     if (!Ipc_isRemoteVirtioCreated(IPC_MPU1_0))
     {
         status = Ipc_lateVirtioCreate(IPC_MPU1_0);
-        if (status != IPC_SOK)
-        {
-            System_printf("%s: Ipc_lateVirtioCreate failed\n", __func__);
-        }
+        ETHFWTRACE_ERR_IF((status != IPC_SOK), status, "Ipc_lateVirtioCreate failed");
     }
 
     if (status == IPC_SOK)
     {
         status = RPMessage_lateInit(IPC_MPU1_0);
-        if (status != IPC_SOK)
-        {
-            System_printf("%s: RPMessage_lateInit failed\n", __func__);
-        }
+        ETHFWTRACE_ERR_IF((status != IPC_SOK), status, "RPMessage_lateInit failed");
     }
 
     return;
@@ -661,27 +658,36 @@ void printDevInfo(EthRemoteCfg_DeviceData *ethDevData)
 {
     char *tf[] = {"false", "true"};
 
-    System_printf("ETHFW Version:%2d.%2d.%2d\n",
-                  ethDevData->fwVer.major,
-                  ethDevData->fwVer.minor,
-                  ethDevData->fwVer.rev);
-    System_printf("ETHFW Build Date (YYYY/MMM/DD):%c%c%c%c/%c%c%c/%c%c\n",
-                  ethDevData->fwVer.year[0], ethDevData->fwVer.year[1], ethDevData->fwVer.year[2], ethDevData->fwVer.year[3],
-                  ethDevData->fwVer.month[0], ethDevData->fwVer.month[1], ethDevData->fwVer.month[2],
-                  ethDevData->fwVer.date[0], ethDevData->fwVer.date[1]);
-    System_printf("ETHFW Commit SHA:%c%c%c%c%c%c%c%c\n",
-                  ethDevData->fwVer.commitHash[0],
-                  ethDevData->fwVer.commitHash[1],
-                  ethDevData->fwVer.commitHash[2],
-                  ethDevData->fwVer.commitHash[3],
-                  ethDevData->fwVer.commitHash[4],
-                  ethDevData->fwVer.commitHash[5],
-                  ethDevData->fwVer.commitHash[6],
-                  ethDevData->fwVer.commitHash[7]);
-    System_printf("ETHFW PermissionFlag:0x%llx, UART Connected:%s,UART Id:%d\n",
-                  ethDevData->permissionFlags,
-                  tf[ethDevData->uartConnected],
-                  ethDevData->uartId);
+    ETHFWTRACE_INFO("ETHFW Version:%2d.%2d.%2d",
+                    ethDevData->fwVer.major,
+                    ethDevData->fwVer.minor,
+                    ethDevData->fwVer.rev);
+
+    ETHFWTRACE_INFO("ETHFW Build Date (YYYY/MMM/DD):%c%c%c%c/%c%c%c/%c%c",
+                    ethDevData->fwVer.year[0],
+                    ethDevData->fwVer.year[1],
+                    ethDevData->fwVer.year[2],
+                    ethDevData->fwVer.year[3],
+                    ethDevData->fwVer.month[0],
+                    ethDevData->fwVer.month[1],
+                    ethDevData->fwVer.month[2],
+                    ethDevData->fwVer.date[0],
+                    ethDevData->fwVer.date[1]);
+
+    ETHFWTRACE_INFO("ETHFW Commit SHA:%c%c%c%c%c%c%c%c",
+                    ethDevData->fwVer.commitHash[0],
+                    ethDevData->fwVer.commitHash[1],
+                    ethDevData->fwVer.commitHash[2],
+                    ethDevData->fwVer.commitHash[3],
+                    ethDevData->fwVer.commitHash[4],
+                    ethDevData->fwVer.commitHash[5],
+                    ethDevData->fwVer.commitHash[6],
+                    ethDevData->fwVer.commitHash[7]);
+
+    ETHFWTRACE_INFO("ETHFW PermissionFlag:0x%llx, UART Connected:%s,UART Id:%d",
+                    ethDevData->permissionFlags,
+                    tf[ethDevData->uartConnected],
+                    ethDevData->uartId);
 }
 
 static void CpswRemoteApp_initTask(void* a0,
@@ -715,7 +721,7 @@ static void CpswRemoteApp_initTask(void* a0,
         Ipc_loadResourceTable(appGetIpcResourceTable());
     }
 #else
-    appLogPrintf("Skipping Ipc_loadResourceTable for QNX (core : %s) .....\r\n", Ipc_mpGetSelfName());
+    ETHFWTRACE_INFO("Skipping Ipc_loadResourceTable for QNX (core : %s)", Ipc_mpGetSelfName());
 #endif
 
     if (status == ENET_SOK)
@@ -744,11 +750,7 @@ static void CpswRemoteApp_initTask(void* a0,
         cntrlParam.stackBuffer = &ctrlTaskBuf[0];
         cntrlParam.stackSize = sizeof(ctrlTaskBuf);
         status = RPMessage_init(&cntrlParam);
-    }
-
-    if (status != ENET_SOK)
-    {
-        System_printf("ETHFW RPMessage_init failed\n");
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "ETHFW RPMessage_init failed");
     }
 
     /* Step 4: Create RPMessage monitor task */
@@ -825,7 +827,7 @@ int main(void)
     status = CpswRemoteApp_openUdma();
     if (status != UDMA_SOK)
     {
-        appLogPrintf("main() failed to open UDMA LLD: %d\n", status);
+        ETHFWTRACE_ERR(status, "Failed to open UDMA LLD");
         localAssert(status == UDMA_SOK);
     }
 
@@ -833,7 +835,7 @@ int main(void)
     status = CpswRemoteApp_openEnet();
     if (status != ENET_SOK)
     {
-        appLogPrintf("main() failed to open Enet LLD: %d\n", status);
+        ETHFWTRACE_ERR(status, "Failed to open Enet LLD");
         localAssert(status == ENET_SOK);
     }
 
@@ -878,7 +880,7 @@ static int32_t CpswRemoteApp_openUdma(void)
     status = Udma_init(hUdmaDrv, &initPrms);
     if (status != UDMA_SOK)
     {
-        appLogPrintf("CpswRemoteApp_openUdma() failed init UDMA driver: %d\n", status);
+        ETHFWTRACE_ERR(status, "Failed init UDMA driver");
         hUdmaDrv = NULL;
     }
 
@@ -923,10 +925,7 @@ static int32_t CpswRemoteApp_openEnet(void)
 
     /* Initialize Enet memutils */
     status = EnetMem_init();
-    if (status != ENET_SOK)
-    {
-        appLogPrintf("CpswRemoteApp_openEnet() failed to init memutils: %d\n", status);
-    }
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to init memutils");
 
     /* Initialize data path of Enet LLD */
     if (status == ENET_SOK)
@@ -939,9 +938,9 @@ static int32_t CpswRemoteApp_openEnet(void)
                                          &dmaCfg);
         if (hEnetDma == NULL)
         {
-            appLogPrintf("CpswRemoteApp_openEnet() failed to init Enet LLD data path\n");
-            EnetMem_deInit();
             status = ENET_EFAIL;
+            ETHFWTRACE_ERR(status, "Failed to init Enet LLD data path");
+            EnetMem_deInit();
         }
         else
         {
@@ -1033,7 +1032,8 @@ static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
     }
     else
     {
-        System_printf("Failed to open CpswProxy for virtPortId %u\n", virtNetif->virtPort);
+        ETHFWTRACE_ERR(CPSWPROXY_EFAIL, "Failed to open CpswProxy for virtPortId %u",
+                       virtNetif->virtPort);
         localAssert(hProxy != NULL);
     }
 }
@@ -1111,12 +1111,12 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     if(EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
     {
 #if ETHAPP_LWIP_USE_DHCP
-        appLogPrintf("Starting lwIP, local interface IP is dhcp-enabled\n");
+        ETHFWTRACE_INFO("Starting lwIP, local interface IP is dhcp-enabled");
 #else /* ETHAPP_LWIP_USE_DHCP */
         ETHFW_CLIENT_GW_SWITCH_PORT(&gw);
         ETHFW_CLIENT_IPADDR_SWITCH_PORT(&ipaddr);
         ETHFW_CLIENT_NETMASK_SWITCH_PORT(&netmask);
-        appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
+        ETHFWTRACE_INFO("Starting lwIP, local interface IP is %s", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
@@ -1169,26 +1169,23 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 
 #if ETHAPP_LWIP_USE_DHCP
         err = dhcp_start(netif_default);
-        if (err != ERR_OK)
-        {
-            appLogPrintf("Failed to start DHCP: %d\n", err);
-        }
+        ETHFWTRACE_ERR_IF((err != ERR_OK), err, "Failed to start DHCP");
 #endif /* ETHAPP_LWIP_USE_DHCP */
     }
     else
     {
 #if ETHAPP_LWIP_USE_DHCP
-        appLogPrintf("Starting lwIP, local interface IP is dhcp-enabled\n");
+        ETHFWTRACE_INFO("Starting lwIP, local interface IP is dhcp-enabled");
 #else /* ETHAPP_LWIP_USE_DHCP */
         ETHFW_CLIENT_GW_MAC_PORT(&gw);
         ETHFW_CLIENT_IPADDR_MAC_PORT(&ipaddr);
         ETHFW_CLIENT_NETMASK_MAC_PORT(&netmask);
-        appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
+        ETHFWTRACE_INFO("Starting lwIP, local interface IP is %s", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
-    NETIF_SET_CHECKSUM_CTRL(netif, chksumFlags);
+        NETIF_SET_CHECKSUM_CTRL(netif, chksumFlags);
 #endif
 
         if (virtNetif->isDfltNetif)
@@ -1204,10 +1201,7 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 
 #if ETHAPP_LWIP_USE_DHCP
         err = dhcp_start(netif);
-        if (err != ERR_OK)
-        {
-            appLogPrintf("Failed to start DHCP: %d\n", err);
-        }
+        ETHFWTRACE_ERR_IF((err != ERR_OK), err, "Failed to start DHCP");
 #endif /* ETHAPP_LWIP_USE_DHCP */
     }
 }
@@ -1222,8 +1216,8 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
     {
         const ip4_addr_t *ipAddr = netif_ip4_addr(netif);
 
-        appLogPrintf("Added interface '%c%c%d', IP is %s\n",
-                     netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
+        ETHFWTRACE_INFO("Added interface '%c%c%d', IP is %s",
+                        netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
 
         if (ipAddr->addr != 0)
         {
@@ -1252,7 +1246,7 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
     }
     else
     {
-        appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
+        ETHFWTRACE_INFO("Removed interface '%c%c%d'", netif->name[0], netif->name[1], netif->num);
     }
 }
 
@@ -1262,12 +1256,12 @@ static void EthApp_lwipNetifStatusCb(struct netif *netif)
     {
         const ip4_addr_t *ipAddr = netif_ip4_addr(netif);
 
-        appLogPrintf("Added interface '%c%c%d', IP is %s\n",
-                     netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
+        ETHFWTRACE_INFO("Added interface '%c%c%d', IP is %s",
+                        netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
     }
     else
     {
-        appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
+        ETHFWTRACE_INFO("Removed interface '%c%c%d'", netif->name[0], netif->name[1], netif->num);
     }
 }
 
@@ -1622,16 +1616,30 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
                                            void *cbArg)
 {
     CpswRemoteApp_VirtNetif *virtNetif = (CpswRemoteApp_VirtNetif *)cbArg;
+    bool isMacPort;
+    uint32_t portNum;
 
-    if (notifyType == ETHREMOTECFG_NOTIFY_HWERROR)
+    if (virtNetif != NULL)
     {
-        appLogPrintf("VirtPort %u: HWRECOVERY_HWERROR notification received\n", virtNetif->virtPort);
-        MailboxP_post(gRemoteAppObj.hMbx, (void *)&virtNetif, MailboxP_WAIT_FOREVER);
+        isMacPort = EthRemoteCfg_isMacPort(virtNetif->virtPort);
+        portNum = EthRemoteCfg_getPortNum(virtNetif->virtPort);
+
+        if (notifyType == ETHREMOTECFG_NOTIFY_HWERROR)
+        {
+            ETHFWTRACE_INFO("Virtual %s port %u: HWERROR notify received",
+                            isMacPort ? "MAC" : "switch", portNum);
+            MailboxP_post(gRemoteAppObj.hMbx, (void *)&virtNetif, MailboxP_WAIT_FOREVER);
+        }
+        else if (notifyType == ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE)
+        {
+            ETHFWTRACE_INFO("Virtual %s port %u: HWRECOVERY_COMPLETE notify received",
+                            isMacPort ? "MAC" : "switch", portNum);
+            EthApp_openDma(&virtNetif->netif);
+        }
     }
-    else if (notifyType == ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE)
+    else
     {
-        appLogPrintf("VirtPort %u: HWRECOVERY_COMPLETE notification received\n", virtNetif->virtPort);
-        EthApp_openDma(&virtNetif->netif);
+        ETHFWTRACE_ERR(CPSWPROXY_EUNEXPECTED, "Unexpected HW recovery notify callback argument");
     }
 }
 
@@ -1640,17 +1648,24 @@ static void CpswRemoteApp_hwRecoveryTask(void *a0,
 {
     CpswRemoteApp_VirtNetif *virtNetif;
     volatile bool exitTask = false;
+    bool isMacPort;
+    uint32_t portNum;
 
     while (!exitTask)
     {
         MailboxP_pend(gRemoteAppObj.hMbx, (void *)&virtNetif, MailboxP_WAIT_FOREVER);
 
+        isMacPort = EthRemoteCfg_isMacPort(virtNetif->virtPort);
+        portNum = EthRemoteCfg_getPortNum(virtNetif->virtPort);
+
         /* Close DMA channel/flow */
-        appLogPrintf("VirtPort %u: Initiating DMA channel teardown...\n", virtNetif->virtPort);
+        ETHFWTRACE_INFO("Virtual %s port %u: Initiating DMA channel teardown",
+                        isMacPort ? "MAC" : "switch", portNum);
         EthApp_closeDma(&virtNetif->netif);
 
         /* Send teardown completion */
-        appLogPrintf("VirtPort %u: DMA teardown complete, sending notification to ETHFW\n", virtNetif->virtPort);
+        ETHFWTRACE_INFO("Virtual %s port %u: DMA teardown complete, notify ETHFW",
+                        isMacPort ? "MAC" : "switch", portNum);
         CpswProxy_teardownCompletion(virtNetif->hCpswProxy);
     }
 }
