@@ -831,6 +831,7 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
     if (status == ENET_SOK)
     {
         EthFwTrace_init(&gEthApp_traceCfg);
+        EthFwTrace_setLevel(ETHFW_TRACE_INFO);
     }
 
     /* Board initialization: Serdes, GPIOs, pinmux, etc */
