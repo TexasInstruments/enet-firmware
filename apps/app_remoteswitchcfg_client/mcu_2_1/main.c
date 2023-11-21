@@ -173,8 +173,8 @@
 #define ETHAPP_HWRECOVERY_TASK_PRI              (2U)
 
 /* Mailbox used to pass virtual netifs to be closed for recovery */
-#define ETHAPP_VIRTNETIF_MBX_MSGSIZE            (sizeof(CpswRemoteApp_VirtNetif))
-#define ETHAPP_VIRTNETIF_MBX_MSGCOUNT           (2U)
+#define ETHAPP_VIRTNETIF_MBX_MSGSIZE            (sizeof(CpswRemoteApp_HwRecoveryMsg))
+#define ETHAPP_VIRTNETIF_MBX_MSGCOUNT           (4U)
 #if defined(SAFERTOS)
 #define ETHAPP_VIRTNETIF_MBX_SIZE               ((ETHAPP_VIRTNETIF_MBX_MSGSIZE * \
                                                   ETHAPP_VIRTNETIF_MBX_MSGCOUNT) + \
@@ -325,6 +325,15 @@ typedef struct CpswRemoteApp_VirtNetif_s
     /* Whether CPTS sync timer has been initialized */
     bool syncTimerInitDone;
 } CpswRemoteApp_VirtNetif;
+
+typedef struct CpswRemoteApp_HwRecoveryMsg_s
+{
+    /* Virtual network interface data */
+    CpswRemoteApp_VirtNetif *virtNetif;
+
+    /* Notify type */
+    uint32_t notifyType;
+}CpswRemoteApp_HwRecoveryMsg;
 
 typedef struct CpswRemoteApp_Obj_s
 {
@@ -1520,6 +1529,10 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
     LwipifEnetAppIf_RxHandleInfo *rxInfo;
     LwipifEnetAppIf_RxConfig *rxCfg;
+    CpswRemoteApp_VirtNetif *virtNetif;
+
+    virtNetif = container_of(inArgs->netif, CpswRemoteApp_VirtNetif, netif);
+    localAssert(virtNetif->hCpswProxy != NULL);
 
     /* Set configuration parameters */
     EnetDma_initTxChParams(&cpswTxChCfg);
@@ -1552,6 +1565,11 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
     outArgs->rxInfo[0U].hRxFlow = EnetDma_openRxCh(gRemoteAppObj.hEnetDma, &cpswRxFlowCfg);
     localAssert(outArgs->rxInfo[0U].hRxFlow != NULL);
+
+    CpswProxy_registerDstMacRxFlow(virtNetif->hCpswProxy,
+                                   rxInfo->rxFlowStartIdx,
+                                   rxInfo->rxFlowIdx,
+                                   rxInfo->macAddr);
 }
 
 void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
@@ -1559,6 +1577,10 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
     EnetDma_PktQ fqPktInfoQ;
     EnetDma_PktQ cqPktInfoQ;
     int32_t status = ENET_SOK;
+    CpswRemoteApp_VirtNetif *virtNetif;
+
+    virtNetif = container_of(releaseInfo->netif, CpswRemoteApp_VirtNetif, netif);
+    localAssert(virtNetif->hCpswProxy != NULL);
 
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
@@ -1576,6 +1598,11 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
     EnetQueue_initQ(&cqPktInfoQ);
 
     EnetDma_disableRxEvent(releaseInfo->rxInfo[0U].hRxFlow);
+
+    CpswProxy_unregisterDstMacRxFlow(virtNetif->hCpswProxy,
+                                     releaseInfo->rxInfo[0U].rxFlowStartIdx,
+                                     releaseInfo->rxInfo[0U].rxFlowIdx,
+                                     releaseInfo->rxInfo[0U].macAddr);
 
     status = EnetDma_closeRxCh(releaseInfo->rxInfo[0U].hRxFlow,
                                &fqPktInfoQ,
@@ -1616,6 +1643,7 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
                                            void *cbArg)
 {
     CpswRemoteApp_VirtNetif *virtNetif = (CpswRemoteApp_VirtNetif *)cbArg;
+    CpswRemoteApp_HwRecoveryMsg msgMbx;
     bool isMacPort;
     uint32_t portNum;
 
@@ -1626,15 +1654,23 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
 
         if (notifyType == ETHREMOTECFG_NOTIFY_HWERROR)
         {
+            msgMbx.virtNetif = virtNetif;
+            msgMbx.notifyType = notifyType;
             ETHFWTRACE_INFO("Virtual %s port %u: HWERROR notify received",
                             isMacPort ? "MAC" : "switch", portNum);
-            MailboxP_post(gRemoteAppObj.hMbx, (void *)&virtNetif, MailboxP_WAIT_FOREVER);
+        MailboxP_post(gRemoteAppObj.hMbx,  (void *)&msgMbx, MailboxP_WAIT_FOREVER);
         }
         else if (notifyType == ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE)
         {
+            msgMbx.virtNetif = virtNetif;
+            msgMbx.notifyType = notifyType;
             ETHFWTRACE_INFO("Virtual %s port %u: HWRECOVERY_COMPLETE notify received",
-                            isMacPort ? "MAC" : "switch", portNum);
-            EthApp_openDma(&virtNetif->netif);
+                    isMacPort ? "MAC" : "switch", portNum);
+            MailboxP_post(gRemoteAppObj.hMbx, (void *)&msgMbx, MailboxP_WAIT_FOREVER);
+        }
+        else
+        {
+            ETHFWTRACE_ERR(CPSWPROXY_EUNEXPECTED, "Unexpected HW recovery notify Type");
         }
     }
     else
@@ -1646,27 +1682,39 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
 static void CpswRemoteApp_hwRecoveryTask(void *a0,
                                          void *a1)
 {
-    CpswRemoteApp_VirtNetif *virtNetif;
+    CpswRemoteApp_HwRecoveryMsg msgMbx;
     volatile bool exitTask = false;
     bool isMacPort;
     uint32_t portNum;
 
     while (!exitTask)
     {
-        MailboxP_pend(gRemoteAppObj.hMbx, (void *)&virtNetif, MailboxP_WAIT_FOREVER);
+        MailboxP_pend(gRemoteAppObj.hMbx,  (void *)&msgMbx, MailboxP_WAIT_FOREVER);
 
-        isMacPort = EthRemoteCfg_isMacPort(virtNetif->virtPort);
-        portNum = EthRemoteCfg_getPortNum(virtNetif->virtPort);
+        isMacPort = EthRemoteCfg_isMacPort(msgMbx.virtNetif->virtPort);
+        portNum = EthRemoteCfg_getPortNum(msgMbx.virtNetif->virtPort);
 
-        /* Close DMA channel/flow */
-        ETHFWTRACE_INFO("Virtual %s port %u: Initiating DMA channel teardown",
-                        isMacPort ? "MAC" : "switch", portNum);
-        EthApp_closeDma(&virtNetif->netif);
+        if (msgMbx.notifyType == ETHREMOTECFG_NOTIFY_HWERROR)
+        {
+            ETHFWTRACE_INFO("Virtual %s port %u: Initiating DMA channel teardown",
+                            isMacPort ? "MAC" : "switch", portNum);
+            EthApp_closeDma(&msgMbx.virtNetif->netif);
 
-        /* Send teardown completion */
-        ETHFWTRACE_INFO("Virtual %s port %u: DMA teardown complete, notify ETHFW",
-                        isMacPort ? "MAC" : "switch", portNum);
-        CpswProxy_teardownCompletion(virtNetif->hCpswProxy);
+            /* Send teardown completion */
+            ETHFWTRACE_INFO("Virtual %s port %u: DMA teardown complete, notify ETHFW",
+                            isMacPort ? "MAC" : "switch", portNum);
+            CpswProxy_teardownCompletion(msgMbx.virtNetif->hCpswProxy);
+        }
+        else if (msgMbx.notifyType == ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE)
+        {
+            ETHFWTRACE_INFO("Virtual %s port %u: Opening back DMA channel",
+                            isMacPort ? "MAC" : "switch", portNum);
+            EthApp_openDma(&msgMbx.virtNetif->netif);
+        }
+        else
+        {
+            ETHFWTRACE_ERR(CPSWPROXY_EUNEXPECTED, "Unexpected HW recovery notify Type");
+        }
     }
 }
 #endif
