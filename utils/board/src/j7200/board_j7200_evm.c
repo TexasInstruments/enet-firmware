@@ -75,6 +75,9 @@
 /* VSC8514 wait time between NRESET deassert and access of the SMI interface */
 #define ETHFW_QSGMII_PHY_TWAIT_MSECS            (105U)
 
+/* Maximum number of physical Ethernet ports supported for this board */
+#define ETHFW_MAX_STATIC_MAC_ADDR               (9U)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -641,6 +644,31 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
      * addresses in Linux builds. For RTOS build, MAC addresses will still
      * be read from EEPROM as such I2C contention isn't an problem.
      */
+#if defined(ETHFW_RAND_MACADDR_GEN)
+    uint8_t macAddrBuf[ETHFW_MAX_STATIC_MAC_ADDR][ENET_MAC_ADDR_LEN];
+    uint32_t seed = CycleprofilerP_getTimeStamp();
+    uint32_t i;
+    uint32_t j;
+
+    memset(&macAddrBuf, 0, ETHFW_MAX_STATIC_MAC_ADDR*ENET_MAC_ADDR_LEN);
+
+    srand(seed);
+
+    for (i = 0U; i < ETHFW_MAX_STATIC_MAC_ADDR; i++)
+    {
+        for(j = 0U; j < ENET_MAC_ADDR_LEN; j++)
+        {
+            if (j == 0U)
+            {
+                macAddrBuf[i][j] = 0x70U;
+            }
+            else
+            {
+                macAddrBuf[i][j] = (uint8_t)rand()%255;
+            }
+        }
+    }
+    #else
     uint8_t macAddrBuf[][ENET_MAC_ADDR_LEN] =
     {
         { 0x70U, 0xFFU, 0x76U, 0x1DU, 0x92U, 0xC1U },
@@ -653,6 +681,8 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
         { 0x70U, 0xFFU, 0x76U, 0x1DU, 0X8BU, 0xC6U },
         { 0x70U, 0xFFU, 0x76U, 0x1DU, 0X8BU, 0xC7U },
     };
+#endif
+
     uint32_t macAddrCnt = ENET_ARRAYSIZE(macAddrBuf);
 
     /* Save only those required to meet the max number of MAC entries */

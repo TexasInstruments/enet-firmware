@@ -24,6 +24,8 @@ endif
 IDIRS += $(PDK_PATH)/packages
 IDIRS += $(ETHFW_PATH)
 
+DEFS += ETHFW_RAND_MACADDR_GEN
+
 include $(FINALE)
 
 endif
