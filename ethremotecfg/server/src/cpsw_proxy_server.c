@@ -166,6 +166,9 @@
 
 #define CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY           (2U)
 
+#define CPSWPROXY_PRINT_STATS_NONZERO(str, val)          ETHFWTRACE_INFO_IF(((val) != 0ULL), str, val)
+#define CPSWPROXY_PRINT_STATS_IDX_NONZERO(str, idx, val) ETHFWTRACE_INFO_IF(((val) != 0ULL), str, idx, val)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -1377,6 +1380,172 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
     return status;
 }
 
+static void CpswProxyServer_printHostPortStats(CpswStats_HostPort_Ng *st)
+{
+    uint_fast32_t i;
+
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxGoodFrames            = %llu", st->rxGoodFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxBcastFrames           = %llu", st->rxBcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxMcastFrames           = %llu", st->rxMcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxCrcErrors             = %llu", st->rxCrcErrors);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxOversizedFrames       = %llu", st->rxOversizedFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxUndersizedFrames      = %llu", st->rxUndersizedFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxFragments             = %llu", st->rxFragments);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleDrop                 = %llu", st->aleDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleOverrunDrop          = %llu", st->aleOverrunDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxOctets                = %llu", st->rxOctets);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txGoodFrames            = %llu", st->txGoodFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txBcastFrames           = %llu", st->txBcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txMcastFrames           = %llu", st->txMcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txOctets                = %llu", st->txOctets);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames64          = %llu", st->octetsFrames64);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames65to127     = %llu", st->octetsFrames65to127);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames128to255    = %llu", st->octetsFrames128to255);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames256to511    = %llu", st->octetsFrames256to511);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames512to1023   = %llu", st->octetsFrames512to1023);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames1024        = %llu", st->octetsFrames1024);
+    CPSWPROXY_PRINT_STATS_NONZERO("  netOctets               = %llu", st->netOctets);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxBottomOfFifoDrop      = %llu", st->rxBottomOfFifoDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  portMaskDrop            = %llu", st->portMaskDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxTopOfFifoDrop         = %llu", st->rxTopOfFifoDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleRateLimitDrop        = %llu", st->aleRateLimitDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleVidIngressDrop       = %llu", st->aleVidIngressDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleDAEqSADrop           = %llu", st->aleDAEqSADrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleBlockDrop            = %llu", st->aleBlockDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleSecureDrop           = %llu", st->aleSecureDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleAuthDrop             = %llu", st->aleAuthDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownUcast         = %llu", st->aleUnknownUcast);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownUcastBcnt     = %llu", st->aleUnknownUcastBcnt);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownMcast         = %llu", st->aleUnknownMcast);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownMcastBcnt     = %llu", st->aleUnknownMcastBcnt);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownBcast         = %llu", st->aleUnknownBcast);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownBcastBcnt     = %llu", st->aleUnknownBcastBcnt);
+    CPSWPROXY_PRINT_STATS_NONZERO("  alePolicyMatch          = %llu", st->alePolicyMatch);
+    CPSWPROXY_PRINT_STATS_NONZERO("  alePolicyMatchRed       = %llu", st->alePolicyMatchRed);
+    CPSWPROXY_PRINT_STATS_NONZERO("  alePolicyMatchYellow    = %llu", st->alePolicyMatchYellow);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleMultSADrop           = %llu", st->aleMultSADrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleDualVlanDrop         = %llu", st->aleDualVlanDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleLenErrorDrop         = %llu", st->aleLenErrorDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleIpNextHdrDrop        = %llu", st->aleIpNextHdrDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleIPv4FragDrop         = %llu", st->aleIPv4FragDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxAssemblyErr        = %llu", st->ietRxAssemblyErr);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxAssemblyOk         = %llu", st->ietRxAssemblyOk);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxSmdError           = %llu", st->ietRxSmdError);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxFrag               = %llu", st->ietRxFrag);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietTxHold               = %llu", st->ietTxHold);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietTxFrag               = %llu", st->ietTxFrag);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txMemProtectError       = %llu", st->txMemProtectError);
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPri); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPri[%u]                = %llu", i, st->txPri[i]);
+    }
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPriBcnt); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPriBcnt[%u]            = %llu", i, st->txPriBcnt[i]);
+    }
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPriDrop); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPriDrop[%u]            = %llu", i, st->txPriDrop[i]);
+    }
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPriDropBcnt); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPriDropBcnt[%u]        = %llu", i, st->txPriDropBcnt[i]);
+    }
+}
+
+static void CpswProxyServer_printMacPortStats(CpswStats_MacPort_Ng *st)
+{
+    uint_fast32_t i;
+
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxGoodFrames            = %llu", st->rxGoodFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxBcastFrames           = %llu", st->rxBcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxMcastFrames           = %llu", st->rxMcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxPauseFrames           = %llu", st->rxPauseFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxCrcErrors             = %llu", st->rxCrcErrors);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxAlignCodeErrors       = %llu", st->rxAlignCodeErrors);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxOversizedFrames       = %llu", st->rxOversizedFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxJabberFrames          = %llu", st->rxJabberFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxUndersizedFrames      = %llu", st->rxUndersizedFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxFragments             = %llu", st->rxFragments);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleDrop                 = %llu", st->aleDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleOverrunDrop          = %llu", st->aleOverrunDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxOctets                = %llu", st->rxOctets);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txGoodFrames            = %llu", st->txGoodFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txBcastFrames           = %llu", st->txBcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txMcastFrames           = %llu", st->txMcastFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txPauseFrames           = %llu", st->txPauseFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txDeferredFrames        = %llu", st->txDeferredFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txCollisionFrames       = %llu", st->txCollisionFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txSingleCollFrames      = %llu", st->txSingleCollFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txMultipleCollFrames    = %llu", st->txMultipleCollFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txExcessiveCollFrames   = %llu", st->txExcessiveCollFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txLateCollFrames        = %llu", st->txLateCollFrames);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxIPGError              = %llu", st->rxIPGError);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txCarrierSenseErrors    = %llu", st->txCarrierSenseErrors);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txOctets                = %llu", st->txOctets);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames64          = %llu", st->octetsFrames64);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames65to127     = %llu", st->octetsFrames65to127);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames128to255    = %llu", st->octetsFrames128to255);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames256to511    = %llu", st->octetsFrames256to511);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames512to1023   = %llu", st->octetsFrames512to1023);
+    CPSWPROXY_PRINT_STATS_NONZERO("  octetsFrames1024        = %llu", st->octetsFrames1024);
+    CPSWPROXY_PRINT_STATS_NONZERO("  netOctets               = %llu", st->netOctets);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxBottomOfFifoDrop      = %llu", st->rxBottomOfFifoDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  portMaskDrop            = %llu", st->portMaskDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  rxTopOfFifoDrop         = %llu", st->rxTopOfFifoDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleRateLimitDrop        = %llu", st->aleRateLimitDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleVidIngressDrop       = %llu", st->aleVidIngressDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleDAEqSADrop           = %llu", st->aleDAEqSADrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleBlockDrop            = %llu", st->aleBlockDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleSecureDrop           = %llu", st->aleSecureDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleAuthDrop             = %llu", st->aleAuthDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownUcast         = %llu", st->aleUnknownUcast);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownUcastBcnt     = %llu", st->aleUnknownUcastBcnt);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownMcast         = %llu", st->aleUnknownMcast);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownMcastBcnt     = %llu", st->aleUnknownMcastBcnt);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownBcast         = %llu", st->aleUnknownBcast);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleUnknownBcastBcnt     = %llu", st->aleUnknownBcastBcnt);
+    CPSWPROXY_PRINT_STATS_NONZERO("  alePolicyMatch          = %llu", st->alePolicyMatch);
+    CPSWPROXY_PRINT_STATS_NONZERO("  alePolicyMatchRed       = %llu", st->alePolicyMatchRed);
+    CPSWPROXY_PRINT_STATS_NONZERO("  alePolicyMatchYellow    = %llu", st->alePolicyMatchYellow);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleMultSADrop           = %llu", st->aleMultSADrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleDualVlanDrop         = %llu", st->aleDualVlanDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleLenErrorDrop         = %llu", st->aleLenErrorDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleIpNextHdrDrop        = %llu", st->aleIpNextHdrDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  aleIPv4FragDrop         = %llu", st->aleIPv4FragDrop);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxAssemblyErr        = %llu", st->ietRxAssemblyErr);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxAssemblyOk         = %llu", st->ietRxAssemblyOk);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxSmdError           = %llu", st->ietRxSmdError);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietRxFrag               = %llu", st->ietRxFrag);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietTxHold               = %llu", st->ietTxHold);
+    CPSWPROXY_PRINT_STATS_NONZERO("  ietTxFrag               = %llu", st->ietTxFrag);
+    CPSWPROXY_PRINT_STATS_NONZERO("  txMemProtectError       = %llu", st->txMemProtectError);
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPri); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPri[%u]                = %llu", i, st->txPri[i]);
+    }
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPriBcnt); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPriBcnt[%u]            = %llu", i, st->txPriBcnt[i]);
+    }
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPriDrop); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPriDrop[%u]            = %llu", i, st->txPriDrop[i]);
+    }
+
+    for (i = 0U; i < ENET_ARRAYSIZE(st->txPriDropBcnt); i++)
+    {
+        CPSWPROXY_PRINT_STATS_IDX_NONZERO("  txPriDropBcnt[%u]        = %llu", i, st->txPriDropBcnt[i]);
+    }
+}
+
 static void CpswProxyServer_printStats(Enet_Handle hEnet,
                                        Enet_Type enetType,
                                        uint32_t coreId)
@@ -1391,7 +1560,8 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
     status = Enet_ioctl(hEnet, coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
     if (status == ENET_SOK)
     {
-        ETHFWTRACE_INFO("\n Port 0 Statistics");
+        ETHFWTRACE_INFO("");
+        ETHFWTRACE_INFO(" Host Port Statistics");
         ETHFWTRACE_INFO("-----------------------------------------");
         switch (enetType)
         {
@@ -1410,7 +1580,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
                 CpswStats_HostPort_Ng *st;
 
                 st = (CpswStats_HostPort_Ng *)&portStats;
-                EnetAppUtils_printHostPortStats9G(st);
+                CpswProxyServer_printHostPortStats(st);
                 break;
             }
 
@@ -1436,7 +1606,8 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
             status = Enet_ioctl(hEnet, coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
             if (status == ENET_SOK)
             {
-                ETHFWTRACE_INFO("\n External Port %d Statistics", ENET_MACPORT_ID(portNum));
+                ETHFWTRACE_INFO("");
+                ETHFWTRACE_INFO(" External Port %d Statistics", ENET_MACPORT_ID(portNum));
                 ETHFWTRACE_INFO("-----------------------------------------");
                 switch (enetType)
                 {
@@ -1455,7 +1626,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
                         CpswStats_MacPort_Ng *st;
 
                         st = (CpswStats_MacPort_Ng *)&portStats;
-                        EnetAppUtils_printMacPortStats9G(st);
+                        CpswProxyServer_printMacPortStats(st);
                         break;
                     }
 
