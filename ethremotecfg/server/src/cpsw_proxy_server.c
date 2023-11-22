@@ -565,6 +565,8 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
 
         if (hClient->inUse)
         {
+            /* Set isIdle flag to false for next iteration of recovery */
+            hClient->isIdle = false;
             status = CpswProxyServer_sendNotify(hClient, notifyId);
         }
         TaskP_sleep(50);

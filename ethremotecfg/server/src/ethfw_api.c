@@ -2175,6 +2175,8 @@ static void EthFw_monitorTask(void *a0,
                 EnetAppUtils_assert(status == ENET_SOK);
             }
 
+            /* Set teardown flag to false for next iteration */
+            isTeardownComplete = false;
             ClockP_start(gEthFwObj.hMonitorClock);
         }
     }
