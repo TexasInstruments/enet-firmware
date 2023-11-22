@@ -504,6 +504,8 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
 
     req.virtPort = virtPort;
 
+    memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH,
                                &req.hdr, sizeof(req),
@@ -545,6 +547,8 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
     ETHFWTRACE_INFO("ATTACH_EXT | C2S | virtPort=%u", virtPort);
 
     req.virtPort = virtPort;
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AttachExtRes));
 
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH_EXT,
@@ -609,6 +613,8 @@ int32_t CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
 
     ETHFWTRACE_INFO("ALLOC_TX | C2S | token=%d", (int32_t)hProxy->token);
 
+    memset(&res, 0, sizeof(EthRemoteCfg_AllocTxRes));
+
     status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_TX,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
@@ -652,6 +658,8 @@ int32_t CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
     int32_t status;
 
     ETHFWTRACE_INFO("ALLOC_RX | C2S | token=%d", (int32_t)hProxy->token);
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AllocRxRes));
 
     status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_RX,
                                &req.hdr, sizeof(req),
@@ -700,6 +708,8 @@ int32_t CpswProxy_allocMac(CpswProxy_Handle hProxy,
     int32_t status;
 
     ETHFWTRACE_INFO("ALLOC_MAC | C2S | token=%d", (int32_t)hProxy->token);
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AllocMacRes));
 
     status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_MAC,
                                &req.hdr, sizeof(req),
@@ -901,6 +911,8 @@ bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy)
     int32_t status;
 
     ETHFWTRACE_VERBOSE("PORT_LINK_STATUS | C2S | token=%d", (int32_t)hProxy->token);
+
+    memset(&res, 0, sizeof(EthRemoteCfg_PortLinkStatusRes));
 
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_PORT_LINK_STATUS,
@@ -1507,7 +1519,6 @@ static int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     int32_t status = CPSWPROXY_SOK;
 
     EthFw_assert(hProxy != NULL);
-    memset(res, 0, resLen);
 
     MutexP_lock(gCpswProxy.cmdSvc.hMutex, MutexP_WAIT_FOREVER);
 
