@@ -105,7 +105,7 @@ ETHFW_BOOT_TIME_PROFILING?=no
 # Ethfw Demo support
 ETHFW_DEMO_SUPPORT?=no
 
-#Support for random MAC Address generation
+# Support for random MAC Address generation
 ETHFW_RAND_MACADDR_GEN?=yes
 
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)

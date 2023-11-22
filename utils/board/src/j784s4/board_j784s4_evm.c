@@ -631,6 +631,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
 static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
                                                 uint32_t poolSize)
 {
+    uint32_t macAddrCnt;
     uint32_t allocCnt = 0U;
 
     /*
@@ -658,19 +659,14 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
 
     for (i = 0U; i < ETHFW_MAX_STATIC_MAC_ADDR; i++)
     {
-        for(j = 0U; j < ENET_MAC_ADDR_LEN; j++)
+        macAddrBuf[i][0] = 0x70U;
+
+        for (j = 1U; j < ENET_MAC_ADDR_LEN; j++)
         {
-            if (j == 0U)
-            {
-                macAddrBuf[i][j] = 0x70U;
-            }
-            else
-            {
-                macAddrBuf[i][j] = (uint8_t)rand()%255;
-            }
+            macAddrBuf[i][j] = (uint8_t)rand()%255;
         }
     }
-    #else
+#else
     uint8_t macAddrBuf[][ENET_MAC_ADDR_LEN] =
     {
         { 0x70U, 0xFFU, 0x76U, 0x1DU, 0x92U, 0xC1U },
@@ -685,11 +681,19 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
     };
 #endif
 
-    uint32_t macAddrCnt = ENET_ARRAYSIZE(macAddrBuf);
+    macAddrCnt = ENET_ARRAYSIZE(macAddrBuf);
 
     /* Save only those required to meet the max number of MAC entries */
     allocCnt = EnetUtils_min(macAddrCnt, poolSize);
     memcpy(&macAddr[0U][0U], &macAddrBuf[0U][0U], allocCnt * ENET_MAC_ADDR_LEN);
+
+#if defined(ETHFW_RAND_MACADDR_GEN)
+    ETHFWTRACE_WARN_IF((allocCnt > 0U),
+                       "Warning: Using %u random MAC address(es)", staticCnt);
+#else
+    ETHFWTRACE_WARN_IF((allocCnt > 0U),
+                       "Warning: Using %u MAC address(es) from static pool", staticCnt);
+#endif
 
     return allocCnt;
 }
