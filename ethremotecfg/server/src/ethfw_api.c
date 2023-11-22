@@ -182,7 +182,7 @@
 #define ETHFW_TSN_BUFFER_SIZE                         (5120U)
 
 /*! Number of MAC ports supported by the gPTP stack */
-#define ETHAPP_PTP_CFG_NUM_MAC_PORTS                  (1U)
+#define ETHAPP_PTP_CFG_NUM_MAC_PORTS                  ETHFW_MAC_PORT_MAX
 #endif
 
 /* Compile time check for error value consistency with Enet LLD (and CSL) */
@@ -335,6 +335,9 @@ typedef struct EthFw_Obj_s
 
     /* gPTP stack netdevs */
     char *gPtpNetDevs[ETHAPP_PTP_CFG_NUM_MAC_PORTS + 1];
+
+    /* Number of active netdevs */
+    uint32_t numNetDevs;
 
     /* gPTP task handle */
     TaskP_Handle hPtpTask;
@@ -1650,17 +1653,12 @@ static void EthFw_gptpTask(void *a0,
                            void *a1)
 {
     char **netdevs = (char **)a0;
+    uint32_t numNetDevs = (uint32_t)a1;
     int32_t i;
     int32_t status;
 
-    /* Count the number of netdevs */
-    for (i = 0; netdevs[i]; i++)
-    {
-        /* Do nothing */
-    }
-
     /* This function start gPTP, it has a true loop inside */
-    status = gptpman_run(netdevs, i, 1, NULL);
+    status = gptpman_run(netdevs, numNetDevs, 1, NULL);
     ETHFWTRACE_ERR_IF((status < 0), status, "gptpman_run() failed");
 }
 
@@ -1714,7 +1712,8 @@ static void EthFw_tsnDeinit(void)
     gEthFwObj.logTaskrun = false;
 }
 
-static void EthFw_gptpStart(char *netdevs[])
+static void EthFw_gptpStart(char *netdevs[],
+                            uint32_t numNetDevs)
 {
     TaskP_Params params;
 
@@ -1727,6 +1726,7 @@ static void EthFw_gptpStart(char *netdevs[])
         params.stacksize = sizeof(gEthFwObj.gPtpStackBuf);
         params.name      = "ETHFW gPTP Task";
         params.arg0      = netdevs;
+        params.arg1      = (void *)numNetDevs;
 
         gEthFwObj.hPtpTask = TaskP_create(&EthFw_gptpTask, &params);
         if (NULL == gEthFwObj.hPtpTask)
@@ -1760,33 +1760,26 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
             macPort = ENET_MACPORT_DENORM(i);
 
             /* Linking each MAC port with an interface name */
-            if (j < ETHAPP_PTP_CFG_NUM_MAC_PORTS)
-            {
-                snprintf(&gEthFwObj.netDevs[j][0], IFNAMSIZ, "tilld%d", i + 1);
-                gEthFwObj.gPtpNetDevs[j] = &gEthFwObj.netDevs[j][0];
-                ethdevs[j].netdev  = gEthFwObj.netDevs[j];
-                ethdevs[j].macport = macPort;
-                memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
+            snprintf(&gEthFwObj.netDevs[j][0], IFNAMSIZ, "tilld%d", i + 1);
+            gEthFwObj.gPtpNetDevs[j] = &gEthFwObj.netDevs[j][0];
+            ethdevs[j].netdev  = gEthFwObj.netDevs[j];
+            ethdevs[j].macport = macPort;
+            memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
 
-                ETHFWTRACE_INFO("Enable gPTP on MAC port %u (%s)",
-                                ENET_MACPORT_ID(macPort), gEthFwObj.gPtpNetDevs[j]);
-                j++;
-            }
-            else
-            {
-                status = ENET_EINVALIDPARAMS;
-                ETHFWTRACE_ERR(status, "Can't enable gPTP on MAC port %u, exceeded max number of ports (%u)",
-                               ENET_MACPORT_ID(macPort), ETHAPP_PTP_CFG_NUM_MAC_PORTS);
-                EnetAppUtils_assert(false);
-            }
+            ETHFWTRACE_INFO("Enable gPTP on MAC port %u (%s)",
+                            ENET_MACPORT_ID(macPort), gEthFwObj.gPtpNetDevs[j]);
+            j++;
         }
     }
+
+    gEthFwObj.numNetDevs = j;
 
     /* Filling netdev table where each entry consists of an interface,
      * its MAC port and mac addr (if any) */
     if (status == ENET_SOK)
     {
-        status  = cb_lld_init_devs_table(ethdevs, j, gEthFwObj.enetType, gEthFwObj.instId);
+        status  = cb_lld_init_devs_table(ethdevs, gEthFwObj.numNetDevs,
+                                         gEthFwObj.enetType, gEthFwObj.instId);
         ETHFWTRACE_ERR_IF((status < 0), status, "Failed to int devs table");
     }
 
@@ -1799,7 +1792,7 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
         gEthFwObj.configPtpCb(gEthFwObj.configPtpCbArg);
     }
 
-    EthFw_gptpStart(gEthFwObj.gPtpNetDevs);
+    EthFw_gptpStart(gEthFwObj.gPtpNetDevs, gEthFwObj.numNetDevs);
 
     ETHFWTRACE_INFO("TimeSync PTP enabled");
 

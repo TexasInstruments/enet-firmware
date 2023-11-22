@@ -11,11 +11,11 @@
 
 --fill_value=0
 --stack_size=0x8000
---heap_size=0x10000
+--heap_size=0x3E800
 --entry_point=_freertosresetvectors
 
 -stack  0x8000  /* SOFTWARE STACK SIZE */
--heap   0x10000 /* HEAP AREA SIZE      */
+-heap   0x3E800 /* HEAP AREA SIZE      */
 
 /*-------------------------------------------*/
 /*       Stack Sizes for various modes       */

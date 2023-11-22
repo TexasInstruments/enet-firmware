@@ -545,6 +545,46 @@ static Enet_MacPort gEthAppPorts[] =
 #endif
 };
 
+#if defined(ETHFW_GPTP_SUPPORT)
+/* Ethernet ports where gPTP support is enabled, it must be composed of
+ * ports in non MAC-only mode */
+static Enet_MacPort gEthAppSwitchPorts[]=
+{
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_2, /* SGMII */
+#else
+#if defined(SOC_J721E)
+    ENET_MAC_PORT_3,
+    ENET_MAC_PORT_8,
+#if defined(ENABLE_QSGMII_PORTS)
+    ENET_MAC_PORT_2,
+    ENET_MAC_PORT_5,
+    ENET_MAC_PORT_6,
+    ENET_MAC_PORT_7,
+#endif
+#endif
+#endif
+
+#if defined(SOC_J7200)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_1,
+#else
+    ENET_MAC_PORT_2,
+    ENET_MAC_PORT_3,
+#endif
+#endif
+
+#if defined(SOC_J784S4)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_2,
+#else
+    ENET_MAC_PORT_3,
+    ENET_MAC_PORT_5,
+#endif
+#endif
+};
+#endif
+
 static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
 {
     {
@@ -1775,17 +1815,18 @@ static void EthApp_configPtpCb(void *arg)
 
 static void EthApp_initPtp(void)
 {
-    Enet_MacPort macPort;
-    uint32_t portMask;
+    uint32_t portMask = 0U;
+    uint8_t i;
 
     /* MAC port used for PTP */
-#if defined(ETHFW_BOOT_TIME_PROFILING)
-    macPort = gEthAppPorts[0U];
-#else
-    macPort = ENET_MAC_PORT_3;
+    #if defined(ETHFW_BOOT_TIME_PROFILING)
+    portMask = ENET_MACPORT_MASK(gEthAppPorts[0U]);
+    #else
+    for (i = 0U; i < ENET_ARRAYSIZE(gEthAppSwitchPorts); i++)
+    {
+        portMask |= ENET_MACPORT_MASK(gEthAppSwitchPorts[i]);
+    }
 #endif
-
-    portMask = ENET_MACPORT_MASK(macPort);
 
     /* Wait for host port MAC address to be allocated during lwIP getHandle */
     SemaphoreP_pend(gEthAppObj.hHostMacAllocSem, SemaphoreP_WAIT_FOREVER);
