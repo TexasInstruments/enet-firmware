@@ -1429,7 +1429,7 @@ static int32_t EthFw_initMcm(void)
     mcmCfg.setPortLinkCfg = EthFw_initLinkArgs;
     mcmCfg.numMacPorts = gEthFwObj.numPorts;
     mcmCfg.periodicTaskPeriod = ENETPHY_FSM_TICK_PERIOD_MS;
-    mcmCfg.print = appLogPrintf;
+    mcmCfg.print = EthFwTrace_print;
     mcmCfg.traceTsFunc = NULL;
     mcmCfg.extTraceFunc = NULL;
 
@@ -1601,7 +1601,7 @@ static void EthFw_logTask(void *a0, void *a1)
         {
             /* The print function will take a long time, we should not
              * call it inside the mutex lock. */
-            appLogPrintf("%s", gEthFwObj.printBuf);
+            EthFwTrace_print("%s", gEthFwObj.printBuf);
         }
 
         TaskP_sleep(1000);
