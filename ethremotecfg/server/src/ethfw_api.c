@@ -1900,6 +1900,59 @@ static void EthFw_stopMonitorTask(void)
     ClockP_delete(gEthFwObj.hMonitorClock);
 }
 
+static void EthFw_saveStats(void)
+{
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    const CpswStats_HostPort_Ng *hostStats = (const CpswStats_HostPort_Ng *)&gEthFwObj.cpswStats;
+    const CpswStats_MacPort_Ng *macStats = (const CpswStats_MacPort_Ng *)&gEthFwObj.cpswStats;
+    EthFw_MonStats *monStats;
+    Enet_IoctlPrms prms;
+    Enet_MacPort macPort;
+    uint32_t portNum;
+    uint32_t i;
+    uint32_t j;
+    int32_t status = ENET_SOK;
+
+    /* Get host port stats counters */
+    monStats = &gEthFwObj.monStats[0U];
+    ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwObj.cpswStats);
+    status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
+
+    if (status == ENET_SOK)
+    {
+        monStats->rxBottomOfFifoDrop = hostStats->rxBottomOfFifoDrop;
+        monStats->rxTopOfFifoDrop    = hostStats->rxTopOfFifoDrop;
+        for (j = 0U; j < ENET_PRI_NUM; j++)
+        {
+            monStats->txPriDrop[j] = hostStats->txPriDrop[j];
+        }
+    }
+
+    /* Get MAC port stats counters */
+    for (i = 0U; i < gEthFwObj.numPorts; i++)
+    {
+        macPort = ENET_MACPORT_DENORM(i);
+        portNum = ENET_MACPORT_NORM(macPort);
+        monStats = &gEthFwObj.monStats[portNum + 1U];
+
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwObj.cpswStats);
+        status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                          "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
+
+        if (status == ENET_SOK)
+        {
+            monStats->rxBottomOfFifoDrop = macStats->rxBottomOfFifoDrop;
+            monStats->rxTopOfFifoDrop    = macStats->rxTopOfFifoDrop;
+            for (j = 0U; j < ENET_PRI_NUM; j++)
+            {
+                monStats->txPriDrop[j] = macStats->txPriDrop[j];
+            }
+        }
+    }
+}
+
 static bool EthFw_analyzeHostStats(void)
 {
     Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
@@ -2056,7 +2109,7 @@ static void EthFw_monitorTask(void *a0,
     uint32_t numIdleClients = 0U;
     uint32_t teardownLoopCnt = 0U;
 
-    while(gEthFwObj.monitorTaskRun)
+    while (gEthFwObj.monitorTaskRun)
     {
         SemaphoreP_pend(gEthFwObj.hMonitorSem, SemaphoreP_WAIT_FOREVER);
 
@@ -2071,7 +2124,7 @@ static void EthFw_monitorTask(void *a0,
             }
         }
 
-        if (needsRecovery  && gEthFwObj.recoveryEn)
+        if (needsRecovery && gEthFwObj.recoveryEn)
         {
             /* Stop the clock during reset recovery handling */
             ClockP_stop(gEthFwObj.hMonitorClock);
@@ -2206,6 +2259,11 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
 
     /* Clear local stats counters */
     memset(gEthFwObj.monStats, 0, sizeof(gEthFwObj.monStats));
+
+    /* Workaround: CPSW software stats are currently not cleared during save/restore context.
+     * In order to prevent that the recovery mechanism runs in infinite loop, save the last
+     * software stats so they become the starting point going forward */
+    EthFw_saveStats();
 
     /* Restore the context */
     status = EnetMcm_restoreCtxt(&gEthFwObj.mcmCmdIf);
