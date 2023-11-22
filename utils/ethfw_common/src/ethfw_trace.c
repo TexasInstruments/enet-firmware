@@ -194,6 +194,21 @@ EthFwTrace_TraceLevel EthFwTrace_setLevel(EthFwTrace_TraceLevel level)
     return prevLevel;
 }
 
+void EthFwTrace_print(const char *fmt, ...)
+{
+    char *buf = &gEthFwTraceObj.printBuf[0U];
+    va_list args;
+
+    MutexP_lock(gEthFwTraceObj.hMutex, MutexP_WAIT_FOREVER);
+
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(gEthFwTraceObj.printBuf), fmt, args);
+    gEthFwTraceObj.print(buf);
+    va_end(args);
+
+    MutexP_unlock(gEthFwTraceObj.hMutex);
+}
+
 #if (ETHFW_CFG_TRACE_LEVEL > ETHFW_CFG_TRACE_LEVEL_NONE)
 void EthFwTrace_trace(EthFwTrace_TraceLevel globalLevel,
                       EthFwTrace_TraceLevel level,

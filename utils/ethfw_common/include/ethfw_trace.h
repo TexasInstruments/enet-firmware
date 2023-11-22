@@ -638,6 +638,20 @@ void EthFwTrace_setTsFunc(EthFwTrace_TraceTsFunc func);
 void EthFwTrace_setExtTraceFunc(EthFwTrace_ExtTraceFunc func);
 
 /*!
+ * \brief Print a message.
+ *
+ * Print messages using common print function provided at \ref EthFwTrace_init()
+ * via \ref EthFwTrace_Cfg::print.
+ *
+ * This function can be provided as the _print_ function for drivers such as
+ * Enet or UDMA.
+ *
+ * \param fmt            Print string
+ */
+void EthFwTrace_print(const char *fmt,
+                      ...);
+
+/*!
  * \brief Log a trace message if log level is enabled
  *
  * Log trace messages for log levels that are enabled at runtime.
