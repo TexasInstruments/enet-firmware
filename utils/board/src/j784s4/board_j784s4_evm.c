@@ -689,10 +689,10 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
 
 #if defined(ETHFW_RAND_MACADDR_GEN)
     ETHFWTRACE_WARN_IF((allocCnt > 0U),
-                       "Warning: Using %u random MAC address(es)", staticCnt);
+                       "Warning: Using %u random MAC address(es)", allocCnt);
 #else
     ETHFWTRACE_WARN_IF((allocCnt > 0U),
-                       "Warning: Using %u MAC address(es) from static pool", staticCnt);
+                       "Warning: Using %u MAC address(es) from static pool", allocCnt);
 #endif
 
     return allocCnt;
