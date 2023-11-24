@@ -219,6 +219,11 @@ typedef struct CpswProxyServer_ClientObj_s
 
     /* If the client object has finished its teardown and became idle */
     bool isIdle;
+
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* Vlan check count - register vlan once per virtual client for VEPA */
+    uint32_t vlanRefCnt;
+#endif
 } CpswProxyServer_ClientObj;
 
 /*
@@ -415,6 +420,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteE
             hClient->token = ETHREMOTECFG_TOKEN_NONE;
             hClient->remoteEp = remoteEndPt;
             hClient->isIdle = false;
+            hClient->vlanRefCnt = 0U;
             break;
         }
     }
@@ -912,7 +918,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC addr based route");
 
 #if defined(ETHFW_VEPA_SUPPORT)
-        if (status == ENET_SOK)
+        if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
         {
             SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
             /* vlanId of 0 indicates do not use VLAN */
@@ -923,6 +929,10 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
                               hostId,
                               macAddr[0], macAddr[1], macAddr[2],
                               macAddr[3], macAddr[4], macAddr[5]);
+        }
+        if (status == ETHFW_SOK)
+        {
+            hClient->vlanRefCnt++;
         }
 #endif
     }
@@ -974,7 +984,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC addr based route");
 
 #if defined(ETHFW_VEPA_SUPPORT)
-        if (status == ENET_SOK)
+        if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
         {
             /* vlanId of 0 indicates do not use VLAN */
             status = EthFwVepa_unregisterClient(hClient->hEnet, hostId, flowIdxOffset, 0, hClient->virtPort);
@@ -984,6 +994,10 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
                              hostId,
                              macAddr[0], macAddr[1], macAddr[2],
                              macAddr[3], macAddr[4], macAddr[5]);
+        }
+        if (status == ETHFW_SOK)
+        {
+            hClient->vlanRefCnt--;
         }
 #endif
     }
