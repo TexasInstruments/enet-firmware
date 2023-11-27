@@ -420,7 +420,9 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteE
             hClient->token = ETHREMOTECFG_TOKEN_NONE;
             hClient->remoteEp = remoteEndPt;
             hClient->isIdle = false;
+#if defined(ETHFW_VEPA_SUPPORT)
             hClient->vlanRefCnt = 0U;
+#endif
             break;
         }
     }
