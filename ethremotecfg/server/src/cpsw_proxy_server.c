@@ -984,6 +984,10 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC addr based route");
 
 #if defined(ETHFW_VEPA_SUPPORT)
+        if (status == ENET_SOK)
+        {
+            hClient->vlanRefCnt--;
+        }
         if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
         {
             /* vlanId of 0 indicates do not use VLAN */
@@ -994,10 +998,6 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
                              hostId,
                              macAddr[0], macAddr[1], macAddr[2],
                              macAddr[3], macAddr[4], macAddr[5]);
-        }
-        if (status == ETHFW_SOK)
-        {
-            hClient->vlanRefCnt--;
         }
 #endif
     }
