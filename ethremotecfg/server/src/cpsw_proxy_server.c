@@ -923,8 +923,10 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
         if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
         {
             SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
-            /* vlanId of 0 indicates do not use VLAN */
-            status = EthFwVepa_registerClient(hClient->hEnet, hostId, flowIdxOffset, 0, hClient->virtPort, &hwAddr);
+            status = EthFwVepa_registerClient(hClient->hEnet, hostId, flowIdxOffset,
+                                              hServer->dfltVlanIdSwitchPorts,
+                                              hClient->virtPort,
+                                              &hwAddr);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to register client core %u "
                               "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
@@ -992,8 +994,9 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
         }
         if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
         {
-            /* vlanId of 0 indicates do not use VLAN */
-            status = EthFwVepa_unregisterClient(hClient->hEnet, hostId, flowIdxOffset, 0, hClient->virtPort);
+            status = EthFwVepa_unregisterClient(hClient->hEnet, hostId, flowIdxOffset,
+                                                hServer->dfltVlanIdSwitchPorts,
+                                                hClient->virtPort);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to unregister client core %u "
                               "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
@@ -2019,6 +2022,7 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
                                                      uint32_t flowIdxOffset)
 {
     CpswProxyServer_Obj *hServer = NULL;
+    uint16_t hwVlanId = vlanId;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
     /* Check that server itself is ready */
@@ -2036,16 +2040,10 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
     {
         /* If client is not in a VLAN, it will pass VLAN id 0 or VLAN_USE_DFLT,
          * but we need to use the actual default VLAN id */
-        if ((vlanId == 0) || (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT))
+        if ((vlanId == 0U) || (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT))
         {
-            if (EthRemoteCfg_isSwitchPort(hClient->virtPort))
-            {
-                vlanId = hServer->dfltVlanIdSwitchPorts;
-            }
-            else
-            {
-                vlanId = hServer->dfltVlanIdMacOnlyPorts;
-            }
+            vlanId = 0U;
+            hwVlanId = hServer->dfltVlanIdSwitchPorts;
         }
         else
         {
@@ -2062,7 +2060,7 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
     if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
         status = EthFwMcast_filterAddMac(hClient->virtPort, hClient->hEnet,
-                                         macAddr, vlanId, flowIdxOffset, hostId);
+                                         macAddr, vlanId, hwVlanId, flowIdxOffset, hostId);
         if (status != ETHFW_SOK)
         {
             status = ETHREMOTECFG_CMDSTATUS_EFAIL;
@@ -2079,6 +2077,7 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
                                                      uint16_t vlanId)
 {
     CpswProxyServer_Obj *hServer;
+    uint16_t hwVlanId = vlanId;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
     /* Check that server itself is ready */
@@ -2094,18 +2093,12 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
     /* Check if client is part of the VLAN */
     if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
-        if ((vlanId == 0) || (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT))
+        /* If client is not in a VLAN, it will pass VLAN id 0 or VLAN_USE_DFLT,
+         * but we need to use the actual default VLAN id */
+        if ((vlanId == 0U) || (vlanId == ETHREMOTECFG_ETHSWITCH_VLAN_USE_DFLT))
         {
-            /* If client is not in a VLAN, it will pass VLAN id 0 or VLAN_USE_DFLT,
-             * but we need to use the actual default VLAN id */
-            if (EthRemoteCfg_isSwitchPort(hClient->virtPort))
-            {
-                vlanId = hServer->dfltVlanIdSwitchPorts;
-            }
-            else
-            {
-                vlanId = hServer->dfltVlanIdMacOnlyPorts;
-            }
+            vlanId = 0U;
+            hwVlanId = hServer->dfltVlanIdSwitchPorts;
         }
         else
         {
@@ -2123,7 +2116,7 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
     if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
         status = EthFwMcast_filterDelMac(hClient->virtPort, hClient->hEnet,
-                                         macAddr, vlanId, hostId);
+                                         macAddr, vlanId, hwVlanId, hostId);
         if (status != ETHFW_SOK)
         {
             status = ETHREMOTECFG_CMDSTATUS_EFAIL;
@@ -2625,7 +2618,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("JOIN_VLAN | C2S | core=%u endpt=%u token=%d vlanId=%u "
-                            "macAdd=%x:%x:%x:%x:%x:%x flowIdx=%u,%u",
+                            "macAdd=%02x:%02x:%02x:%02x:%02x:%02x flowIdx=%u,%u",
                             remoteProcId, remoteEndPt, (int32_t)token, req->vlanId,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
@@ -2654,7 +2647,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("LEAVE_VLAN | C2S | core=%u endpt=%u token=%d vlanId=%u "
-                            "macAdd=%x:%x:%x:%x:%x:%x flowIdx=%u,%u",
+                            "macAdd=%02x:%02x:%02x:%02x:%02x:%02x flowIdx=%u,%u",
                             remoteProcId, remoteEndPt, (int32_t)token, req->vlanId,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
@@ -2821,7 +2814,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
             ETHFWTRACE_INFO("ADD_FILTER_MAC | C2S | core=%u endpt=%u token=%d "
-                            "macAdd=%x:%x:%x:%x:%x:%x vlanId=%u flowIdx=%u,%u",
+                            "macAdd=%02x:%02x:%02x:%02x:%02x:%02x vlanId=%u flowIdx=%u,%u",
                             remoteProcId, remoteEndPt, (int32_t)token,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],
@@ -2850,7 +2843,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
 
             ETHFWTRACE_INFO("DEL_FILTER_MAC | C2S | core=%u endpt=%u token=%d "
-                            "macAdd=%x:%x:%x:%x:%x:%x vlanId=%u",
+                            "macAdd=%02x:%02x:%02x:%02x:%02x:%02x vlanId=%u",
                             remoteProcId, remoteEndPt, (int32_t)token,
                             req->macAddr[0U], req->macAddr[1U], req->macAddr[2U],
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U],

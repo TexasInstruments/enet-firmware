@@ -85,6 +85,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
                                 Enet_Handle hEnet,
                                 const uint8_t *macAddr,
                                 uint16_t vlanId,
+                                uint16_t hwVlanId,
                                 uint32_t flowIdxOffset,
                                 uint8_t hostId);
 
@@ -92,6 +93,7 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
                                 Enet_Handle hEnet,
                                 uint8_t *macAddr,
                                 uint16_t vlanId,
+                                uint16_t hwVlanId,
                                 uint8_t hostId);
 
 void EthFwMcast_printTable(void);

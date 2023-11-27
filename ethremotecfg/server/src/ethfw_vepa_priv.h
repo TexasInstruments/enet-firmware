@@ -135,11 +135,19 @@ void EthFwVepa_deinit(void);
 /*!
  * \brief Add a multicast entry in VEPA table for client
  *
- * Adds policer for multicast packets to go to packet duplication flow
+ * Adds policer for multicast packets to go to packet duplication flow.
+ *
+ * Untagged traffic received on any MAC port in switch mode gets the port's
+ * default VLAN at ingress, is processed by ALE with that VLAN id and finally
+ * untagged on egress.  In this case, `vlanId` argument will be 0 and `hwVlanId`
+ * argument will be the switch port default VLAN id.
+ *
+ * For VLAN tagged traffic, both `vlanId` and `hwVlanId` will both be the same.
  *
  * \param hEnet      Handle to CPSW
  * \param hwAddr     MAC address to add in VEPA table
- * \param vlanId     VLAN id
+ * \param vlanId     VLAN id (apparent)
+ * \param hwVlanId   VLAN id (used in ALE)
  * \param hostId     Remote core IPC core id
  * \param virtPort   Remote core virtual port id
  *
@@ -149,17 +157,26 @@ void EthFwVepa_deinit(void);
 int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
                           struct eth_addr *hwAddr,
                           uint16_t vlanId,
+                          uint16_t hwVlanId,
                           uint16_t hostId,
                           EthRemoteCfg_VirtPort virtPort);
 
 /*!
  * \brief Removes an entry in VEPA table for client
  *
- * Removes policer which allowed multicast packets to go to packet duplication flow
+ * Removes policer which allowed multicast packets to go to packet duplication flow.
+ *
+ * Untagged traffic received on any MAC port in switch mode gets the port's
+ * default VLAN at ingress, is processed by ALE with that VLAN id and finally
+ * untagged on egress.  In this case, `vlanId` argument will be 0 and `hwVlanId`
+ * argument will be the switch port default VLAN id.
+ *
+ * For VLAN tagged traffic, both `vlanId` and `hwVlanId` will both be the same.
  *
  * \param hEnet      Handle to CPSW
  * \param hwAddr     MAC address to add in VEPA table
- * \param vlanId     VLAN id
+ * \param vlanId     VLAN id (apparent)
+ * \param hwVlanId   VLAN id (used in ALE)
  * \param hostId     Remote core IPC core id
  * \param virtPort   Remote core virtual port id
  *
@@ -169,6 +186,7 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
 int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
                           struct eth_addr *hwAddr,
                           uint16_t vlanId,
+                          uint16_t hwVlanId,
                           uint16_t hostId,
                           EthRemoteCfg_VirtPort virtPort);
 
