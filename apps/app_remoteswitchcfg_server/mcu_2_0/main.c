@@ -1751,71 +1751,55 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
 #if defined(ETHFW_VEPA_SUPPORT)
 /* Application callback function to handle addition of a shared mcast
  * address in the ALE */
-static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
+static void EthApp_filterAddMacSharedCb(const uint8_t *macAddr,
                                         uint16_t vlanId,
                                         uint8_t hostId)
 {
-    uint8_t idx = 0;
-    bool matchFound = false;
+    bool found = false;
+    uint32_t i = 0;
 
-    /* Search the mac_address in the shared mcast addr table */
-    for (idx = 0; idx < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); idx++)
+    /* Search the MAC address in the shared multicast address table */
+    for (i = 0; i < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); i++)
     {
-        if (EnetUtils_cmpMacAddr(mac_address,
-                    &gEthApp_sharedMcastCfgTable[idx].macAddr[0]))
+        if (EnetUtils_cmpMacAddr(macAddr, &gEthApp_sharedMcastCfgTable[i].macAddr[0]))
         {
-            matchFound = true;
-            appLogPrintf("filterAddMacSharedCb: Address found: %x:%x:%x:%x:%x:%x\n",
-                            mac_address[0],
-                            mac_address[1],
-                            mac_address[2],
-                            mac_address[3],
-                            mac_address[4],
-                            mac_address[5]);
-            /* The array should have unique mcast addresses,
-             * so no other match is expected */
+            found = true;
             break;
         }
     }
 
-    if (!matchFound)
+    if (!found)
     {
-        appLogPrintf("addMacSharedCb: Address not found\n");
+        appLogPrintf("Unexpected shared multicast %02x:%02x:%02x:%02x:%02x:%02x\n",
+                     macAddr[0], macAddr[1], macAddr[2],
+                     macAddr[3], macAddr[4], macAddr[5]);
     }
 }
 
 /* Application callback function to handle deletion of a shared mcast
  * address from the ALE */
-static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
+static void EthApp_filterDelMacSharedCb(const uint8_t *macAddr,
                                         uint16_t vlanId,
                                         uint8_t hostId)
 {
-    uint8_t idx = 0;
-    bool matchFound = false;
+    bool found = false;
+    uint32_t i = 0;
 
-    /* Search the mac_address in the shared mcast addr table */
-    for (idx = 0; idx < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); idx++)
+    /* Search the MAC address in the shared multicast address table */
+    for (i = 0; i < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); i++)
     {
-        if (EnetUtils_cmpMacAddr(mac_address,
-                    &gEthApp_sharedMcastCfgTable[idx].macAddr[0]))
+        if (EnetUtils_cmpMacAddr(macAddr, &gEthApp_sharedMcastCfgTable[i].macAddr[0]))
         {
-            matchFound = true;
-            appLogPrintf("filterDelMacSharedCb: Address found: %x:%x:%x:%x:%x:%x\n",
-                            mac_address[0],
-                            mac_address[1],
-                            mac_address[2],
-                            mac_address[3],
-                            mac_address[4],
-                            mac_address[5]);
-            /* The array should have unique mcast addresses,
-             * so no other match is expected */
+            found = true;
             break;
         }
     }
 
-    if (!matchFound)
+    if (!found)
     {
-        appLogPrintf("filterDelMacSharedCb: Address not found\n");
+        appLogPrintf("Unexpected shared multicast %02x:%02x:%02x:%02x:%02x:%02x\n",
+                     macAddr[0], macAddr[1], macAddr[2],
+                     macAddr[3], macAddr[4], macAddr[5]);
     }
 }
 #endif
