@@ -200,7 +200,7 @@ extern "C" {
 #define ETHREMOTECFG_FEATURE_TXCSUM                       (1 << 0)
 
 /*! \brief Multicast filter feature. */
-#define ETHREMOTECFG_FEATURE_MC_FILTER                    (1 << 2)
+#define ETHREMOTECFG_FEATURE_MC_FILTER                    (1 << 3)
 /*! @} */
 
 /*! \brief Max IPC message size. */

@@ -676,7 +676,7 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
     {
         *pFeatures |= ETHREMOTECFG_FEATURE_TXCSUM;
     }
-    else
+    if (!isMacPort)
     {
         *pFeatures |= ETHREMOTECFG_FEATURE_MC_FILTER;
     }

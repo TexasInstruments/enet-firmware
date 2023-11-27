@@ -246,7 +246,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
     struct eth_addr hwAddr;
 #endif
     bool isRsvd;
-    int32_t status = ETHFW_EPERM;
+    int32_t status = ETHFW_SOK;
 
     isRsvd = EthFwMcast_isRsvdMcast(macAddr);
     if (!isRsvd)
