@@ -721,3 +721,23 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
 
     return status;
 }
+
+void EthFwMcast_printTable(void)
+{
+    EthFwMcast_SharedMcastInfo *entry;
+    uint32_t i;
+
+    ETHFWTRACE_INFO("");
+    ETHFWTRACE_INFO(" SNo.      MAC Address      VLAN id   Port Mask   Virtual Port Mask  RefCnt");
+    ETHFWTRACE_INFO("------  -----------------  ---------  ----------  -----------------  ------");
+
+    for (i = 0U; i <= gEthFwMcastObj.sharedMcastTable.len; i++)
+    {
+        entry = &gEthFwMcastObj.sharedMcastTable.table[i];
+        ETHFWTRACE_INFO(" %3d    %02x:%02x:%02x:%02x:%02x:%02x    %5d    0x%08x      0x%08x      %d",
+                        i + 1,
+                        entry->macAddr[0], entry->macAddr[1], entry->macAddr[2],
+                        entry->macAddr[3], entry->macAddr[4], entry->macAddr[5],
+                        entry->vlanId, entry->portMask, entry->virtPortMask, entry->refCnt);
+    }
+}

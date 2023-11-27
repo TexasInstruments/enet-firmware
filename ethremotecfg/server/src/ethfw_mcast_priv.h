@@ -94,6 +94,8 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
                                 uint16_t vlanId,
                                 uint8_t hostId);
 
+void EthFwMcast_printTable(void);
+
 #ifdef __cplusplus
 }
 #endif
