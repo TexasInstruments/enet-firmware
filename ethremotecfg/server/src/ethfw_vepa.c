@@ -581,7 +581,7 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
     inArgs.unregMcastFloodMask     = 0U;
     inArgs.regMcastFloodMask       = CPSW_ALE_HOST_PORT_MASK;
     inArgs.forceUntaggedEgressMask = CPSW_ALE_HOST_PORT_MASK;
-    inArgs.noLearnMask             = 0U;
+    inArgs.noLearnMask             = CPSW_ALE_HOST_PORT_MASK;
     inArgs.vidIngressCheck         = false;
     inArgs.limitIPNxtHdr           = false;
     inArgs.disallowIPFrag          = false;

@@ -883,6 +883,9 @@ static void EthFw_setPortMode(void)
 
     learningCfg = &aleCfg->portCfg[0].learningCfg;
     learningCfg->noLearn = false;
+#if defined(ETHFW_VEPA_SUPPORT)
+    learningCfg->noSaUpdateEn = true;
+#endif
 
     vlanSecCfg = &aleCfg->portCfg[0].vlanCfg;
     vlanSecCfg->dropUntagged = FALSE;
