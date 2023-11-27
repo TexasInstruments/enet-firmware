@@ -180,10 +180,26 @@
 
 #define ARRAY_SIZE(x)                           (sizeof((x)) / sizeof(x[0U]))
 
+/* Default port mask for shared multicast addresses: all ports in switch mode */
+#if defined(SOC_J721E)
+#define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_2) | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3) | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_5) | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_6) | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_7) | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_8))
+#elif defined(SOC_J7200)
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_2) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3))
+#elif defined(SOC_J784S4)
+#define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3) | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_5))
+#endif
 
+/* Default virtual port mask for shared multicast addresses: all virtual switch ports */
 #define ETHAPP_DFLT_VIRT_PORT_MASK              (ETHFW_BIT(ETHREMOTECFG_SWITCH_PORT_0) | \
                                                  ETHFW_BIT(ETHREMOTECFG_SWITCH_PORT_1) | \
                                                  ETHFW_BIT(ETHREMOTECFG_SWITCH_PORT_2))
