@@ -1209,8 +1209,9 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
                                               uint32_t flowStartIdx,
                                               uint32_t flowIdx)
 {
-    Cpsw_PortRxFlowInfo portRxFlow;
     CpswAle_SetUcastEntryInArgs ucastInArgs;
+    CpswAle_SetPolicerEntryInPartitionInArgs polInArgs;
+    CpswAle_SetPolicerEntryOutArgs polOutArgs;
     Enet_IoctlPrms prms;
     uint32_t entryIdx;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
@@ -1245,16 +1246,20 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
     /* Setup policer with "port" as match criteria */
     if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
-        portRxFlow.coreKey  = coreKey;
-        portRxFlow.startIdx = flowStartIdx;
-        portRxFlow.flowIdx  = flowIdx;
-        portRxFlow.macPort  = macPort;
+        memset(&polInArgs, 0, sizeof(polInArgs));
 
-        ENET_IOCTL_SET_IN_ARGS(&prms, &portRxFlow);
+        polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_PORT;
+        polInArgs.policerMatch.portNum   = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
+        polInArgs.threadIdEn             = true;
+        polInArgs.threadId               = flowIdx;
+        polInArgs.peakRateInBitsPerSec   = 0;
+        polInArgs.commitRateInBitsPerSec = 0;
+        polInArgs.policerPartLevel       = CPSW_ALE_POLICER_PARTITION_LEVEL_2;
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
-        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_IOCTL_REGISTER_PORT_RX_FLOW, &prms);
+        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Port %u: failed to register RX flow", ENET_MACPORT_ID(macPort));
+                          "Failed to set port %u policer", ENET_MACPORT_ID(macPort));
 
         status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
@@ -1270,7 +1275,9 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
                                                 uint32_t flowStartIdx,
                                                 uint32_t flowIdx)
 {
-    Cpsw_PortRxFlowInfo portRxFlow;
+    CpswAle_DelPolicerEntryInArgs delPolInArgs;
+    CpswAle_PolicerMatchParams polMatch;
+    CpswAle_PolicerEntryOutArgs polOutArgs;
     CpswAle_MacAddrInfo macAddrInfo;
     Enet_IoctlPrms prms;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
@@ -1284,16 +1291,39 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
     /* Remove policer with "port" match criteria */
     if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
-        portRxFlow.coreKey  = coreKey;
-        portRxFlow.startIdx = flowStartIdx;
-        portRxFlow.flowIdx  = flowIdx;
-        portRxFlow.macPort  = macPort;
+        memset(&polMatch, 0, sizeof(polMatch));
+        polMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_PORT;
+        polMatch.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
 
-        ENET_IOCTL_SET_IN_ARGS(&prms, &portRxFlow);
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &polMatch, &polOutArgs);
 
-        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_IOCTL_UNREGISTER_PORT_RX_FLOW, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Port %u: failed to unregister RX flow", ENET_MACPORT_ID(macPort));
+        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_GET_POLICER, &prms);
+        if (status == ENET_SOK)
+        {
+            if ((polOutArgs.threadIdEn == true) &&
+                (polOutArgs.threadId == flowIdx))
+            {
+                status = ENET_SOK;
+            }
+            else
+            {
+                status = ENET_EINVALIDPARAMS;
+                ETHFWTRACE_ERR(status, "Invalid policer thread cfg (threadIdEn=%u threadId=%u)",
+                               polOutArgs.threadIdEn, polOutArgs.threadId);
+            }
+        }
+
+        if (status == ENET_SOK)
+        {
+            memset(&delPolInArgs, 0, sizeof(delPolInArgs));
+            delPolInArgs.policerMatch = polMatch;
+
+            ENET_IOCTL_SET_IN_ARGS(&prms, &delPolInArgs);
+
+            status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                              "Invalid port %u policer flow %d", ENET_MACPORT_ID(macPort), flowIdx);
+        }
 
         status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
