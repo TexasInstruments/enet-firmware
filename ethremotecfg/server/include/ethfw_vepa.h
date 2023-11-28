@@ -147,6 +147,11 @@ typedef struct EthFwVepa_Cfg_s
 uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx);
 
 /*!
+ * \brief Clear packet duplication flow.
+ */
+void EthFwVepa_clearPacketDuplicationFlowIdx(void);
+
+/*!
  * \brief Sends pbuf to all the required virtual switch ports after
  *        inserting their corresponding private VLAN.
  *

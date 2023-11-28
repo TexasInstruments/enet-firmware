@@ -622,10 +622,8 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
     rxInfo = &releaseInfo->rxInfo[1U];
 
 #if defined(ETHFW_VEPA_SUPPORT)
-    /* Set packet duplication flow to be un-defined */
-    status = EthFwVepa_setPacketDuplicationFlowIdx(ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED);
-    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                      "Failed to remove flow for packet duplication");
+    /* Clear the packet duplication flow */
+    EthFwVepa_clearPacketDuplicationFlowIdx();
 #elif defined(ETHFW_PROXY_ARP_HANDLING)
      /* Set policer params for ARP EtherType matching */
      polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
@@ -758,10 +756,8 @@ static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
     EnetDma_PktQ cqPktInfoQ;
     int32_t status;
 
-    /* Set packet duplication flow to be un-defined */
-    status = EthFwVepa_setPacketDuplicationFlowIdx(ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED);
-    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                      "Failed to remove flow for packet duplication");
+    /* Clear the packet duplication flow */
+    EthFwVepa_clearPacketDuplicationFlowIdx();
 
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);

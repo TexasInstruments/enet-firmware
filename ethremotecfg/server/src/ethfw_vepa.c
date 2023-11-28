@@ -234,13 +234,29 @@ uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx)
 {
     int32_t status = ETHFW_EFAIL;
 
+    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+
     if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
     {
         gEthFwVepaObj.packetDuplicationFlowIdx = flowIdx;
         status = ETHFW_SOK;
     }
 
+    MutexP_unlock(gEthFwVepaObj.hMutex);
+
     return status;
+}
+
+void EthFwVepa_clearPacketDuplicationFlowIdx(void)
+{
+    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+
+    if (gEthFwVepaObj.packetDuplicationFlowIdx != ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
+    {
+        gEthFwVepaObj.packetDuplicationFlowIdx = ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED;
+    }
+
+    MutexP_unlock(gEthFwVepaObj.hMutex);
 }
 
 /* Given a multicast/broadcast address, it returns virtPortMask
