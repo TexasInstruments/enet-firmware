@@ -66,11 +66,15 @@ gPTP configurations set, supporting both software and hardware adjustments for t
 This PTP implementation sets up CPSW ALE classifiers with PTP multicast MAC address and PTP
 EtherType PTP classifier as match criteria to have PTP traffic routed to dedicated UDMA RX flow.
 
-The remote configuration infrastructure provided by Ethernet Firmware is built on top
-of the *remote_device* framework.  Ethernet Firmware plays the role of a server which
-accepts and processes commands from the remote clients and carry out operations
-such as attaching/detaching, registering a MAC address or IP, etc, on the client's
-behalf.
+The remote configuration infrastructure provided by Ethernet Firmware is built using
+the *ethremotecfg* framework which uses IPC LLD. Ethernet Firmware supports three types of messages namely, 
+requests, responses and notifications. Requests are primarily sent by the remote clients and
+waits for the response from the ETHFW server. The notifications from server to client donot have
+any ACKs where from client to server notifies will be returned with a server ACK.
+Remote configuration is based on the application defined server-client protocols which
+can be found in */ethfw/ethremotecfg/protocol* folder. Ethernet Firmware plays the role of a server
+which accepts and processes commands from the remote clients and carry out operations such as
+attaching/detaching, registering a MAC address or IP, etc, on the client's behalf.
 
 CPSW register configuration is carried out exclusively by Ethernet Firmware, remote
 cores are not expected/allowed to perform any CPSW5G/CPSW9G register access, though that
@@ -113,8 +117,9 @@ The following lwIP netifs are enabled in the RTOS client application:
 
 The two CPSW virtual port netifs reuse the same Enet LLD based lwIP implementation.
 
-The RTOS core attaches to the Ethernet Firmware server using the *Eth Remote Config
-Client* library which is built on top of *remote_device* framework.
+The RTOS core attaches to the Ethernet Firmware server using the *Eth Remote Config Client* 
+library which is built using IPC LLD APIs can be located in */ethfw/ethremotecfg/client/*
+folder.
 
 The multicore time synchronization mechanism implemented in RTOS client consists
 of a linear correction in software of a local timer owned by the RTOS core which
@@ -175,7 +180,7 @@ in the Linux client usecase.
 
 ![](linux_client.png "EthFw with Linux client")
 
-The *rpmsg_kdrv_switch* client driver is compatible with the *remote_device* server
+The *rpmsg* client driver is compatible with the *ethremotecfg* server
 side running on RTOS master core (Ethernet Firmware).  This driver is used to exchange
 control messages with Ethernet Firmware to establish a virtual port connection.
 
@@ -205,7 +210,7 @@ as any other native networking interface.
 *devnp_cpsw9g* driver uses Ethernet Firmware's remote configuration infrastructure
 in order to attach/detach the virtual port, register its MAC address, IP address, etc.
 This is the same remote configuration API used by other remote clients such as RTOS core,
-and consequently also sits on top of the *remote_device* framework. The lower level IPC
+and consequently also sits on top of the *ethremotecfg* framework. The lower level IPC
 functionality is provided by the *IPC RM* (QNX resmgr).
 
 Ethernet packet exchange with the CPSW switch happens in hardware through an UDMA TX
@@ -224,14 +229,14 @@ are shown in the following diagram.
 
 ![](autosar_client.png "EthFw with AUTOSAR client")
 
-The remote core configuration is implemented on top of TI MCAL IPC CDD. The *remote_core*
-framework used for RTOS and Linux clients is not relevant in the AUTOSAR scenario.
+The remote core configuration is implemented on top of TI MCAL IPC CDD using the same
+protocol headers defined by ETHFW in *ethfw/ethremotecfg/protocol* folder.
 
 Ethernet packet exchange with the CPSW switch doesn't happen via IPC, but in hardware via
 UDMA TX channel and RX flow.
 
-In the current release, AUTOSAR client only supports *virtual switch port*. *Virtual MAC
-port* (MAC-only mode) is not supported.
+In the current release, AUTOSAR client only supports *virtual switch port*.
+*Virtual MAC port* (MAC-only mode) is not supported.
 
 Note that the AUTOSAR client in the SDK has enabled on Main R5F 0 core 1 with remote endpoint id as 28
 and MCU R5F 0 core 0 with remote endpoint id as 38.
