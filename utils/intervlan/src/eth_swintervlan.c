@@ -771,8 +771,10 @@ static void CpswApp_pktRxTx(void)
             /* Re-enable the Rx completion notification from ISR here */
             EnetDma_enableRxEvent(gCpswInterVlanAppObj.hIngRxFlow);
 
+#ifndef AUTO_RECLAIM_TXCQ
             /* Re-enable the Tx completion notification from ISR here */
             EnetDma_enableTxEvent(gCpswInterVlanAppObj.hTxCh);
+#endif
 
             /* Pend on semaphore notification event from Rx Completion ISR */
             semStatus = SemaphoreP_pend(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
