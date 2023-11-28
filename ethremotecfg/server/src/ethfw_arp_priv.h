@@ -117,6 +117,8 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
 int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
                          uint16_t vlanId);
 
+uint32_t EthFwArp_getUseCnt(void);
+
 void EthFwArp_printTable(void);
 
 /* ========================================================================== */

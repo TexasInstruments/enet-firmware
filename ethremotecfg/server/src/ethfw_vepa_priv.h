@@ -239,6 +239,13 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
                                    uint16_t vlanId,
                                    EthRemoteCfg_VirtPort virtPort);
 
+/*!
+ * \brief Get the number of used entries in VEPA Table.
+ *
+ * \returns Number of entries used in VEPA Table.
+ */
+uint32_t EthFwVepa_getUseCnt(void);
+
 #ifdef __cplusplus
 }
 #endif

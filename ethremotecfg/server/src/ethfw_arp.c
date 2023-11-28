@@ -323,6 +323,26 @@ int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
     return status;
 }
 
+uint32_t EthFwArp_getUseCnt(void)
+{
+    uint32_t cnt = 0U;
+    uint32_t i;
+
+    MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
+
+    for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
+    {
+        if (!gEthFwArpObj.remoteCoreArpTable[i].isFree)
+        {
+            cnt++;
+        }
+    }
+
+    MutexP_unlock(gEthFwArpObj.hMutex);
+
+    return cnt;
+}
+
 void EthFwArp_printTable(void)
 {
     EthFwArp_AddrEntry *entry;

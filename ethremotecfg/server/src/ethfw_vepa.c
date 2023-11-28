@@ -777,3 +777,23 @@ int32_t EthFwVepa_sendRaw(struct netif *netif,
 
     return status;
 }
+
+uint32_t EthFwVepa_getUseCnt(void)
+{
+    uint32_t cnt = 0U;
+    uint32_t i;
+
+    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+
+    for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
+    {
+        if (!gEthFwVepaObj.remoteCoreVepaTable[i].isFree)
+        {
+            cnt++;
+        }
+    }
+
+    MutexP_unlock(gEthFwVepaObj.hMutex);
+
+    return cnt;
+}

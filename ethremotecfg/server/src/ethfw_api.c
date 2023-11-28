@@ -81,6 +81,7 @@
 #include <ti/drv/ipc/ipc.h>
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
+#include <ti/drv/enet/priv/per/cpsw_priv.h>
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/uart/UART_stdio.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
@@ -190,7 +191,7 @@
 
 #if defined(ETHFW_MONITOR_SUPPORT)
 /*! Monitor Task priority */
-#define ETHFW_MON_TASK_PRIORITY                       (10U)
+#define ETHFW_MON_TASK_PRIORITY                       (2U)
 
 /*! Monitor Task stack size and alignment */
 #if defined(SAFERTOS)
@@ -416,7 +417,7 @@ static void EthFw_stopMonitorTask(void);
 static void EthFw_monitorTask(void *a0,
                               void *a1);
 
-static int32_t EthFw_resetHandler(uint32_t numTotalClients);
+static int32_t EthFw_resetHandler(void);
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -2090,10 +2091,13 @@ static void EthFw_monitorTask(void *a0,
 {
     Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
     Enet_MacPort macPort;
+    Enet_MacPort recoveryMacPort;
     bool needsRecovery = false;
     uint32_t i;
     int32_t status = ENET_SOK;
     bool isTeardownComplete = false;
+    bool isrecoveryPortLinked = false;
+    bool noPendingReq = false;
     uint32_t numTotalClients  = 0U;
     uint32_t numActiveClients  = 0U;
     uint32_t numIdleClients = 0U;
@@ -2111,6 +2115,10 @@ static void EthFw_monitorTask(void *a0,
             if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, macPort) == true)
             {
                 needsRecovery = EthFw_analyzePortStats(macPort);
+                if (needsRecovery)
+                {
+                    recoveryMacPort = macPort;
+                }
             }
         }
 
@@ -2153,20 +2161,57 @@ static void EthFw_monitorTask(void *a0,
                         teardownLoopCnt = 0U;
                     }
                 }
+
+                /* Wait untill all ARP table entries are free. */
+                while (!noPendingReq)
+                {
+#if defined(ETHFW_PROXY_ARP_HANDLING)
+                    if (EthFwArp_getUseCnt() == 0U)
+                    {
+                        noPendingReq = true;
+                    }
+#endif
+
+#if defined(ETHFW_VEPA_SUPPORT)
+                    if (EthFwVepa_getUseCnt() == 0U)
+                    {
+                        noPendingReq = true;
+                    }
+#endif
+                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
+                }
             }
 
             /* Call the EthFw reset handler */
             ETHFWTRACE_INFO("CPSW recovery is about to take place");
-            status = EthFw_resetHandler(numTotalClients);
+            status = EthFw_resetHandler();
 
             if (status != ENET_SOK)
             {
                 ETHFWTRACE_ERR(status, "Failed to recover CPSW");
                 EnetAppUtils_assert(status == ENET_SOK);
             }
+            else
+            {
+                /* Send a notification to clients for HW recovery completion only when Port link is up*/
+                while(!isrecoveryPortLinked)
+                {
+                    if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, recoveryMacPort) == true)
+                    {
+                        isrecoveryPortLinked = true;
+                    }
+
+                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
+                }
+
+                /* Notify the clients about the HW error recovery completion */
+                CpswProxyServer_bcastNotify(ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE);
+            }
 
             /* Set teardown flag to false for next iteration */
             isTeardownComplete = false;
+            isrecoveryPortLinked = false;
+            noPendingReq = false;
             ClockP_start(gEthFwObj.hMonitorClock);
         }
     }
@@ -2212,9 +2257,10 @@ void EthFw_setCurrentTime(uint64_t *time)
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Error in setting the updated CPTS time");
 }
 
-static int32_t EthFw_resetHandler(uint32_t numTotalClients)
+static int32_t EthFw_resetHandler(void)
 {
     Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    Cpsw_Handle hCpsw = (Cpsw_Handle)hEnet->enetPer;
     uint32_t nanoSeconds = 0U;
     uint64_t seconds = 0U;
     uint64_t preResetTime;
@@ -2222,6 +2268,7 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
     uint64_t currentTime;
     uint64_t updatedTime;
     int32_t status = ENET_SOK;
+    uint32_t i;
 
     /* Get current CPTS time */
     currentTime = EthFw_getCurrentTime(&nanoSeconds, &seconds);
@@ -2232,7 +2279,13 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
     /* Close MAC Ports */
     status = EnetMcm_closeMacPorts(&gEthFwObj.mcmCmdIf);
     EnetAppUtils_assert(status == ENET_SOK);
-    
+
+    /* Temp change - clear the MacPort isLinkUp flag to false, this will be moved to enet-lld */
+    for (i = 0U; i< CPSW_MAC_PORT_NUM; i++)
+    {
+        hCpsw->portLinkState[i].isLinkUp = false;
+    }
+
     /* Call App callback to close the Lwip Dma channels */
     gEthFwObj.monitor.closeLwipDmaCb(gEthFwObj.monitor.lwipDmaCbArg);
 
@@ -2268,13 +2321,6 @@ static int32_t EthFw_resetHandler(uint32_t numTotalClients)
     /* start the gPTP DMA channels */
     LLDEnetDmaOpen();
 #endif
-
-    /* Reset is completed here, send recovery completion notification to clients before opening the MAC Ports */
-    if(numTotalClients != 0U)
-    {
-        /* Notify the clients about the HW error recovery completion */
-        CpswProxyServer_bcastNotify(ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE);
-    }
 
     /* Open MAC Ports */
     status = EnetMcm_openMacPorts(&gEthFwObj.mcmCmdIf);
