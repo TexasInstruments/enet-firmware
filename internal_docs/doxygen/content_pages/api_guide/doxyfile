@@ -743,6 +743,7 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
+INPUT    = api_guide_main_page.md
 @INCLUDE = ./cfg/ethremotecfg.cfg
 @INCLUDE = ./cfg/ethfwboard.cfg
 @INCLUDE = ./cfg/ethfwcommon.cfg
@@ -885,7 +886,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE =
+USE_MDFILE_AS_MAINPAGE = api_guide_main_page.md
 
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing

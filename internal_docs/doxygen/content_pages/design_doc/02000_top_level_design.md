@@ -29,21 +29,19 @@ The directory structure of the Ethernet Firmware is shown below::
     │   ├── test_report                     # Test and traceability reports
     │   └── user_guide                      # Ethernet Firmware User's guide
     ├── ethremotecfg                        # EthSwitch Remote Device
-    │   ├── client                          # Client side of the EthSwitch remote device
+    │   ├── client                          # Client side of the ethremotecfg framework
     │   │   ├── include
     │   │   └── src
-    │   ├── protocol                        # EthSwitch API
-    │   └── server                          # Server side of the EthSwitch remote device
+    │   ├── protocol                        # Ethernet Firmware interface definition
+    │   └── server                          # Server side of the ethremotecfg framework
     │       ├── include
-    │       └── src
+    │       └── src                         # Server libraries for proxy arp, vlan, vepa and mcast
     ├── makerules                           # Helper makefiles for NDK, PDK
-    ├── ethfw                               # Ethernet firmware library
-    │   └── src
     └── utils                               # Helper utilities
         ├── ethfw_callbacks                 # Frequently used lwIP callbacks
         │   ├── include
         │   └── src
-        ├── ethfw_lwip                      # Emulated Proxy ARP callbacks
+        ├── ethfw_common                    # Trace functionality and server/client common utils
         │   ├── include
         │   └── src
         ├── ethfw_stats                     # Networking statistics services
@@ -73,8 +71,8 @@ and Rx and Tx data transfers.  The Ethernet Firmware also configures and makes
 use of the TCP/IP stack enabled by Enet LLD by the means of NDK/NIMU.
 
 The *Ethernet Firmware* on the *master core* interacts with *remote cores*
-running virtual network device interfaces (Linux or FreeRTOS) via *Ethernet
-Switch Remote Device* which allows remote cores to communicate with the master
+running virtual network device interfaces (Linux or FreeRTOS) via *ethremotecfg*
+framework which allows remote cores to communicate with the master
 core via IPC.
 
 The *remotes cores* also interact with the *Ethernet Firmware* to setup and

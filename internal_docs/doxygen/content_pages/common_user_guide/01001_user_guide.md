@@ -79,9 +79,42 @@ attaching/detaching, registering a MAC address or IP, etc, on the client's behal
 
 CPSW register configuration is carried out exclusively by Ethernet Firmware, remote
 cores are not expected/allowed to perform any CPSW5G/CPSW9G register access, though that
-is not enforced at the time of this writing.  Ethernet Firmware uses Enet LLD for
-low-level CPSW5G/CPSW9G driver support and for Ethernet PHY configuration.
-Enet LLD internally uses UDMA LLD for packet exchange with the CPSW switch.
+is currently not enforced.  Ethernet Firmware uses Enet LLD for low-level CPSW5G/CPSW9G
+driver support and for Ethernet PHY configuration.  Enet LLD internally uses UDMA LLD for
+packet exchange with the CPSW switch.  Along with CPSW remote configuration, it is the responsibilty
+of ETHFW to manage and distribute the resources among server and the remote clients.
+
+The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is as follows:
+
+| Resource    | Count  | EthFw Usage (mcu2_0)
+|:------------|:------:|:-----------------------------------
+| TX channel  |   3    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>SW interVLAN (1)</li></ul>
+| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4)</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
+| MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
+
+UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
+available.  So, there are 5 TX channels to be shared among the differrent remote client cores
+and their virtual ports.
+
+With Ethernet Firmware's default port configuration, the following resources will be used by
+Linux remote client on A72 core.
+
+| Resource    | Count  | Linux Client Usage
+|:------------|:------:|:-----------------------------------
+| TX channel  |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
+| RX flow     |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
+| MAC address |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
+
+With Ethernet Firmware's default port configuration, the following resources will be used by
+RTOS remote client on Main R5F 0 Core 1.
+
+| Resource    | Count  | RTOS Client Usage
+|:------------|:------:|:-----------------------------------
+| TX channel  |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
+| RX flow     |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
+| MAC address |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
+
+For a given remote client in general will require a pair of Tx/Rx channels and a MAC Address per virtual port.
 
 The following diagram shows a view of the Ethernet Firmware components and the
 expected ownership.
@@ -544,36 +577,6 @@ read from EEPROMs located in the different expansion boards in TI EVM.  Note tha
 MAC address pool is used as a workaround in TI EVMs for cases where I2C bus contention could
 happen (i.e. when integrating with Linux).  It's expected that the MAC address pool population
 mechanism is adapted when integrating Ethernet Firmware to different platforms.
-
-The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is as follows:
-
-| Resource    | Count  | EthFw Usage (mcu2_0)
-|:------------|:------:|:-----------------------------------
-| TX channel  |   3    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>SW interVLAN (1)</li></ul>
-| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) [only for J784S4]</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
-| MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
-
-UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
-available.  So, there are 5 TX channels to be shared among the differrent remote client cores
-and their virtual ports.
-
-With Ethernet Firmware's default port configuration, the following resources will be used by
-Linux remote client on A72 core.
-
-| Resource    | Count  | Linux Client Usage
-|:------------|:------:|:-----------------------------------
-| TX channel  |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
-| RX flow     |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
-| MAC address |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
-
-With Ethernet Firmware's default port configuration, the following resources will be used by
-RTOS remote client on Main R5F 0 Core 1.
-
-| Resource    | Count  | RTOS Client Usage
-|:------------|:------:|:-----------------------------------
-| TX channel  |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
-| RX flow     |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
-| MAC address |   2    | <ul><li>Virtual switch lwIP netif (1)</li><li>Virtual MAC port lwIP netif (1)</li></ul>
 
 [Back To Top](@ref ethfw_c_ug_top)
 

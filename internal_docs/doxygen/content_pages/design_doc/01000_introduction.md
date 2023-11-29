@@ -5,7 +5,7 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Introduction {#ethfw_design_intro}
 
-The Ethernet Firmware (EthFw) is the FreeRTOS based application for configuration
+The Ethernet Firmware (EthFw) is the RTOS based application for configuration
 of Ethernet switch peripheral (CPSW5G or CPSW9G) present in the Jacinto 7 devices.
 
 The Ethernet Firwmare contains remote configuration server, resource management
@@ -26,9 +26,10 @@ peripherals like UDMA, UART, etc.
 # Functional Overview {#ethfw_design_func_overview}
 
 - *Ethernet Firmware* is integrated into the RTOS SDK, Linux SDK and QNX SDK
-  software products for [J721E](https://www.ti.com/tool/PROCESSOR-SDK-J721E)
-  and [J7200](https://www.ti.com/tool/PROCESSOR-SDK-J7200) devices.
-- *Ethernet Firmware* is an application based on the FreeRTOS operating system
+  software products for [J721E](https://www.ti.com/tool/PROCESSOR-SDK-J721E),
+  [J7200](https://www.ti.com/tool/PROCESSOR-SDK-J7200) and
+  [J784S4](https://www.ti.com/tool/PROCESSOR-SDK-J784S4) devices.
+- *Ethernet Firmware* is an application based on the RTOS operating system
   in charge of configuring the Ethernet switch peripheral and setting up data
   paths to processing cores internal of the Jacinto 7 devices.
 - *Ethernet Firmware* enables automotive use-cases like I/O hub, central
@@ -38,7 +39,7 @@ peripherals like UDMA, UART, etc.
   traffic based on packet characteristics like L2/L3 header.
 - *Ethernet Firmware* offers switch resident protocols via lwIP stack.
 - *Ethernet Firmware* is configurable programmatically via software API from
-  remote client cores or runtime via network with a GUI host application.
+  remote client cores.
 - *Ethernet Firmware* offers a debug infrastructure to dump DMA statistics,
   CPSW switch registers and PHY registers.
 
@@ -71,6 +72,7 @@ peripherals like UDMA, UART, etc.
 - IPC-based switch configuration from remote client cores
 - Linux integration on Cortex-A72 remote core (Linux SDK)
 - FreeRTOS integration on Cortex-R5F remote core (RTOS SDK)
+- SafeRTOS integration on Cortex-R5F remote core (RTOS SDK)
 - AUTOSAR integration on MCU Cortex-R5F remote core (RTOS SDK)
 - TCP/IP stack
 - Multicast switching
