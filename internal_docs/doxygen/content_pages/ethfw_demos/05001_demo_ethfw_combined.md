@@ -864,11 +864,11 @@ of other protocols in the VLAN network.
 
 ## Inter-core Virtual Ethernet communication with VEPA {#ethfw_intercore_communication_vepa}
 
-**Note:** From SDK 9.1 or later we support VEPA on J784S4.
+**Note:** VEPA is supported on J784S4 only, from SDK 9.1 or later.
 
 ### For J784S4 using Virtual Ethernet Port Aggregator (VEPA)
 
-VEPA or hairpin mode allows the traffic to return to the same port (host port in our case) 
+VEPA or hairpin mode allows the traffic to return to the same port (host port in this case) 
 at which it ingressed on. It enables to forward broadcast and multicast packets directly to
 clients via host port increasing intercore virtual ethernet communication performance. VEPA
 is enabled by default for J784S4 for all clients.
@@ -913,7 +913,7 @@ core. Incoming broadcast packets follow this data path:
 
   ![](EthFw_VEPA_A72.png "Inter-core Virtual Ethernet - Linux client test with VEPA")
 
-**Note:** Tap application is not required for intercore ethernet communicatoin 
+**Note:** TAP application is not required for intercore ethernet communication 
 when VEPA is enabled for J784S4 with Linux client
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

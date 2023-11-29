@@ -550,7 +550,7 @@ The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is 
 | Resource    | Count  | EthFw Usage (mcu2_0)
 |:------------|:------:|:-----------------------------------
 | TX channel  |   3    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>SW interVLAN (1)</li></ul>
-| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1)</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
+| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) [only for J784S4]</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
 | MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
 
 UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
@@ -658,7 +658,7 @@ MAC ports 2, 6, 7 and 8 are not enabled.
 [Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Inter-core Virtual Ethernet {#ethfw_intercore_eth}
+# Inter-core Virtual Ethernet via Shared Memory Transport {#ethfw_intercore_eth}
 
 Starting with SDK 8.1, the EthFw integrates Inter-core Virtual Ethernet driver which allows
 shared memory based Ethernet frame exchange between cores.  This is modelled as virtual
@@ -917,6 +917,170 @@ Please refer to the following code in `<ethfw>/apps/tap/tapif.c`:
 
     printf("Assigned Queue Handles\n");
 ```
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Inter-core Virtual Ethernet via VEPA {#ethfw_intercore_vepa}
+
+VEPA is supported on J784S4 only, starting from SDK 9.1. EthFw provides support to enable VEPA
+(Virtual Ethernet Port Aggregator) functionality with CPSW capable of _multihost_ data flow.
+_Multihost_ is a CPSW ALE feature that enables packets to be sent and received on host port.
+Multihost is the foundational feature to support VEPA.
+
+-# @ref ethfw_intercore_topology_vepa
+-# @ref ethfw_intercore_r5server_vepa
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+## Topology and Design overview {#ethfw_intercore_topology_vepa}
+
+There are two distinctive data paths to consider in the intercore communication: unicast, and
+multicast/broadcast.  The former only involves packet forwarding from source core to destination
+core, while the latter involves packet duplication in addition to forwarding.
+
+For unicast traffic, inter-core virtual network described in section \ref ethfw_intercore_eth
+uses R5F_0 master core (EthFw server) acting as a hub, where each node (core) in the network
+communicates directly with the master.  Conversely, in VEPA based intercore, direct communication
+between other nodes (i.e. A72 and R5F_1) is <b>NOT</b> routed through the master anymore as
+ALE _multihost_ and classifier makes it possible to forward packets directly between cores
+without EthFw intervention.
+
+For multicast/broadcast traffic, whenever broadcast or shared multicast packets reach EthFw server,
+software duplicates the packet, tags it with a _private VLAN_ and sends the packets back to CPSW.
+Each participating core has its own unique private VLAN through which packet forwarding happens.
+The ALE classifiers set up by EthFw use the private VLAN id as a match criteria to route traffic
+exclusively to the relevant core, hence the need of having one private VLAN per participating core.
+The private VLANs are set up with untagging on egress, so it's transparent for the receiving
+core as packets will be received without the private VLAN tag.
+
+VEPA based implementation is a better alternative than shared memory transport approach as
+it's transparent to remote cores and doesn't require additional shared memory based interfaces.
+It also provides better throughput as packet forwarding is always via CPSW hardware, with
+packet duplication being the only part being done in software.
+
+It's worth noting that the VEPA implementation can coexist seamlessly with the mechanism
+used to steer traffic from external ports to RX flows of the respective cores based on
+destination MAC address.
+
+The topology diagram below shows the integration of inter-core virtual Ethernet with VEPA 
+in Ethernet Firmware.
+
+![](Intercore_eth_topology_vepa.png "Inter-core Virtual Ethernet Topology with VEPA")
+
+The main entities shown in this diagram are listed below:
+
+-# <b>R5F_0 master</b>: EthFw server core which does packet duplication for broadcast and 
+shared multicast traffic to all relevant remote cores. Broadcast and shared multicast packets
+reach on a secondary RX flow as shown in <span style="color:red"><b>red arrows</b></span> 
+dedicated for packets duplication.
+-# <b>R5F_1 client</b>: This is the EthFw RTOS remote client.
+-# <b>A72 Linux client</b>: This is the EthFw Linux remote client.
+-# <b>Packet Duplication</b>: The software based packet duplication happens here for broadcast 
+and shared multicast packets. Packets are duplicated and tagged with individual remote core's 
+private VLAN and sent back to host port as shown with  <span style="color:blue"><b>blue 
+arrows</b></span>. Packets are then re-routed back to host port as shown in  <span 
+style="color:blue"><b>dotted blue arrows</b></span> using VEPA and reach the respective 
+cores based on the private VLAN tagged on the packet. 
+-# <b>Data paths/flows</b>: Different data paths are used to route packets according to the type
+of traffic (Unicast, Broadcast and Multicast). The <b>black</b> arrows show core specific 
+dedicated hardware flows which are used for unicast traffic originating from or bound to a 
+given core as well as incoming [exclusive multicast](@ref ethfw_exclusive_mcast) traffic for a 
+given core. Please refer to @ref ethfw_mcast_support for details on [shared multicast](@ref 
+ethfw_shared_mcast) and [exclusive_multicast](@ref ethfw_exclusive_mcast) traffic.
+
+<b>Note</b>: Refer to @ref ethfw_intercore_communication_vepa to get detailed description of various data paths/flows.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## EthFw Server integration {#ethfw_intercore_r5server_vepa}
+
+Ethernet Firmware server creates ALE policer entry based on private VLAN associated to
+each registered client. This ensures that when a private VLAN tagged packet comes from
+packet duplication function it reaches the relevant registered client. Private VLANs
+are configured by Ethernet Firmware based on application's settings related to the
+VLAN ids to use.
+
+Ethernet Firmware server registers multicast MAC addresses that need to be forwarded to
+remote clients. An ALE entry and ALE policer entry is added for each multicast address
+so that when multicast packets arrive, they are routed to secondary dedicated flow for
+packet duplication allocated at init time as shown in <span style="color:red"><b> red arrows</b></span>.
+When a multicast packet whose MAC address is registered comes on secondary dedicated flow,
+it will be passed to a VEPA specific packet duplication handle function, which then calls
+`EthFwVepa_sendRaw()` function to send a copy of the multicast packets to all relevant
+remote cores.
+
+<b>Note</b>: Unicast and exclusive multicast packets to EthFw or remote cores 
+reach directly via dedicated flow as shown in <span style="color:black"><b>black 
+arrows</b></span>.
+ 
+Please refer to the following code in `<ethfw>/ethremotecfg/server/include/ethfw_vepa.c`
+to understand how packets are tagged with private VLAN and sent back to host port
+
+```C
+/* i'th virtual switch port will get the packet
+* Also source virtual switch port should not receive the packet */
+if (ETHFW_IS_BIT_SET(virtPortMask, i) &&
+    !EnetUtils_cmpMacAddr(ethSrcAddr->addr, gEthFwVepaObj.virtPortToMacAddr[i].addr))
+{
+    status = EthFwVepa_getPrivateVlanId(i, &privVlanId);
+    if (status == ETHFW_SOK)
+    {
+        ethType = lwip_htons(ETHTYPE_VLAN);
+        ethHdr = (struct eth_hdr *)copyPbuf->payload;
+
+        /* Adding source and destination for the packet */
+        SMEMCPY(&ethHdr->dest, ethDstAddr, ETH_HWADDR_LEN);
+        SMEMCPY(&ethHdr->src,  ethSrcAddr, ETH_HWADDR_LEN);
+
+        /* Adding tpid as 0x8100 (16 bits) */
+        ethHdr->type = ethType;
+
+        /* Adding priority and VLAN id tags (16 bits) */
+        vlanhdr = (struct eth_vlan_hdr *)(((uint8_t *)copyPbuf->payload) + SIZEOF_ETH_HDR);
+        vlanhdr->prio_vid = lwip_htons(pcpDei | privVlanId);
+
+        /* Adding EtherType of the packet (16 bits) */
+        vlanhdr->tpid = ((struct eth_hdr*)pbuf->payload)->type;
+
+        /* Adding payload in the packet */
+        SMEMCPY(copyPbuf->payload + SIZEOF_ETH_HDR + sizeof(struct eth_vlan_hdr),
+                pbuf->payload + SIZEOF_ETH_HDR,
+                pbuf->tot_len - SIZEOF_ETH_HDR);
+
+        /* Send the packet */
+        LOCK_TCPIP_CORE();
+        netif->linkoutput(netif, copyPbuf);
+        UNLOCK_TCPIP_CORE();
+    }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Failed to get priv VLAN for virtual port %u", i);
+    }
+}
+```
+
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`
+to understand how application can configure VEPA configurations (i.e. private VLAN associated to
+each virtual switch port)
+
+```C
+#if defined(ETHFW_VEPA_SUPPORT)
+/* Private VLAN ids used in broadcast/multicast packets sent from ETHFW
+ * to remote clients using multihost flow */
+static uint32_t gEthApp_remoteClientPrivVlanIdMap[ETHREMOTECFG_SWITCH_PORT_LAST+1] =
+{
+    [ETHREMOTECFG_SWITCH_PORT_0] = 1100U, /* Linux client */
+    [ETHREMOTECFG_SWITCH_PORT_1] = 1200U, /* AUTOSAR or RTOS client */
+    [ETHREMOTECFG_SWITCH_PORT_2] = 1300U, /* AUTOSAR client */
+};
+#endif
+```
+
+
+<b>Note</b>: No netif instance creation or TAP application is required on RTOS and Linux client respectively when VEPA is enabled on EthFw.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1727,6 +1891,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
+`-D=ETHFW_CPSW_VEPA_SUPPORT`     | Enable VEPA support on EthFw server (only applicable to J784S4)
 `-D=ETHAPP_ENABLE_INTERCORE_ETH` | Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
@@ -1766,6 +1931,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
+`-D=ETHFW_CPSW_VEPA_SUPPORT`     | Enable VEPA support on EthFw server (only applicable to J784S4)
 `-D=ETHAPP_ENABLE_INTERCORE_ETH` | Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
