@@ -78,11 +78,11 @@ in the following table.
 | Boot stage                     |  J721E    |  J7200    | J784S4    |
 |:-------------------------------|:---------:|:---------:|:---------:|
 | main()                         |      0 us |      0 us |      0 us |
-| Layer-2 switching active       | 141.97 us | 185.59 us | 113.94 us |
-| Host port ready for RX/TX      |  54.13 us |  96.22 us |  27.05 us |
-| TCP/IP stack initialized       |  83.23 us | 123.12 us |  54.15 us |
-| gPTP stack initilized          |  83.85 us | 123.57 us |  54.60 us |
-| CPSW Proxy Server initialized  | 100.52 us | 135.01 us |  71.38 us |
+| Layer-2 switching active       | 143.94 us | 185.59 us | 113.97 us |
+| Host port ready for RX/TX      |  57.92 us |  96.22 us |  29.92 us |
+| TCP/IP stack initialized       |  86.15 us | 123.12 us |  30.75 us |
+| gPTP stack initilized          |  86.67 us | 123.57 us |  31.22 us |
+| CPSW Proxy Server initialized  | 101.38 us | 135.01 us |  47.06 us |
 
 This table doesn't take into account the time between power-on reset (POR) and the 
 Firmware image loaded and made ready to run, as it will be bootloader dependent.
@@ -97,7 +97,7 @@ PHY configuration being used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Document Revision History  {#ethfw_datasheet_rev_hist}
 
-Revision | Date          | Author        | Description         | Status
----------|---------------|---------------|---------------------|----------------
-1.0      | 27 Jul 2022   | Misael Lopez  | First version       | Approved
+Revision | Date          | Author        | Description           | Status
+---------|---------------|---------------|-----------------------|----------------
+1.1      | 28 Nov 2023   | Misael Lopez  | Added SDK 9.1 results | Approved
 
