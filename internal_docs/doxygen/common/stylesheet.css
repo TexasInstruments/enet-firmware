@@ -1117,16 +1117,15 @@ dl.section dd {
 }
 
 
-#projectlogo
-{
-	text-align: center;
-	vertical-align: bottom;
-	border-collapse: separate;
-}
- 
 #projectlogo img
-{ 
+{
 	border: 0px none;
+	vertical-align: middle;
+	padding-left: 20px;
+	padding-right: 40px;
+	padding-top: 0px;
+	padding-bottom: 0px;
+	height: 80px;
 }
  
 #projectalign
@@ -1136,7 +1135,7 @@ dl.section dd {
 
 #projectname
 {
-	font: 300% Tahoma, Arial,sans-serif;
+	font: 250% Tahoma, Arial,sans-serif;
 	margin: 0px;
 	padding: 2px 0px;
 }
