@@ -1213,6 +1213,77 @@ static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
 [Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# VLAN Support {#ethfw_vlan}
+
+VLAN support is split in two parts: VLAN creation/configuration and join/leave operations from
+remote clients.
+
+## VLAN Configuration {#ethfw_vlan_server_cfg}
+
+VLANs are created and configured in a static manner and it's exclusive to Ethernet
+Firmware.  Remote clients cannot create VLANs, they can only *join* or *leave* VLANs.
+
+Parameters such as VLAN id, member lists (physical and virtual ports), registered
+and unregistered multicast flood mask and untag mask are required in order to set up
+VLANs on the Ethernet Firmware server side.
+
+The code snippet below shows the configuration of VLAN 1024, with MAC ports 2 and 3
+as members of the VLAN, and virtual switch ports 0, 1 and 2 as virtual members.
+
+```C
+/* VLAN member mask: host port + MAC ports 2 and 3 */
+#define ETHAPP_DFLT_PORT_MASK          (CPSW_ALE_HOST_PORT_MASK | \
+                                        CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_2) | \
+                                        CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3))
+
+/* Default virtual port mask for shared multicast addresses: all virtual switch ports */
+#define ETHAPP_DFLT_VIRT_PORT_MASK     (ETHFW_BIT(ETHREMOTECFG_SWITCH_PORT_0) | \
+                                        ETHFW_BIT(ETHREMOTECFG_SWITCH_PORT_1) | \
+                                        ETHFW_BIT(ETHREMOTECFG_SWITCH_PORT_2))
+
+/* Test VLAN config */
+EthFwVlan_VlanCfg gEthApp_vlanCfg[] =
+{
+    {
+        .vlanId              = 1024U,
+        .memberMask          = ETHAPP_DFLT_PORT_MASK,
+        .regMcastFloodMask   = ETHAPP_DFLT_PORT_MASK,
+        .unregMcastFloodMask = ETHAPP_DFLT_PORT_MASK,
+        .virtMemberMask      = ETHAPP_DFLT_VIRT_PORT_MASK,
+        .untagMask           = 0U,
+    },
+};
+
+void EthApp_myFunc(void)
+{
+    ...
+
+    /* Set static VLAN configuration parameters */
+    ethFwCfg.vlanCfg  = &gEthApp_vlanCfg[0];
+    ethFwCfg.numVlans = ARRAY_SIZE(gEthApp_vlanCfg);
+
+    ...
+}
+```
+
+For more information about VLAN configuration, please refer to the
+[VLAN API Guide](../api_guide/html_/group__ETHFW__SERVER__VLAN.html).
+
+## Joining and leaving VLANs {#ethfw_vlan_join_leave}
+
+Remote clients cannot create VLANs, but they can *join* or *leave* any of the VLANs
+created by Ethernet Firmware through remote commands:
+[<b>JOIN_VLAN</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a979616846aa588ce0618c56662773eb8)
+and [<b>LEAVE_VLAN</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a57f5df65c855a42980f5ee253e9e93dd).
+
+The remote client must be a member of the VLAN in order to be able to successfully
+join the VLAN.  The virtual port membership is set through `virtMemberMask` parameter
+in the [VLAN configuration](../api_guide/html_/structEthFwVlan__VlanCfg.html) at
+VLAN creation time on Ethernet Firmware server side.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # CPSW Recovery {#ethfw_cpsw_recovery}
 
 Starting with SDK 9.1, Ethernet Firmware supports a mechanism to detect hardware lockups,
@@ -2090,6 +2161,7 @@ Revision | Date          | Author                 | Description
 1.4      | 07 Dec 2021   | Misael Lopez           | Adedd MAC-only, server and client doc
 1.5      | 01 Jul 2021   | Misael Lopez           | Updates for J784S4 support and SDK 8.02.01
 1.6      | 10 Feb 2023   | Misael Lopez           | Added SafeRTOS build info
+1.7      | 29 Nov 2023   | Misael Lopez           | SDK 9.1 and VLAN, trace support
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)
