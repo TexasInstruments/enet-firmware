@@ -517,7 +517,7 @@ typedef void (*EthFwTrace_Print)(const char *format, ...);
  *
  * Callback function called when \ref ETHFW_CFG_TRACE_FORMAT is set to
  * \ref ETHFW_CFG_TRACE_FORMAT_DFLT_TS, \ref ETHFW_CFG_TRACE_FORMAT_FUNC_TS,
- * \ref ETHFW_CFG_TRACE_FORMAT_FILE_TS or ETHFW_CFG_TRACE_FORMAT_FULL_TS.
+ * \ref ETHFW_CFG_TRACE_FORMAT_FILE_TS or \ref ETHFW_CFG_TRACE_FORMAT_FULL_TS.
  *
  * The timestamp value must be in microseconds.
  */
@@ -594,7 +594,7 @@ void EthFwTrace_deinit(void);
 /*!
  * \brief Set runtime trace level.
  *
- * Set the Ethetnet Firmware's runtime travel level.
+ * Set the Ethetnet Firmware's runtime trace level.
  *
  * \param level    Trace level to be enabled
  * \return Previous trace level
@@ -604,7 +604,7 @@ EthFwTrace_TraceLevel EthFwTrace_setLevel(EthFwTrace_TraceLevel level);
 /*!
  * \brief Get runtime trace level.
  *
- * Get the Ethernet Firmware's runtime travel level.
+ * Get the Ethernet Firmware's runtime trace level.
  *
  * \return Current trace level
  */
