@@ -1213,67 +1213,98 @@ static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
 [Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# CPSW Recovery {#ethfw_cpsw_recovery}
 
-# Reset recovery on CPSW {#ethfw_reset_recovery}
+Starting with SDK 9.1, Ethernet Firmware supports a mechanism to detect hardware lockups,
+reset CPSW and recover it back to a functioning state.  A monitor task periodically monitors
+the status of CPSW to detect for any hardware lockups.  In the current implementation,
+the recovery process is triggered upon the detection of RX bottom of FIFO drops on any
+MAC port, but this can be extended to user specific cases and other types of lockups.
 
-Starting with SDK 9.1, the EthFw support a mechanism to detect HW lockups and reset
-the CPSW and recover it back to a functioning state. A Monitor task periodically 
-keep monitoring the status of CPSW to detect for any HW lockups. Current implementation
-is make to trigger the reset and recovery process when a RxBottomOfFifo drop is detected on 
-any MAC port. The implementation can be extended of user specific cases and other HW lockups.
+If the nature of the lockup condition is such that it cannot be recovered by any other means,
+Ethernet Firmware has to resort to resetting CPSW on-the-fly, while the rest of the SoC remains
+running.  CPSW will lose its context (register state and logic) during reset, so Ethernet
+Firmware will save and restore the context.  More details about the recovery flow are presented
+in the following section.
 
-## Reset recovery flow on EthFw {#ethfw_reset_recovery_flow}
-The flow of how Reset Recovery is performed on Ethfw is shown below:
+## Recovery Flow {#ethfw_recovery_flow}
 
-![](reset_recovery_flow.png "Flow of Reset Recovery on EthFw")
+CPSW recovery process performed on Ethernet Firmware is shown below:
 
-## Recommended steps for recovery {#ethfw_reset_recovery_steps}
+![](reset_recovery_flow.png "CPSW Recovery Flow")
 
--# <b>Registration for HW Error and HW Recovery notifications</b>: When the App starts and want to perform a recovery,
-it must registers itself for ``ETHREMOTECFG_NOTIFY_HWERROR`` and ``ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE`` notifications.
+-# <b>Monitoring phase</b>: EthFw periodically monitors in 100ms intervals for any hardware
+   lockup in CPSW, if detected, it will trigger the recovery mechanism.
 
--# <b>Periodic Monitor</b>: EthFw Monitor task, periodically in 100ms interval monitors for any HW lockup in CPSW,
-if detected, it will trigger the Reset Recovery mechanism.
+-# <b>Remote client notification and DMA tear-down phase</b>: EthFw will send ``ETHREMOTECFG_NOTIFY_HWERROR``
+   notification to all clients, waits for clients to take action (perform DMA tear-down).
+   Ethernet Firmware will remain in this state until it receives DMA tear-down confirmation
+   from all its clients, which clients do by sending [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a).
 
--# <b>``ETHREMOTECFG_NOTIFY_HWERROR`` notification to Clients</b>: EthFw sends ``ETHREMOTECFG_NOTIFY_HWERROR`` Notification to 
-all attached clients. The Clients on receiving the notification must perform a DMA teardown of it's channels and flows.
-Once DMA teardown is done, the clients must send ``ETHREMOTECFG_CMD_TEARDOWN_COMPLETION`` to EthFw.
-EthFw keeps on waiting for all clients teardown completion notification.
+-# <b>Local DMA tear-down phase</b>: EthFw will now proceed to close all MAC ports and tear-down
+   its own DMA channels and flows.
 
--# <b>Disable all Ethernet ports</b>: When all attached Clients notifies on teardown completion, EthFw starts with
-Reset Recovery process, it disables all ethernet ports which are enabled for EthFw.
+-# <b>CPSW context save phase</b>: EthFw saves the context of CPSW by calling ``Enet_saveCtxt()``,
+   which will save the state of CPSW submodules such as MDIO, ALE, CPTS, host port, etc.
 
--# <b>Close all DMA channels and flows </b>: EthFw closes all DMA channels and flows that it has created.
+-# <b>CPSW reset phase</b>: EthFw reset the CPSW peripheral by issuing a reset request via
+   SCI client.
 
--# <b>Save the context of CPSW </b>: EthFw saves the context of CPSW by calling ``Enet_saveCtxt()`` api.
-This currently save the state of CPSW and its sub-mudules like MDIO, ALE, CPTS, HostPort.
+-# <b>CPSW context restore phase</b>: EthFw restores the context of CPSW by ``Enet_restoreCtxt()``.
+   Which restores the context previously saved via ``Enet_saveCtxt()``.
 
--# <b>Reset CPSW </b>: EthFw reset the CPSW peripheral by using SciClient.
+-# <b>Local DMA reopen phase</b>: EthFw wil open back all its DMA channels and flows that had
+   closed prior to CPSW reset.
 
--# <b>Restore the context of CPSW </b>: Post reset of CPSW, EthFw restores the context of CPSW by calling ``Enet_restoreCtxt()`` api.
-This restores the context of CPSW back to a functioning state.
+-# <b>Remote client notification and DMA reopen phase</b>: EthFw will send ``ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE``
+   notification to all clients.  Clients can proceed to reopen their channels and flows.
 
--# <b>Open back DMA channels and flows </b>: EthFw open back all the DMA channels and flows it had closed before CPSW reset.
+-# <b>Ethernet ports reenable phase</b>: EthFw enables back all ports and updates the CPTS time
+   with the time taken during recovery. For details refer to \ref ethfw_recovery_cpts_sync.
 
--# <b>``ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE`` notification to Clients</b>: EthFw sends out ``ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE`` 
-notification to all Clients so they also open back their DMA channel which they had closed.
+## Remote Client Requirements {#ethfw_recovery_client_reqs}
 
--# <b>Enable all Ethernet ports</b>: EthFw enables back all ports and updates the CPTS time with the time taken during
-recovery. For details refer to \ref ethfw_reset_recovery_cpts_sync
+Remote clients play a key role in making CPSW recovery successful and themselves being able
+to continue using Ethernet after recovery.  Clients are required to tear-down their DMA
+resources (channels, flows) as this will prevent stale states in UDMA and interconnect
+post CPSW reset.
 
-## CPTS Time synchronization {#ethfw_reset_recovery_cpts_sync}
+All remote clients are required to implement the following steps in order to participate
+in CPSW recovery:
 
-During Reset recovery the CPTS needs special handling as CPSW will not be aware of the time for 
-which it was down when reset was performed. This will affect CPTS time and can lead to CPTS sending out
-incorrect time out other nodes in the network. To mitigate this, the EthFw does below list of steps:
+-# Remote clients must register to receive the following notifications:
 
--# Get a CPTS time before reset(T0)
--# Get a OS time before reset(T1)
--# Get a OS time post reset(T2)
--# Calculate and set CPTS with updated time(T4): updated time, T4 = T0 + (T2 - T1)*1000U (convert to nanoseconds))
+   - [<b>ETHREMOTECFG_NOTIFY_HWERROR</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a754a33d75aa7a00475f99967e997a8e1)
+     This notification is sent by Ethernet Firmware to inform the client that a hardware error
+     has been found and the recovery process is about to start.  Client has to tear-down its
+     channels and flows upon reception of this notification.
+
+   - [<b>ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a91d51165b414bf607771b309a0958ca7) notifications.
+     This notification is sent by Ethernet Firmware to inform the client that the recovery
+     process is complete.  Client has to reopen its channels and flows upon reception of this
+     notification.
+
+-# Remote clients must send [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a) once their DMA channel
+   and flow has been released.  Failure to do so will prevent Ethernet Firmware from continuing
+   with the recovery process.
+
+If CPSW recovery is enabled, it's mandatory that all clients implement the requirements
+described above.
+
+## CPTS time synchronization {#ethfw_recovery_cpts_sync}
+
+During reset recovery, CPTS needs special handling as CPSW will not be aware of the time for
+which it was down when reset was performed.  This will affect CPTS time and can lead to CPTS
+sending out incorrect time out other nodes in the network.  To mitigate this, the EthFw does
+below list of steps:
+
+-# Get a CPTS time before reset (T0)
+-# Get a OS time before reset (T1)
+-# Get a OS time post reset (T2)
+-# Calculate and set CPTS with updated time (T4). `T4 = T0 + (T2 - T1)*1000U (convert to nanoseconds))`
 
 
-## Miscellaneous details {#ethfw_reset_recovery_misc}
+## Miscellaneous details {#ethfw_recovery_misc}
 
 In current implementation of CPSW context save and restore, the MAC port context is not
 saved as MAC ports are expected to be closed before ``Enet_saveCtxt()``, as shown in
