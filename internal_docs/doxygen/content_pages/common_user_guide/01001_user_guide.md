@@ -1315,6 +1315,81 @@ required ports during last stage of CPSW recovery.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Trace Support {#ethfw_tracing}
+
+Ethernet Firmware supports two types of trace levels:
+
+- **Build-time trace level** is set via `ETHFW_CFG_TRACE_LEVEL` and determines the
+  traces that are built in Ethernet Firmware libraries, both for server
+  (`ethfw_remotecfg_server`) and client (`ethfw_remotecfg_client`).
+
+- **Runtime trace level** is set via `EthFwTrace_setLevel()` function and can be set
+  to the build-time trace level or lower (less verbose levels).
+
+Trace functionality must be initialized via `EthFwTrace_init()` before any other
+Ethernet Firmware API, either on server or client sides.
+
+Traces can be optionally timestamped if the trace format is `ETHFW_CFG_TRACE_FORMAT_DFLT_TS`,
+`ETHFW_CFG_TRACE_FORMAT_FUNC_TS`, `ETHFW_CFG_TRACE_FORMAT_FILE_TS` or
+`ETHFW_CFG_TRACE_FORMAT_FULL_TS`.  Application must pass a timestamp provider at init time
+that returns timestamps in microseconds.
+
+Ethernet Firmware also supports generation of unique error codes in its server library
+(`ethfw_remotecfg_server`) which are 32-bit values composed of file id, line number and
+status value.  Application must pass a callback function (`EthFwTrace_Cfg::extTraceFunc`)
+in order to get unique error codes.  Note that a number of error codes will be reported
+as the error cascades back through the call sequences.  This functionality can be used
+for tracing purposes in error diagnostics.
+
+The code snippet below shows trace feature initialization with FreeRTOS based timestamping
+and a unique error code callback function.
+
+```C
+#define SEC_TO_USEC (1000000ULL)
+
+static uint64_t EthApp_traceTs(void)
+{
+    static uint64_t ts = 0ULL;
+    TickType_t tickCnt;
+    uint64_t tickUsecs;
+
+    tickUsecs = SEC_TO_USEC / uint64_t)configTICK_RATE_HZ;
+    tickCnt = xTaskGetTickCount();
+    ts = (uint64_t)tickCnt * tickUsecs;
+
+    return ts;
+}
+
+void EthApp_extTraceFunc(uint32_t errCode)
+{
+  appLogPrintf("Error code: %x\n", errCode);
+}
+
+
+/* Trace configuration */
+static EthFwTrace_Cfg gEthApp_traceCfg =
+{
+    .print        = appLogPrintf,
+    .traceTsFunc  = EthApp_traceTs,
+    .extTraceFunc = EthApp_extTraceFunc,
+};
+
+void EthApp_myTask(...)
+{
+    ...
+
+    EthFwTrace_init(&gEthApp_traceCfg);
+
+    ...
+}
+```
+
+For more information, refer to the [EthFwTrace API guide](../api_guide/html_/group__ETHFW__UTILS__TRACE.html).
+
+[Back To Top](@ref ethfw_c_ug_top)
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Demos {#ethfw_c_ug_ethfw_demos}
 
