@@ -1850,30 +1850,17 @@ Refer to @ref demo_top section for a full list of EthFw demo applications.
 EthFw employs Concerto makefile-based build system. When building on a Windows based
 machine, tools such as [Cygwin](https://www.cygwin.com/) could be used.
 
-[Back To Top](@ref ethfw_c_ug_top)
-
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Setup Environment {#ethfw_build_setup_env}
 
-The tool paths required by the build system are defined in the `ethfw_tools_path.mak`
-makefile. The default paths in `ethfw_tools_path.mak` are defined based on the assumption
-that the EthFw package has been installed inside the Processor SDK main directory.
+The tool paths required by the build system are defined in `<ethfw>/ethfw_tools_path.mak`.
+When building ETHFW component standalone, user must provide the location of the
+compiler through `PSDK_TOOLS_PATH` variable (by default it's set to `../ethfw`):
 
-Typically, the Processor SDK installation path is `~/ti` in Linux-based systems.
-So, a typical EthFw installation would be at `~/ti/ti-processor-sdk-rtos-j721e-evm-08_xx_yy_zz`
-or similarly for other SoCs.  In this case, no additional environment setup steps
-are required.
+    make ethfw_all BUILD_SOC_LIST=<SOC> PSDK_TOOLS_PATH=$HOME/ti
 
-If either Processor SDK or EthFw have been installed at different locations that those
-mentioned in previous paragraph, the following variables can be passed to the make
-command:
 
-    make <target> PSDK_PATH=<Processor SDK installation path> ETHFW_PATH=<EthFw installation path>
-
-Please refer to the @ref ethfw_build and @ref ethfw_build_clean sections for a list
-of recommended targets. Alternatively, run the following command to get the full
-list of valid targets:
+User can run the following command to get the full list of valid targets:
 
     make help
 
