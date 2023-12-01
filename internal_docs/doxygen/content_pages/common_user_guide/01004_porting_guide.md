@@ -310,7 +310,7 @@ is not enabled which reduces the overall count.
 The pool of MAC addresses is usually provisioned in an EEPROM memory, so the Ethernet
 Firmware RTOS application must read them from that memory and populate the
 pool which is passed to Ethernet Firmware at open time via
-[<b>EthFw_Config</b>](../api_guide/html_/structEthFw__Config.html).
+[<b>EthFw_Config</b>](../api_guide/structEthFw__Config.html).
 
 The code snippet below shows the configuration parameters where the MAC address
 pool must be populated:
@@ -371,12 +371,12 @@ used in production code.**
 
 The RTOS application passes to Ethernet Firmware the list of MAC ports intended
 to be used.  Ethernet Firmware then enables each of them during its initialization
-stage when [<b>EthFw_init()</b>](../api_guide/html_/group__ETHFW__LIB__API.html#ga41135bde04b458fc86b70b2448c0e5a3)
+stage when [<b>EthFw_init()</b>](../api_guide/group__ETHFW__LIB__API.html#ga41135bde04b458fc86b70b2448c0e5a3)
 is called.  At that time, Ethernet Firmware will call the
-[<b>EthFw_Config.setPortCfg()</b>](../api_guide/html_/structEthFw__Config.html#a25336535f220df239805c80dd3e5d738)
+[<b>EthFw_Config.setPortCfg()</b>](../api_guide/structEthFw__Config.html#a25336535f220df239805c80dd3e5d738)
 callback for each MAC port.
 
-It's expected that the implementation of [<b>EthFw_Config.setPortCfg()</b>](../api_guide/html_/structEthFw__Config.html#a25336535f220df239805c80dd3e5d738) callback will:
+It's expected that the implementation of [<b>EthFw_Config.setPortCfg()</b>](../api_guide/structEthFw__Config.html#a25336535f220df239805c80dd3e5d738) callback will:
  - Set the MII interface type: RMII, RGMII, Q/SGMII, etc.
  - Set the link configuration: auto-negotiation or fixed (speed/duplexity)
  - Set the PHY configuration: PHY address, PHY specific parameters, strap, etc.
@@ -483,11 +483,11 @@ It has been made a separate library because it's required in two scenarios:
 
 There EthFw board library is composed of four main board initialization functions:
 
-- [<b>EthFwBoard_init()</b>](../api_guide/html_/group__ETHFW__BOARD__UTILS.html#ga8625aa9f3642ecc8b5122560fc6ac626).
+- [<b>EthFwBoard_init()</b>](../api_guide/group__ETHFW__BOARD__UTILS.html#ga8625aa9f3642ecc8b5122560fc6ac626).
   Implements the board initialization steps described in \ref ethfw_porting_board_init section.
-- [<b>EthFwBoard_getMacPorts()</b>](../api_guide/html_/group__ETHFW__BOARD__UTILS.html#ga6b188c815f14dc8e1ab58ebbfc4fdad7). Returns the list of MAC ports supported by the EthFw board library.
-- [<b>EthFwBoard_setPortCfg()</b>](../api_guide/html_/group__ETHFW__BOARD__UTILS.html#gacf09b70f8441308445d6fb8906d187dc). Implements the MAC/PHY configuration callback described in \ref ethfw_porting_phy_cfg.
-- [<b>EthFwBoard_getMacAddrPool()</b>](../api_guide/html_/group__ETHFW__BOARD__UTILS.html#gae0ae6187fa1ab8991ff25250f8248822). Populates the MAC address pool with values read from EEPROM or static defined
+- [<b>EthFwBoard_getMacPorts()</b>](../api_guide/group__ETHFW__BOARD__UTILS.html#ga6b188c815f14dc8e1ab58ebbfc4fdad7). Returns the list of MAC ports supported by the EthFw board library.
+- [<b>EthFwBoard_setPortCfg()</b>](../api_guide/group__ETHFW__BOARD__UTILS.html#gacf09b70f8441308445d6fb8906d187dc). Implements the MAC/PHY configuration callback described in \ref ethfw_porting_phy_cfg.
+- [<b>EthFwBoard_getMacAddrPool()</b>](../api_guide/group__ETHFW__BOARD__UTILS.html#gae0ae6187fa1ab8991ff25250f8248822). Populates the MAC address pool with values read from EEPROM or static defined
   (TI EVM workaround).
 
 [Back To Top](@ref ethfw_c_porting_top)

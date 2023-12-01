@@ -21,9 +21,7 @@ The directory structure of the Ethernet Firmware is shown below::
     │   └── compilers                       # Compiler specific common options
     ├── docs                                # User documentation
     │   ├── api_guide                       # Ethernet Firmware API guide
-    │   │   └── html_
     │   ├── design_doc                      # Ethernet Firmware design document
-    │   │   └── html_
     │   ├── misrac                          # MISRA-C reports
     │   ├── packeth_configurations          # packETH tool configurations (used for demo)
     │   ├── test_report                     # Test and traceability reports

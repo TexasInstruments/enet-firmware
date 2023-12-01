@@ -753,7 +753,7 @@ user guide for more details on the inter-core virtual Ethernet driver.
 manages the fanout of shared multicast packets to the interested cores. It does so by dynamically
 updating the lwIP bridge FDB database to add/remove cores to/from the given multicast MAC address
 in response to the
-[<b>multicast filter API</b>](../api_guide/html_/group__CPSW__PROXY__API.html#ga89c45e9fcf6a7927ed1ee4079e4ee9c7)
+[<b>multicast filter API</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a20258e51b8d8a2d6f7e569a5b1785383)
 commands from the remote cores.
 -# <b>Data paths/flows</b>: Different data paths are used to route packets according to the type
 of traffic (Unicast, Broadcast and Multicast). The <b>black</b> arrows show core specific dedicated
@@ -1146,7 +1146,7 @@ mechanism which allows sending broadcast traffic to all the client cores, provid
 that inter-core virtual Ethernet is enabled on that client.
 
 For multicast support, a new
-[<b>multicast filter API</b>](../api_guide/html_/group__CPSW__PROXY__API.html#ga89c45e9fcf6a7927ed1ee4079e4ee9c7)
+[<b>multicast filter API</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a20258e51b8d8a2d6f7e569a5b1785383)
 is provided by EthFw which allows client cores to subscribe-to/unsubscribe-from multicast
 addresses. The Ethernet Firmware differentiates between two types of multicast addresses:
 
@@ -1168,7 +1168,7 @@ Shared multicast allows multiple client cores to subscribe to the same multicast
 To support this, EthFw maintains a list of pre-defined multicast addresses which are treated as <b>shared</b>.
 
 -# More than one core can request these multicast addresses through the
-[<b>multicast filter API</b>](../api_guide/html_/group__CPSW__PROXY__API.html#ga89c45e9fcf6a7927ed1ee4079e4ee9c7).
+[<b>multicast filter API</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a20258e51b8d8a2d6f7e569a5b1785383).
 -# Traffic for these multicast addresses is always routed to the EthFw server from where
 it is fanned out to all the client cores that requested that particular multicast address.
 -# Shared multicast fanout is performed in software using inter-core virtual Ethernet
@@ -1319,7 +1319,7 @@ void EthApp_myFunc(void)
 ```
 
 For more information about VLAN configuration, please refer to the
-[VLAN API Guide](../api_guide/html_/group__ETHFW__SERVER__VLAN.html).
+[VLAN API Guide](../api_guide/group__ETHFW__SERVER__VLAN.html).
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1329,12 +1329,12 @@ For more information about VLAN configuration, please refer to the
 
 Remote clients cannot create VLANs, but they can *join* or *leave* any of the VLANs
 created by Ethernet Firmware through remote commands:
-[<b>JOIN_VLAN</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a979616846aa588ce0618c56662773eb8)
-and [<b>LEAVE_VLAN</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a57f5df65c855a42980f5ee253e9e93dd).
+[<b>JOIN_VLAN</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a979616846aa588ce0618c56662773eb8)
+and [<b>LEAVE_VLAN</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a57f5df65c855a42980f5ee253e9e93dd).
 
 The remote client must be a member of the VLAN in order to be able to successfully
 join the VLAN.  The virtual port membership is set through `virtMemberMask` parameter
-in the [VLAN configuration](../api_guide/html_/structEthFwVlan__VlanCfg.html) at
+in the [VLAN configuration](../api_guide/structEthFwVlan__VlanCfg.html) at
 VLAN creation time on Ethernet Firmware server side.
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -1372,7 +1372,7 @@ CPSW recovery process performed on Ethernet Firmware is shown below:
 -# <b>Remote client notification and DMA tear-down phase</b>: EthFw will send ``ETHREMOTECFG_NOTIFY_HWERROR``
    notification to all clients, waits for clients to take action (perform DMA tear-down).
    Ethernet Firmware will remain in this state until it receives DMA tear-down confirmation
-   from all its clients, which clients do by sending [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a).
+   from all its clients, which clients do by sending [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a).
 
 -# <b>Local DMA tear-down phase</b>: EthFw will now proceed to close all MAC ports and tear-down
    its own DMA channels and flows.
@@ -1411,17 +1411,17 @@ in CPSW recovery:
 
 -# Remote clients must register to receive the following notifications:
 
-   - [<b>ETHREMOTECFG_NOTIFY_HWERROR</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a754a33d75aa7a00475f99967e997a8e1)
+   - [<b>ETHREMOTECFG_NOTIFY_HWERROR</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a754a33d75aa7a00475f99967e997a8e1)
      This notification is sent by Ethernet Firmware to inform the client that a hardware error
      has been found and the recovery process is about to start.  Client has to tear-down its
      channels and flows upon reception of this notification.
 
-   - [<b>ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a91d51165b414bf607771b309a0958ca7) notifications.
+   - [<b>ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a91d51165b414bf607771b309a0958ca7) notifications.
      This notification is sent by Ethernet Firmware to inform the client that the recovery
      process is complete.  Client has to reopen its channels and flows upon reception of this
      notification.
 
--# Remote clients must send [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/html_/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a) once their DMA channel
+-# Remote clients must send [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a) once their DMA channel
    and flow has been released.  Failure to do so will prevent Ethernet Firmware from continuing
    with the recovery process.
 
@@ -1531,7 +1531,7 @@ void EthApp_myTask(...)
 }
 ```
 
-For more information, refer to the [EthFwTrace API guide](../api_guide/html_/group__ETHFW__UTILS__TRACE.html).
+For more information, refer to the [EthFwTrace API guide](../api_guide/group__ETHFW__UTILS__TRACE.html).
 
 [Back To Top](@ref ethfw_c_ug_top)
 
