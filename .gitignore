@@ -1,3 +1,10 @@
 */*/lib
 lib/**
 out/**
+docs/api_guide
+docs/design_doc
+docs/user_guide
+docs/datasheet
+internal_docs/*/output.txt
+internal_docs/*/*/*/output.txt
+apps/tap/tapif
