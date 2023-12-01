@@ -1360,11 +1360,11 @@ in the following section.
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-## Recovery Flow {#ethfw_recovery_flow}
+## Recovery Sequence {#ethfw_recovery_sequence}
 
 CPSW recovery process performed on Ethernet Firmware is shown below:
 
-![](reset_recovery_flow.png "CPSW Recovery Flow")
+![](reset_recovery_sequence.png "CPSW Recovery Sequence")
 
 -# <b>Monitoring phase</b>: EthFw periodically monitors in 100ms intervals for any hardware
    lockup in CPSW, if detected, it will trigger the recovery mechanism.
