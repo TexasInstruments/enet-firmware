@@ -15,6 +15,7 @@ applications.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Supported Features {#ethfw_c_ug_features_list}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Feature         | Comments
 ----------------|--------------
@@ -31,8 +32,10 @@ Reset Recovery on CPSW  | Support to reset CPSW and recover it back to a working
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Master Core (EthFw) {#ethfw_master_core}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 The multiport CPSW switch present in devices of the Jacinto family is an Ethernet
 peripheral shared among the different processing cores within the SoC.  Ethernet
@@ -126,8 +129,8 @@ expected ownership.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Remote Core Clients {#ethfw_remote_clients}
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 ## RTOS Client {#ethfw_client_rtos}
 
 Ethernet Firmware component in SDK provides a FreeRTOS client example application
@@ -201,6 +204,8 @@ are provided as reference to illustrate the actual software changes correspondin
 the summary shown earlier. These changes are meant as reference for prototyping, and
 are provided as is.
 
+[Back To Top](@ref ethfw_c_ug_top)
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Linux Client {#ethfw_client_linux}
@@ -223,6 +228,8 @@ Instead, it happens completely in hardware via UDMA TX channel and RX flow.
 
 For further information, please refer to [CPSWng_virt_mac](http://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-jacinto7/latest/exports/docs/linux/Foundational_Components/Kernel/Kernel_Drivers/Network/CPSWng_virt_mac.html)
 documentation in Processor SDK Linux.
+
+[Back To Top](@ref ethfw_c_ug_top)
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -251,6 +258,9 @@ Ethernet packet exchange with the CPSW switch happens in hardware through an UDM
 channel and RX flow, completely independent of the Ethernet Firmware.  *devnp_cpsw9g*
 driver uses Enet LLD data path APIs natively to submit and retrieve Ethernet packets.
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## AUTOSAR Client {#ethfw_client_autosar}
 
@@ -275,6 +285,8 @@ In the current release, AUTOSAR client only supports *virtual switch port*.
 Note that the AUTOSAR client in the SDK has enabled on Main R5F 0 core 1 with remote endpoint id as 28
 and MCU R5F 0 core 0 with remote endpoint id as 38.
 
+[Back To Top](@ref ethfw_c_ug_top)
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Component Location {#ethfw_component_location}
@@ -289,8 +301,10 @@ simultaneously.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # MAC-only {#ethfw_maconly}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 CPSW switch supports a feature called MAC-only mode which allows all incoming traffic from
 a given MAC port to be transferred only to the host port.  This effectively excludes the
@@ -321,6 +335,10 @@ The port's default VLAN for MAC ports configured in MAC-only mode is `0`, and fo
 configured in switch mode is `1`. They can be changed via `EthFw_Config::dfltVlanIdMacOnlyPorts`
 and `EthFw_Config::dfltVlanIdSwitchPorts`, respectively.
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Hardware physical ports {#ethfw_mac_port}
 
 These are the actual hardware MAC ports of the CPSW switch.  They can be configured in MAC-only
@@ -358,6 +376,10 @@ static int32_t EthApp_initEthFw(void)
 }
 ```
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Local switch port {#ethfw_local_switch_port}
 
 This is a logical port owned by the Ethernet Firmware.
@@ -368,7 +390,10 @@ RX flow and a TX channel.
 CPSW's default thread is set to this port's UDMA RX flow, also called *default RX flow*.
 Traffic which is not matched by any CPSW classifier gets routed to this port.
 
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Virtual switch port {#ethfw_virtual_switch_port}
 
 This is the traditional logical port owned by remote client cores, controlled via Ethernet
@@ -448,6 +473,10 @@ static int32_t EthApp_initEthFw(void)
 }
 ```
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Virtual MAC port {#ethfw_virtual_mac_port}
 
 This is also a logical port owned by remote clients and controlled via Ethernet Firmware's
@@ -518,6 +547,10 @@ static int32_t EthApp_initEthFw(void)
 }
 ```
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Configuring additional ports in MAC-only mode {#ethfw_additional_maconly}
 
 The default port configuration of Ethernet Firmware can be changed to fit the specific
@@ -581,7 +614,9 @@ mechanism is adapted when integrating Ethernet Firmware to different platforms.
 [Back To Top](@ref ethfw_c_ug_top)
 
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Default Port Configuration {#ethfw_port_cfg}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ## J721E Port Configuration {#ethfw_j721e_port_cfg}
 
@@ -608,6 +643,10 @@ located and their MAC mode.
 | MAC Port 8  |   15     | GESI   | Switch Port
 
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## J7200 Port Configuration {#ethfw_j7200_port_cfg}
 
 All the four MAC ports of CPSW5G are enabled by default in Ethernet Firmware for J7200 SoC.
@@ -630,6 +669,8 @@ located and their MAC mode.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## J784S4 Port Configuration {#ethfw_j784s4_port_cfg}
 
 J784S4 EVM provides two *Enet* expansion connectors (`ENET-EXP-1` and `ENET-EXP-2`) where
@@ -660,8 +701,10 @@ MAC ports 2, 6, 7 and 8 are not enabled.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Inter-core Virtual Ethernet via Shared Memory Transport {#ethfw_intercore_eth}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Starting with SDK 8.1, the EthFw integrates Inter-core Virtual Ethernet driver which allows
 shared memory based Ethernet frame exchange between cores.  This is modelled as virtual
@@ -674,8 +717,8 @@ Ethernet adapter at each end.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ##  Topology and Design overview {#ethfw_intercore_topology}
 
 Inter-core virtual network uses a star topology with the R5F_0 master core (EthFw server)
@@ -749,8 +792,8 @@ the correct interface to send the packets based on the destination IP address.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## EthFw Server integration {#ethfw_intercore_r5server}
 
 The EthFw server acts as the central hub of the inter-core virtual network, therefore it
@@ -806,8 +849,8 @@ to understand how these netifs are instantiated and added to the bridge:
 ```
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## R5F RTOS Client integration {#ethfw_intercore_r5client}
 
 The EthFw client on R5F_1 instantiates only one inter-core netif to communicate directly
@@ -854,8 +897,8 @@ to understand how these netifs are instantiated and added to the bridge:
 ```
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## A72 Linux Client integration {#ethfw_intercore_a72client}
 
 Inter-core virtual Ethernet can also be used on the A72 Linux remote client, however lwIP is
@@ -923,8 +966,10 @@ Please refer to the following code in `<ethfw>/apps/tap/tapif.c`:
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Inter-core Virtual Ethernet via VEPA {#ethfw_intercore_vepa}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 VEPA is supported on J784S4 only, starting from SDK 9.1. EthFw provides support to enable VEPA
 (Virtual Ethernet Port Aggregator) functionality with CPSW capable of _multihost_ data flow.
@@ -936,6 +981,8 @@ Multihost is the foundational feature to support VEPA.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Topology and Design overview {#ethfw_intercore_topology_vepa}
 
 There are two distinctive data paths to consider in the intercore communication: unicast, and
@@ -996,8 +1043,8 @@ ethfw_shared_mcast) and [exclusive_multicast](@ref ethfw_exclusive_mcast) traffi
 
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## EthFw Server integration {#ethfw_intercore_r5server_vepa}
 
 Ethernet Firmware server creates ALE policer entry based on private VLAN associated to
@@ -1087,9 +1134,10 @@ static uint32_t gEthApp_remoteClientPrivVlanIdMap[ETHREMOTECFG_SWITCH_PORT_LAST+
 
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Multicast and Broadcast Support {#ethfw_mcast_support}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Starting with SDK 8.1, the Ethernet firmware supports client cores to receive multicast and broadcast traffic.
 
@@ -1112,8 +1160,8 @@ and is completely transparent to the requesting client core.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Shared Multicast {#ethfw_shared_mcast}
 
 Shared multicast allows multiple client cores to subscribe to the same multicast address.
@@ -1169,8 +1217,8 @@ static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
 ```
 [Back To Top](@ref ethfw_c_ug_top)
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Exclusive Multicast {#ethfw_exclusive_mcast}
 
 Exclusive multicast addresses are allocated to only one core at any given time and the
@@ -1183,8 +1231,10 @@ it has already been allocated, will get a failure.
 -# Exclusive multicast traffic is routed directly to the allocated core through a dedicated
 hardware flow therefore it is suitable for high bandwidth single-core multicast traffic.
 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Reserved Multicast {#ethfw_reserved_mcast}
 
 Reserved multicast addresses are exclusive multicast addresses that are allocated only
@@ -1212,8 +1262,10 @@ static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # VLAN Support {#ethfw_vlan}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 VLAN support is split in two parts: VLAN creation/configuration and join/leave operations from
 remote clients.
@@ -1269,6 +1321,10 @@ void EthApp_myFunc(void)
 For more information about VLAN configuration, please refer to the
 [VLAN API Guide](../api_guide/html_/group__ETHFW__SERVER__VLAN.html).
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Joining and leaving VLANs {#ethfw_vlan_join_leave}
 
 Remote clients cannot create VLANs, but they can *join* or *leave* any of the VLANs
@@ -1283,8 +1339,10 @@ VLAN creation time on Ethernet Firmware server side.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # CPSW Recovery {#ethfw_cpsw_recovery}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Starting with SDK 9.1, Ethernet Firmware supports a mechanism to detect hardware lockups,
 reset CPSW and recover it back to a functioning state.  A monitor task periodically monitors
@@ -1298,6 +1356,10 @@ running.  CPSW will lose its context (register state and logic) during reset, so
 Firmware will save and restore the context.  More details about the recovery flow are presented
 in the following section.
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Recovery Flow {#ethfw_recovery_flow}
 
 CPSW recovery process performed on Ethernet Firmware is shown below:
@@ -1333,6 +1395,10 @@ CPSW recovery process performed on Ethernet Firmware is shown below:
 -# <b>Ethernet ports reenable phase</b>: EthFw enables back all ports and updates the CPTS time
    with the time taken during recovery. For details refer to \ref ethfw_recovery_cpts_sync.
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Remote Client Requirements {#ethfw_recovery_client_reqs}
 
 Remote clients play a key role in making CPSW recovery successful and themselves being able
@@ -1362,6 +1428,10 @@ in CPSW recovery:
 If CPSW recovery is enabled, it's mandatory that all clients implement the requirements
 described above.
 
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## CPTS time synchronization {#ethfw_recovery_cpts_sync}
 
 During reset recovery, CPTS needs special handling as CPSW will not be aware of the time for
@@ -1374,7 +1444,10 @@ below list of steps:
 -# Get a OS time post reset (T2)
 -# Calculate and set CPTS with updated time (T4). `T4 = T0 + (T2 - T1)*1000U (convert to nanoseconds))`
 
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Miscellaneous details {#ethfw_recovery_misc}
 
 In current implementation of CPSW context save and restore, the MAC port context is not
@@ -1389,6 +1462,7 @@ required ports during last stage of CPSW recovery.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Trace Support {#ethfw_tracing}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Ethernet Firmware supports two types of trace levels:
 
@@ -1461,8 +1535,10 @@ For more information, refer to the [EthFwTrace API guide](../api_guide/html_/gro
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Demos {#ethfw_c_ug_ethfw_demos}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 The EthFw demos showcase the integration and usage of the Ethernet Firmware
 which provides a high-level interface for applications to configure and use the
@@ -1478,7 +1554,10 @@ L2/L3 address based classification | Illustrates traffic steering to A72 (Linux)
 Inter-VLAN Routing (SW) | Showcases inter-VLAN routing using lookup and forward operations being done in SW (R5F). It also showcases low-level lookup and forwarding on top of Enet LLD
 Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN routing, demonstrating the CPSW5G/CPSW9G hardware capabilities to achieve line rate routing without additional impact on R5F CPU load
 
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## EthFw Switching & TCP/IP Apps Demo {#ethfw_switching_demo}
 
 This demo showcases switching capabilities of the integrated Ethernet Switch
@@ -1486,7 +1565,10 @@ This demo showcases switching capabilities of the integrated Ethernet Switch
 Multicast, etc.  It also demonstrates lwIP (TCP/IP stack) integration into
 the EthFw.
 
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Inter-VLAN Routing Demo {#ethfw_intervlan_demo}
 
 This demo illustrates hardware and software based inter-VLAN routing.  The
@@ -1512,8 +1594,10 @@ application documentation.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Dependencies {#ethfw_instal_top}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Dependencies can be categorized as follows:
 
@@ -1772,7 +1856,6 @@ J721E  | R5F | 009-004-199-024-219-001
 J7200  | R5F | 009-002-199-024-243-001
 J784S4 | R5F | 009-004-199-024-251-001
 
-
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -1797,6 +1880,7 @@ Ethernet Firmware and its dependencies are part of the SDK, separate installatio
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Directory Structure {#ethfw_dir}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Post installation of SDK, the following directory would be created. Please
 note that this is an indicative snap-shot, modules could be added/modified.
@@ -1805,12 +1889,18 @@ The top-level EthFw makefile as well as the auxiliary makefiles for build flags
 (**ethfw_build_flags.mak**) and build paths (**ethfw_tools_path.mak**)
 can be found at the EthFw top-level directory.
 
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Post Install Directory Structure {#ethfw_post_install_j721e}
 
 ![](c_ug_dir_top.png "Top Level Directory Structure")
 
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Utilities Directory Structure {#ethfw_dir_utils}
 
 The **utils** directory contains miscellaneous utilities required by the EthFw
@@ -1818,7 +1908,10 @@ applications.
 
 ![](c_ug_dir_utils.png "Utilities Directory Structure")
 
+[Back To Top](@ref ethfw_c_ug_top)
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Demo Application Sources Directory Structure {#ethfw_dir_demo}
 
 Source code of the EthFw demo applications is in the **apps** directory.
@@ -1847,8 +1940,12 @@ Refer to @ref demo_top section for a full list of EthFw demo applications.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Build {#ethfw_build_top}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 EthFw employs Concerto makefile-based build system. When building on a Windows based
 machine, tools such as [Cygwin](https://www.cygwin.com/) could be used.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Setup Environment {#ethfw_build_setup_env}
@@ -2000,6 +2097,7 @@ and/or re-configured via linker command files.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Running Examples {#ethfw_run_eg}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2025,6 +2123,7 @@ Delete the complete `ethfw_xx_yy_zz_bb` folder.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Known issues {#ethfw_known_issues}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Please refer to the Ethernet Firmware Release Notes.
 
@@ -2124,7 +2223,6 @@ Device Family | Variant              | Known by other names
 Jacinto 7     | J721E                | -
 ^             | J7200                | -
 ^             | J784S4               | -
-
 
 [Back To Top](@ref ethfw_c_ug_top)
 
