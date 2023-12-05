@@ -181,6 +181,9 @@
 /*! Size of the buffer used for storing logs before printing */
 #define ETHFW_TSN_BUFFER_SIZE                         (5120U)
 
+/*! Max size of the TSN log print buffer length */
+#define ETHFW_TRACE_MAX_BUFFER_SIZE                   (250U)
+
 /*! Number of MAC ports supported by the gPTP stack */
 #define ETHAPP_PTP_CFG_NUM_MAC_PORTS                  ETHFW_MAC_PORT_MAX
 #endif
@@ -362,6 +365,9 @@ typedef struct EthFw_Obj_s
 
     /* Buffer used to store string to be printed via app's print function */
     uint8_t printBuf[ETHFW_TSN_BUFFER_SIZE];
+
+    /* Trace max buffer */
+    char traceBuf[ETHFW_TRACE_MAX_BUFFER_SIZE];
 
     /* gPTP config callback from app */
     EthFw_configPtpCb configPtpCb;
@@ -1595,6 +1601,9 @@ static void EthFw_handleProfileInfoNotify(uint32_t hostId,
 static void EthFw_logTask(void *a0, void *a1)
 {
     int32_t len;
+    int32_t maxLen = sizeof(gEthFwObj.traceBuf);
+    int32_t retLen = 0U;
+    int32_t i;
 
     while (gEthFwObj.logTaskrun)
     {
@@ -1610,9 +1619,16 @@ static void EthFw_logTask(void *a0, void *a1)
 
         if (len > 0)
         {
+            i = 0U;
             /* The print function will take a long time, we should not
              * call it inside the mutex lock. */
-            EthFwTrace_print("%s", gEthFwObj.printBuf);
+            do
+            {
+                retLen = snprintf((char *)&gEthFwObj.traceBuf, maxLen, "%s", (char *)&gEthFwObj.printBuf[i]);
+                EthFwTrace_print("%s", gEthFwObj.traceBuf);
+                i += maxLen;
+            }
+            while (retLen > 0U && i <= len);
         }
 
         TaskP_sleep(1000);
