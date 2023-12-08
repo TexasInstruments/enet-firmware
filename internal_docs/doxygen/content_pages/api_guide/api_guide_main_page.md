@@ -49,8 +49,6 @@ exclusively server-to-client direction.
 |:--------------------------------------------------------------------|:------------------------------------------|:-------------------:|:----------------:|:------------------------------------|
 | [FWINFO](\ref ETHREMOTECFG_NOTIFY_FWINFO)                           | \ref EthRemoteCfg_DeviceData              |          Y          |        Y         | ETHFW version info notify           |
 | [HWPUSH](\ref ETHREMOTECFG_NOTIFY_HWPUSH)                           | \ref EthRemoteCfg_NotifyServiceHwPushMsg  |          Y          |        Y         | Send CPSW HW push events            |
-| [HWERROR](\ref ETHREMOTECFG_NOTIFY_HWERROR)                         | \ref EthRemoteCfg_CommonNotify            |          Y          |        Y         | Hardware error notify               |
-| [HWRECOVERY_COMPLETE](\ref ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE) | \ref EthRemoteCfg_CommonNotify            |          Y          |        Y         | Hardware recovery completion notify |
 
 
 ## Commands {#ethfw_api_ethremotecfg_cmds}
