@@ -81,7 +81,6 @@
 #include <ti/drv/ipc/ipc.h>
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/priv/per/cpsw_priv.h>
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/uart/UART_stdio.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
@@ -2265,7 +2264,6 @@ void EthFw_setCurrentTime(uint64_t *time)
 static int32_t EthFw_resetHandler(void)
 {
     Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    Cpsw_Handle hCpsw = (Cpsw_Handle)hEnet->enetPer;
     uint32_t nanoSeconds = 0U;
     uint64_t seconds = 0LLU;
     uint64_t preResetTime;
@@ -2284,12 +2282,6 @@ static int32_t EthFw_resetHandler(void)
     /* Close MAC Ports */
     status = EnetMcm_closeMacPorts(&gEthFwObj.mcmCmdIf);
     EnetAppUtils_assert(status == ENET_SOK);
-
-    /* Temp change - clear the MacPort isLinkUp flag to false, this will be moved to enet-lld */
-    for (i = 0U; i< CPSW_MAC_PORT_NUM; i++)
-    {
-        hCpsw->portLinkState[i].isLinkUp = BFALSE;
-    }
 
     /* Call App callback to close the Lwip Dma channels */
     gEthFwObj.monitor.closeLwipDmaCb(gEthFwObj.monitor.lwipDmaCbArg);
