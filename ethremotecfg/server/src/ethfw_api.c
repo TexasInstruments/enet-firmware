@@ -152,7 +152,7 @@
 #define ETHFW_HOST_PORT_VLAN_ID                       (1U)
 
 /*! VLAN id used for all MAC ports in MAC-only mode */
-#define ETHFW_MAC_ONLY_PORTS_VLAN_ID                  (2U)
+#define ETHFW_MAC_ONLY_PORTS_VLAN_ID                  (0U)
 
 /*! VLAN id used for all MAC ports in switch mode (non MAC-only mode) */
 #define ETHFW_SWITCH_PORTS_VLAN_ID                    (3U)
@@ -620,6 +620,11 @@ static int32_t EthFw_getDfltVlanId(const EthFw_Config *config)
         ETHFWTRACE_ERR(status, "Default VLAN Id should not be same for MAC-only and switch ports (%u)",
                      config->dfltVlanIdSwitchPorts);
     }
+
+    ETHFWTRACE_WARN_IF((config->dfltVlanIdMacOnlyPorts != 0U),
+                       "Default VLAN of MAC-only ports is %u, "
+                       "promiscuous mode will not be functional if VLAN is not 0",
+                       config->dfltVlanIdMacOnlyPorts);
 
     if (status == ENET_SOK)
     {
