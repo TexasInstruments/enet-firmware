@@ -953,9 +953,17 @@ core. Incoming broadcast packets follow this data path:
 #### TAP User-space Application {#intercore_linux_tap_app}
 
 The `tap` user-space application serves as a medium to facilitate the exchange of Ethernet frames
-between the A72 Linux and R5_0 (MCU2_0) master cores. To achieve this, a TAP device is used to read
+between the A72 Linux and R5_0 (MCU2_0) master core. To achieve this, a TAP device is used to read
 from and write to the Linux network stack.  Ethernet frames are copied from/to the shared memory
 region to allow other cores to access it.
+
+> **Note:** While building TAP application for non ADAS Linux, please update memory map addresses for intercore shared descriptors and data buffers from <b>`<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/<soc>/linker_mem_map.cmd`</b> to <b>`<ethfw>/apps/tap/<soc>.conf`</b>
+> -# See INTERCORE_ETH_DESC_MEM and INTERCORE_ETH_DATA_MEM memory starting address (ORIGIN) with length (LENGTH) from <b>`<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/<soc>/linker_mem_map.cmd`</b>
+> -# Match the same with ICQ_BASE_ADDR and BUFPOOL_BASE_ADDR (with their corresponding memory length) in <b>`<ethfw>/apps/tap/<soc>.conf`</b>
+
+> As an extra check corresponding values should match with Linux device tree overlay's <b>reserved_memory</b> (i.e. main_r5fss0_core0_shared_memory_queue_region and main_r5fss0_core0_shared_memory_bufpool_region) for inter-core network communication as well. Download and install PSDK Linux, instructions are [here](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-jacinto7/latest/exports/docs/vision_apps/docs/user_guide/ENVIRONMENT_SETUP.html).
+> -# Device-tree overlays are present in <b>${PSDKL_PATH}/board-support/ti-linux-kernel-<version>/arch/arm64/boot/dts/ti</b> folder.
+> -# Overlay names are k3-j721e-evm-virt-mac-client.dtso for J721E, k3-j7200-evm-virt-mac-client.dtso for J7200 and k3-j784s4-evm-virt-mac-client.dtso for J784S4 respectively.
 
 ##### Compiling and installing TAP application {#intercore_linux_tap_compilation}
 
@@ -970,7 +978,7 @@ The steps listed below assume that an SD card is used for Linux booting of the T
 
 -# Cross-compile the TAP application and install in SD card. Here,`<aarch64-none-linux-gnu install dir>`
    is the absolute path where the ARM64 A72 Linux compiler was installed using `setuptools.sh`
-   in previous step. $SOC is the soc (J7200, J721E or J784S4) for which we are running tap application.
+   in previous step. $SOC is the soc (J7200, J721E or J784S4) for which we are running TAP application.
 
        $ make CROSS_COMPILE=<aarch64-none-linux-gnu install dir>/bin/aarch64-none-linux-gnu- install DESTDIR=<Path to the root file system on SD card> SOC=<SOC>
 
@@ -986,7 +994,7 @@ The steps listed below assume that an SD card is used for Linux booting of the T
 
        $ systemctl enable launch_tap.service
 
--# On successfull startup of the tap service, a new network interface called `tap0` will be created and it will get an IP address assigned using DHCP. The network interface `tap0` should also show up in the list of available network interfaces using the `ifconfig` command:
+-# On successful startup of launch_tap.service, a new network interface called `tap0` will be created and it will get an IP address assigned using DHCP (valid only if the switch port is connected to the network hosting a DHCP server). The network interface `tap0` should also show up in the list of available network interfaces using the `ifconfig` command:
 
        $ ifconfig tap0
          tap0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500  metric 1
