@@ -10,7 +10,7 @@ endef
 $(call allow-override,CC,$(CROSS_COMPILE)gcc)
 LDFLAGS += -pthread
 
-SCRIPTS := tapif.sh cleantapif.sh
+SCRIPTS := tapif.sh cleantapif.sh bridge_setup.sh
 EXECS := tapif
 
 ifeq ($(SOC), J721E)
@@ -21,7 +21,7 @@ else ifeq ($(SOC), J784S4)
   CONFIGS := J784S4_ic.conf
 endif
 
-SERVICES := launch_tap.service
+SERVICES := launch_tap.service bridge_setup.service
 
 .PHONY: clean tapif
 
