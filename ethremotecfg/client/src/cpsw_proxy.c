@@ -924,7 +924,7 @@ bool CpswProxy_isPhyLinked(CpswProxy_Handle hProxy)
                        (int32_t)hProxy->token, res.speed, res.duplexity ? "half" : "full",
                        res.isLinked ? "yes":"no", status);
 
-    isLinked = (status == CPSWPROXY_SOK) ? res.isLinked : false;
+    isLinked = (status == CPSWPROXY_SOK) ? res.isLinked : BFALSE;
 
     return isLinked;
 }
@@ -1311,7 +1311,7 @@ static CpswProxy_Handle CpswProxy_allocHandle(void)
         if (!gCpswProxy.clientObj[i].inUse)
         {
             hProxy = &gCpswProxy.clientObj[i];
-            hProxy->inUse = true;
+            hProxy->inUse = BTRUE;
             break;
         }
     }
@@ -1451,7 +1451,7 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
     ETHFWTRACE_DBG("Deinitializing command service");
 
     /* Stop task */
-    svc->exitTask = true;
+    svc->exitTask = BTRUE;
 
     /* Delete task */
     if (svc->hTask != NULL)
@@ -1816,7 +1816,7 @@ static void CpswProxy_deinitNotifySvc(CpswProxy_NotifyService *svc)
     ETHFWTRACE_DBG("Deinitializing notify service");
 
     /* Stop task */
-    svc->exitTask = true;
+    svc->exitTask = BTRUE;
 
     /* Delete task */
     if (svc->hTask != NULL)

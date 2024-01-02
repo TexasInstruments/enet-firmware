@@ -166,7 +166,7 @@ int32_t EthFwArp_init(void)
     {
         for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
         {
-            gEthFwArpObj.remoteCoreArpTable[i].isFree = true;
+            gEthFwArpObj.remoteCoreArpTable[i].isFree = BTRUE;
         }
     }
 
@@ -218,7 +218,7 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
     EthFwArp_AddrEntry *entry;
     int32_t status = ETHFW_SOK;
     uint32_t i;
-    bool done = false;
+    bool done = BFALSE;
 
     if (ETHFW_IS_BIT_SET(hwAddr->addr[0], 0))
     {
@@ -246,7 +246,7 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
                  ip4_addr_cmp(ipAddr, &entry->ipAddr))
              {
                 SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
-                done = true;
+                done = BTRUE;
                 break;
             }
         }
@@ -264,8 +264,8 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
                     ip4_addr_copy(entry->ipAddr, *ipAddr);
                     SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
                     entry->vlanId = vlanId;
-                    entry->isFree = false;
-                    done = true;
+                    entry->isFree = BFALSE;
+                    done = BTRUE;
                     break;
                 }
             }
@@ -304,7 +304,7 @@ int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
         {
             ip4_addr_set_zero(&entry->ipAddr);
             memset(&entry->hwAddr, 0, sizeof(struct eth_addr));
-            entry->isFree = true;
+            entry->isFree = BTRUE;
             break;
         }
     }

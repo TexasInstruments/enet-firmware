@@ -380,7 +380,7 @@ bool EthFwVlan_isInVlan(EthRemoteCfg_VirtPort virtPort,
                         uint16_t vlanId)
 {
     EthFwVlan_Vlan *vlan = NULL;
-    bool active = false;
+    bool active = BFALSE;
 
     MutexP_lock(gEthFwVlanObj.hMutex, MutexP_WAIT_FOREVER);
 
@@ -544,9 +544,9 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
     vlanInArgs.unregMcastFloodMask     = unregMcastFloodMask;
     vlanInArgs.forceUntaggedEgressMask = untagMask;
     vlanInArgs.noLearnMask             = 0U;
-    vlanInArgs.vidIngressCheck         = true;
-    vlanInArgs.limitIPNxtHdr           = false;
-    vlanInArgs.disallowIPFrag          = true;
+    vlanInArgs.vidIngressCheck         = BTRUE;
+    vlanInArgs.limitIPNxtHdr           = BFALSE;
+    vlanInArgs.disallowIPFrag          = BTRUE;
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &vlanInArgs, &aleEntry);
 
@@ -558,7 +558,7 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
     {
         EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], &gEthFwVlan_bcastAddr[0U]);
         mcastInArgs.addr.vlanId     = vlanId;
-        mcastInArgs.info.super      = false;
+        mcastInArgs.info.super      = BFALSE;
         mcastInArgs.info.fwdState   = CPSW_ALE_FWDSTLVL_FWD;
         mcastInArgs.info.portMask   = memberMask;
         mcastInArgs.info.numIgnBits = 0U;
@@ -622,7 +622,7 @@ static int32_t EthFwVlan_setupClassifier(Enet_Handle hEnet,
     EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0U], macAddr);
 
     /* Route to remote clients flow */
-    polInArgs.threadIdEn = true;
+    polInArgs.threadIdEn = BTRUE;
     polInArgs.threadId   = flowIdxOffset;
     polInArgs.peakRateInBitsPerSec   = 0U;
     polInArgs.commitRateInBitsPerSec = 0U;
@@ -667,7 +667,7 @@ static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
     /* Check if classifier was routing packets to client's flow */
     if (status == ENET_SOK)
     {
-        if ((polOutArgs.threadIdEn != true) ||
+        if ((polOutArgs.threadIdEn != BTRUE) ||
             (polOutArgs.threadId != flowIdxOffset))
         {
             status = ETHFW_EUNEXPECTED;

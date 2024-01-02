@@ -224,8 +224,8 @@ GPIO_v0_Config GPIO_v0_config =
 /* GESI board's DP83867 PHY configuration */
 static const Dp83867_Cfg gEnetGesiBoard_dp83867PhyCfg =
 {
-    .txClkShiftEn         = true,
-    .rxClkShiftEn         = true,
+    .txClkShiftEn         = BTRUE,
+    .rxClkShiftEn         = BTRUE,
     .txDelayInPs          = 2750U,  /* 2.75 ns */
     .rxDelayInPs          = 2500U,  /* 2.50 ns */
     .txFifoDepth          = 4U,
@@ -251,8 +251,8 @@ static EthFwBoard_MacPortCfg gEthFw_gesiMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 12U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = &gEnetGesiBoard_dp83867PhyCfg,
             .extendedCfgSize = sizeof(gEnetGesiBoard_dp83867PhyCfg),
         },
@@ -265,8 +265,8 @@ static EthFwBoard_MacPortCfg gEthFw_gesiMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 15U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = &gEnetGesiBoard_dp83867PhyCfg,
             .extendedCfgSize = sizeof(gEnetGesiBoard_dp83867PhyCfg),
         },
@@ -279,8 +279,8 @@ static EthFwBoard_MacPortCfg gEthFw_gesiMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 0U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = &gEnetGesiBoard_dp83867PhyCfg,
             .extendedCfgSize = sizeof(gEnetGesiBoard_dp83867PhyCfg),
         },
@@ -293,8 +293,8 @@ static EthFwBoard_MacPortCfg gEthFw_gesiMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 3U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = &gEnetGesiBoard_dp83867PhyCfg,
             .extendedCfgSize = sizeof(gEnetGesiBoard_dp83867PhyCfg),
         },
@@ -312,8 +312,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 16U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -326,8 +326,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 17U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -340,8 +340,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 18U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -354,8 +354,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 19U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -372,8 +372,8 @@ static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg =
     .phyCfg    =
     {
         .phyAddr = ENETPHY_INVALID_PHYADDR,
-        .isStrapped      = false,
-        .skipExtendedCfg = false,
+        .isStrapped      = BFALSE,
+        .skipExtendedCfg = BFALSE,
         .extendedCfg     = NULL,
         .extendedCfgSize = 0U,
     },
@@ -404,7 +404,7 @@ int32_t EthFwBoard_init(uint32_t flags)
     {
         ETHFWTRACE_ERR(ETHFW_EINVALIDPARAMS,
                        "QpENet and SerDes bridge cannot be simultaneously enabled");
-        EnetAppUtils_assert(false);
+        EnetAppUtils_assert(BFALSE);
     }
 
     /* Enable hardware block/modules that EthFw will need */
@@ -553,7 +553,7 @@ int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
         /* Set PHY configuration parameters */
         phyCfg->phyAddr         = portCfg->phyCfg.phyAddr;
         phyCfg->isStrapped      = portCfg->phyCfg.isStrapped;
-        phyCfg->loopbackEn      = false;
+        phyCfg->loopbackEn      = BFALSE;
         phyCfg->skipExtendedCfg = portCfg->phyCfg.skipExtendedCfg;
         phyCfg->extendedCfgSize = portCfg->phyCfg.extendedCfgSize;
         memcpy(phyCfg->extendedCfg, portCfg->phyCfg.extendedCfg, portCfg->phyCfg.extendedCfgSize);
@@ -619,8 +619,8 @@ static void EthFwBoard_detectDBs(void)
     else
     {
         /* Assume expansion boards are present if detection not allowed */
-        gEthFwBoard.gesiDetected  = true;
-        gEthFwBoard.qenetDetected = true;
+        gEthFwBoard.gesiDetected  = BTRUE;
+        gEthFwBoard.qenetDetected = BTRUE;
     }
 }
 
@@ -723,7 +723,7 @@ static void EthFwBoard_configSierra0Clks(void)
         if (status != CSL_PASS)
         {
             ETHFWTRACE_ERR(status, "Failed to reparent clk %u", clkId[i]);
-            EnetAppUtils_assert(false);
+            EnetAppUtils_assert(BFALSE);
         }
 
         EnetAppUtils_clkRateSet(moduleId, clkId[i], clkRateHz);

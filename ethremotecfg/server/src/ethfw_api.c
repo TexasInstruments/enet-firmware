@@ -574,22 +574,22 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->modeFlags |= CPSW_ALE_CFG_MULTIHOST;
 #endif
 
-    aleCfg->agingCfg.autoAgingEn = TRUE;
+    aleCfg->agingCfg.autoAgingEn     = BTRUE;
     aleCfg->agingCfg.agingPeriodInMs = 1000;
 
-    aleCfg->nwSecCfg.vid0ModeEn = FALSE;
+    aleCfg->nwSecCfg.vid0ModeEn = BFALSE;
 
-    aleCfg->vlanCfg.aleVlanAwareMode = TRUE;
-    aleCfg->vlanCfg.cpswVlanAwareMode = TRUE;
+    aleCfg->vlanCfg.aleVlanAwareMode           = BTRUE;
+    aleCfg->vlanCfg.cpswVlanAwareMode          = BTRUE;
     aleCfg->vlanCfg.unknownUnregMcastFloodMask = 0U;
-    aleCfg->vlanCfg.unknownRegMcastFloodMask = 0U;
-    aleCfg->vlanCfg.unknownVlanMemberListMask = CPSW_ALE_ALL_PORTS_MASK;
-    aleCfg->vlanCfg.autoLearnWithVlan = false;
+    aleCfg->vlanCfg.unknownRegMcastFloodMask   = 0U;
+    aleCfg->vlanCfg.unknownVlanMemberListMask  = CPSW_ALE_ALL_PORTS_MASK;
+    aleCfg->vlanCfg.autoLearnWithVlan          = BFALSE;
 
     /* ALE policer configuration */
-    aleCfg->policerGlobalCfg.policingEn = true;
-    aleCfg->policerGlobalCfg.yellowDropEn = false;
-    aleCfg->policerGlobalCfg.redDropEn = true;
+    aleCfg->policerGlobalCfg.policingEn         = BTRUE;
+    aleCfg->policerGlobalCfg.yellowDropEn       = BFALSE;
+    aleCfg->policerGlobalCfg.redDropEn          = BTRUE;
     aleCfg->policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
 
     /* ALE policer partition configuration */
@@ -798,11 +798,11 @@ static int32_t EthFw_setupVlan(const EthFw_Config *config)
 
 static bool EthFw_isMacOnlyPort(Enet_MacPort macPort)
 {
-    bool isMacOnly = false;
+    bool isMacOnly = BFALSE;
 
     if ((gEthFwObj.macOnlyPortMask & ENET_MACPORT_MASK(macPort)) != 0U)
     {
-        isMacOnly = true;
+        isMacOnly = BTRUE;
     }
 
     return isMacOnly;
@@ -838,10 +838,10 @@ static void EthFw_setPortMode(void)
 
         if (EthFw_isMacOnlyPort(macPort))
         {
-            macModeCfg->macOnlyCafEn = false;
-            macModeCfg->macOnlyEn = true;
-            learningCfg->noLearn = true;
-            vlanSecCfg->dropUntagged = FALSE;
+            macModeCfg->macOnlyCafEn = BFALSE;
+            macModeCfg->macOnlyEn    = BTRUE;
+            learningCfg->noLearn     = BTRUE;
+            vlanSecCfg->dropUntagged = BFALSE;
 
             pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
             pvidCfg->vlanIdInfo.vlanId   = gEthFwObj.dfltVlanIdMacOnlyPorts;
@@ -850,16 +850,16 @@ static void EthFw_setPortMode(void)
             pvidCfg->unregMcastFloodMask = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
             pvidCfg->forceUntaggedEgressMask = aleMacOnlyPortMask | CPSW_ALE_HOST_PORT_MASK;
             pvidCfg->noLearnMask     = 0U;
-            pvidCfg->vidIngressCheck = 0U;
-            pvidCfg->limitIPNxtHdr   = false;
-            pvidCfg->disallowIPFrag  = false;
+            pvidCfg->vidIngressCheck = BFALSE;
+            pvidCfg->limitIPNxtHdr   = BFALSE;
+            pvidCfg->disallowIPFrag  = BFALSE;
         }
         else
         {
-            macModeCfg->macOnlyCafEn = false;
-            macModeCfg->macOnlyEn = false;
-            learningCfg->noLearn = false;
-            vlanSecCfg->dropUntagged = FALSE;
+            macModeCfg->macOnlyCafEn = BFALSE;
+            macModeCfg->macOnlyEn    = BFALSE;
+            learningCfg->noLearn     = BFALSE;
+            vlanSecCfg->dropUntagged = BFALSE;
 
             pvidCfg->vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
             pvidCfg->vlanIdInfo.vlanId   = gEthFwObj.dfltVlanIdSwitchPorts;
@@ -868,9 +868,9 @@ static void EthFw_setPortMode(void)
             pvidCfg->unregMcastFloodMask = 0U;
             pvidCfg->forceUntaggedEgressMask = aleSwitchPortMask | CPSW_ALE_HOST_PORT_MASK;
             pvidCfg->noLearnMask     = 0U;
-            pvidCfg->vidIngressCheck = 0U;
-            pvidCfg->limitIPNxtHdr   = false;
-            pvidCfg->disallowIPFrag  = false;
+            pvidCfg->vidIngressCheck = BFALSE;
+            pvidCfg->limitIPNxtHdr   = BFALSE;
+            pvidCfg->disallowIPFrag  = BFALSE;
         }
     }
 
@@ -883,21 +883,21 @@ static void EthFw_setPortMode(void)
     pvidCfg->unregMcastFloodMask = 0U;
     pvidCfg->forceUntaggedEgressMask = CPSW_ALE_ALL_PORTS_MASK;
     pvidCfg->noLearnMask     = 0U;
-    pvidCfg->vidIngressCheck = 0U;
-    pvidCfg->limitIPNxtHdr   = false;
-    pvidCfg->disallowIPFrag  = false;
+    pvidCfg->vidIngressCheck = BFALSE;
+    pvidCfg->limitIPNxtHdr   = BFALSE;
+    pvidCfg->disallowIPFrag  = BFALSE;
 
     learningCfg = &aleCfg->portCfg[0].learningCfg;
-    learningCfg->noLearn = false;
+    learningCfg->noLearn      = BFALSE;
 #if defined(ETHFW_VEPA_SUPPORT)
-    learningCfg->noSaUpdateEn = true;
+    learningCfg->noSaUpdateEn = BTRUE;
 #endif
 
     vlanSecCfg = &aleCfg->portCfg[0].vlanCfg;
-    vlanSecCfg->dropUntagged = FALSE;
+    vlanSecCfg->dropUntagged   = BFALSE;
 #if defined(ETHFW_VEPA_SUPPORT)
-    vlanSecCfg->dropDoubleVlan = false;
-    vlanSecCfg->dropDualVlan = true;
+    vlanSecCfg->dropDoubleVlan = BFALSE;
+    vlanSecCfg->dropDualVlan   = BTRUE;
 #endif
 }
 
@@ -986,7 +986,7 @@ static void EthFw_updateEnetRm(void)
     if (resCfg->macList.numMacAddress == 0U)
     {
         ETHFWTRACE_ERR(ENET_EALLOC, "Empty MAC address pool");
-        EnetAppUtils_assert(false);
+        EnetAppUtils_assert(BFALSE);
     }
     else if (resCfg->macList.numMacAddress < req)
     {
@@ -1054,10 +1054,10 @@ void EthFw_initConfigParams(Enet_Type enetType,
 
     /* Disable CPTS host receive timestamping as it can cause
      * MAC port lockup in packets with corrupted SFD */
-    cptsCfg->hostRxTsEn = false;
+    cptsCfg->hostRxTsEn = BFALSE;
 
     /* VLAN configuration */
-    vlanCfg->vlanAware = true;
+    vlanCfg->vlanAware = BTRUE;
 
 #if defined(ETHFW_VEPA_SUPPORT)
     /* CPSW switching using INNER VLAN tag
@@ -1070,15 +1070,15 @@ void EthFw_initConfigParams(Enet_Type enetType,
     vlanCfg->outerVlan = ENET_ETHERTYPE_CUSTOMER_VLAN;
 #endif
     /* Host port configuration */
-    hostPortCfg->removeCrc = true;
-    hostPortCfg->padShortPacket = true;
-    hostPortCfg->passCrcErrors = true;
-    hostPortCfg->rxMtu = 1522U;
+    hostPortCfg->removeCrc       = BTRUE;
+    hostPortCfg->padShortPacket  = BTRUE;
+    hostPortCfg->passCrcErrors   = BTRUE;
+    hostPortCfg->rxMtu           = 1522U;
     hostPortCfg->vlanCfg.portVID = ETHFW_HOST_PORT_VLAN_ID;
 #if defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
-    hostPortCfg->csumOffloadEn = false;
+    hostPortCfg->csumOffloadEn   = BFALSE;
 #else
-    hostPortCfg->csumOffloadEn = true;
+    hostPortCfg->csumOffloadEn   = BTRUE;
 #endif
 
     EthFw_initAleCfg(aleCfg);
@@ -1315,7 +1315,7 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 uint32_t EthFw_getRemoteEndptId(uint32_t coreId)
 {
     uint32_t i;
-    bool foundCoreId = false;
+    bool foundCoreId = BFALSE;
     uint32_t remoteEndptId;
 
     /* match the coreID the number of remote_device-based virtual ports */
@@ -1323,12 +1323,12 @@ uint32_t EthFw_getRemoteEndptId(uint32_t coreId)
     {
         if(coreId == gEthFw_autosarEndptId[i].remoteCoreId)
         {
-            foundCoreId = true;
+            foundCoreId = BTRUE;
             remoteEndptId = gEthFw_autosarEndptId[i].remoteEndptId;
             break;
         }
     }
-    EnetAppUtils_assert(true == foundCoreId);
+    EnetAppUtils_assert(BTRUE == foundCoreId);
     return remoteEndptId;
 }
 
@@ -1498,7 +1498,7 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
     if (status != ENET_SOK)
     {
         ETHFWTRACE_ERR(status, "Failed to set MAC port %u config", ENET_MACPORT_ID(macPort));
-        EnetAppUtils_assert(false);
+        EnetAppUtils_assert(BFALSE);
     }
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
@@ -1520,8 +1520,8 @@ static int32_t EthFw_setAleBcastEntry(void)
     int32_t status;
 
     memcpy(&setMcastInArgs.addr.addr[0], &bCastAddr[0U], sizeof(setMcastInArgs.addr.addr));
-    setMcastInArgs.addr.vlanId = 0U;
-    setMcastInArgs.info.super  = false;
+    setMcastInArgs.addr.vlanId     = 0U;
+    setMcastInArgs.info.super      = BFALSE;
     setMcastInArgs.info.fwdState   = CPSW_ALE_FWDSTLVL_FWD;
     setMcastInArgs.info.portMask   = CPSW_ALE_ALL_PORTS_MASK;
     setMcastInArgs.info.numIgnBits = 0U;
@@ -1570,7 +1570,7 @@ static void EthFw_getDeviceData(EthRemoteCfg_DeviceData *ethdevData)
     /* Enable permission for all ETHDEV remote commands without consideration of cores.
      * This should be changed based on trusted cores */
     ethdevData->permissionFlags = ((1ULL << ETHREMOTECFG_CMD_TYPE_LAST) - 1);
-    ethdevData->uartConnected = true;
+    ethdevData->uartConnected = BTRUE;
     ethdevData->uartId = ENET_UTILS_MCU2_0_UART_INSTANCE;
 }
 
@@ -1654,7 +1654,7 @@ static void EthFw_startLogTask(void)
     if (NULL == gEthFwObj.hLogTask)
     {
         ETHFWTRACE_ERR(ENET_EFAIL, "Failed to create log task");
-        EnetAppUtils_assert(false);
+        EnetAppUtils_assert(BFALSE);
     }
 }
 
@@ -1682,13 +1682,13 @@ static void EthFw_tsnInit(void)
         params.ub_log_initstr    = "5,ubase:5,cbase:5,gptp:4";
         params.cbset.gettime64   = cb_lld_gettime64;
         params.cbset.console_out = EthFw_logBuffer;
-        gEthFwObj.logTaskrun = true;
+        gEthFwObj.logTaskrun = BTRUE;
 
         EthFw_startLogTask();
 
         unibase_init(&params);
         ubb_memory_out_init(NULL, 0);
-        gEthFwObj.tsnInit = true;
+        gEthFwObj.tsnInit = BTRUE;
     }
 }
 
@@ -1696,7 +1696,7 @@ static void EthFw_tsnDeinit(void)
 {
     unibase_close();
 
-    gEthFwObj.logTaskrun = false;
+    gEthFwObj.logTaskrun = BFALSE;
 
     if (gEthFwObj.hLogTask != NULL)
     {
@@ -1716,9 +1716,9 @@ static void EthFw_tsnDeinit(void)
 
     unibase_close();
 
-    gEthFwObj.tsnInit = false;
-    gEthFwObj.ptpStarted = false;
-    gEthFwObj.logTaskrun = false;
+    gEthFwObj.tsnInit    = BFALSE;
+    gEthFwObj.ptpStarted = BFALSE;
+    gEthFwObj.logTaskrun = BFALSE;
 }
 
 static void EthFw_gptpStart(char *netdevs[],
@@ -1741,11 +1741,11 @@ static void EthFw_gptpStart(char *netdevs[],
         if (NULL == gEthFwObj.hPtpTask)
         {
             ETHFWTRACE_ERR(ETHFW_EFAIL, "Failed to create gptp task");
-            EnetAppUtils_assert(false);
+            EnetAppUtils_assert(BFALSE);
         }
         else
         {
-            gEthFwObj.ptpStarted = true;
+            gEthFwObj.ptpStarted = BTRUE;
         }
     }
 }
@@ -1835,7 +1835,7 @@ static int32_t EthFw_startMonitorTask(void)
     {
         status = ETHFW_EALLOC;
         ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor clock semaphore");
-        EnetAppUtils_assert(false);
+        EnetAppUtils_assert(BFALSE);
     }
 
     if (status == ENET_SOK)
@@ -1846,7 +1846,7 @@ static int32_t EthFw_startMonitorTask(void)
         params.stack     = &gEthFwObj.monTaskStackBuf[0];
         params.stacksize = sizeof(gEthFwObj.monTaskStackBuf);
         params.name      = "ETHFW Monitor Task";
-        gEthFwObj.monitorTaskRun = true;
+        gEthFwObj.monitorTaskRun = BTRUE;
 
         gEthFwObj.hMonitorTask = TaskP_create(&EthFw_monitorTask, &params);
         
@@ -1854,7 +1854,7 @@ static int32_t EthFw_startMonitorTask(void)
         {
             status = ETHFW_EALLOC;
             ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor task");
-            EnetAppUtils_assert(false);
+            EnetAppUtils_assert(BFALSE);
         }
     }
 
@@ -1871,7 +1871,7 @@ static int32_t EthFw_startMonitorTask(void)
         {
             status = ETHFW_EALLOC;
             ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor clock");
-            EnetAppUtils_assert(false);
+            EnetAppUtils_assert(BFALSE);
         }
     }
     return status;
@@ -1880,7 +1880,7 @@ static int32_t EthFw_startMonitorTask(void)
 static void EthFw_stopMonitorTask(void)
 {
 
-    gEthFwObj.monitorTaskRun = false;
+    gEthFwObj.monitorTaskRun = BFALSE;
 
     if (gEthFwObj.hMonitorTask != NULL)
     {
@@ -1956,7 +1956,7 @@ static bool EthFw_analyzeHostStats(void)
     EthFw_MonStats *monStats;
     EthFw_MonStats diffStats;
     Enet_IoctlPrms prms;
-    bool needsRecovery = false;
+    bool needsRecovery = BFALSE;
     uint32_t evt = 0U;
     uint32_t i;
     int32_t status = ENET_SOK;
@@ -1978,7 +1978,7 @@ static bool EthFw_analyzeHostStats(void)
         if (stats->rxBottomOfFifoDrop > monStats->rxBottomOfFifoDrop)
         {
             evt |= ETHFW_STATSMON_RXBOTTOMOFFIFODROP;
-            needsRecovery = true;
+            needsRecovery = BTRUE;
         }
 
         if (stats->rxTopOfFifoDrop > monStats->rxTopOfFifoDrop)
@@ -2026,7 +2026,7 @@ static bool EthFw_analyzePortStats(Enet_MacPort macPort)
     EthFw_MonStats *monStats;
     EthFw_MonStats diffStats;
     Enet_IoctlPrms prms;
-    bool needsRecovery = false;
+    bool needsRecovery = BFALSE;
     uint32_t evt = 0U;
     uint32_t portNum = ENET_MACPORT_NORM(macPort);
     uint32_t i;
@@ -2050,7 +2050,7 @@ static bool EthFw_analyzePortStats(Enet_MacPort macPort)
         if (stats->rxBottomOfFifoDrop > monStats->rxBottomOfFifoDrop)
         {
             evt |= ETHFW_STATSMON_RXBOTTOMOFFIFODROP;
-            needsRecovery = true;
+            needsRecovery = BTRUE;
         }
 
         if (stats->rxTopOfFifoDrop > monStats->rxTopOfFifoDrop)
@@ -2097,12 +2097,12 @@ static void EthFw_monitorTask(void *a0,
     Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
     Enet_MacPort macPort;
     Enet_MacPort recoveryMacPort;
-    bool needsRecovery = false;
+    bool needsRecovery = BFALSE;
     uint32_t i;
     int32_t status = ENET_SOK;
-    bool isTeardownComplete = false;
-    bool isrecoveryPortLinked = false;
-    bool noPendingReq = false;
+    bool isTeardownComplete = BFALSE;
+    bool isrecoveryPortLinked = BFALSE;
+    bool noPendingReq = BFALSE;
     uint32_t numTotalClients  = 0U;
     uint32_t numActiveClients  = 0U;
     uint32_t numIdleClients = 0U;
@@ -2117,7 +2117,7 @@ static void EthFw_monitorTask(void *a0,
         for (i = 0U; (i < gEthFwObj.numPorts) && !needsRecovery; i++)
         {
             macPort = ENET_MACPORT_DENORM(i);
-            if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, macPort) == true)
+            if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, macPort) == BTRUE)
             {
                 needsRecovery = EthFw_analyzePortStats(macPort);
                 if (needsRecovery)
@@ -2153,7 +2153,7 @@ static void EthFw_monitorTask(void *a0,
 
                     if (numIdleClients == numTotalClients)
                     {
-                        isTeardownComplete = true;
+                        isTeardownComplete = BTRUE;
                     }
 
                     TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
@@ -2173,14 +2173,14 @@ static void EthFw_monitorTask(void *a0,
 #if defined(ETHFW_PROXY_ARP_HANDLING)
                     if (EthFwArp_getUseCnt() == 0U)
                     {
-                        noPendingReq = true;
+                        noPendingReq = BTRUE;
                     }
 #endif
 
 #if defined(ETHFW_VEPA_SUPPORT)
                     if (EthFwVepa_getUseCnt() == 0U)
                     {
-                        noPendingReq = true;
+                        noPendingReq = BTRUE;
                     }
 #endif
                     TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
@@ -2201,9 +2201,9 @@ static void EthFw_monitorTask(void *a0,
                 /* Send a notification to clients for HW recovery completion only when Port link is up*/
                 while(!isrecoveryPortLinked)
                 {
-                    if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, recoveryMacPort) == true)
+                    if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, recoveryMacPort) == BTRUE)
                     {
-                        isrecoveryPortLinked = true;
+                        isrecoveryPortLinked = BTRUE;
                     }
 
                     TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
@@ -2214,9 +2214,9 @@ static void EthFw_monitorTask(void *a0,
             }
 
             /* Set teardown flag to false for next iteration */
-            isTeardownComplete = false;
-            isrecoveryPortLinked = false;
-            noPendingReq = false;
+            isTeardownComplete = BFALSE;
+            isrecoveryPortLinked = BFALSE;
+            noPendingReq = BFALSE;
             ClockP_start(gEthFwObj.hMonitorClock);
         }
     }
@@ -2267,7 +2267,7 @@ static int32_t EthFw_resetHandler(void)
     Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
     Cpsw_Handle hCpsw = (Cpsw_Handle)hEnet->enetPer;
     uint32_t nanoSeconds = 0U;
-    uint64_t seconds = 0U;
+    uint64_t seconds = 0LLU;
     uint64_t preResetTime;
     uint64_t postResetTime;
     uint64_t currentTime;
@@ -2288,7 +2288,7 @@ static int32_t EthFw_resetHandler(void)
     /* Temp change - clear the MacPort isLinkUp flag to false, this will be moved to enet-lld */
     for (i = 0U; i< CPSW_MAC_PORT_NUM; i++)
     {
-        hCpsw->portLinkState[i].isLinkUp = false;
+        hCpsw->portLinkState[i].isLinkUp = BFALSE;
     }
 
     /* Call App callback to close the Lwip Dma channels */

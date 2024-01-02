@@ -184,62 +184,62 @@ void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
 {
     Enet_MacPort i;
 
-    /* pCpswCfg->aleCfg.policerGlobalCfg.policingEn SHOULD BE TRUE for interVLan.
-     * Set to FALSE to exercise driver internal logic to auto enable policer when interVLan API
-     * is invoked
-     */
-    pCpswCfg->aleCfg.policerGlobalCfg.policingEn = TRUE;
-    pCpswCfg->hostPortCfg.passPriorityTaggedUnchanged   = TRUE;
+    /* pCpswCfg->aleCfg.policerGlobalCfg.policingEn should be true for interVLAN.
+     * Set to false to exercise driver internal logic to auto enable policer when interVLAN API
+     * is invoked */
+    pCpswCfg->aleCfg.policerGlobalCfg.policingEn      = BTRUE;
+    pCpswCfg->hostPortCfg.passPriorityTaggedUnchanged = BTRUE;
 
     pCpswCfg->aleCfg.modeFlags = CPSW_ALE_CFG_MODULE_EN;
 
-    pCpswCfg->aleCfg.policerGlobalCfg.redDropEn = FALSE;
-    pCpswCfg->aleCfg.policerGlobalCfg.yellowDropEn = FALSE;
+    pCpswCfg->aleCfg.policerGlobalCfg.redDropEn    = BFALSE;
+    pCpswCfg->aleCfg.policerGlobalCfg.yellowDropEn = BFALSE;
     pCpswCfg->aleCfg.policerGlobalCfg.policerNoMatchMode = CPSW_ALE_POLICER_NOMATCH_MODE_GREEN;
-    pCpswCfg->aleCfg.vlanCfg.aleVlanAwareMode = TRUE;
-    pCpswCfg->aleCfg.vlanCfg.cpswVlanAwareMode = TRUE;
-    pCpswCfg->aleCfg.vlanCfg.unknownVlanMemberListMask = 0;
 
-    pCpswCfg->aleCfg.nwSecCfg.hostOuiNoMatchDeny                    = FALSE;
-    pCpswCfg->aleCfg.nwSecCfg.vid0ModeEn                        = TRUE;
-    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.dfltNxtHdrWhitelistEn = TRUE;
-    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelistCnt       = 2U;
-    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[0]         = CPSW_TEST_IPV4_NXT_HDR_TCP;
-    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[1]         = CPSW_TEST_IPV4_NXT_HDR_UDP;
+    pCpswCfg->aleCfg.vlanCfg.aleVlanAwareMode  = BTRUE;
+    pCpswCfg->aleCfg.vlanCfg.cpswVlanAwareMode = BTRUE;
+    pCpswCfg->aleCfg.vlanCfg.unknownVlanMemberListMask = 0U;
 
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].learningCfg.noLearn = FALSE;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].vlanCfg.dropUntagged = FALSE;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.unregMcastFloodMask = 0x0;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.regMcastFloodMask = CPSW_ALE_ALL_PORTS_MASK;
+    pCpswCfg->aleCfg.nwSecCfg.hostOuiNoMatchDeny = BFALSE;
+    pCpswCfg->aleCfg.nwSecCfg.vid0ModeEn         = BTRUE;
+    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.dfltNxtHdrWhitelistEn = BTRUE;
+    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelistCnt  = 2U;
+    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[0]  = CPSW_TEST_IPV4_NXT_HDR_TCP;
+    pCpswCfg->aleCfg.nwSecCfg.ipPktCfg.ipNxtHdrWhitelist[1]  = CPSW_TEST_IPV4_NXT_HDR_UDP;
+
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].learningCfg.noLearn             = BFALSE;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].vlanCfg.dropUntagged            = BFALSE;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.unregMcastFloodMask     = 0U;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.regMcastFloodMask       = CPSW_ALE_ALL_PORTS_MASK;
     pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.forceUntaggedEgressMask = CPSW_ALE_ALL_PORTS_MASK;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.noLearnMask = 0x0;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vidIngressCheck = 0x0;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.limitIPNxtHdr = false;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.disallowIPFrag = false;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_HOSTPORT_PVID;
-    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanMemberList = CPSW_ALE_ALL_PORTS_MASK;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.noLearnMask             = 0U;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vidIngressCheck         = BFALSE;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.limitIPNxtHdr           = BFALSE;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.disallowIPFrag          = BFALSE;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.tagType      = ENET_VLAN_TAG_TYPE_INNER;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanIdInfo.vlanId       = CPSW_TEST_INTERVLAN_HOSTPORT_PVID;
+    pCpswCfg->aleCfg.portCfg[CPSW_ALE_HOST_PORT_NUM].pvidCfg.vlanMemberList          = CPSW_ALE_ALL_PORTS_MASK;
 
     for (i = ENET_MAC_PORT_FIRST; i < CPSW_ALE_NUM_MAC_PORTS; i++)
     {
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].learningCfg.noLearn = FALSE;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].vlanCfg.dropUntagged = FALSE;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.unregMcastFloodMask = 0x0;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.regMcastFloodMask = CPSW_ALE_ALL_PORTS_MASK;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].learningCfg.noLearn             = BFALSE;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].vlanCfg.dropUntagged            = BFALSE;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.unregMcastFloodMask     = 0U;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.regMcastFloodMask       = CPSW_ALE_ALL_PORTS_MASK;
         pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.forceUntaggedEgressMask = CPSW_ALE_ALL_PORTS_MASK;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.noLearnMask = 0x0;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vidIngressCheck = 0x0;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.limitIPNxtHdr = false;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.disallowIPFrag = false;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.vlanId = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(i);
-        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanMemberList = CPSW_ALE_ALL_PORTS_MASK;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.noLearnMask             = 0U;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vidIngressCheck         = BFALSE;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.limitIPNxtHdr           = BFALSE;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.disallowIPFrag          = BFALSE;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.tagType      = ENET_VLAN_TAG_TYPE_INNER;
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanIdInfo.vlanId       = CPSW_TEST_INTERVLAN_MACPORT_PVID_BASE + ENET_MACPORT_NORM(i);
+        pCpswCfg->aleCfg.portCfg[CPSW_ALE_MACPORT_TO_ALEPORT(i)].pvidCfg.vlanMemberList          = CPSW_ALE_ALL_PORTS_MASK;
     }
 
-    pCpswCfg->hostPortCfg.vlanCfg.portPri = 7;
-    pCpswCfg->hostPortCfg.vlanCfg.portCfi = 0;
+    pCpswCfg->hostPortCfg.vlanCfg.portPri = 7U;
+    pCpswCfg->hostPortCfg.vlanCfg.portCfi = 0U;
     pCpswCfg->hostPortCfg.vlanCfg.portVID = CPSW_TEST_INTERVLAN_HOSTPORT_PVID;
-    pCpswCfg->vlanCfg.vlanAware = TRUE;
+    pCpswCfg->vlanCfg.vlanAware = BTRUE;
 }
 
 static uint32_t CpswAppInterVlan_getIngressVlanMembershipMask(EnetCfgServer_InterVlanConfig *pInterVlanCfg)
@@ -272,13 +272,13 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
 
     memcpy(&setUcastInArgs.addr.addr[0U], testHostMacAddr,
            sizeof(setUcastInArgs.addr.addr));
-    setUcastInArgs.addr.vlanId = 0;
+    setUcastInArgs.addr.vlanId = 0U;
     setUcastInArgs.info.portNum = CPSW_ALE_HOST_PORT_NUM;
-    setUcastInArgs.info.blocked = false;
-    setUcastInArgs.info.secure = false;
-    setUcastInArgs.info.super = 0U;
-    setUcastInArgs.info.ageable = false;
-    setUcastInArgs.info.trunk = false;
+    setUcastInArgs.info.blocked = BFALSE;
+    setUcastInArgs.info.secure  = BFALSE;
+    setUcastInArgs.info.super   = BFALSE;
+    setUcastInArgs.info.ageable = BFALSE;
+    setUcastInArgs.info.trunk   = BFALSE;
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
@@ -294,16 +294,16 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
         CpswAle_VlanEntryInfo inArgs;
         uint32_t outArgs;
 
-        inArgs.vlanIdInfo.vlanId = pInterVlanCfg->ingVlanId;
-        inArgs.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
-        inArgs.vlanMemberList = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
-        inArgs.unregMcastFloodMask = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
-        inArgs.regMcastFloodMask = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
-        inArgs.forceUntaggedEgressMask = 0;
-        inArgs.noLearnMask = 0U;
-        inArgs.vidIngressCheck = false;
-        inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFrag = false;
+        inArgs.vlanIdInfo.vlanId       = pInterVlanCfg->ingVlanId;
+        inArgs.vlanIdInfo.tagType      = ENET_VLAN_TAG_TYPE_INNER;
+        inArgs.vlanMemberList          = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
+        inArgs.unregMcastFloodMask     = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
+        inArgs.regMcastFloodMask       = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
+        inArgs.forceUntaggedEgressMask = 0U;
+        inArgs.noLearnMask             = 0U;
+        inArgs.vidIngressCheck         = BFALSE;
+        inArgs.limitIPNxtHdr           = BFALSE;
+        inArgs.disallowIPFrag          = BFALSE;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -319,16 +319,16 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
         CpswAle_VlanEntryInfo inArgs;
         uint32_t outArgs;
 
-        inArgs.vlanIdInfo.vlanId = pInterVlanCfg->egrVlanId;
-        inArgs.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
-        inArgs.vlanMemberList = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
-        inArgs.unregMcastFloodMask = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
-        inArgs.regMcastFloodMask = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
-        inArgs.forceUntaggedEgressMask = 0;
-        inArgs.noLearnMask = 0U;
-        inArgs.vidIngressCheck = false;
-        inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFrag = false;
+        inArgs.vlanIdInfo.vlanId       = pInterVlanCfg->egrVlanId;
+        inArgs.vlanIdInfo.tagType      = ENET_VLAN_TAG_TYPE_INNER;
+        inArgs.vlanMemberList          = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
+        inArgs.unregMcastFloodMask     = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
+        inArgs.regMcastFloodMask       = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
+        inArgs.forceUntaggedEgressMask = 0U;
+        inArgs.noLearnMask             = 0U;
+        inArgs.vidIngressCheck         = BFALSE;
+        inArgs.limitIPNxtHdr           = BFALSE;
+        inArgs.disallowIPFrag          = BFALSE;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -352,7 +352,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
     Cpsw_SetInterVlanRouteUniEgressInArgs inArgs;
     Cpsw_SetInterVlanRouteUniEgressOutArgs outArgs;
 
-    *pNumRoutesUsed = 0;
+    *pNumRoutesUsed = 0U;
     status = CpswAppInterVlan_addUniEgressAleTableEntries(hEnet, pInterVlanCfg);
 
     if (ENET_SOK == status)
@@ -362,45 +362,44 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
          */
         outArgs.egressPortRouteId = CPSW_MACPORT_INTERVLAN_ROUTEID_LAST;
 
-        inArgs.inPktMatchCfg.packetMatchEnMask = 0;
+        inArgs.inPktMatchCfg.packetMatchEnMask = 0U;
 
         inArgs.inPktMatchCfg.ingressPort = (Enet_MacPort)pInterVlanCfg->ingPortNum;
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_PORT;
 
-        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
-        inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.numLSBIgnoreBits = 8;
+        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
+        inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.numLSBIgnoreBits = 8U;
         memcpy(inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.ipv6Addr, testDstIpv6Addr, sizeof(inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
         memcpy(inArgs.inPktMatchCfg.dstMacAddrInfo.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddrInfo.addr.addr));
-        inArgs.inPktMatchCfg.dstMacAddrInfo.addr.vlanId = 0;
-        inArgs.inPktMatchCfg.dstMacAddrInfo.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum);
-
+        inArgs.inPktMatchCfg.dstMacAddrInfo.addr.vlanId = 0U;
+        inArgs.inPktMatchCfg.dstMacAddrInfo.portNum     = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum);
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_MACDST;
 
-        inArgs.inPktMatchCfg.srcIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
-        inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.numLSBIgnoreBits = 8;
+        inArgs.inPktMatchCfg.srcIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
+        inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.numLSBIgnoreBits = 8U;
         memcpy(inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.ipv6Addr, testSrcIpv6Addr, sizeof(inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPSRC;
 
         memcpy(inArgs.inPktMatchCfg.srcMacAddrInfo.addr.addr, &pInterVlanCfg->srcMacAddr[0U], sizeof(inArgs.inPktMatchCfg.srcMacAddrInfo.addr.addr));
-        inArgs.inPktMatchCfg.srcMacAddrInfo.addr.vlanId = 0;
-        inArgs.inPktMatchCfg.srcMacAddrInfo.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum);
+        inArgs.inPktMatchCfg.srcMacAddrInfo.addr.vlanId = 0U;
+        inArgs.inPktMatchCfg.srcMacAddrInfo.portNum     = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum);
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_MACSRC;
 
         inArgs.inPktMatchCfg.etherType = CPSW_TEST_INTERVLAN_IPV6_ETHERTYPE;
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_ETHERTYPE;
 
-        inArgs.inPktMatchCfg.vlanId = pInterVlanCfg->ingVlanId;
-        inArgs.inPktMatchCfg.ttlCheckEn = TRUE;
+        inArgs.inPktMatchCfg.vlanId     = pInterVlanCfg->ingVlanId;
+        inArgs.inPktMatchCfg.ttlCheckEn = BTRUE;
 
-        inArgs.egressCfg.egressPort = (Enet_MacPort)pInterVlanCfg->egrPortNum;
-        inArgs.egressCfg.outPktModCfg.decrementTTL = TRUE;
-        inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = FALSE;
-        inArgs.egressCfg.outPktModCfg.replaceDASA = TRUE;
+        inArgs.egressCfg.egressPort                       = (Enet_MacPort)pInterVlanCfg->egrPortNum;
+        inArgs.egressCfg.outPktModCfg.decrementTTL        = BTRUE;
+        inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = BFALSE;
+        inArgs.egressCfg.outPktModCfg.replaceDASA         = BTRUE;
         memcpy(inArgs.egressCfg.outPktModCfg.srcAddr, testHostMacAddr, sizeof(inArgs.egressCfg.outPktModCfg.srcAddr));
         memcpy(inArgs.egressCfg.outPktModCfg.dstAddr, &pInterVlanCfg->dstMacAddr[0U], sizeof(inArgs.egressCfg.outPktModCfg.dstAddr));
-        inArgs.egressCfg.outPktModCfg.vlanId = pInterVlanCfg->egrVlanId;
+        inArgs.egressCfg.outPktModCfg.vlanId              = pInterVlanCfg->egrVlanId;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -414,13 +413,13 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
     if (status == ENET_SOK)
     {
-        *pNumRoutesUsed += 1;
+        *pNumRoutesUsed += 1U;
         // EnetAppUtils_assert(outArgs.egressPortRouteId == expectedAllocRouteId);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.port == CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == BFALSE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_PORT |
                                                                                        CPSW_ALE_POLICER_MATCH_MACSRC |
@@ -436,8 +435,8 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         /* Add another route to send packet out on ingress port.
          * Only destIP changes. Rest of params remain same
          */
-        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
-        inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.numLSBIgnoreBits = 8;
+        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
+        inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.numLSBIgnoreBits = 8U;
         memcpy(inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.ipv6Addr, testDstIpv6Addr2, sizeof(inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
@@ -459,10 +458,10 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
         /* Do not increment numRoutesUsed as it is a different egress port */
         // EnetAppUtils_assert(outArgs.egressPortRouteId == expectedAllocRouteId);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.port == CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == BFALSE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_PORT |
                                                                                            CPSW_ALE_POLICER_MATCH_MACSRC |
@@ -481,45 +480,45 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
          */
         outArgs.egressPortRouteId = CPSW_MACPORT_INTERVLAN_ROUTEID_LAST;
 
-        inArgs.inPktMatchCfg.packetMatchEnMask = 0;
+        inArgs.inPktMatchCfg.packetMatchEnMask = 0U;
 
         inArgs.inPktMatchCfg.ingressPort = (Enet_MacPort)pInterVlanCfg->egrPortNum;
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_PORT;
 
-        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
-        inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.numLSBIgnoreBits = 8;
+        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
+        inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.numLSBIgnoreBits = 8U;
         memcpy(inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.ipv6Addr, testSrcIpv6Addr, sizeof(inArgs.inPktMatchCfg.dstIpInfo.ipv6Info.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
         memcpy(inArgs.inPktMatchCfg.dstMacAddrInfo.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddrInfo.addr.addr));
-        inArgs.inPktMatchCfg.dstMacAddrInfo.addr.vlanId = 0;
+        inArgs.inPktMatchCfg.dstMacAddrInfo.addr.vlanId = 0U;
         inArgs.inPktMatchCfg.dstMacAddrInfo.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum);
 
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_MACDST;
 
-        inArgs.inPktMatchCfg.srcIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
-        inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.numLSBIgnoreBits = 8;
+        inArgs.inPktMatchCfg.srcIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV6;
+        inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.numLSBIgnoreBits = 8U;
         memcpy(inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.ipv6Addr, testDstIpv6Addr, sizeof(inArgs.inPktMatchCfg.srcIpInfo.ipv6Info.ipv6Addr));
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPSRC;
 
         memcpy(inArgs.inPktMatchCfg.srcMacAddrInfo.addr.addr, &pInterVlanCfg->dstMacAddr[0U], sizeof(inArgs.inPktMatchCfg.srcMacAddrInfo.addr.addr));
-        inArgs.inPktMatchCfg.srcMacAddrInfo.addr.vlanId = 0;
-        inArgs.inPktMatchCfg.srcMacAddrInfo.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum);
+        inArgs.inPktMatchCfg.srcMacAddrInfo.addr.vlanId = 0U;
+        inArgs.inPktMatchCfg.srcMacAddrInfo.portNum     = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum);
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_MACSRC;
 
         inArgs.inPktMatchCfg.etherType = 0x86DD;
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_ETHERTYPE;
 
-        inArgs.inPktMatchCfg.vlanId = pInterVlanCfg->egrPortNum;
-        inArgs.inPktMatchCfg.ttlCheckEn = TRUE;
+        inArgs.inPktMatchCfg.vlanId     = pInterVlanCfg->egrPortNum;
+        inArgs.inPktMatchCfg.ttlCheckEn = BTRUE;
 
-        inArgs.egressCfg.egressPort = (Enet_MacPort)pInterVlanCfg->ingPortNum;
-        inArgs.egressCfg.outPktModCfg.decrementTTL = TRUE;
-        inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = FALSE;
-        inArgs.egressCfg.outPktModCfg.replaceDASA = TRUE;
+        inArgs.egressCfg.egressPort                       = (Enet_MacPort)pInterVlanCfg->ingPortNum;
+        inArgs.egressCfg.outPktModCfg.decrementTTL        = BTRUE;
+        inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = BFALSE;
+        inArgs.egressCfg.outPktModCfg.replaceDASA         = BTRUE;
+        inArgs.egressCfg.outPktModCfg.vlanId              = pInterVlanCfg->ingVlanId;
         memcpy(inArgs.egressCfg.outPktModCfg.srcAddr, testHostMacAddr, sizeof(inArgs.egressCfg.outPktModCfg.srcAddr));
         memcpy(inArgs.egressCfg.outPktModCfg.dstAddr, &pInterVlanCfg->srcMacAddr[0U], sizeof(inArgs.egressCfg.outPktModCfg.dstAddr));
-        inArgs.egressCfg.outPktModCfg.vlanId = pInterVlanCfg->ingVlanId;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -535,10 +534,10 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
     {
         // EnetAppUtils_assert(outArgs.egressPortRouteId == (expectedAllocRouteId + 1));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.port == CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == FALSE);
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.portIsTrunk == BFALSE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_PORT |
                                                                                            CPSW_ALE_POLICER_MATCH_MACSRC |
@@ -557,39 +556,39 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
          */
         outArgs.egressPortRouteId = CPSW_MACPORT_INTERVLAN_ROUTEID_LAST;
 
-        inArgs.inPktMatchCfg.packetMatchEnMask = 0;
+        inArgs.inPktMatchCfg.packetMatchEnMask = 0U;
 
-        inArgs.inPktMatchCfg.srcIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
+        inArgs.inPktMatchCfg.srcIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
         inArgs.inPktMatchCfg.srcIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
         memcpy(inArgs.inPktMatchCfg.srcIpInfo.ipv4Info.ipv4Addr, &pInterVlanCfg->srcIpv4Addr[0U], sizeof(inArgs.inPktMatchCfg.srcIpInfo.ipv4Info.ipv4Addr));
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPSRC;
 
-        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
+        inArgs.inPktMatchCfg.dstIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
         inArgs.inPktMatchCfg.dstIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
         memcpy(inArgs.inPktMatchCfg.dstIpInfo.ipv4Info.ipv4Addr, &pInterVlanCfg->dstIpv4Addr[0U], sizeof(inArgs.inPktMatchCfg.dstIpInfo.ipv4Info.ipv4Addr));
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_IPDST;
 
         memcpy(inArgs.inPktMatchCfg.dstMacAddrInfo.addr.addr, testHostMacAddr, sizeof(inArgs.inPktMatchCfg.dstMacAddrInfo.addr.addr));
-        inArgs.inPktMatchCfg.dstMacAddrInfo.addr.vlanId = 0;
+        inArgs.inPktMatchCfg.dstMacAddrInfo.addr.vlanId = 0U;
         inArgs.inPktMatchCfg.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
 
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_MACDST;
 
         memcpy(inArgs.inPktMatchCfg.srcMacAddrInfo.addr.addr, &pInterVlanCfg->srcMacAddr[0U], sizeof(inArgs.inPktMatchCfg.srcMacAddrInfo.addr.addr));
-        inArgs.inPktMatchCfg.srcMacAddrInfo.addr.vlanId = 0;
-        inArgs.inPktMatchCfg.srcMacAddrInfo.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum);
+        inArgs.inPktMatchCfg.srcMacAddrInfo.addr.vlanId = 0U;
+        inArgs.inPktMatchCfg.srcMacAddrInfo.portNum     = CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->ingPortNum);
         inArgs.inPktMatchCfg.packetMatchEnMask |= CPSW_INTERVLAN_INGRESSPKT_MATCH_MACSRC;
 
         inArgs.inPktMatchCfg.vlanId = pInterVlanCfg->ingVlanId;
-        inArgs.inPktMatchCfg.ttlCheckEn = TRUE;
+        inArgs.inPktMatchCfg.ttlCheckEn = BTRUE;
 
-        inArgs.egressCfg.egressPort = (Enet_MacPort)pInterVlanCfg->egrPortNum;
-        inArgs.egressCfg.outPktModCfg.decrementTTL = TRUE;
-        inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = FALSE;
-        inArgs.egressCfg.outPktModCfg.replaceDASA = TRUE;
+        inArgs.egressCfg.egressPort                       = (Enet_MacPort)pInterVlanCfg->egrPortNum;
+        inArgs.egressCfg.outPktModCfg.decrementTTL        = BTRUE;
+        inArgs.egressCfg.outPktModCfg.forceUntaggedEgress = BFALSE;
+        inArgs.egressCfg.outPktModCfg.replaceDASA         = BTRUE;
+        inArgs.egressCfg.outPktModCfg.vlanId              = pInterVlanCfg->egrVlanId;
         memcpy(inArgs.egressCfg.outPktModCfg.srcAddr, testHostMacAddr, sizeof(inArgs.egressCfg.outPktModCfg.srcAddr));
         memcpy(inArgs.egressCfg.outPktModCfg.dstAddr, &pInterVlanCfg->dstMacAddr[0U], sizeof(inArgs.egressCfg.outPktModCfg.dstAddr));
-        inArgs.egressCfg.outPktModCfg.vlanId = pInterVlanCfg->egrVlanId;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -604,9 +603,9 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         *pNumRoutesUsed += 1;
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.egressOpcode == (1 + (outArgs.egressPortRouteId - CPSW_MACPORT_INTERVLAN_ROUTEID_FIRST)));
-        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == TRUE);
+        EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.ttlCheckEn == BTRUE);
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.dstPortMask == (1 << CPSW_ALE_MACPORT_TO_ALEPORT(pInterVlanCfg->egrPortNum)));
         EnetAppUtils_assert(outArgs.ingressPacketClassifierInfo.policerMatchEnMask == (CPSW_ALE_POLICER_MATCH_MACSRC |
                                                                                            CPSW_ALE_POLICER_MATCH_MACDST |
@@ -627,15 +626,15 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
     memset(&setShortIPGInArgs, 0, sizeof(setShortIPGInArgs));
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &setShortIPGInArgs);
-    setShortIPGInArgs.configureGapThresh = FALSE;
+    setShortIPGInArgs.configureGapThresh = BFALSE;
     setShortIPGInArgs.numMacPorts = 2U;
-    setShortIPGInArgs.portShortIpgCfg[0].macPort = CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM;
-    setShortIPGInArgs.portShortIpgCfg[0].shortIpgCfg.txShortGapEn = false;
-    setShortIPGInArgs.portShortIpgCfg[0].shortIpgCfg.txShortGapLimitEn = false;
+    setShortIPGInArgs.portShortIpgCfg[0].macPort                       = CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM;
+    setShortIPGInArgs.portShortIpgCfg[0].shortIpgCfg.txShortGapEn      = BFALSE;
+    setShortIPGInArgs.portShortIpgCfg[0].shortIpgCfg.txShortGapLimitEn = BFALSE;
 
-    setShortIPGInArgs.portShortIpgCfg[1].macPort = CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM;
-    setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapEn = false;
-    setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapLimitEn = false;
+    setShortIPGInArgs.portShortIpgCfg[1].macPort                       = CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM;
+    setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapEn      = BFALSE;
+    setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapLimitEn = BFALSE;
 
     status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_SHORT_IPG_CFG,
                         &prms);
@@ -659,8 +658,8 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
                 if ((ipgCfg->macPort == CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM) ||
                     (ipgCfg->macPort == CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM))
                 {
-                    EnetAppUtils_assert(ipgCfg->shortIpgCfg.txShortGapEn == false);
-                    EnetAppUtils_assert(ipgCfg->shortIpgCfg.txShortGapLimitEn == false);
+                    EnetAppUtils_assert(ipgCfg->shortIpgCfg.txShortGapEn == BFALSE);
+                    EnetAppUtils_assert(ipgCfg->shortIpgCfg.txShortGapLimitEn == BFALSE);
                 }
             }
         }
@@ -677,7 +676,7 @@ void EthHwInterVlan_setupRouting(Enet_Type enetType,
                                EnetCfgServer_InterVlanConfig *pInterVlanCfg)
 {
     int32_t status = ENET_SOK;
-    uint32_t numRoutesAllocated = 0;
+    uint32_t numRoutesAllocated = 0U;
     Enet_Handle hEnet;
 
     /* Get CPSW Handle */

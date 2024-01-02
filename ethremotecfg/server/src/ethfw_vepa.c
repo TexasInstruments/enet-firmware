@@ -201,7 +201,7 @@ int32_t EthFwVepa_init(const EthFwVepa_Cfg *vepaCfg)
     {
         for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
         {
-            gEthFwVepaObj.remoteCoreVepaTable[i].isFree = true;
+            gEthFwVepaObj.remoteCoreVepaTable[i].isFree = BTRUE;
         }
 
         for (i = 0U; i <= ETHREMOTECFG_SWITCH_PORT_LAST; i++)
@@ -325,8 +325,8 @@ static int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
     polInArgs.policerMatch.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
     polInArgs.policerMatch.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
     polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlanId;
-    polInArgs.policerMatch.portIsTrunk                = false;
-    polInArgs.threadIdEn                              = true;
+    polInArgs.policerMatch.portIsTrunk                = BFALSE;
+    polInArgs.threadIdEn                              = BTRUE;
     polInArgs.threadId                                = flowIdx;
     polInArgs.peakRateInBitsPerSec                    = 0U;
     polInArgs.commitRateInBitsPerSec                  = 0U;
@@ -356,7 +356,7 @@ static int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
     polInArgs.policerMatch.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
     polInArgs.policerMatch.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
     polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlanId;
-    polInArgs.policerMatch.portIsTrunk                = false;
+    polInArgs.policerMatch.portIsTrunk                = BFALSE;
     polInArgs.aleEntryMask                            = aleEntryMask;
     EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], mcastAddr);
 
@@ -381,7 +381,7 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
     uint32_t flowIdx = ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED;
     int32_t status = ETHFW_EFAIL;
     uint32_t i;
-    bool done = false;
+    bool done = BFALSE;
 
     MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
 
@@ -410,7 +410,7 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
             {
                 /* Update the port mask */
                 entry->virtPortMask |= ETHFW_BIT(virtPort);
-                done = true;
+                done = BTRUE;
                 status = ETHFW_SOK;
                 break;
             }
@@ -437,7 +437,7 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
                     SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
                     entry->vlanId = vlanId;
                     entry->virtPortMask = ETHFW_BIT(virtPort);
-                    entry->isFree = false;
+                    entry->isFree = BFALSE;
                 }
                 else
                 {
@@ -493,7 +493,7 @@ int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
                                                    aleEntryMask);
                 if (status == ETHFW_SOK)
                 {
-                    entry->isFree = true;
+                    entry->isFree = BTRUE;
                     entry->vlanId = 0U;
                     memset(&entry->hwAddr, 0U, sizeof(struct eth_addr));
                 }
@@ -571,7 +571,7 @@ void EthFwVepa_flushTable(void)
     memset(gEthFwVepaObj.remoteCoreVepaTable, 0U, sizeof(gEthFwVepaObj.remoteCoreVepaTable));
     for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
     {
-        gEthFwVepaObj.remoteCoreVepaTable[i].isFree = true;
+        gEthFwVepaObj.remoteCoreVepaTable[i].isFree = BTRUE;
     }
 
     MutexP_unlock(gEthFwVepaObj.hMutex);
@@ -602,9 +602,9 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
     inArgs.regMcastFloodMask       = CPSW_ALE_HOST_PORT_MASK;
     inArgs.forceUntaggedEgressMask = CPSW_ALE_HOST_PORT_MASK;
     inArgs.noLearnMask             = CPSW_ALE_HOST_PORT_MASK;
-    inArgs.vidIngressCheck         = false;
-    inArgs.limitIPNxtHdr           = false;
-    inArgs.disallowIPFrag          = false;
+    inArgs.vidIngressCheck         = BFALSE;
+    inArgs.limitIPNxtHdr           = BFALSE;
+    inArgs.disallowIPFrag          = BFALSE;
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &entryIdx);
 
@@ -616,7 +616,7 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
         /* ALE policer for VLAN used for packet forwarding from ETHFW to Remote Client */
         polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_IVLAN;
         polInArgs.policerMatch.ivlanId            = privVlanId;
-        polInArgs.threadIdEn                      = TRUE;
+        polInArgs.threadIdEn                      = BTRUE;
         polInArgs.threadId                        = flowIdx;
         polInArgs.peakRateInBitsPerSec            = 0U;
         polInArgs.commitRateInBitsPerSec          = 0U;

@@ -760,7 +760,7 @@ int main(void)
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     memset(gEthAppObj.bootTs, 0, sizeof(gEthAppObj.bootTs));
-    gEthAppObj.uartPrintEn = false;
+    gEthAppObj.uartPrintEn = BFALSE;
 #endif
 
     OS_init();
@@ -1288,7 +1288,7 @@ static int32_t EthApp_initRemoteServices(void)
 bool EthFwCallbacks_isPortLinked(struct netif *netif,
                                  void *handleArg)
 {
-    bool linked = false;
+    bool linked = BFALSE;
     Enet_Handle hEnet = (Enet_Handle)handleArg;
     uint32_t i;
 
@@ -1580,7 +1580,7 @@ static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
 
 static void EthApp_traceBufFlush(void* arg0, void* arg1)
 {
-	bool exitTask = false;
+    bool exitTask = BFALSE;
 
     while (!exitTask)
     {
@@ -1647,7 +1647,7 @@ static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
 {
     uint8_t idx = 0;
     struct eth_addr ethaddr;
-    bool matchFound = false;
+    bool matchFound = BFALSE;
     int32_t errVal = 0;
 
     /* Search the mac_address in the shared mcast addr table */
@@ -1656,7 +1656,7 @@ static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
         if (EnetUtils_cmpMacAddr(mac_address,
                     &gEthApp_sharedMcastCfgTable[idx].macAddr[0]))
         {
-            matchFound = true;
+            matchFound = BTRUE;
             /* Read and update stored port mask */
             gEthApp_bridgePortMask[idx] |= ETHFW_BIT(gEthApp_lwipBridgePortIdMap[hostId]);
 
@@ -1700,7 +1700,7 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
     uint8_t idx = 0;
     bridgeif_portmask_t bridgePortMask;
     struct eth_addr ethaddr;
-    bool matchFound = false;
+    bool matchFound = BFALSE;
     int32_t errVal = 0;
 
     /* Search the mac_address in the shared mcast addr table */
@@ -1709,7 +1709,7 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
         if (EnetUtils_cmpMacAddr(mac_address,
                     &gEthApp_sharedMcastCfgTable[idx].macAddr[0]))
         {
-            matchFound = true;
+            matchFound = BTRUE;
             /* Read and update stored port mask */
             gEthApp_bridgePortMask[idx] &= ~ETHFW_BIT(gEthApp_lwipBridgePortIdMap[hostId]);
 
@@ -1755,15 +1755,15 @@ static void EthApp_filterAddMacSharedCb(const uint8_t *macAddr,
                                         uint16_t vlanId,
                                         uint8_t hostId)
 {
-    bool found = false;
-    uint32_t i = 0;
+    bool found = BFALSE;
+    uint32_t i = 0U;
 
     /* Search the MAC address in the shared multicast address table */
-    for (i = 0; i < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); i++)
+    for (i = 0U; i < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); i++)
     {
         if (EnetUtils_cmpMacAddr(macAddr, &gEthApp_sharedMcastCfgTable[i].macAddr[0]))
         {
-            found = true;
+            found = BTRUE;
             break;
         }
     }
@@ -1782,15 +1782,15 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *macAddr,
                                         uint16_t vlanId,
                                         uint8_t hostId)
 {
-    bool found = false;
-    uint32_t i = 0;
+    bool found = BFALSE;
+    uint32_t i = 0U;
 
     /* Search the MAC address in the shared multicast address table */
-    for (i = 0; i < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); i++)
+    for (i = 0U; i < ARRAY_SIZE(gEthApp_sharedMcastCfgTable); i++)
     {
         if (EnetUtils_cmpMacAddr(macAddr, &gEthApp_sharedMcastCfgTable[i].macAddr[0]))
         {
-            found = true;
+            found = BTRUE;
             break;
         }
     }
@@ -1843,7 +1843,7 @@ static void EthApp_initPtp(void)
 #if defined(ETHFW_BOOT_TIME_PROFILING)
 static void EthApp_setBootTs(EthApp_BootTsId tsId)
 {
-    bool done = true;
+    bool done = BTRUE;
     uint64_t val;
     uint32_t i;
 
@@ -1880,7 +1880,7 @@ static void EthApp_setBootTs(EthApp_BootTsId tsId)
     if (done)
     {
         /* Re-enable UART prints (which add boot time overhead) once all timestamps are captured */
-        gEthAppObj.uartPrintEn = true;
+        gEthAppObj.uartPrintEn = BTRUE;
 
         /* Print all time diffs wrt app's main() once we have hit all boot milestones */
         EnetAppUtils_print("IPC server  = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(IPC));

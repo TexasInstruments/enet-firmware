@@ -196,8 +196,8 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 #endif
     uint8_t *macAddr;
     uint32_t coreId = EnetSoc_getCoreId();
-    bool useDefaultFlow = true;    /* Must handle the default flow */
-    bool useRingMon = true;
+    bool useDefaultFlow = BTRUE;    /* Must handle the default flow */
+    bool useRingMon = BTRUE;
 #if defined(ETHFW_PROXY_ARP_HANDLING) || defined(ETHFW_VEPA_SUPPORT)
     int32_t status;
 #endif
@@ -219,8 +219,8 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswTxChCfg.numTxPkts           = inArgs->txCfg.numPackets;
     cpswTxChCfg.cbArg               = inArgs->txCfg.cbArg;
     cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
-    cpswTxChCfg.useProxy            = true;
-    cpswTxChCfg.disableCacheOpsFlag = false;
+    cpswTxChCfg.useProxy            = BTRUE;
+    cpswTxChCfg.disableCacheOpsFlag = BFALSE;
     cpswTxChCfg.ringMemAllocFxn     = &EnetMem_allocRingMem;
     cpswTxChCfg.ringMemFreeFxn      = &EnetMem_freeRingMem;
     cpswTxChCfg.dmaDescAllocFxn     = &EnetMem_allocDmaDesc;
@@ -242,7 +242,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
     cpswRxFlowCfg.hUdmaDrv  = handleInfo.hUdmaDrv;
     cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
-    cpswRxFlowCfg.useProxy  = true;
+    cpswRxFlowCfg.useProxy  = BTRUE;
 
     /* Use ring monitor for the CQ ring of RX flow */
     pFqRingPrms                  = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
@@ -258,7 +258,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     /* Ring mon high threshold - to get only low  threshold event, setting high threshold as more than ring depth*/
     pFqRingPrms->ringMonCfg.data1 = rxCfg->numPackets;
 
-    cpswRxFlowCfg.disableCacheOpsFlag = false;
+    cpswRxFlowCfg.disableCacheOpsFlag = BFALSE;
     cpswRxFlowCfg.rxFlowMtu           = attachInfo.rxMtu;
     cpswRxFlowCfg.ringMemAllocFxn     = &EnetMem_allocRingMem;
     cpswRxFlowCfg.ringMemFreeFxn      = &EnetMem_freeRingMem;
@@ -285,11 +285,11 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->print           = &EnetAppUtils_print;
     outArgs->isPortLinkedFxn = &EthFwCallbacks_isPortLinked;
 #if defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
-    outArgs->txCsumOffloadEn = false;
-    outArgs->rxCsumOffloadEn = false;
+    outArgs->txCsumOffloadEn = BFALSE;
+    outArgs->rxCsumOffloadEn = BFALSE;
 #else
-    outArgs->txCsumOffloadEn = true;
-    outArgs->rxCsumOffloadEn = true;
+    outArgs->txCsumOffloadEn = BTRUE;
+    outArgs->rxCsumOffloadEn = BTRUE;
 #endif
 
     /* TODO: Polling timer is getting corrupted at times of sudden burst of
@@ -303,7 +303,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
     /* Let LwIP interface use optimized processing where TX packets are relinquished
      * in next TX submit call */
-    outArgs->txInfo.disableEvent = true;
+    outArgs->txInfo.disableEvent = BTRUE;
 
     outArgs->txInfo.txPortNum = ENET_MAC_PORT_INV;
 
@@ -376,7 +376,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
 #elif defined(SOC_J7200)
     Enet_Type enetType = ENET_CPSW_5G;
 #endif
-    bool useDefaultFlow = true;    /* Must handle the default flow */
+    bool useDefaultFlow = BTRUE;    /* Must handle the default flow */
 
     /* Get MCM command interface */
     EnetMcm_getCmdIf(enetType, &mcmCmdIf);
@@ -454,7 +454,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
     EnetUdma_UdmaRingPrms *pFqRingPrms;
     EnetDma_Handle hDma;
-    bool useRingMon = true;
+    bool useRingMon = BTRUE;
     int32_t status = ENET_SOK;
     uint32_t coreId = EnetSoc_getCoreId();
     Enet_Handle hEnet = (Enet_Handle)outArgs->handleArg;
@@ -482,7 +482,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswTxChCfg.numTxPkts           = inArgs->txCfg.numPackets;
     cpswTxChCfg.cbArg               = inArgs->txCfg.cbArg;
     cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
-    cpswTxChCfg.useProxy            = true;
+    cpswTxChCfg.useProxy            = BTRUE;
     cpswTxChCfg.chNum               = outArgs->txInfo.txChNum;
 
     hDma = Enet_getDmaHandle(hEnet);
@@ -502,7 +502,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
     cpswRxFlowCfg.hUdmaDrv  = outArgs->hUdmaDrv;;
     cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
-    cpswRxFlowCfg.useProxy  = true;
+    cpswRxFlowCfg.useProxy  = BTRUE;
     cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
     cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
     rxInfo->handlePktFxn    = NULL;
@@ -544,7 +544,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
     cpswRxFlowCfg.hUdmaDrv  = outArgs->hUdmaDrv;;
     cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
-    cpswRxFlowCfg.useProxy  = true;
+    cpswRxFlowCfg.useProxy  = BTRUE;
     cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
     cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
 
@@ -564,7 +564,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         /* Set policer params for ARP EtherType matching */
         polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
         polInArgs.policerMatch.etherType = ETHTYPE_ARP;
-        polInArgs.policerMatch.portIsTrunk = false;
+        polInArgs.policerMatch.portIsTrunk = BFALSE;
 
         /* Set policer params for broadcast address matching
          * Note that policer IOCTL takes a port number not a port mask which is what
@@ -577,7 +577,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
         EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], &bcastAddr[0]);
 
-        polInArgs.threadIdEn = true;
+        polInArgs.threadIdEn = BTRUE;
         polInArgs.threadId   = rxInfo->rxFlowIdx;
         polInArgs.peakRateInBitsPerSec   = 0U;
         polInArgs.commitRateInBitsPerSec = 0U;
@@ -628,7 +628,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
      /* Set policer params for ARP EtherType matching */
      polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
      polInArgs.policerMatch.etherType = ETHTYPE_ARP;
-     polInArgs.policerMatch.portIsTrunk = false;
+     polInArgs.policerMatch.portIsTrunk = BFALSE;
 
      /* Set policer params for broadcast address matching */
      polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
@@ -724,7 +724,7 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
         rxFlowCfg.cbArg     = rxCfg->cbArg;
         rxFlowCfg.numRxPkts = rxCfg->numPackets;
         rxFlowCfg.hUdmaDrv  = handleInfo->hUdmaDrv;
-        rxFlowCfg.useProxy  = true;
+        rxFlowCfg.useProxy  = BTRUE;
         EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
 
         *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
@@ -809,7 +809,7 @@ static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
 #endif
 
     ethHdr = (struct eth_hdr *)(pbuf->payload);
-    ETHFWTRACE_ERR_IF((EnetUtils_isMcastAddr(&ethHdr->dest.addr[0]) != true), ENET_EFAIL,
+    ETHFWTRACE_ERR_IF((EnetUtils_isMcastAddr(&ethHdr->dest.addr[0]) != BTRUE), ENET_EFAIL,
                      "Error: Unicast packet received on packet duplication flow");
 
     status = EthFwVepa_sendRaw(netif, pbuf, &ethHdr->src, &ethHdr->dest);
@@ -818,7 +818,7 @@ static bool EthFwCallbacks_handlePacketDuplicationRxPktFxn(struct netif *netif,
 
     /* Lwip stack should also consume the packet */
     /* Returning false implies that packet will be consumed by Lwip stack */
-    return false;
+    return BFALSE;
 }
 
 #elif defined(ETHFW_PROXY_ARP_HANDLING)
@@ -862,7 +862,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
         rxFlowCfg.cbArg     = arpRxCfg->cbArg;
         rxFlowCfg.numRxPkts = arpRxCfg->numPackets;
         rxFlowCfg.hUdmaDrv  = handleInfo->hUdmaDrv;
-        rxFlowCfg.useProxy  = true;
+        rxFlowCfg.useProxy  = BTRUE;
         EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
 
         *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
@@ -876,7 +876,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
         /* Set policer params for ARP EtherType matching */
         polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
         polInArgs.policerMatch.etherType = ETHTYPE_ARP;
-        polInArgs.policerMatch.portIsTrunk = false;
+        polInArgs.policerMatch.portIsTrunk = BFALSE;
 
         /* Set policer params for broadcast address matching
          * Note that policer IOCTL takes a port number not a port mask which is what
@@ -889,7 +889,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
         polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
         EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], &bcastAddr[0]);
 
-        polInArgs.threadIdEn = true;
+        polInArgs.threadIdEn = BTRUE;
         polInArgs.threadId   = *flowIdx;
         polInArgs.peakRateInBitsPerSec   = 0U;
         polInArgs.commitRateInBitsPerSec = 0U;
@@ -922,7 +922,7 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
     /* Set policer params for ARP EtherType matching */
     polInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
     polInArgs.policerMatch.etherType = ETHTYPE_ARP;
-    polInArgs.policerMatch.portIsTrunk = false;
+    polInArgs.policerMatch.portIsTrunk = BFALSE;
 
     /* Set policer params for broadcast address matching */
     polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
@@ -977,7 +977,7 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
     ip4_addr_t dstIp;
     uint8_t *payload;
     uint16_t vlanId = 0U;
-    bool handled = false;
+    bool handled = BFALSE;
     int32_t status;
 
     payload = (uint8_t *)pbuf->payload;
@@ -1023,7 +1023,7 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
 #if (ETHFW_CFG_TRACE_LEVEL >= ETHFW_CFG_TRACE_LEVEL_DEBUG)
         ETHFWTRACE_DBG("Sent ARP response");
 #endif
-        handled = true;
+        handled = BTRUE;
     }
 
     return handled;

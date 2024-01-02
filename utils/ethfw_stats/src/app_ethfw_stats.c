@@ -122,7 +122,7 @@ static void appEthfwStats_clockCb(void *arg)
     /* Post semaphore to Stats collecting task */
     app_ethfw_stats_obj_t *obj = (app_ethfw_stats_obj_t *)arg;
 
-    if (obj->ethfwStatsUpdateEnable == true)
+    if (obj->ethfwStatsUpdateEnable == BTRUE)
     {
         SemaphoreP_post(obj->clockSem);
     }
@@ -199,7 +199,7 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
         SemaphoreP_pend(obj->clockSem, SemaphoreP_WAIT_FOREVER);
 
         /* Set Host port status to true always*/
-        obj->ethfwPortBw.isportenabled[0] = true;
+        obj->ethfwPortBw.isportenabled[0] = BTRUE;
 
         /* Collect host port statistics and calculate bandwidth*/
         ENET_IOCTL_SET_OUT_ARGS(&prms, &currPortStats);
@@ -223,7 +223,7 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
         {
             obj->ethfwPortBw.isportenabled[i+1] = EnetAppUtils_isPortLinkUp(obj->hEnet, obj->coreId, portNum);
 
-            if (obj->ethfwPortBw.isportenabled[i+1] == true)
+            if (obj->ethfwPortBw.isportenabled[i+1] == BTRUE)
             {
                 /* Collect MAC port statistics and calculate bandwidth */
                 ENET_IOCTL_SET_INOUT_ARGS(&prms, &portNum, &currPortStats);
@@ -317,8 +317,8 @@ int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
     if(status == ENET_SOK)
     {
         /* Now enable Ethfw statistics calculation */
-        obj->ethfwStatsUpdateEnable = true;
-        obj->ethfwStatsShutdown = false;
+        obj->ethfwStatsUpdateEnable = BTRUE;
+        obj->ethfwStatsShutdown = BFALSE;
     }
 
     EnetMcm_releaseCmdIf(obj->enetType, &cmdIf);
@@ -412,8 +412,8 @@ void appEthfwStatsDeInit(void)
     ClockP_stop(obj->hStatsClock);
     ClockP_delete(obj->hStatsClock);
 
-    obj->ethfwStatsUpdateEnable = false;
-    obj->ethfwStatsShutdown = true;
+    obj->ethfwStatsUpdateEnable = BFALSE;
+    obj->ethfwStatsShutdown = BTRUE;
 
     appLogPrintf("ETHFW STATS: Deinit ... Done !!!\n");
 }

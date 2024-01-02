@@ -191,8 +191,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 16U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -205,8 +205,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 17U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -219,8 +219,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 18U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -233,8 +233,8 @@ static EthFwBoard_MacPortCfg gEthFw_qenetMacPortCfg[] =
         .phyCfg    =
         {
             .phyAddr         = 19U,
-            .isStrapped      = false,
-            .skipExtendedCfg = false,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
             .extendedCfg     = NULL,
             .extendedCfgSize = 0U,
         },
@@ -251,8 +251,8 @@ static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg =
     .phyCfg    =
     {
         .phyAddr         = ENETPHY_INVALID_PHYADDR,
-        .isStrapped      = false,
-        .skipExtendedCfg = false,
+        .isStrapped      = BFALSE,
+        .skipExtendedCfg = BFALSE,
         .extendedCfg     = NULL,
         .extendedCfgSize = 0U,
     },
@@ -395,7 +395,7 @@ int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
         /* Set PHY configuration parameters */
         phyCfg->phyAddr         = portCfg->phyCfg.phyAddr;
         phyCfg->isStrapped      = portCfg->phyCfg.isStrapped;
-        phyCfg->loopbackEn      = false;
+        phyCfg->loopbackEn      = BFALSE;
         phyCfg->skipExtendedCfg = portCfg->phyCfg.skipExtendedCfg;
         phyCfg->extendedCfgSize = portCfg->phyCfg.extendedCfgSize;
         memcpy(phyCfg->extendedCfg, portCfg->phyCfg.extendedCfg, portCfg->phyCfg.extendedCfgSize);
@@ -540,7 +540,7 @@ static void EthFwBoard_configTorrentClks(void)
     if (status != CSL_PASS)
     {
         ETHFWTRACE_ERR(status, "Failed to reparent clk %u", clkId);
-        EnetAppUtils_assert(false);
+        EnetAppUtils_assert(BFALSE);
     }
 
     EnetAppUtils_clkRateSet(moduleId, clkId, clkRateHz);
@@ -617,7 +617,7 @@ static uint32_t EthFwBoard_getMacAddrPoolEeprom(uint8_t macAddr[][ENET_MAC_ADDR_
         if (allocCnt == 0U)
         {
             ETHFWTRACE_ERR(ENET_EALLOC, "No MAC addresses read from QENET board");
-            EnetAppUtils_assert(false);
+            EnetAppUtils_assert(BFALSE);
         }
     }
 

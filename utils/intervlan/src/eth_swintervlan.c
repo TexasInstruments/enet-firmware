@@ -217,7 +217,7 @@ static void CpswApp_InterVlanRouting(void* a0,
     gCpswInterVlanAppObj.hEnet = handleInfo.hEnet;
     gCpswInterVlanAppObj.hUdmaDrv = handleInfo.hUdmaDrv;
     gCpswInterVlanAppObj.coreKey = attachInfo.coreKey;
-    gCpswInterVlanAppObj.isDefaultFlow = false;
+    gCpswInterVlanAppObj.isDefaultFlow = BFALSE;
 
     if (gCpswInterVlanAppObj.hEnet == NULL)
     {
@@ -252,7 +252,7 @@ static void CpswApp_InterVlanRouting(void* a0,
                              gCpswInterVlanAppObj.hEnet,
                              gCpswInterVlanAppObj.coreKey,
                              gCpswInterVlanAppObj.coreId,
-                             true,
+                             BTRUE,
                              &fqPktInfoQ,
                              &cqPktInfoQ,
                              gCpswInterVlanAppObj.rxFlowStartIdx,
@@ -378,13 +378,13 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
     /* Add ALE entry for GW/Router that enables Inter VLAN routing */
     memcpy(&setUcastInArgs.addr.addr[0U], gCpswInterVlanAppObj.hostMacAddr, sizeof(setUcastInArgs.addr.addr));
-    setUcastInArgs.addr.vlanId = 0U;
+    setUcastInArgs.addr.vlanId  = 0U;
     setUcastInArgs.info.portNum = 0U;
-    setUcastInArgs.info.blocked = false;
-    setUcastInArgs.info.secure = false;
-    setUcastInArgs.info.super = 0U;
-    setUcastInArgs.info.ageable = false;
-    setUcastInArgs.info.trunk = false;
+    setUcastInArgs.info.blocked = BFALSE;
+    setUcastInArgs.info.secure  = BFALSE;
+    setUcastInArgs.info.super   = BFALSE;
+    setUcastInArgs.info.ageable = BFALSE;
+    setUcastInArgs.info.trunk   = BFALSE;
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
@@ -399,13 +399,13 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
     memcpy(&setUcastInArgs.addr.addr[0U], &pInterVlanCfg->srcMacAddr[0U],
            sizeof(setUcastInArgs.addr.addr));
-    setUcastInArgs.addr.vlanId = pInterVlanCfg->egrVlanId;
+    setUcastInArgs.addr.vlanId  = pInterVlanCfg->egrVlanId;
     setUcastInArgs.info.portNum = pInterVlanCfg->egrPortNum;
-    setUcastInArgs.info.blocked = false;
-    setUcastInArgs.info.secure = false;
-    setUcastInArgs.info.super = 0U;
-    setUcastInArgs.info.ageable = false;
-    setUcastInArgs.info.trunk = false;
+    setUcastInArgs.info.blocked = BFALSE;
+    setUcastInArgs.info.secure  = BFALSE;
+    setUcastInArgs.info.super   = BFALSE;
+    setUcastInArgs.info.ageable = BFALSE;
+    setUcastInArgs.info.trunk   = BFALSE;
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
@@ -421,13 +421,13 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
     memcpy(&setUcastInArgs.addr.addr[0U], &pInterVlanCfg->dstMacAddr[0U],
            sizeof(setUcastInArgs.addr.addr));
-    setUcastInArgs.addr.vlanId = pInterVlanCfg->ingVlanId;
+    setUcastInArgs.addr.vlanId  = pInterVlanCfg->ingVlanId;
     setUcastInArgs.info.portNum = pInterVlanCfg->ingPortNum;
-    setUcastInArgs.info.blocked = false;
-    setUcastInArgs.info.secure = false;
-    setUcastInArgs.info.super = 0U;
-    setUcastInArgs.info.ageable = false;
-    setUcastInArgs.info.trunk = false;
+    setUcastInArgs.info.blocked = BFALSE;
+    setUcastInArgs.info.secure  = BFALSE;
+    setUcastInArgs.info.super   = BFALSE;
+    setUcastInArgs.info.ageable = BFALSE;
+    setUcastInArgs.info.trunk   = BFALSE;
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
@@ -447,16 +447,16 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
         uint32_t outArgs;
 
         memset(&inArgs, 0U, sizeof (CpswAle_VlanEntryInfo));
-        inArgs.vlanIdInfo.vlanId = pInterVlanCfg->ingVlanId;
-        inArgs.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
-        inArgs.vlanMemberList = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
+        inArgs.vlanIdInfo.vlanId   = pInterVlanCfg->ingVlanId;
+        inArgs.vlanIdInfo.tagType  = ENET_VLAN_TAG_TYPE_INNER;
+        inArgs.vlanMemberList      = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
         inArgs.unregMcastFloodMask = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
-        inArgs.regMcastFloodMask = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
-        inArgs.forceUntaggedEgressMask = 0;
-        inArgs.noLearnMask = 0U;
-        inArgs.vidIngressCheck = false;
-        inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFrag = false;
+        inArgs.regMcastFloodMask   = CpswAppInterVlan_getIngressVlanMembershipMask(pInterVlanCfg);
+        inArgs.forceUntaggedEgressMask = 0U;
+        inArgs.noLearnMask         = 0U;
+        inArgs.vidIngressCheck     = BFALSE;
+        inArgs.limitIPNxtHdr       = BFALSE;
+        inArgs.disallowIPFrag      = BFALSE;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -478,13 +478,13 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
         inArgs.vlanIdInfo.vlanId = pInterVlanCfg->egrVlanId;
         inArgs.vlanIdInfo.tagType = ENET_VLAN_TAG_TYPE_INNER;
         inArgs.vlanMemberList = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
-        inArgs.unregMcastFloodMask = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
-        inArgs.regMcastFloodMask = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
-        inArgs.forceUntaggedEgressMask = 0;
-        inArgs.noLearnMask = 0U;
-        inArgs.vidIngressCheck = false;
-        inArgs.limitIPNxtHdr = false;
-        inArgs.disallowIPFrag = false;
+        inArgs.unregMcastFloodMask     = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
+        inArgs.regMcastFloodMask       = CpswAppInterVlan_getEgressVlanMembershipMask(pInterVlanCfg);
+        inArgs.forceUntaggedEgressMask = 0U;
+        inArgs.noLearnMask             = 0U;
+        inArgs.vidIngressCheck         = BFALSE;
+        inArgs.limitIPNxtHdr           = BFALSE;
+        inArgs.disallowIPFrag          = BFALSE;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
@@ -529,8 +529,8 @@ int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInte
                                                                      CPSW_ALE_POLICER_MATCH_IPSRC |
                                                                      CPSW_ALE_POLICER_MATCH_IPDST);
 
-        setPolicerEntryInArgs.policerMatch.portNum = pInterVlanCfg->ingPortNum;
-        setPolicerEntryInArgs.policerMatch.portIsTrunk = false;
+        setPolicerEntryInArgs.policerMatch.portNum     = pInterVlanCfg->ingPortNum;
+        setPolicerEntryInArgs.policerMatch.portIsTrunk = BFALSE;
 
         setPolicerEntryInArgs.policerMatch.srcMacAddrInfo.portNum = pInterVlanCfg->ingPortNum;
         setPolicerEntryInArgs.policerMatch.dstMacAddrInfo.portNum = 0U;
@@ -546,7 +546,7 @@ int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInte
         setPolicerEntryInArgs.policerMatch.srcMacAddrInfo.addr.vlanId = 0U;
         setPolicerEntryInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
 
-        setPolicerEntryInArgs.policerMatch.ivlanId = pInterVlanCfg->ingVlanId;
+        setPolicerEntryInArgs.policerMatch.ivlanId   = pInterVlanCfg->ingVlanId;
         setPolicerEntryInArgs.policerMatch.etherType = APP_INTERVLAN_IPV4_ETHERTYPE;
 
         setPolicerEntryInArgs.policerMatch.srcIpInfo.ipAddrType = CPSW_ALE_IPADDR_CLASSIFIER_IPV4;
@@ -563,10 +563,10 @@ int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInte
         setPolicerEntryInArgs.policerMatch.srcIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
         setPolicerEntryInArgs.policerMatch.dstIpInfo.ipv4Info.numLSBIgnoreBits = 0U;
 
-        setPolicerEntryInArgs.threadIdEn = true;
+        setPolicerEntryInArgs.threadIdEn = BTRUE;
         setPolicerEntryInArgs.threadId = gCpswInterVlanAppObj.ingRxFlowIdx;
-        setPolicerEntryInArgs.peakRateInBitsPerSec = 0;
-        setPolicerEntryInArgs.commitRateInBitsPerSec = 0;
+        setPolicerEntryInArgs.peakRateInBitsPerSec   = 0U;
+        setPolicerEntryInArgs.commitRateInBitsPerSec = 0U;
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerEntryInArgs, &setPolicerEntryOutArgs);
 
@@ -603,12 +603,12 @@ static int32_t CpswApp_getRxTxHandle(void)
         EnetDma_initRxChParams(&cpswRxFlowCfg);
         EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
 
-        cpswRxFlowCfg.notifyCb = &CpswApp_ingRxIsrFxn;
-        cpswRxFlowCfg.numRxPkts = CPSW_FRWD_APP_NUM_PKTS;
-        cpswRxFlowCfg.hUdmaDrv = gCpswInterVlanAppObj.hUdmaDrv;
-        cpswRxFlowCfg.cbArg = &gCpswInterVlanAppObj.hIngRxFlow;
-        cpswRxFlowCfg.useProxy = true;
-        cpswRxFlowCfg.disableCacheOpsFlag = true;
+        cpswRxFlowCfg.notifyCb            = &CpswApp_ingRxIsrFxn;
+        cpswRxFlowCfg.numRxPkts           = CPSW_FRWD_APP_NUM_PKTS;
+        cpswRxFlowCfg.hUdmaDrv            = gCpswInterVlanAppObj.hUdmaDrv;
+        cpswRxFlowCfg.cbArg               = &gCpswInterVlanAppObj.hIngRxFlow;
+        cpswRxFlowCfg.useProxy            = BTRUE;
+        cpswRxFlowCfg.disableCacheOpsFlag = BTRUE;
 
         /* Use ring monitor for the CQ ring of RX flow */
         pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
@@ -618,7 +618,7 @@ static int32_t CpswApp_getRxTxHandle(void)
         pFqRingPrms->mode = CSL_RINGACC_RING_MODE_MESSAGE;
 #endif
 
-        pFqRingPrms->useRingMon = false;
+        pFqRingPrms->useRingMon      = BFALSE;
         pFqRingPrms->ringMonCfg.mode = TISCI_MSG_VALUE_RM_MON_MODE_THRESHOLD;
 
         /* Ring mon low threshold */
@@ -651,8 +651,7 @@ static int32_t CpswApp_getRxTxHandle(void)
                                     gCpswInterVlanAppObj.coreKey,
                                     gCpswInterVlanAppObj.coreId,
                                     gCpswInterVlanAppObj.ingRxFlowIdx);
-            EnetAppUtils_assert(false);
-
+            EnetAppUtils_assert(BFALSE);
         }
     }
 
@@ -661,15 +660,15 @@ static int32_t CpswApp_getRxTxHandle(void)
         EnetDma_initTxChParams(&cpswTxChCfg);
         EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
 
-        cpswTxChCfg.hUdmaDrv = gCpswInterVlanAppObj.hUdmaDrv;
-        cpswTxChCfg.numTxPkts = CPSW_FRWD_APP_NUM_PKTS;
-        cpswTxChCfg.cbArg = &gCpswInterVlanAppObj.hTxCh;
-        cpswTxChCfg.notifyCb = &CpswApp_txIsrFxn;
-        cpswTxChCfg.useProxy = true;
-        cpswTxChCfg.disableCacheOpsFlag = true;
+        cpswTxChCfg.hUdmaDrv            = gCpswInterVlanAppObj.hUdmaDrv;
+        cpswTxChCfg.numTxPkts           = CPSW_FRWD_APP_NUM_PKTS;
+        cpswTxChCfg.cbArg               = &gCpswInterVlanAppObj.hTxCh;
+        cpswTxChCfg.notifyCb            = &CpswApp_txIsrFxn;
+        cpswTxChCfg.useProxy            = BTRUE;
+        cpswTxChCfg.disableCacheOpsFlag = BTRUE;
 
 #ifdef AUTO_RECLAIM_TXCQ
-        cpswTxChCfg.autoReclaimPrms.enableFlag   = true;
+        cpswTxChCfg.autoReclaimPrms.enableFlag   = BTRUE;
         cpswTxChCfg.autoReclaimPrms.hDmaDescPool = EnetUdma_getRxFlowDescPoolHandle(gCpswInterVlanAppObj.hIngRxFlow);
         cpswTxChCfg.autoReclaimPrms.hReclaimRing = EnetUdma_getRxFlowFqHandle(gCpswInterVlanAppObj.hIngRxFlow);
 
@@ -701,7 +700,7 @@ static int32_t CpswApp_getRxTxHandle(void)
                                   gCpswInterVlanAppObj.coreKey,
                                   gCpswInterVlanAppObj.coreId,
                                   gCpswInterVlanAppObj.txChNum);
-            EnetAppUtils_assert(false);
+            EnetAppUtils_assert(BFALSE);
         }
     }
 
@@ -722,8 +721,8 @@ static void CpswApp_pktRxTx(void)
     EthVlanFrame *frame;
     uint32_t rxReadyCnt;
     SemaphoreP_Status semStatus;
-    uint32_t iterationCount = 0;
-    volatile bool testDone = false;
+    uint32_t iterationCount = 0U;
+    volatile bool testDone = BFALSE;
     TaskP_Handle hTask;
 
     /*  The packet handling loop is structured as described below
@@ -761,7 +760,7 @@ static void CpswApp_pktRxTx(void)
         /* Get the packets received so far */
         rxReadyCnt = CpswApp_receivePkts();
 
-        if (0 == rxReadyCnt)
+        if (0U == rxReadyCnt)
         {
             /* If we get here, it means that we have processed all received packets.
              * Need to switch on interrupt notification for Rx pkts and move to
@@ -781,7 +780,7 @@ static void CpswApp_pktRxTx(void)
             if (semStatus != SemaphoreP_OK)
             {
                 iterationCount++;
-                if ((iterationCount & 0x7FF) == 0)
+                if ((iterationCount & 0x7FFU) == 0U)
                 {
 #ifdef APP_PRINTPKTCNT
                     appLogPrintf("# pkts=%d\n", gCpswInterVlanAppObj.num_pkts);
@@ -833,7 +832,7 @@ static void CpswApp_pktRxTx(void)
             /* Submit the list of Packets to be Tx to HW */
             status = EnetDma_submitTxPktQ(gCpswInterVlanAppObj.hTxCh,
                                                   &txSubmitQ);
-            EnetAppUtils_assert(EnetQueue_getQCount(&txSubmitQ) == 0);
+            EnetAppUtils_assert(EnetQueue_getQCount(&txSubmitQ) == 0U);
         } /*end of else condition*/
 
 #ifndef AUTO_RECLAIM_TXCQ
@@ -841,10 +840,10 @@ static void CpswApp_pktRxTx(void)
         status = EnetDma_retrieveTxPktQ(gCpswInterVlanAppObj.hTxCh, &rxFreeQ);
         EnetDma_submitRxPktQ(gCpswInterVlanAppObj.hIngRxFlow,
                                      &rxFreeQ);
-        EnetAppUtils_assert(EnetQueue_getQCount(&rxFreeQ) == 0);
+        EnetAppUtils_assert(EnetQueue_getQCount(&rxFreeQ) == 0U);
 #endif
     }
-    while (testDone != true);
+    while (testDone != BTRUE);
 }
 
 static uint32_t CpswApp_receivePkts(void)

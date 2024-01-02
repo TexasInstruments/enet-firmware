@@ -463,14 +463,14 @@ static int32_t EthFwMcast_getRsvdMcastCfg(const EthFwMcast_RsvdMcastCfg *cfg)
 
 static bool EthFwMcast_isRsvdMcast(const uint8_t *macAddr)
 {
-    bool isRsvd = false;
+    bool isRsvd = BFALSE;
     uint32_t i;
 
     for (i = 0U; i < gEthFwMcastObj.rsvdMcastTable.len; i++)
     {
         if (EnetUtils_cmpMacAddr(&gEthFwMcastObj.rsvdMcastTable.table[i].macAddr[0U], macAddr))
         {
-            isRsvd = true;
+            isRsvd = BTRUE;
             break;
         }
     }
@@ -482,7 +482,7 @@ static EthFwMcast_SharedMcastInfo *EthFwMcast_getSharedMcastInfo(const uint8_t *
                                                                  uint16_t vlanId)
 {
     EthFwMcast_SharedMcastInfo *entry = NULL;
-    bool found = false;
+    bool found = BFALSE;
     uint32_t i;
 
     for (i = 0U; i < gEthFwMcastObj.sharedMcastTable.len; i++)
@@ -492,7 +492,7 @@ static EthFwMcast_SharedMcastInfo *EthFwMcast_getSharedMcastInfo(const uint8_t *
         if ((entry->vlanId == vlanId) &&
             EnetUtils_cmpMacAddr(&entry->macAddr[0U], macAddr))
         {
-            found = true;
+            found = BTRUE;
             break;
         }
     }
@@ -525,7 +525,7 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
 #endif
         EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], macAddr);
 
-        mcastInArgs.info.super    = false;
+        mcastInArgs.info.super    = BFALSE;
         mcastInArgs.info.fwdState = CPSW_ALE_FWDSTLVL_FWD;
         mcastInArgs.info.portMask = mcastInfo->portMask;
         mcastInArgs.info.numIgnBits = 0U;
@@ -651,7 +651,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
         mcastInArgs.addr.vlanId = vlanId;
         EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], macAddr);
 
-        mcastInArgs.info.super    = false;
+        mcastInArgs.info.super    = BFALSE;
         mcastInArgs.info.fwdState = CPSW_ALE_FWDSTLVL_FWD;
         mcastInArgs.info.portMask = CPSW_ALE_HOST_PORT_MASK;
         mcastInArgs.info.numIgnBits = 0U;
@@ -688,10 +688,10 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
         {
             polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_PORT;
             polInArgs.policerMatch.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-            polInArgs.policerMatch.portIsTrunk = false;
+            polInArgs.policerMatch.portIsTrunk = BFALSE;
         }
 
-        polInArgs.threadIdEn = true;
+        polInArgs.threadIdEn = BTRUE;
         polInArgs.threadId   = flowIdxOffset;
         polInArgs.peakRateInBitsPerSec   = 0U;
         polInArgs.commitRateInBitsPerSec = 0U;
@@ -731,7 +731,7 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
     {
         polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_PORT;
         polInArgs.policerMatch.portNum = CPSW_ALE_MACPORT_TO_ALEPORT(macPort);
-        polInArgs.policerMatch.portIsTrunk = false;
+        polInArgs.policerMatch.portIsTrunk = BFALSE;
     }
 
     polInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ALL;

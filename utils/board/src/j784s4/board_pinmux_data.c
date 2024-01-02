@@ -91,7 +91,7 @@ static pinmuxPerCfg_t gCpsw9x0PinCfg[] =
 
 static pinmuxModuleCfg_t gCpsw9xPinCfg[] =
 {
-    {0, TRUE, gCpsw9x0PinCfg},
+    {0, 1, gCpsw9x0PinCfg},
     {PINMUX_END}
 };
 
@@ -112,7 +112,7 @@ static pinmuxPerCfg_t gUart2PinCfg[] =
 
 static pinmuxModuleCfg_t gUartPinCfg[] =
 {
-    {2, TRUE, gUart2PinCfg},
+    {2, 1, gUart2PinCfg},
     {PINMUX_END}
 };
 
@@ -133,7 +133,7 @@ static pinmuxPerCfg_t gI2c0PinCfg[] =
 
 static pinmuxModuleCfg_t gI2cPinCfg[] =
 {
-    {0, TRUE, gI2c0PinCfg},
+    {0, 1, gI2c0PinCfg},
     {PINMUX_END}
 };
 

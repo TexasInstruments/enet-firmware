@@ -408,8 +408,8 @@ CpswRemoteApp_Obj gRemoteAppObj =
     .instId           = 0U,
 #endif
     .hEnetDma         = NULL,
-    .useDefaultRxFlow = false,
-    .useExtAttach     = true,
+    .useDefaultRxFlow = BFALSE,
+    .useExtAttach     = BTRUE,
     .virtNetif        =
     {
         {
@@ -418,8 +418,8 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .macPorts    = gRemoteAppMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteAppMacPorts),
             .hwPushNum   = CPSW_CPTS_HWPUSH_2,
-            .syncTimerInitDone = false,
-            .isDfltNetif = true,
+            .syncTimerInitDone = BFALSE,
+            .isDfltNetif = BTRUE,
         },
 #if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2) && defined(ENABLE_MAC_ONLY_PORTS)
         {
@@ -428,8 +428,8 @@ CpswRemoteApp_Obj gRemoteAppObj =
             .macPorts    = gRemoteApp_virtualMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteApp_virtualMacPorts),
             .hwPushNum   = CPSW_CPTS_HWPUSH_INVALID,
-            .syncTimerInitDone = false,
-            .isDfltNetif = false,
+            .syncTimerInitDone = BFALSE,
+            .isDfltNetif = BFALSE,
         },
 #endif
     },
@@ -539,7 +539,7 @@ static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
         CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
 
         /* Set sync timer init status */
-        virtNetif->syncTimerInitDone = true;
+        virtNetif->syncTimerInitDone = BTRUE;
     }
 }
 
@@ -982,12 +982,12 @@ static void CpswRemoteApp_setRxFlowPrms(EnetUdma_OpenRxFlowPrms *pRxFlowPrms,
 
     pRxFlowPrms->numRxPkts = numRxPackets;
 
-    pRxFlowPrms->disableCacheOpsFlag = false;
+    pRxFlowPrms->disableCacheOpsFlag = BFALSE;
     pRxFlowPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
     pRxFlowPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
     pRxFlowPrms->cbArg = cbArg;
-    pRxFlowPrms->useGlobalEvt = true;
-    pRxFlowPrms->useProxy = false;
+    pRxFlowPrms->useGlobalEvt = BTRUE;
+    pRxFlowPrms->useProxy = BFALSE;
     pRxFlowPrms->rxFlowMtu = rxFlowMtu;
 }
 
@@ -1005,14 +1005,14 @@ static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
     pTxChPrms->ringMemFreeFxn = &EnetMem_freeRingMem;
 
     pTxChPrms->numTxPkts = numTxPackets;
-    pTxChPrms->disableCacheOpsFlag = false;
+    pTxChPrms->disableCacheOpsFlag = BFALSE;
 
     pTxChPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
     pTxChPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
 
     pTxChPrms->cbArg = cbArg;
     pTxChPrms->notifyCb = eventCb;
-    pTxChPrms->useGlobalEvt = true;
+    pTxChPrms->useGlobalEvt = BTRUE;
 }
 
 static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
@@ -1247,7 +1247,7 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
 
         /* Init time synchronization */
         if ((virtNetif->hwPushNum != CPSW_CPTS_HWPUSH_INVALID) &&
-                (virtNetif->syncTimerInitDone == false))
+                (virtNetif->syncTimerInitDone == BFALSE))
         {
             CpswRemoteApp_initSyncTimer(virtNetif);
         }
@@ -1417,7 +1417,7 @@ static void CpswRemoteApp_closeLwipTxCh(CpswProxy_Handle hProxy,
 static bool LwipifEnetAppCb_isPortLinked(struct netif *netif,
                                          void *handleArg)
 {
-    bool isLinked = false;
+    bool isLinked = BFALSE;
 
     isLinked = (isLinked || CpswProxy_isPhyLinked((CpswProxy_Handle)handleArg));
 
@@ -1443,11 +1443,11 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->hUdmaDrv = gRemoteAppObj.hUdmaDrv;
     outArgs->print = (Enet_Print) & printf;
     outArgs->isPortLinkedFxn = &LwipifEnetAppCb_isPortLinked;
-    outArgs->txCsumOffloadEn = true;
-    outArgs->rxCsumOffloadEn = true;
-    outArgs->rxInfo[0U].disableEvent = true;
+    outArgs->txCsumOffloadEn = BTRUE;
+    outArgs->rxCsumOffloadEn = BTRUE;
+    outArgs->rxInfo[0U].disableEvent = BTRUE;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
-    outArgs->txInfo.disableEvent = true;
+    outArgs->txInfo.disableEvent = BTRUE;
     outArgs->txInfo.txPortNum = EthRemoteCfg_getMacPort(virtNetif->virtPort);
 
     if (gRemoteAppObj.useExtAttach)
@@ -1538,7 +1538,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetDma_initTxChParams(&cpswTxChCfg);
     EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
     cpswTxChCfg.hUdmaDrv  = outArgs->hUdmaDrv;
-    cpswTxChCfg.useProxy  = true;
+    cpswTxChCfg.useProxy  = BTRUE;
     cpswTxChCfg.numTxPkts = inArgs->txCfg.numPackets;
     cpswTxChCfg.cbArg     = inArgs->txCfg.cbArg;
     cpswTxChCfg.notifyCb  = inArgs->txCfg.notifyCb;
@@ -1557,8 +1557,8 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
     cpswRxFlowCfg.hUdmaDrv  = outArgs->hUdmaDrv;;
     cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
-    cpswRxFlowCfg.useGlobalEvt  = true;
-    cpswRxFlowCfg.useProxy  = false;
+    cpswRxFlowCfg.useGlobalEvt = BTRUE;
+    cpswRxFlowCfg.useProxy  = BFALSE;
     cpswRxFlowCfg.rxFlowMtu = outArgs->hostPortRxMtu;
     cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
     cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
@@ -1683,7 +1683,7 @@ static void CpswRemoteApp_hwRecoveryTask(void *a0,
                                          void *a1)
 {
     CpswRemoteApp_HwRecoveryMsg msgMbx;
-    volatile bool exitTask = false;
+    volatile bool exitTask = BFALSE;
     bool isMacPort;
     uint32_t portNum;
 

@@ -99,7 +99,7 @@ static pinmuxPerCfg_t gDebugss0PinCfg[] =
 
 static pinmuxModuleCfg_t gDebugssPinCfg[] =
 {
-    {0, TRUE, gDebugss0PinCfg},
+    {0, 1, gDebugss0PinCfg},
     {PINMUX_END}
 };
 
@@ -218,9 +218,9 @@ static pinmuxPerCfg_t gGpio2PinCfg_phyReset[] =
 
 static pinmuxModuleCfg_t gGpioPinCfg[] =
 {
-    {0, TRUE, gGpio0PinCfg},
-    {1, TRUE, gGpio1PinCfg},
-    {2, TRUE, gGpio2PinCfg_phyReset},
+    {0, 1, gGpio0PinCfg},
+    {1, 1, gGpio1PinCfg},
+    {2, 1, gGpio2PinCfg_phyReset},
     {PINMUX_END}
 };
 
@@ -241,7 +241,7 @@ static pinmuxPerCfg_t gI2c0PinCfg[] =
 
 static pinmuxModuleCfg_t gI2cPinCfg[] =
 {
-    {0, TRUE, gI2c0PinCfg},
+    {0, 1, gI2c0PinCfg},
     {PINMUX_END}
 };
 
@@ -282,7 +282,7 @@ static pinmuxPerCfg_t gSystem0PinCfg[] =
 
 static pinmuxModuleCfg_t gSystemPinCfg[] =
 {
-    {0, TRUE, gSystem0PinCfg},
+    {0, 1, gSystem0PinCfg},
     {PINMUX_END}
 };
 
@@ -303,7 +303,7 @@ static pinmuxPerCfg_t gUart2PinCfg[] =
 
 static pinmuxModuleCfg_t gUartPinCfg[] =
 {
-    {2, TRUE, gUart2PinCfg},
+    {2, 1, gUart2PinCfg},
     {PINMUX_END}
 };
 
@@ -324,7 +324,7 @@ static pinmuxPerCfg_t gWkup_i2c0PinCfg[] =
 
 static pinmuxModuleCfg_t gWkup_i2cPinCfg[] =
 {
-    {0, TRUE, gWkup_i2c0PinCfg},
+    {0, 1, gWkup_i2c0PinCfg},
     {PINMUX_END}
 };
 
