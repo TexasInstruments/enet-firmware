@@ -307,6 +307,8 @@ typedef struct CpswProxyServer_Obj_s
     uint16_t dfltVlanIdSwitchPorts;
     /* Enet Mcm Cmd handle */
     EnetMcm_CmdIf  *hMcmCmdIf;
+    /* Enet RM Reference Cnt per remote core */
+    int32_t rmRefCnt[IPC_MAX_PROCS];
 } CpswProxyServer_Obj;
 
 /* ========================================================================== */
@@ -668,7 +670,12 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
 
     /* Connect to MCM on client's behalf (using its hostId) */
     EnetMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
-    EnetMcm_coreAttach(hMcmCmdIf, hostId, &attachInfo);
+
+    if (hServer->rmRefCnt[hostId] == 0U)
+    {
+        EnetMcm_coreAttach(hMcmCmdIf, hostId, &attachInfo);
+    }
+    hServer->rmRefCnt[hostId]++;
 
     *pRxMtu = attachInfo.rxMtu;
     EnetAppUtils_assert(txMtuArraySize == ENET_ARRAYSIZE(attachInfo.txMtu));
@@ -837,7 +844,12 @@ static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hCli
 
     /* Detach from MCM */
     EnetAppUtils_assert(hServer->hMcmCmdIf != NULL);
-    EnetMcm_coreDetach(hServer->hMcmCmdIf, hostId, hClient->coreKey);
+    hServer->rmRefCnt[hostId]--;
+    if (hServer->rmRefCnt[hostId] == 0U)
+    {
+        EnetMcm_coreDetach(hServer->hMcmCmdIf, hostId, hClient->coreKey);
+    }
+
     EnetMcm_releaseHandleInfo(hServer->hMcmCmdIf);
 
     return status;
@@ -2139,6 +2151,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BFALSE));
 
     hServer->instId = cfg->instId;
+    memset(&hServer->rmRefCnt, 0, sizeof(hServer->rmRefCnt));
 
     hServer->dfltVlanIdMacOnlyPorts = cfg->dfltVlanIdMacOnlyPorts;
     hServer->dfltVlanIdSwitchPorts  = cfg->dfltVlanIdSwitchPorts;
