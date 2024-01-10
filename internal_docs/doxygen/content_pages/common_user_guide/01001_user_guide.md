@@ -28,6 +28,7 @@ Multi-core broadcast an multicast support | Multi-core concurrent reception of b
 ^ | Ability to send broadcast and multicast traffic to multiple cores
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
+Reset Recovery on CPSW  | Support to reset CPSW and recover it back to a working state from HW lockups.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -1340,6 +1341,126 @@ VLAN creation time on Ethernet Firmware server side.
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# CPSW Recovery {#ethfw_cpsw_recovery}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Starting with SDK 9.1, Ethernet Firmware supports a mechanism to detect hardware lockups,
+reset CPSW and recover it back to a functioning state.  A monitor task periodically monitors
+the status of CPSW to detect for any hardware lockups.  In the current implementation,
+the recovery process is triggered upon the detection of RX bottom of FIFO drops on any
+MAC port, but this can be extended to user specific cases and other types of lockups.
+
+If the nature of the lockup condition is such that it cannot be recovered by any other means,
+Ethernet Firmware has to resort to resetting CPSW on-the-fly, while the rest of the SoC remains
+running.  CPSW will lose its context (register state and logic) during reset, so Ethernet
+Firmware will save and restore the context.  More details about the recovery flow are presented
+in the following section.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Recovery Sequence {#ethfw_recovery_sequence}
+
+CPSW recovery process performed on Ethernet Firmware is shown below:
+
+![](reset_recovery_sequence.png "CPSW Recovery Sequence")
+
+-# <b>Monitoring phase</b>: EthFw periodically monitors in 100ms intervals for any hardware
+   lockup in CPSW, if detected, it will trigger the recovery mechanism.
+
+-# <b>Remote client notification and DMA tear-down phase</b>: EthFw will send ``ETHREMOTECFG_NOTIFY_HWERROR``
+   notification to all clients, waits for clients to take action (perform DMA tear-down).
+   Ethernet Firmware will remain in this state until it receives DMA tear-down confirmation
+   from all its clients, which clients do by sending [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a).
+
+-# <b>Local DMA tear-down phase</b>: EthFw will now proceed to close all MAC ports and tear-down
+   its own DMA channels and flows.
+
+-# <b>CPSW context save phase</b>: EthFw saves the context of CPSW by calling ``Enet_saveCtxt()``,
+   which will save the state of CPSW submodules such as MDIO, ALE, CPTS, host port, etc.
+
+-# <b>CPSW reset phase</b>: EthFw reset the CPSW peripheral by issuing a reset request via
+   SCI client.
+
+-# <b>CPSW context restore phase</b>: EthFw restores the context of CPSW by ``Enet_restoreCtxt()``.
+   Which restores the context previously saved via ``Enet_saveCtxt()``.
+
+-# <b>Local DMA reopen phase</b>: EthFw wil open back all its DMA channels and flows that had
+   closed prior to CPSW reset.
+
+-# <b>Remote client notification and DMA reopen phase</b>: EthFw will send ``ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE``
+   notification to all clients.  Clients can proceed to reopen their channels and flows.
+
+-# <b>Ethernet ports reenable phase</b>: EthFw enables back all ports and updates the CPTS time
+   with the time taken during recovery. For details refer to \ref ethfw_recovery_cpts_sync.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Remote Client Requirements {#ethfw_recovery_client_reqs}
+
+Remote clients play a key role in making CPSW recovery successful and themselves being able
+to continue using Ethernet after recovery.  Clients are required to tear-down their DMA
+resources (channels, flows) as this will prevent stale states in UDMA and interconnect
+post CPSW reset.
+
+All remote clients are required to implement the following steps in order to participate
+in CPSW recovery:
+
+-# Remote clients must register to receive the following notifications:
+
+   - [<b>ETHREMOTECFG_NOTIFY_HWERROR</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a754a33d75aa7a00475f99967e997a8e1)
+     This notification is sent by Ethernet Firmware to inform the client that a hardware error
+     has been found and the recovery process is about to start.  Client has to tear-down its
+     channels and flows upon reception of this notification.
+
+   - [<b>ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#gga839ae5df609f6394d9b0b22065032eb9a91d51165b414bf607771b309a0958ca7) notifications.
+     This notification is sent by Ethernet Firmware to inform the client that the recovery
+     process is complete.  Client has to reopen its channels and flows upon reception of this
+     notification.
+
+-# Remote clients must send [<b>ETHREMOTECFG_CMD_TEARDOWN_COMPLETION</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a0f9188c71fa66ec806e9f44ecaf40c3a) once their DMA channel
+   and flow has been released.  Failure to do so will prevent Ethernet Firmware from continuing
+   with the recovery process.
+
+If CPSW recovery is enabled, it's mandatory that all clients implement the requirements
+described above.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## CPTS time synchronization {#ethfw_recovery_cpts_sync}
+
+During reset recovery, CPTS needs special handling as CPSW will not be aware of the time for
+which it was down when reset was performed.  This will affect CPTS time and can lead to CPTS
+sending out incorrect time out other nodes in the network.  To mitigate this, the EthFw does
+below list of steps:
+
+-# Get a CPTS time before reset (T0)
+-# Get a OS time before reset (T1)
+-# Get a OS time post reset (T2)
+-# Calculate and set CPTS with updated time (T4). `T4 = T0 + (T2 - T1)*1000U (convert to nanoseconds))`
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Miscellaneous details {#ethfw_recovery_misc}
+
+In current implementation of CPSW context save and restore, the MAC port context is not
+saved as MAC ports are expected to be closed before ``Enet_saveCtxt()``, as shown in
+step 4 above. With respect to PHY, the state of PHY being alive or linked is not saved.
+Similar to MAC ports, PHYs are expected to be closed before ``Enet_saveCtxt()`` is called.
+Both, MAC ports and PHYs, will be reconfigured when application explicitly re-enables the
+required ports during last stage of CPSW recovery.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Trace Support {#ethfw_tracing}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -2042,7 +2163,7 @@ Flag                             | Description
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 `-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
 `-D=ETHFW_DEMO_SUPPORT`          | Enable ETHFW demos, such as hardware and software interVLAN, GUI configurator tool, etc.
-`-D=ETHFW_MONITOR_SUPPORT`       | Enable ETHFW Monitor.
+`-D=ETHFW_MONITOR_SUPPORT`       | Enable ETHFW Monitor to detect and handle any HW lockups and perform reset recovery.
 
 Other common flags:
 
@@ -2082,7 +2203,7 @@ Flag                             | Description
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
 `-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
 `-D=ETHFW_DEMO_SUPPORT`          | Enable ETHFW demos, such as hardware and software interVLAN, GUI configurator tool, etc.
-`-D=ETHFW_MONITOR_SUPPORT`       | Enable ETHFW Monitor.
+`-D=ETHFW_MONITOR_SUPPORT`       | Enable ETHFW Monitor to detect and handle any HW lockups and perform reset recovery.
 
 Other common flags:
 

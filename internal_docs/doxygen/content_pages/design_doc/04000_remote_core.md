@@ -105,6 +105,8 @@ Following are the defined and supported messages by ETHFW:
 |---------------------------------------------|--------------------------------------------------------------------------------|
 | `ETHREMOTECFG_NOTIFY_FWINFO`                |  Send EthFw version info to the remote clients                                 |
 | `ETHREMOTECFG_NOTIFY_HWPUSH`                |  Send CPTS HW push events to the remote clients                                |
+| `ETHREMOTECFG_NOTIFY_HWERROR`               |  Send hardware error notify, typically requires a reset to recover             |
+| `ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE`   |  Send hardware recovery completion notify                                      |
 
 For more details please refer to the ETHFW API guide.
 
