@@ -668,6 +668,12 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
                        config->numAutosarVirtPorts, CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
     }
 
+    for (i = 0U; i <= ENET_MAC_PORT_NUM; i++)
+    {
+        /* Default VLAN of all ports is set to ETHFW_VLAN_ID_MAX, as 0U is reserved for MAC only ports */
+        gEthFwObj.cpswCfg.aleCfg.portCfg[i].pvidCfg.vlanIdInfo.vlanId = ETHFW_VLAN_ID_MAX;
+    }
+
     if (status == ENET_SOK)
     {
         gEthFwObj.setPortCfg = config->setPortCfg;
