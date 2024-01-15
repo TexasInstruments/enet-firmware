@@ -166,14 +166,11 @@ extern "C" {
 /*! Max number of AUTOSAR client cores */
 #define CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX     (2U)
 
-/*! Max number of Remote client cores based on CLient tokens (VirtPort Clients) */
-#define CPSWPROXYSERVER_REMOTE_CLIENT_MAX             (6U)
+/*! Max number of Remote clients supported on a remote core (VirtPort Clients) */
+#define CPSWPROXYSERVER_REMOTE_CLIENT_MAX             (2U)
 
 /*! Max number of Remote clients requesting resource allocation data */
 #define CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX       (5U)
-
-/*! Max number of remote client ports */
-#define CPSWPROXYSERVER_REMOTE_CLIENT_PORTS_MAX       (2U)
 
 /*! Max number of remote client virtual ports */
 #define CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX    (4U)

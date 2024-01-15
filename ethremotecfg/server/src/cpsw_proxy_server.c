@@ -229,6 +229,8 @@ typedef struct CpswProxyServer_RemoteCoreObj_s
     int32_t rmRefCnt;
     /* Enet LLD core key */
     uint32_t coreKey;
+    /* Client object for storing all the data associated with the client */
+    CpswProxyServer_ClientObj clientObj[CPSWPROXYSERVER_REMOTE_CLIENT_MAX];
 }CpswProxyServer_RemoteCoreObj;
 
 /*
@@ -284,8 +286,6 @@ typedef struct CpswProxyServer_Obj_s
     uint32_t instId;
     /* set to true when proxy server has been initialized */
     bool initDone;
-    /* Client object for storing all the data associated with the client */
-    CpswProxyServer_ClientObj clientObj[CPSWPROXYSERVER_REMOTE_CLIENT_MAX];
     /* Alloc Object holds the data allocated to a given client by the server */
     CpswProxyServer_AllocObj allocObj[CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX];
     /* callback which populates Ethernet Firmware device data */
@@ -412,7 +412,8 @@ static CpswProxyServer_Obj *CpswProxyServer_getHandle(void)
     return (&gProxyServerObj);
 }
 
-static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteEndPt)
+static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteProcId,
+                                                                uint32_t remoteEndPt)
 {
     CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
     CpswProxyServer_ClientHandle hClient = NULL;
@@ -420,9 +421,9 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteE
 
     MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
 
-    for (i = 0U; i < ENET_ARRAYSIZE(hServer->clientObj); i++)
+    for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj[remoteProcId].clientObj); i++)
     {
-        hClient = &hServer->clientObj[i];
+        hClient = &hServer->coreObj[remoteProcId].clientObj[i];
         if (!hClient->inUse)
         {
             hClient->inUse = BTRUE;
@@ -452,7 +453,8 @@ static void CpswProxyServer_freeClient(CpswProxyServer_ClientHandle hClient)
     MutexP_unlock(hServer->hMutex);
 }
 
-static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t token)
+static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remoteProcId,
+                                                              uint32_t token)
 {
     CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
     CpswProxyServer_ClientHandle hClient = NULL;
@@ -461,9 +463,9 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t token)
 
     MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
 
-    for (i = 0U; i < ENET_ARRAYSIZE(hServer->clientObj); i++)
+    for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj[remoteProcId].clientObj); i++)
     {
-        hClient = &hServer->clientObj[i];
+        hClient = &hServer->coreObj[remoteProcId].clientObj[i];
 
         if (hClient->inUse && (hClient->token == token))
         {
@@ -485,19 +487,22 @@ int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
     int32_t status = CPSWPROXYSERVER_SOK;
     *attachedClients = 0U;
     *idleClients = 0U;
-    uint32_t i;
+    uint32_t i,j;
 
-    for (i = 0U; i < ENET_ARRAYSIZE(hServer->clientObj); i++)
+    for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
-        hClient = &hServer->clientObj[i];
-
-        if (hClient->inUse && (hClient->token != ETHREMOTECFG_TOKEN_NONE))
+        for (j = 0U; j < ENET_ARRAYSIZE(hServer->coreObj[i].clientObj); j++)
         {
-            (*attachedClients)++;
+            hClient = &hServer->coreObj[i].clientObj[j];
 
-            if (hClient->isIdle)
+            if (hClient->inUse && (hClient->token != ETHREMOTECFG_TOKEN_NONE))
             {
-                (*idleClients)++;
+                (*attachedClients)++;
+
+                if (hClient->isIdle)
+                {
+                    (*idleClients)++;
+                }
             }
         }
     }
@@ -577,19 +582,22 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
     CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
     CpswProxyServer_ClientHandle hClient = NULL;
     int32_t status = CPSWPROXYSERVER_SOK;
-    uint32_t i;
+    uint32_t i,j;
 
-    for (i = 0U; i < ENET_ARRAYSIZE(hServer->clientObj); i++)
+    for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
-        hClient = &hServer->clientObj[i];
-
-        if (hClient->inUse)
+        for (j = 0U; j < ENET_ARRAYSIZE(hServer->coreObj[i].clientObj); j++)
         {
-            /* Set isIdle flag to false for next iteration of recovery */
-            hClient->isIdle = BFALSE;
-            status = CpswProxyServer_sendNotify(hClient, notifyId);
+            hClient = &hServer->coreObj[i].clientObj[j];
+
+            if (hClient->inUse)
+            {
+                /* Set isIdle flag to false for next iteration of recovery */
+                hClient->isIdle = BFALSE;
+                status = CpswProxyServer_sendNotify(hClient, notifyId);
+            }
+            TaskP_sleep(50);
         }
-        TaskP_sleep(50);
     }
 
     return status;
@@ -631,7 +639,7 @@ static int32_t CpswProxyServer_VirtPortAllocCb(uint32_t clientId,
 {
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    if (clientId < CPSWPROXYSERVER_REMOTE_CLIENT_MAX)
+    if (clientId < CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX)
     {
         status = CpswProxyServer_getPortMask(clientId, hostId, switchPortMask, macPortMask);
     }
@@ -2347,7 +2355,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->virtPort);
 
             /* Allocate a client object */
-            hClient = CpswProxyServer_allocClient(remoteEndPt);
+            hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_attachHandlerCb(hClient,
@@ -2378,7 +2386,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->virtPort);
 
             /* Allocate a client object */
-            hClient = CpswProxyServer_allocClient(remoteEndPt);
+            hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_attachExtHandlerCb(hClient,
@@ -2424,7 +2432,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_detachHandlerCb(hClient,
@@ -2447,7 +2455,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_allocTxHandlerCb(hClient,
@@ -2469,7 +2477,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_allocRxHandlerCb(hClient,
@@ -2493,7 +2501,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_allocMacHandlerCb(hClient,
@@ -2518,7 +2526,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token, req->txPsilDstId);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_freeTxHandlerCb(hClient,
@@ -2541,7 +2549,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->rxFlowIdxBase, req->rxFlowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_freeRxHandlerCb(hClient,
@@ -2567,7 +2575,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U]);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_freeMacHandlerCb(hClient,
@@ -2593,7 +2601,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_registerMacHandlerCb(hClient,
@@ -2621,7 +2629,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_unregisterMacHandlerCb(hClient,
@@ -2649,7 +2657,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->macAddr[3U], req->macAddr[4U], req->macAddr[5U]);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_registerIPv4MacHandlerCb(hClient,
@@ -2673,7 +2681,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->ipAddr[0U], req->ipAddr[1U], req->ipAddr[2U], req->ipAddr[3U]);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_deregisterIPv4MacHandlerCb(hClient,
@@ -2699,7 +2707,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_vlanJoinHandlerCb(hClient,
@@ -2728,7 +2736,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_vlanLeaveHandlerCb(hClient,
@@ -2752,7 +2760,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_promiscModeHandlerCb(hClient,
@@ -2773,7 +2781,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_promiscModeHandlerCb(hClient,
@@ -2796,7 +2804,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_registerRxDefaultHandlerCb(hClient,
@@ -2820,7 +2828,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_deregisterRxDefaultHandlerCb(hClient,
@@ -2845,7 +2853,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->ethertype, req->flowIdxBase, req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_registerEthertypeHandlerCb(hClient,
@@ -2869,7 +2877,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token, req->ethertype);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_deregisterEthertypeHandlerCb(hClient,
@@ -2895,7 +2903,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->vlanId, req->flowIdxBase,req->flowIdxOffset);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_filterAddMacHandlerCb(hClient,
@@ -2924,7 +2932,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->vlanId);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_filterDelMacHandlerCb(hClient,
@@ -2946,7 +2954,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                                remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_isLinkUpCb(hClient,
@@ -2971,7 +2979,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->addr);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_regReadHandlerCb(req->addr,
@@ -2992,7 +3000,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->addr, req->val);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_regWriteHandlerCb(req->addr,
@@ -3013,7 +3021,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->hwPushNum, req->timerId);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_registerRemoteTimerHandlerCb(hClient,
@@ -3036,7 +3044,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->hwPushNum);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_unregisterRemoteTimerHandlerCb(hClient,
@@ -3073,7 +3081,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             hClient->isIdle = BTRUE;
@@ -3093,7 +3101,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             req->inArgsLen, req->inArgs, req->outArgsLen);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status =  CpswProxyServer_ioctlHandlerCb(hClient,
@@ -3123,7 +3131,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt);
 
             /* Get client object for token */
-            hClient = CpswProxyServer_getClient(token);
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_dumpStatsCb(hClient, remoteProcId);
@@ -3675,7 +3683,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
     Enet_IoctlPrms prms;
     Enet_Type enetType;
 
-    hClient = CpswProxyServer_getClient(token);
+    hClient = CpswProxyServer_getClient(hostId, token);
     EnetAppUtils_assert(hClient != NULL);
 
     hServer = CpswProxyServer_getHandle();
