@@ -780,14 +780,17 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
                                        macAddr);
     }
 
-    /* RX PSIL thread id */
-    *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
+    if (ENET_SOK == status)
+    {
+        /* RX PSIL thread id */
+        *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
 
-    /* Save parameters in client object */
-    hClient->flowIdxBase   = *pRxFlowIdxBase;
-    hClient->flowIdxOffset = *pRxFlowIdxOffset;
-    hClient->psilDstId     = *pTxPsilDstId;
-    EnetUtils_copyMacAddr(&hClient->macAddr[0U], macAddr);
+        /* Save parameters in client object */
+        hClient->flowIdxBase   = *pRxFlowIdxBase;
+        hClient->flowIdxOffset = *pRxFlowIdxOffset;
+        hClient->psilDstId     = *pTxPsilDstId;
+        EnetUtils_copyMacAddr(&hClient->macAddr[0U], macAddr);
+    }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
@@ -809,6 +812,11 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
                                     coreKey,
                                     hostId,
                                     pTxPsilDstId);
+
+    if (ENET_SOK == status)
+    {
+        hClient->psilDstId     = *pTxPsilDstId;
+    }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
@@ -838,6 +846,9 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
     if (ENET_SOK == status)
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
+
+        hClient->flowIdxBase   = *pRxFlowIdxBase;
+        hClient->flowIdxOffset = *pRxFlowIdxOffset;
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -861,6 +872,11 @@ static int32_t CpswProxyServer_allocMacHandlerCb(CpswProxyServer_ClientHandle hC
                                    hostId,
                                    macAddr);
 
+    if (ENET_SOK == status)
+    {
+        EnetUtils_copyMacAddr(&hClient->macAddr[0U], macAddr);
+    }
+
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
@@ -876,6 +892,7 @@ static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hCli
     EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
     coreKey = hServer->coreObj[hostId].coreKey;
 
+    /* To-Do: Before detaching make sure all allocated resources are freed */
     /* Detach from MCM */
     EnetAppUtils_assert(hServer->hMcmCmdIf != NULL);
     hServer->coreObj[hostId].rmRefCnt--;
@@ -907,6 +924,11 @@ static int32_t CpswProxyServer_freeTxHandlerCb(CpswProxyServer_ClientHandle hCli
                                    hostId,
                                    pTxPsilDstId);
 
+    if (ENET_SOK == status)
+    {
+        hClient->psilDstId     = 0U;
+    }
+
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
@@ -930,6 +952,12 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
                                      hostId,
                                      pRxFlowIdxOffset);
 
+    if (ENET_SOK ==status)
+    {
+        hClient->flowIdxBase   = 0U;
+        hClient->flowIdxOffset = 0U;
+    }
+
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
@@ -950,6 +978,11 @@ static int32_t CpswProxyServer_freeMacHandlerCb(CpswProxyServer_ClientHandle hCl
                                   coreKey,
                                   hostId,
                                   macAddr);
+
+    if (ENET_SOK ==status)
+    {
+        memcpy(&hClient->macAddr[0U], 0U, ENET_MAC_ADDR_LEN);
+    }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
