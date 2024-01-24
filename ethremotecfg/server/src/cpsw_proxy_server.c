@@ -131,10 +131,6 @@
                                                           ETHREMOTECFG_CMDSTATUS_OK : \
                                                           ETHREMOTECFG_CMDSTATUS_EFAIL)
 
-#define CPSWPROXY_ENET2PROXY_ERR(x)                      (((x) == ENET_SOK) ? \
-                                                          CPSWPROXYSERVER_SOK : \
-                                                          CPSWPROXYSERVER_EFAIL)
-
 #define CPSWPROXY_ETH_CLIENT_TASK_NAME                   ("ETHREMOTEDEVICE")
 
 #define CPSWPROXY_ETH_CLIENT_TASK_PRIORITY               (2U)
@@ -221,17 +217,17 @@ typedef struct CpswProxyServer_ClientObj_s
 } CpswProxyServer_ClientObj;
 
 /*
- * Remote Core Object
+ * Remote Core Object, whose index points to the core Id of the remote core
  */
 typedef struct CpswProxyServer_RemoteCoreObj_s
 {
     /* Enet RM Reference Cnt per remote core */
     int32_t rmRefCnt;
-    /* Enet LLD core key */
-    uint32_t coreKey;
+    /* Enet LLD attachInfo, unique per coreId */
+    EnetPer_AttachCoreOutArgs attachInfo;
     /* Client object for storing all the data associated with the client */
     CpswProxyServer_ClientObj clientObj[CPSWPROXYSERVER_REMOTE_CLIENT_MAX];
-}CpswProxyServer_RemoteCoreObj;
+} CpswProxyServer_RemoteCoreObj;
 
 /*
  * Client object handle
@@ -282,6 +278,8 @@ typedef struct CpswProxyServer_Obj_s
     MutexP_Handle hMutex;
     /* enetType of the server object */
     Enet_Type enetType;
+    /* coreId of the master core (Server) */
+    uint32_t masterCoreId;
     /* Instance Id of the CPSW server object */
     uint32_t instId;
     /* set to true when proxy server has been initialized */
@@ -316,6 +314,8 @@ typedef struct CpswProxyServer_Obj_s
     Enet_Handle hEnet;
     /* Remote core object for holding all core specific information */
     CpswProxyServer_RemoteCoreObj coreObj[IPC_MAX_PROCS];
+    /* checksum offload enable */
+    bool csumOffloadEn;
 } CpswProxyServer_Obj;
 
 /* ========================================================================== */
@@ -407,6 +407,7 @@ static CpswProxyServer_Obj *CpswProxyServer_getHandle(void)
         .initEthfwDeviceDataCb = NULL,
         .getMcmCmdIfCb         = NULL,
         .initDone              = BFALSE,
+        .masterCoreId          = IPC_MCU2_0,
     };
 
     return (&gProxyServerObj);
@@ -484,10 +485,11 @@ int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
 {
     CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
     CpswProxyServer_ClientHandle hClient = NULL;
-    int32_t status = CPSWPROXYSERVER_SOK;
+    int32_t status = ETHFW_SOK;
     *attachedClients = 0U;
     *idleClients = 0U;
-    uint32_t i,j;
+    uint32_t i;
+    uint32_t j;
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
@@ -581,8 +583,9 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
 {
     CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
     CpswProxyServer_ClientHandle hClient = NULL;
-    int32_t status = CPSWPROXYSERVER_SOK;
-    uint32_t i,j;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    uint32_t i;
+    uint32_t j;
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
@@ -595,6 +598,8 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
                 /* Set isIdle flag to false for next iteration of recovery */
                 hClient->isIdle = BFALSE;
                 status = CpswProxyServer_sendNotify(hClient, notifyId);
+                ETHFWTRACE_ERR_IF((ETHFW_SOK != status), status,
+                                  "Send Notification failed for coreId: %u", i);
             }
             TaskP_sleep(50);
         }
@@ -627,6 +632,8 @@ static int32_t CpswProxyServer_getPortMask(uint32_t clientId,
     if (i >= CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX)
     {
         status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+        ETHFWTRACE_ERR(status, "No port mask found for clientId: %u and coreId: %u",
+                       clientId, hostId);
     }
 
     return status;
@@ -662,48 +669,31 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
                                                uint32_t *pFeatures)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    EnetMcm_CmdIf *hMcmCmdIf;
-    EnetMcm_HandleInfo handleInfo;
     EnetPer_AttachCoreOutArgs attachInfo;
     Enet_IoctlPrms prms;
     EthRemoteCfg_VirtPort virtPort = ETHREMOTECFG_VIRTPORT_DENORM(portId);
     bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
-    bool csumOffloadFlag;
+    bool csumEnable;
     int32_t status = ENET_SOK;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
 
-    /* Get MCM cmd handle */
-    EnetAppUtils_assert(hServer->getMcmCmdIfCb != NULL);
-    hServer->getMcmCmdIfCb(hServer->enetType, &hMcmCmdIf);
-    EnetAppUtils_assert(hMcmCmdIf != NULL);
-    EnetAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
-    EnetAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
-    hServer->hMcmCmdIf = hMcmCmdIf;
-
-    /* Connect to MCM on client's behalf (using its hostId) */
-    EnetMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
-    hServer->hEnet = handleInfo.hEnet;
-
     if (hServer->coreObj[hostId].rmRefCnt == 0U)
     {
-        EnetMcm_coreAttach(hMcmCmdIf, hostId, &attachInfo);
-        hServer->coreObj[hostId].coreKey = attachInfo.coreKey;
-        *pRxMtu = attachInfo.rxMtu;
-        EnetAppUtils_assert(txMtuArraySize == ENET_ARRAYSIZE(attachInfo.txMtu));
-        memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
+        EnetMcm_coreAttach(hServer->hMcmCmdIf, hostId, &attachInfo);
+        memcpy(&hServer->coreObj[hostId].attachInfo, &attachInfo, sizeof(attachInfo));
     }
     hServer->coreObj[hostId].rmRefCnt++;
 
-    /* FIXME - This is global setting */
-    ENET_IOCTL_SET_OUT_ARGS(&prms, &csumOffloadFlag);
-    status = Enet_ioctl(handleInfo.hEnet, hostId, ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED, &prms);
-    EnetAppUtils_assert(status == ENET_SOK);
+    attachInfo = hServer->coreObj[hostId].attachInfo;
+    *pRxMtu = attachInfo.rxMtu;
+    EnetAppUtils_assert(txMtuArraySize == ENET_ARRAYSIZE(attachInfo.txMtu));
+    memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
 
     *pFeatures = 0U;
-    if (csumOffloadFlag)
+    if (hServer->csumOffloadEn)
     {
         *pFeatures |= ETHREMOTECFG_FEATURE_TXCSUM;
     }
@@ -736,20 +726,31 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
                                                   uint8_t *macAddr)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
 
     /* Actual attach operation */
     status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, txMtuArraySize, pFeatures);
-    EnetAppUtils_assert(ENET_SOK == status);
+    EnetAppUtils_assert(ETHREMOTECFG_CMDSTATUS_OK == status);
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        /* Check that server itself is ready */
+        hServer = CpswProxyServer_getHandle();
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        if ((hServer != NULL) && (hServer->initDone == BTRUE))
+        {
+            coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+        }
+        else
+        {
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+        }
+    }
 
     /* Allocate RX flow */
-    if (CPSWPROXYSERVER_SOK == status)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
         status = EnetAppUtils_allocRxFlow(hServer->hEnet,
                                           coreKey,
@@ -763,7 +764,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
     }
 
     /* Allocate TX channel */
-    if (CPSWPROXYSERVER_SOK == status)
+    if (ENET_SOK == status)
     {
         status = EnetAppUtils_allocTxCh(hServer->hEnet,
                                         coreKey,
@@ -772,7 +773,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
     }
 
     /* Allocate MAC address */
-    if (CPSWPROXYSERVER_SOK == status)
+    if (ENET_SOK == status)
     {
         status = EnetAppUtils_allocMac(hServer->hEnet,
                                        coreKey,
@@ -799,23 +800,34 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
                                                 uint32_t hostId,
                                                 uint32_t *pTxPsilDstId)
 {
-    int32_t status;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
-
-    status = EnetAppUtils_allocTxCh(hServer->hEnet,
-                                    coreKey,
-                                    hostId,
-                                    pTxPsilDstId);
-
-    if (ENET_SOK == status)
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
     {
-        hClient->psilDstId     = *pTxPsilDstId;
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        status = EnetAppUtils_allocTxCh(hServer->hEnet,
+                                        coreKey,
+                                        hostId,
+                                        pTxPsilDstId);
+
+        if (ENET_SOK == status)
+        {
+            hClient->psilDstId = *pTxPsilDstId;
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -828,21 +840,32 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
                                                 uint32_t *pRxPsilSrcId)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-    *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
 
-    status = EnetAppUtils_allocRxFlow(hServer->hEnet,
-                                      coreKey,
-                                      hostId,
-                                      pRxFlowIdxBase,
-                                      pRxFlowIdxOffset);
+        status = EnetAppUtils_allocRxFlow(hServer->hEnet,
+                                            coreKey,
+                                            hostId,
+                                            pRxFlowIdxBase,
+                                            pRxFlowIdxOffset);
+    }
     if (ENET_SOK == status)
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
@@ -858,23 +881,33 @@ static int32_t CpswProxyServer_allocMacHandlerCb(CpswProxyServer_ClientHandle hC
                                                  uint32_t hostId,
                                                  uint8_t *macAddr)
 {
-    int32_t status;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
-
-    status = EnetAppUtils_allocMac(hServer->hEnet,
-                                   coreKey,
-                                   hostId,
-                                   macAddr);
-
-    if (ENET_SOK == status)
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
     {
-        EnetUtils_copyMacAddr(&hClient->macAddr[0U], macAddr);
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        status = EnetAppUtils_allocMac(hServer->hEnet,
+                                       coreKey,
+                                       hostId,
+                                       macAddr);
+        if (ENET_SOK == status)
+        {
+            EnetUtils_copyMacAddr(&hClient->macAddr[0U], macAddr);
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -889,19 +922,29 @@ static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hCli
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
-
-    /* To-Do: Before detaching make sure all allocated resources are freed */
-    /* Detach from MCM */
-    EnetAppUtils_assert(hServer->hMcmCmdIf != NULL);
-    hServer->coreObj[hostId].rmRefCnt--;
-    if (hServer->coreObj[hostId].rmRefCnt == 0U)
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
     {
-        EnetMcm_coreDetach(hServer->hMcmCmdIf, hostId, coreKey);
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
     }
 
-    EnetMcm_releaseHandleInfo(hServer->hMcmCmdIf);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        /* Detach from MCM */
+        EnetAppUtils_assert(hServer->hMcmCmdIf != NULL);
+        hServer->coreObj[hostId].rmRefCnt--;
+        if (hServer->coreObj[hostId].rmRefCnt == 0U)
+        {
+            EnetMcm_coreDetach(hServer->hMcmCmdIf, hostId, coreKey);
+        }
+
+        EnetMcm_releaseHandleInfo(hServer->hMcmCmdIf);
+    }
 
     return status;
 }
@@ -910,23 +953,34 @@ static int32_t CpswProxyServer_freeTxHandlerCb(CpswProxyServer_ClientHandle hCli
                                                uint32_t hostId,
                                                uint32_t pTxPsilDstId)
 {
-    int32_t status;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
-
-    status = EnetAppUtils_freeTxCh(hServer->hEnet,
-                                   coreKey,
-                                   hostId,
-                                   pTxPsilDstId);
-
-    if (ENET_SOK == status)
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
     {
-        hClient->psilDstId     = 0U;
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        status = EnetAppUtils_freeTxCh(hServer->hEnet,
+                                       coreKey,
+                                       hostId,
+                                       pTxPsilDstId);
+
+        if (ENET_SOK == status)
+        {
+            hClient->psilDstId = 0U;
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -937,22 +991,33 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
                                                uint32_t pRxFlowIdxBase,
                                                uint32_t pRxFlowIdxOffset)
 {
-    int32_t status;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-    CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, pRxFlowIdxBase);
-    status = EnetAppUtils_freeRxFlow(hServer->hEnet,
-                                     coreKey,
-                                     hostId,
-                                     pRxFlowIdxOffset);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, pRxFlowIdxBase);
+        status = EnetAppUtils_freeRxFlow(hServer->hEnet,
+                                         coreKey,
+                                         hostId,
+                                         pRxFlowIdxOffset);
+    }
 
-    if (ENET_SOK ==status)
+    if (ENET_SOK == status)
     {
         hClient->flowIdxBase   = 0U;
         hClient->flowIdxOffset = 0U;
@@ -965,23 +1030,34 @@ static int32_t CpswProxyServer_freeMacHandlerCb(CpswProxyServer_ClientHandle hCl
                                                 uint32_t hostId,
                                                 uint8_t *macAddr)
 {
-    int32_t status;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
-
-    status = EnetAppUtils_freeMac(hServer->hEnet,
-                                  coreKey,
-                                  hostId,
-                                  macAddr);
-
-    if (ENET_SOK ==status)
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
     {
-        memcpy(&hClient->macAddr[0U], 0U, ENET_MAC_ADDR_LEN);
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        status = EnetAppUtils_freeMac(hServer->hEnet,
+                                      coreKey,
+                                      hostId,
+                                      macAddr);
+
+        if (ENET_SOK ==status)
+        {
+            memcpy(&hClient->macAddr[0U], 0U, ENET_MAC_ADDR_LEN);
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1004,8 +1080,16 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
     CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -1074,8 +1158,16 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
     CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -1362,12 +1454,10 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
         status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_ADD_UCAST, &prms);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Port %u: failed to add ucast entry", ENET_MACPORT_ID(macPort));
-
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
 
     /* Setup policer with "port" as match criteria */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ENET_SOK)
     {
         memset(&polInArgs, 0, sizeof(polInArgs));
 
@@ -1383,11 +1473,9 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
         status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to set port %u policer", ENET_MACPORT_ID(macPort));
-
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
 
-    return status;
+    return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
 static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
@@ -1481,8 +1569,16 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
     CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -1515,8 +1611,16 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    coreKey = hServer->coreObj[hostId].coreKey;
+    if ((hServer != NULL) && (hServer->initDone == BTRUE))
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
     CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -2245,8 +2349,12 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     SemaphoreP_Params sem_params;
     CpswProxyServer_Obj *hServer;
     RPMessage_Params cntrlParam;
+    EnetMcm_CmdIf *hMcmCmdIf;
+    Enet_IoctlPrms prms;
+    EnetMcm_HandleInfo handleInfo;
+    bool csumEnable;
     int32_t i;
-    int32_t status = CPSWPROXYSERVER_SOK;
+    int32_t status = ETHFW_SOK;
 
     hServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BFALSE));
@@ -2263,16 +2371,41 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     if ((hServer->aleMacOnlyPortMask & hServer->alePortMask) !=
         hServer->aleMacOnlyPortMask)
     {
-        status = CPSWPROXYSERVER_EINVALIDPARAMS;
+        status = ETHFW_EFAIL;
         ETHFWTRACE_ERR(status, "MAC ports required for virtual MAC ports are not enabled");
     }
 
     hServer->aleSwitchOnlyPortMask = (hServer->alePortMask &
                                       ~hServer->aleMacOnlyPortMask);
 
+    /* Get MCM cmd handle */
+    EnetAppUtils_assert(hServer->getMcmCmdIfCb != NULL);
+    hServer->getMcmCmdIfCb(hServer->enetType, &hMcmCmdIf);
+    EnetAppUtils_assert(hMcmCmdIf != NULL);
+    EnetAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
+    EnetAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
+    hServer->hMcmCmdIf = hMcmCmdIf;
+
+    /* Connect to MCM on client's behalf (using its hostId) */
+    EnetMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
+    hServer->hEnet = handleInfo.hEnet;
+
+    ENET_IOCTL_SET_OUT_ARGS(&prms, &csumEnable);
+    status = Enet_ioctl(handleInfo.hEnet, hServer->masterCoreId,
+                        ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED, &prms);
+    if (ENET_SOK == status)
+    {
+        hServer->csumOffloadEn = csumEnable;
+    }
+    else
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED IOCTL failed");
+    }
+
     memcpy(&hServer->allocObj, &cfg->allocObj, sizeof(cfg->allocObj));
 
-    if (status == CPSWPROXYSERVER_SOK)
+    if (status == ETHFW_SOK)
     {
         hServer->hMutex = MutexP_create(&hServer->mutexObj);
 
@@ -2296,20 +2429,20 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         for (i = 0U; i < cfg->autosarEthVirtPortNum; i++)
         {
             status = CpswProxyServer_initAutosarEthDeviceEp(hServer, cfg, i);
-            EnetAppUtils_assert(status == CPSWPROXYSERVER_SOK);
+            EnetAppUtils_assert(status == ETHFW_SOK);
         }
 
         status = CpswProxyServer_initRemoteClientEthDeviceEp(hServer, cfg);
-        EnetAppUtils_assert(status == CPSWPROXYSERVER_SOK);
+        EnetAppUtils_assert(status == ETHFW_SOK);
 
         status = CpswProxyServer_initNotifyServiceEp(hServer, cfg);
-        EnetAppUtils_assert(status == CPSWPROXYSERVER_SOK);
+        EnetAppUtils_assert(status == ETHFW_SOK);
 
         hServer->initDone = BTRUE;
     }
 
     ETHFWTRACE_INFO("CpswProxyServer: initialization %s (core: mcu2_0)",
-                    (status == CPSWPROXYSERVER_SOK) ? "completed" : "failed");
+                    (status == ETHFW_SOK) ? "completed" : "failed");
 
     return status;
 }
@@ -3224,7 +3357,7 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
                                                            CpswProxyServer_Config_t * cfg)
 {
     TaskP_Params taskParams;
-    int32_t status = CPSWPROXYSERVER_SOK;
+    int32_t status = ETHFW_SOK;
     RPMessage_Params comParams;
     uint32_t  localEp;
 
@@ -3237,7 +3370,7 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
     hServer->clientServiceObj.hClientServicRpMsgEp = RPMessage_create(&comParams, &localEp);
     if (NULL == hServer->clientServiceObj.hClientServicRpMsgEp)
     {
-        status = CPSWPROXYSERVER_EFAIL;
+        status = ETHFW_EFAIL;
         ETHFWTRACE_ERR(status, "Could not create communication channel for endpoint %d",
                        comParams.requestedEndpt);
     }
@@ -3246,12 +3379,12 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
         SemaphoreP_post(hServer->clientServiceObj.rpmsgStartSem);
     }
 
-    if (CPSWPROXYSERVER_SOK == status)
+    if (ETHFW_SOK == status)
     {
         hServer->clientServiceObj.localEp = localEp;
     }
 
-    if (CPSWPROXYSERVER_SOK == status)
+    if (ETHFW_SOK == status)
     {
         /* Initialize the task params */
         TaskP_Params_init(&taskParams);
@@ -3264,7 +3397,7 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
         hServer->clientServiceObj.hClientServiceTsk = TaskP_create(&CpswProxyServer_remoteClientEthDriverTaskFxn, &taskParams);
         if(hServer->clientServiceObj.hClientServiceTsk == NULL)
         {
-            status = CPSWPROXYSERVER_EFAIL;
+            status = ETHFW_EFAIL;
             ETHFWTRACE_ERR(status, "Could not create task for endpoint %d", comParams.requestedEndpt);
         }
     }
@@ -3360,7 +3493,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
                                                       uint32_t clientInst)
 {
     TaskP_Params taskParams;
-    int32_t retVal = CPSWPROXYSERVER_SOK;
+    int32_t retVal = ETHFW_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
 
@@ -3376,17 +3509,17 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
     hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp = RPMessage_create(&comChParam, &localEp);
     if (NULL == hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp)
     {
-        retVal = CPSWPROXYSERVER_EFAIL;
+        retVal = ETHFW_EFAIL;
         ETHFWTRACE_ERR(retVal, "Could not create communication channel for endpoint %d",
                        comChParam.requestedEndpt);
     }
 
-    if (CPSWPROXYSERVER_SOK == retVal)
+    if (ETHFW_SOK == retVal)
     {
         hServer->ethDrvObj[clientInst].localEp = localEp;
     }
 
-    if (CPSWPROXYSERVER_SOK == retVal)
+    if (ETHFW_SOK == retVal)
     {
         /* Initialize the task params */
         TaskP_Params_init(&taskParams);
@@ -3400,7 +3533,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
         hServer->ethDrvObj[clientInst].hAutosarEthTsk = TaskP_create(&CpswProxyServer_autosarEthDriverTaskFxn, &taskParams);
         if(hServer->ethDrvObj[clientInst].hAutosarEthTsk == NULL)
         {
-            retVal = CPSWPROXYSERVER_EFAIL;
+            retVal = ETHFW_EFAIL;
             ETHFWTRACE_ERR(retVal, "Could not create task for endpoint %d", comChParam.requestedEndpt);
         }
     }
@@ -3411,7 +3544,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
 static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer, CpswProxyServer_Config_t * cfg)
 {
     TaskP_Params taskParams;
-    int32_t retVal = CPSWPROXYSERVER_SOK;
+    int32_t retVal = ETHFW_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
     EventP_Params eventParams;
@@ -3437,17 +3570,17 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
 
     if (NULL == hServer->notifyServiceObj.hNotifyServicRpMsgEp)
     {
-        retVal = CPSWPROXYSERVER_EFAIL;
+        retVal = ETHFW_EFAIL;
         ETHFWTRACE_ERR(retVal, "Could not create communication channel");
     }
 
-    if (CPSWPROXYSERVER_SOK == retVal)
+    if (ETHFW_SOK == retVal)
     {
         hServer->notifyServiceObj.localEp = localEp;
     }
 
     /* Announce service */
-    if (CPSWPROXYSERVER_SOK == retVal)
+    if (ETHFW_SOK == retVal)
     {
         retVal = RPMessage_announce(RPMESSAGE_ALL,
                                     hServer->notifyServiceObj.localEp,
@@ -3456,7 +3589,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
     }
 
     /* Create Event to notify task */
-    if (CPSWPROXYSERVER_SOK == retVal)
+    if (ETHFW_SOK == retVal)
     {
         EventP_Params_init(&eventParams);
 
@@ -3469,12 +3602,12 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
 
         if (hServer->notifyServiceObj.hHwPushNotifyServiceEvent == NULL)
         {
-            retVal = CPSWPROXYSERVER_EFAIL;
+            retVal = ETHFW_EFAIL;
             ETHFWTRACE_ERR(retVal, "Could not create an event");
         }
     }
 
-    if (CPSWPROXYSERVER_SOK == retVal)
+    if (ETHFW_SOK == retVal)
     {
         /* Initialize the task params */
         TaskP_Params_init(&taskParams);
@@ -3486,7 +3619,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
         hServer->notifyServiceObj.hNotifyServiceTsk = TaskP_create(&CpswProxyServer_notifyServiceTaskFxn, &taskParams);
         if(hServer->notifyServiceObj.hNotifyServiceTsk == NULL)
         {
-            retVal = CPSWPROXYSERVER_EFAIL;
+            retVal = ETHFW_EFAIL;
             ETHFWTRACE_ERR(retVal, "Could not create a task");
         }
     }
@@ -3725,7 +3858,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
     hEnet = hServer->hEnet;
     EnetAppUtils_assert(hEnet != NULL);
 
-    coreKey = hServer->coreObj[hostId].coreKey;
+    coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
     enetType = hServer->enetType;
 
     switch (notifyid)
