@@ -8,6 +8,9 @@ TARGET_SOC_FOLDER := $(call lowercase,$(TARGET_PLATFORM))
 ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
   CSOURCES += ethfw_vepa.c
 endif
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  CSOURCES += ethfw_tsn.c
+endif
 CSOURCES += cpsw_proxy_server.c
 CSOURCES += ethfw_mcast.c
 CSOURCES += ethfw_vlan.c

@@ -103,6 +103,7 @@
 #if defined(ETHFW_GPTP_SUPPORT)
 /* Timesync header files */
 #include <tsn_gptp/gptp_config.h>
+#include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
 
 /* EthFw utils header files */
@@ -1233,12 +1234,6 @@ static int32_t EthApp_initEthFw(void)
     ethFwCfg.monitorCfg.statsMonCbArg     = NULL;
 #endif
 
-#if defined(ETHFW_GPTP_SUPPORT)
-    /* gPTP stack config parameters */
-    ethFwCfg.configPtpCb    = EthApp_configPtpCb;
-    ethFwCfg.configPtpCbArg = NULL;
-#endif
-
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     /* Link-up timestamp */
     cpswCfg->portLinkStatusChangeCb    = &EthApp_portLinkStatusChangeCb;
@@ -1875,6 +1870,13 @@ static void EthApp_initPtp(void)
 {
     uint32_t portMask = 0U;
     uint8_t i;
+    EthFwTsn_Config tsnCfg;
+
+    /* gPTP stack config parameters */
+    tsnCfg.enetType       = gEthAppObj.enetType;
+    tsnCfg.instId         = gEthAppObj.instId;
+    tsnCfg.configPtpCb    = EthApp_configPtpCb;
+    tsnCfg.configPtpCbArg = NULL;
 
     /* MAC port used for PTP */
     #if defined(ETHFW_BOOT_TIME_PROFILING)
@@ -1889,7 +1891,7 @@ static void EthApp_initPtp(void)
     /* Wait for host port MAC address to be allocated during lwIP getHandle */
     SemaphoreP_pend(gEthAppObj.hHostMacAllocSem, SemaphoreP_WAIT_FOREVER);
 
-    EthFw_initTimeSyncPtp(&gEthAppObj.hostMacAddr[0U], portMask);
+    EthFwTsn_initTimeSyncPtp(&tsnCfg, &gEthAppObj.hostMacAddr[0U], portMask);
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     /* Timestamp when gPTP stack is initialized */
