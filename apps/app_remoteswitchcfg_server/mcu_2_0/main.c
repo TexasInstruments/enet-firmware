@@ -382,13 +382,13 @@ static void EthApp_closeDmaCb(void *arg);
 static void EthApp_openDmaCb(void *arg);
 
 static void EthApp_statsMonHostEvtCb(uint32_t evtMask,
-                                     const EthFw_MonStats *monStats,
+                                     const EthFwMon_Stats *monStats,
                                      const CpswStats_HostPort_Ng *stats,
                                      void *arg);
 
 static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
                                     uint32_t evtMask,
-                                    const EthFw_MonStats *monStats,
+                                    const EthFwMon_Stats *monStats,
                                     const CpswStats_MacPort_Ng *stats,
                                     void *arg);
 #endif
@@ -1532,7 +1532,7 @@ static void EthApp_openDmaCb(void *arg)
 }
 
 static void EthApp_statsMonHostEvtCb(uint32_t evtMask,
-                                     const EthFw_MonStats *monStats,
+                                     const EthFwMon_Stats *monStats,
                                      const CpswStats_HostPort_Ng *stats,
                                      void *arg)
 {
@@ -1555,7 +1555,7 @@ static void EthApp_statsMonHostEvtCb(uint32_t evtMask,
 
 static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
                                     uint32_t evtMask,
-                                    const EthFw_MonStats *monStats,
+                                    const EthFwMon_Stats *monStats,
                                     const CpswStats_MacPort_Ng *stats,
                                     void *arg)
 {

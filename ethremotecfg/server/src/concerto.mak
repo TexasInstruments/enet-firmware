@@ -13,6 +13,9 @@ CSOURCES += ethfw_mcast.c
 CSOURCES += ethfw_vlan.c
 CSOURCES += ethfw_arp.c
 CSOURCES += ethfw_api.c
+ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
+  CSOURCES += ethfw_monitor.c
+endif
 
 #include $(ETHFW_PATH)/apps/concerto_inc.mak
 

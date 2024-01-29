@@ -191,34 +191,6 @@
 /* Compile time check for error value consistency with Enet LLD (and CSL) */
 #define ETHFW_UTILS_COMPILETIME_ENET_CHECK(x)         ETHFW_UTILS_COMPILETIME_ASSERT(ETHFW_##x == ENET_##x)
 
-#if defined(ETHFW_MONITOR_SUPPORT)
-/*! Monitor Task priority */
-#define ETHFW_MON_TASK_PRIORITY                       (2U)
-
-/*! Monitor Task stack size and alignment */
-#if defined(SAFERTOS)
-#define ETHFW_MON_TASK_STACK_SIZE                     (16U * 1024U)
-#define ETHFW_MON_TASK_STACK_ALIGN                    ETHFW_MON_TASK_STACK_SIZE
-#else
-#define ETHFW_MON_TASK_STACK_SIZE                     (16U * 1024U)
-#define ETHFW_MON_TASK_STACK_ALIGN                    (32U)
-#endif 
-
-/*! Monitor task polling period */
-#define ETHFW_MON_TASK_POLL_PERIOD_MS                 (100U)
-
-/*! Remote client idle status check period */
-#define ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS     (100U)
-
-/*! Number of client idle check retries before printing number of
- * clients that have idled.  Each retry iteration takes
- * ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS. */
-#define ETHFW_MON_HWRECOVERY_RETRY_LOG_ITER           (10U)
-
-/*! Value of seconds in nanoseconds. Useful for calculations */
-#define ETHFW_TIME_SEC_TO_NS                          (1000000000U)
-#endif
-
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -293,35 +265,6 @@ typedef struct EthFw_Obj_s
 
     /* Number of remote clients with resource allocation */
     uint32_t numClients;
-
-#if defined(ETHFW_MONITOR_SUPPORT)
-    /* Whether recovery is enabled or not */
-    bool recoveryEn;
-
-    /* Monitor and recovery callbacks */
-    EthFw_MonitorCfg monitor;
-
-    /* Saved statistics counters */
-    EthFw_MonStats monStats[ETHFW_MAC_PORT_MAX + 1U];
-
-    /* CPSW statistics block */
-    CpswStats_PortStats cpswStats;
-
-    /*! Clock handle for Monitor Task */
-    ClockP_Handle hMonitorClock;
-
-    /*! Semaphore handle for Monitor Task */
-    SemaphoreP_Handle hMonitorSem;
-
-    /*! Task handle for Monitor Task */
-    TaskP_Handle hMonitorTask;
-
-    /* To run Monitor Task */
-    bool monitorTaskRun;
-
-    /* Monitor Task stack buffer */
-    uint8_t monTaskStackBuf[ETHFW_MON_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_MON_TASK_STACK_ALIGN)));
-#endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Whether TSN stack has been initialized or not */
@@ -413,17 +356,6 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
                                           EthRemoteCfg_NotifyType notifyid,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len);
-
-#if defined(ETHFW_MONITOR_SUPPORT)
-static int32_t EthFw_startMonitorTask(void);
-
-static void EthFw_stopMonitorTask(void);
-
-static void EthFw_monitorTask(void *a0,
-                              void *a1);
-
-static int32_t EthFw_resetHandler(void);
-#endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
 static void EthFw_tsnInit(void);
@@ -1010,9 +942,6 @@ static void EthFw_updateEnetRm(void)
 void EthFw_initConfigParams(Enet_Type enetType,
                             EthFw_Config *config)
 {
-#if defined(ETHFW_MONITOR_SUPPORT)
-    EthFw_MonitorCfg *monCfg = &config->monitorCfg;
-#endif
     Cpsw_Cfg *cpswCfg = &config->cpswCfg;
     CpswAle_Cfg *aleCfg = &cpswCfg->aleCfg;
     Cpsw_VlanCfg *vlanCfg = &cpswCfg->vlanCfg;
@@ -1056,6 +985,10 @@ void EthFw_initConfigParams(Enet_Type enetType,
     EthFwVepa_initCfg(&config->vepaCfg);
 #endif
 
+#if defined(ETHFW_MONITOR_SUPPORT)
+    EthFwMon_initCfg(&config->monitorCfg);
+#endif
+
     /* Start with CPSW LLD's default configuration */
     Enet_initCfg(enetType, instId, cpswCfg, sizeof (*cpswCfg));
     cpswCfg->dmaCfg = NULL;
@@ -1094,15 +1027,6 @@ void EthFw_initConfigParams(Enet_Type enetType,
 
     EthFw_initAleCfg(aleCfg);
 
-#if defined(ETHFW_MONITOR_SUPPORT)
-    monCfg->periodInMsecs     = ETHFW_MON_TASK_POLL_PERIOD_MS;
-    monCfg->openLwipDmaCb     = NULL;
-    monCfg->closeLwipDmaCb    = NULL;
-    monCfg->lwipDmaCbArg      = NULL;
-    monCfg->statsMonHostEvtCb = NULL;
-    monCfg->statsMonMacEvtCb  = NULL;
-    monCfg->statsMonCbArg     = NULL;
-#endif
 }
 
 EthFw_Handle EthFw_init(Enet_Type enetType,
@@ -1135,13 +1059,6 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
-
-#if defined(ETHFW_MONITOR_SUPPORT)
-    gEthFwObj.monitor = config->monitorCfg;
-    gEthFwObj.recoveryEn = ((gEthFwObj.monitor.openLwipDmaCb != NULL) &&
-                            (gEthFwObj.monitor.closeLwipDmaCb != NULL));
-    ETHFWTRACE_INFO_IF(!gEthFwObj.recoveryEn, "CPSW recovery is not enabled");
-#endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Save gPTP stack config callback */
@@ -1248,6 +1165,11 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init VEPA utils");
 #endif
 
+#if defined(ETHFW_MONITOR_SUPPORT)
+    status = EthFwMon_init(&config->monitorCfg, gEthFwObj.enetType, gEthFwObj.numPorts);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init Monitor");
+#endif
+
     /* Initialize MCM */
     if (status == ENET_SOK)
     {
@@ -1283,7 +1205,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     /* Start the Monitor Task */
     if (status == ENET_SOK)
     {
-        status = EthFw_startMonitorTask();
+        status = EthFwMon_startTask();
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to start monitor task");
     }
 #endif
@@ -1313,7 +1235,7 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 
 #if defined(ETHFW_MONITOR_SUPPORT)
     /* Stop the Monitor Task */
-    EthFw_stopMonitorTask();
+    EthFwMon_stopTask();
 #endif
 
     /* De-initialize MCM */
@@ -1834,530 +1756,3 @@ int32_t EthFw_initTimeSyncPtp(const uint8_t *hostMacAddr,
 #endif
 }
 
-#if defined(ETHFW_MONITOR_SUPPORT)
-static void EthFw_monitorClockCb(void *arg)
-{
-    /* Post semaphore to Monitor Task */
-    SemaphoreP_post(gEthFwObj.hMonitorSem);
-}
-
-static int32_t EthFw_startMonitorTask(void)
-{
-    SemaphoreP_Params semParams;
-    ClockP_Params clkParams;
-    TaskP_Params params;
-    int32_t status = ENET_SOK;
-
-    SemaphoreP_Params_init(&semParams);
-    semParams.mode = SemaphoreP_Mode_BINARY;
-    gEthFwObj.hMonitorSem = SemaphoreP_create(1U, &semParams);
-
-    if (gEthFwObj.hMonitorSem == NULL)
-    {
-        status = ETHFW_EALLOC;
-        ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor clock semaphore");
-        EnetAppUtils_assert(BFALSE);
-    }
-
-    if (status == ENET_SOK)
-    {
-        /* Create Monitor Task to monitor and detect EthFw's failure. */
-        TaskP_Params_init(&params);
-        params.priority  = ETHFW_MON_TASK_PRIORITY;
-        params.stack     = &gEthFwObj.monTaskStackBuf[0];
-        params.stacksize = sizeof(gEthFwObj.monTaskStackBuf);
-        params.name      = "ETHFW Monitor Task";
-        gEthFwObj.monitorTaskRun = BTRUE;
-
-        gEthFwObj.hMonitorTask = TaskP_create(&EthFw_monitorTask, &params);
-        
-        if (gEthFwObj.hMonitorTask == NULL)
-        {
-            status = ETHFW_EALLOC;
-            ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor task");
-            EnetAppUtils_assert(BFALSE);
-        }
-    }
-
-    if (status == ENET_SOK)
-    {
-        ClockP_Params_init(&clkParams);
-        clkParams.startMode = ClockP_StartMode_AUTO;
-        clkParams.period    = gEthFwObj.monitor.periodInMsecs;
-        clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
-
-        /* Creating clock and setting clock callback function */
-        gEthFwObj.hMonitorClock = ClockP_create((void*)&EthFw_monitorClockCb, &clkParams);
-        if (gEthFwObj.hMonitorClock == NULL)
-        {
-            status = ETHFW_EALLOC;
-            ETHFWTRACE_ERR(ETHFW_EALLOC, "Unable to create monitor clock");
-            EnetAppUtils_assert(BFALSE);
-        }
-    }
-    return status;
-}
-
-static void EthFw_stopMonitorTask(void)
-{
-
-    gEthFwObj.monitorTaskRun = BFALSE;
-
-    if (gEthFwObj.hMonitorTask != NULL)
-    {
-        TaskP_delete(gEthFwObj.hMonitorTask);
-        gEthFwObj.hMonitorTask = NULL;
-    }
-
-    /* Delete semaphore */
-    SemaphoreP_delete(gEthFwObj.hMonitorSem);
-
-    /* Stop and delete the clock */
-    ClockP_stop(gEthFwObj.hMonitorClock);
-    ClockP_delete(gEthFwObj.hMonitorClock);
-}
-
-static void EthFw_saveStats(void)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    const CpswStats_HostPort_Ng *hostStats = (const CpswStats_HostPort_Ng *)&gEthFwObj.cpswStats;
-    const CpswStats_MacPort_Ng *macStats = (const CpswStats_MacPort_Ng *)&gEthFwObj.cpswStats;
-    EthFw_MonStats *monStats;
-    Enet_IoctlPrms prms;
-    Enet_MacPort macPort;
-    uint32_t portNum;
-    uint32_t i;
-    uint32_t j;
-    int32_t status = ENET_SOK;
-
-    /* Get host port stats counters */
-    monStats = &gEthFwObj.monStats[0U];
-    ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwObj.cpswStats);
-    status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
-
-    if (status == ENET_SOK)
-    {
-        monStats->rxBottomOfFifoDrop = hostStats->rxBottomOfFifoDrop;
-        monStats->rxTopOfFifoDrop    = hostStats->rxTopOfFifoDrop;
-        for (j = 0U; j < ENET_PRI_NUM; j++)
-        {
-            monStats->txPriDrop[j] = hostStats->txPriDrop[j];
-        }
-    }
-
-    /* Get MAC port stats counters */
-    for (i = 0U; i < gEthFwObj.numPorts; i++)
-    {
-        macPort = ENET_MACPORT_DENORM(i);
-        portNum = ENET_MACPORT_NORM(macPort);
-        monStats = &gEthFwObj.monStats[portNum + 1U];
-
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwObj.cpswStats);
-        status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
-
-        if (status == ENET_SOK)
-        {
-            monStats->rxBottomOfFifoDrop = macStats->rxBottomOfFifoDrop;
-            monStats->rxTopOfFifoDrop    = macStats->rxTopOfFifoDrop;
-            for (j = 0U; j < ENET_PRI_NUM; j++)
-            {
-                monStats->txPriDrop[j] = macStats->txPriDrop[j];
-            }
-        }
-    }
-}
-
-static bool EthFw_analyzeHostStats(void)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    const CpswStats_HostPort_Ng *stats = (const CpswStats_HostPort_Ng *)&gEthFwObj.cpswStats;
-    EthFw_MonStats *monStats;
-    EthFw_MonStats diffStats;
-    Enet_IoctlPrms prms;
-    bool needsRecovery = BFALSE;
-    uint32_t evt = 0U;
-    uint32_t i;
-    int32_t status = ENET_SOK;
-
-    monStats = &gEthFwObj.monStats[0U];
-
-    /* Get host port stats counters */
-    ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwObj.cpswStats);
-    status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
-
-    /* Check stats counters we are monitoring */
-    if (status == ENET_SOK)
-    {
-        /* Monitor port statistics to detect and CPSW peripheral failure.
-         * Current EthFw Monitor task looks for rxBottomOfFifoDrop value.
-         * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
-         * so resetting the Enet Peripheral. */
-        if (stats->rxBottomOfFifoDrop > monStats->rxBottomOfFifoDrop)
-        {
-            evt |= ETHFW_STATSMON_RXBOTTOMOFFIFODROP;
-            needsRecovery = BTRUE;
-        }
-
-        if (stats->rxTopOfFifoDrop > monStats->rxTopOfFifoDrop)
-        {
-            evt |= ETHFW_STATSMON_RXTOPOFFIFODROP;
-        }
-
-        for (i = 0U; i < ENET_PRI_NUM; i++)
-        {
-            if (stats->txPriDrop[i] > monStats->txPriDrop[i])
-            {
-                evt |= ETHFW_STATSMON_TXPRIDROP;
-                break;
-            }
-        }
-    }
-
-    /* Call application callback if one has been provided */
-    if ((status == ETHFW_SOK) &&
-        (evt != 0U) &&
-        (gEthFwObj.monitor.statsMonHostEvtCb != NULL))
-    {
-        diffStats.rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop - monStats->rxBottomOfFifoDrop;
-        diffStats.rxTopOfFifoDrop    = stats->rxTopOfFifoDrop - monStats->rxTopOfFifoDrop;
-        for (i = 0U; i < ENET_PRI_NUM; i++)
-        {
-            diffStats.txPriDrop[i] = stats->txPriDrop[i] - monStats->txPriDrop[i];
-        }
-
-        gEthFwObj.monitor.statsMonHostEvtCb(evt, &diffStats, stats,
-                                            gEthFwObj.monitor.statsMonCbArg);
-
-        monStats->rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop;
-        monStats->rxTopOfFifoDrop    = stats->rxTopOfFifoDrop;
-        memcpy(monStats->txPriDrop, stats->txPriDrop, sizeof(monStats->txPriDrop));
-    }
-
-    return needsRecovery;
-}
-
-static bool EthFw_analyzePortStats(Enet_MacPort macPort)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    const CpswStats_MacPort_Ng *stats = (const CpswStats_MacPort_Ng *)&gEthFwObj.cpswStats;
-    EthFw_MonStats *monStats;
-    EthFw_MonStats diffStats;
-    Enet_IoctlPrms prms;
-    bool needsRecovery = BFALSE;
-    uint32_t evt = 0U;
-    uint32_t portNum = ENET_MACPORT_NORM(macPort);
-    uint32_t i;
-    int32_t status = ENET_SOK;
-
-    monStats = &gEthFwObj.monStats[portNum + 1U];
-
-    /* Get MAC port stats counters */
-    ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwObj.cpswStats);
-    status = Enet_ioctl(hEnet, gEthFwObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                      "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
-
-    /* Check stats counters we are monitoring */
-    if (status == ENET_SOK)
-    {
-        /* Monitor port statistics to detect and CPSW peripheral failure.
-         * Current EthFw Monitor task looks for rxBottomOfFifoDrop value.
-         * if rxBottomOfFifoDrop > 0, the CPSW has gone into unrecoverable state,
-         * so resetting the Enet Peripheral. */
-        if (stats->rxBottomOfFifoDrop > monStats->rxBottomOfFifoDrop)
-        {
-            evt |= ETHFW_STATSMON_RXBOTTOMOFFIFODROP;
-            needsRecovery = BTRUE;
-        }
-
-        if (stats->rxTopOfFifoDrop > monStats->rxTopOfFifoDrop)
-        {
-            evt |= ETHFW_STATSMON_RXTOPOFFIFODROP;
-        }
-
-        for (i = 0U; i < ENET_PRI_NUM; i++)
-        {
-            if (stats->txPriDrop[i] > monStats->txPriDrop[i])
-            {
-                evt |= ETHFW_STATSMON_TXPRIDROP;
-                break;
-            }
-        }
-    }
-
-    /* Call application callback if one has been provided */
-    if ((status == ETHFW_SOK) &&
-        (evt != 0U) &&
-        (gEthFwObj.monitor.statsMonMacEvtCb != NULL))
-    {
-        diffStats.rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop - monStats->rxBottomOfFifoDrop;
-        diffStats.rxTopOfFifoDrop    = stats->rxTopOfFifoDrop - monStats->rxTopOfFifoDrop;
-        for (i = 0U; i < ENET_PRI_NUM; i++)
-        {
-            diffStats.txPriDrop[i] = stats->txPriDrop[i] - monStats->txPriDrop[i];
-        }
-
-        gEthFwObj.monitor.statsMonMacEvtCb(macPort, evt, &diffStats, stats,
-                                           gEthFwObj.monitor.statsMonCbArg);
-
-        monStats->rxBottomOfFifoDrop = stats->rxBottomOfFifoDrop;
-        monStats->rxTopOfFifoDrop    = stats->rxTopOfFifoDrop;
-        memcpy(monStats->txPriDrop, stats->txPriDrop, sizeof(monStats->txPriDrop));
-    }
-
-    return needsRecovery;
-}
-
-static void EthFw_monitorTask(void *a0,
-                              void *a1)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    Enet_MacPort macPort;
-    Enet_MacPort recoveryMacPort;
-    bool needsRecovery = BFALSE;
-    uint32_t i;
-    int32_t status = ENET_SOK;
-    bool isTeardownComplete = BFALSE;
-    bool isrecoveryPortLinked = BFALSE;
-    bool noPendingReq = BFALSE;
-    uint32_t numTotalClients  = 0U;
-    uint32_t numActiveClients  = 0U;
-    uint32_t numIdleClients = 0U;
-    uint32_t teardownLoopCnt = 0U;
-
-    while (gEthFwObj.monitorTaskRun)
-    {
-        SemaphoreP_pend(gEthFwObj.hMonitorSem, SemaphoreP_WAIT_FOREVER);
-
-        needsRecovery = EthFw_analyzeHostStats();
-
-        for (i = 0U; (i < gEthFwObj.numPorts) && !needsRecovery; i++)
-        {
-            macPort = ENET_MACPORT_DENORM(i);
-            if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, macPort) == BTRUE)
-            {
-                needsRecovery = EthFw_analyzePortStats(macPort);
-                if (needsRecovery)
-                {
-                    recoveryMacPort = macPort;
-                }
-            }
-        }
-
-        if (needsRecovery && gEthFwObj.recoveryEn)
-        {
-            /* Stop the clock during reset recovery handling */
-            ClockP_stop(gEthFwObj.hMonitorClock);
-
-            /* Stop periodic ticks to Mcm */
-            EnetMcm_stopPeriodicTick(&gEthFwObj.mcmCmdIf);
-
-            /* Get the clients status */
-            CpswProxyServer_getIdleClientCnt(&numTotalClients,&numIdleClients);
-
-            ETHFWTRACE_INFO("%u clients attached to be reset", numTotalClients);
-
-            if (numTotalClients != 0U)
-            {
-                /* Notify the clients about the HW error */
-                CpswProxyServer_bcastNotify(ETHREMOTECFG_NOTIFY_HWERROR);
-
-                /* Wait for clients to complete their DMA teardown */
-                while (!isTeardownComplete)
-                {
-                    /* get the client status */
-                    CpswProxyServer_getIdleClientCnt(&numActiveClients,&numIdleClients);
-
-                    if (numIdleClients == numTotalClients)
-                    {
-                        isTeardownComplete = BTRUE;
-                    }
-
-                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
-
-                    teardownLoopCnt++;
-                    if ((teardownLoopCnt % ETHFW_MON_HWRECOVERY_RETRY_LOG_ITER) == 0U)
-                    {
-                        ETHFWTRACE_INFO("%u of %u clients have completed DMA tear-down",
-                                        numIdleClients, numActiveClients);
-                        teardownLoopCnt = 0U;
-                    }
-                }
-
-                /* Wait untill all ARP table entries are free. */
-                while (!noPendingReq)
-                {
-#if defined(ETHFW_PROXY_ARP_HANDLING)
-                    if (EthFwArp_getUseCnt() == 0U)
-                    {
-                        noPendingReq = BTRUE;
-                    }
-#endif
-
-#if defined(ETHFW_VEPA_SUPPORT)
-                    if (EthFwVepa_getUseCnt() == 0U)
-                    {
-                        noPendingReq = BTRUE;
-                    }
-#endif
-                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
-                }
-            }
-
-            /* Call the EthFw reset handler */
-            ETHFWTRACE_INFO("CPSW recovery is about to take place");
-            status = EthFw_resetHandler();
-
-            if (status != ENET_SOK)
-            {
-                ETHFWTRACE_ERR(status, "Failed to recover CPSW");
-                EnetAppUtils_assert(status == ENET_SOK);
-            }
-            else
-            {
-                /* Send a notification to clients for HW recovery completion only when Port link is up*/
-                while(!isrecoveryPortLinked)
-                {
-                    if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwObj.coreId, recoveryMacPort) == BTRUE)
-                    {
-                        isrecoveryPortLinked = BTRUE;
-                    }
-
-                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
-                }
-
-                /* Notify the clients about the HW error recovery completion */
-                CpswProxyServer_bcastNotify(ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE);
-            }
-
-            /* Set teardown flag to false for next iteration */
-            isTeardownComplete = BFALSE;
-            isrecoveryPortLinked = BFALSE;
-            noPendingReq = BFALSE;
-            ClockP_start(gEthFwObj.hMonitorClock);
-        }
-    }
-}
-
-uint64_t EthFw_getCurrentTime(uint32_t *nanoSeconds,
-                          uint64_t *seconds)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    int32_t status = ENET_SOK;
-    Enet_IoctlPrms prms;
-    uint64_t tsVal = 0U;
-
-    /* Software Time stamp Push event */
-    ENET_IOCTL_SET_OUT_ARGS(&prms, &tsVal);
-    status = Enet_ioctl(hEnet,
-                        gEthFwObj.coreId,
-                        ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP,
-                        &prms);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Error in getting the current CPTS time");
-
-    *nanoSeconds = (uint32_t)(tsVal % (uint64_t)ETHFW_TIME_SEC_TO_NS);
-    *seconds = tsVal / (uint64_t)ETHFW_TIME_SEC_TO_NS;
-
-    tsVal = (uint64_t)(((uint64_t)*seconds * (uint64_t)ETHFW_TIME_SEC_TO_NS) + *nanoSeconds);
-
-    return tsVal;
-}
-
-void EthFw_setCurrentTime(uint64_t *time)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    int32_t status = ENET_SOK;
-    Enet_IoctlPrms prms;
-
-    /* Update the CPTS time */
-    ENET_IOCTL_SET_IN_ARGS(&prms, time);
-
-    status = Enet_ioctl(hEnet,
-                        gEthFwObj.coreId,
-                        ENET_TIMESYNC_IOCTL_SET_TIMESTAMP,
-                        &prms);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Error in setting the updated CPTS time");
-}
-
-static int32_t EthFw_resetHandler(void)
-{
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    uint32_t nanoSeconds = 0U;
-    uint64_t seconds = 0LLU;
-    uint64_t preResetTime;
-    uint64_t postResetTime;
-    uint64_t currentTime;
-    uint64_t updatedTime;
-    int32_t status = ENET_SOK;
-    uint32_t i;
-
-    /* Get current CPTS time */
-    currentTime = EthFw_getCurrentTime(&nanoSeconds, &seconds);
-
-    /* Get OS time before triggering a reset */
-    preResetTime = TimerP_getTimeInUsecs();
-
-    /* Close MAC Ports */
-    status = EnetMcm_closeMacPorts(&gEthFwObj.mcmCmdIf);
-    EnetAppUtils_assert(status == ENET_SOK);
-
-    /* Call App callback to close the Lwip Dma channels */
-    gEthFwObj.monitor.closeLwipDmaCb(gEthFwObj.monitor.lwipDmaCbArg);
-
-#if defined(ETHFW_GPTP_SUPPORT)
-    /* Close the gPTP DMA channels */
-    LLDEnetDmaClose();
-#endif
-
-    /* Save the context */
-    EnetMcm_saveCtxt(&gEthFwObj.mcmCmdIf);
-
-    /* Reset the CPSW */
-    EnetAppUtils_turnCpswOff();
-    EnetAppUtils_delayInUsec(5000U);
-    EnetAppUtils_turnCpswOn();
-
-    /* Clear local stats counters */
-    memset(gEthFwObj.monStats, 0, sizeof(gEthFwObj.monStats));
-
-    /* Workaround: CPSW software stats are currently not cleared during save/restore context.
-     * In order to prevent that the recovery mechanism runs in infinite loop, save the last
-     * software stats so they become the starting point going forward */
-    EthFw_saveStats();
-
-    /* Restore the context */
-    status = EnetMcm_restoreCtxt(&gEthFwObj.mcmCmdIf);
-    EnetAppUtils_assert(status == ENET_SOK);
-
-    /* Call App callback to open the Lwip Dma channels */
-    gEthFwObj.monitor.openLwipDmaCb(gEthFwObj.monitor.lwipDmaCbArg);
-
-#if defined(ETHFW_GPTP_SUPPORT)
-    /* start the gPTP DMA channels */
-    LLDEnetDmaOpen();
-#endif
-
-    /* Open MAC Ports */
-    status = EnetMcm_openMacPorts(&gEthFwObj.mcmCmdIf);
-    EnetAppUtils_assert(status == ENET_SOK);
-
-    /* Get OS time post reset is done */
-    postResetTime = TimerP_getTimeInUsecs();
-
-    /* Calculate the updated time( current time + (time taken by during reset)*1000U (convert to nanoseconds))
-    * in nanoseconds to be set into CPTS */
-    updatedTime = currentTime + (postResetTime - preResetTime)*1000U;
-
-    /* Update CPTS time with the time taken by reset recovery */
-    EthFw_setCurrentTime(&updatedTime);
-    
-    /* Start periodic ticks to Mcm */
-    EnetMcm_startPeriodicTick(&gEthFwObj.mcmCmdIf);
-
-    return status;
-}
-#endif
