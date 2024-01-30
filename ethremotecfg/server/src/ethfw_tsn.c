@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2023 Texas Instruments Incorporated
+ * Copyright (c) 2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -71,19 +71,26 @@
 /* ========================================================================== */
 
 /* EthFwTrace id for this module, must be unique within ETHFW */
-#define ETHFWTRACE_MOD_ID 0x106
+#define ETHFWTRACE_MOD_ID 0x107
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 
 /* TSN header files */
-#include <tsn_tilld_include.h>
-#include <tsn_combase/combase.h>
-#include <tsn_unibase/unibase_binding.h>
-#include <tsn_gptp/gptp_config.h>
+#include <tsn_buildconf/jacinto_buildconf.h>
+#include <tsn_gptp/tilld/lld_gptp_private.h>
+#include <tsn_uniconf/yangs/tsn_data.h>
+#include <tsn_uniconf/yangs/yang_db_runtime.h>
+#include <tsn_uniconf/yangs/yang_modules.h>
+#include <tsn_uniconf/uc_dbal.h>
+#include <tsn_gptp/gptpconf/gptpgcfg.h>
+#include <tsn_uniconf/yangs/ieee1588-ptp_access.h>
+#include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
+#include <tsn_uniconf/uc_dbal.h>
+#include <tsn_uniconf/ucman.h>
 #include <tsn_gptp/gptpman.h>
-#include <tsn_combase/tilld/lldenet.h>
+#include <tsn_unibase/unibase_binding.h>
 
 /* PDK driver header files */
 #include <ti/osal/MutexP.h>
@@ -109,12 +116,25 @@
 /*! Logging task - very low priority so it doesn't interfere with gPTP stack */
 #define ETHFW_TSN_LOGGER_TASK_PRIORITY                              (1U)
 
-/*! gPTP stack priority - should be higher than other non-critical tasks which could interfere*/
-#define ETHFW_TSN_GPTP_TASK_PRIORITY                                (7U)
+/*! gPTP stack priority - should be higher than other non-critical tasks which could interfere */
+#define ETHFW_TSN_GPTP_TASK_PRIORITY                                (10U)
+
+/*! gPTP Task name */
+#define ETHFW_TSN_GPTP_TASK_NAME                                    "gPTP Task"
 
 /*! TSN stack size and alignment */
 #define ETHFW_TSN_TASK_STACK_SIZE                                   (16U * 1024U)
 #define ETHFW_TSN_TASK_STACK_ALIGN                                  ETHFW_TSN_TASK_STACK_SIZE
+
+/*! Uniconf stack priority */
+#define ETHFW_TSN_UC_TASK_PRIORITY                                  (7U)
+
+/*! Uniconf Task name */
+#define ETHFW_TSN_UC_TASK_NAME                                      "Uniconf Task"
+
+/*! Uniconf stack size and alignment */
+#define ETHFW_TSN_UC_TASK_STACK_SIZE                                (16U * 1024U)
+#define ETHFW_TSN_UC_TASK_STACK_ALIGN                               (32U)
 
 /*! Log task's buffer stack size and alignment */
 #define ETHFW_TSN_LOGGER_TASK_STACK_SIZE                            (2U * 1024U)
@@ -133,6 +153,75 @@
 #define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (4U)
 #endif
 
+#define MAX_KEY_SIZE                                                (256)
+
+#define ETHFW_TSN_UC_CONF_FILE_NUM                                  (0U)
+#define ETHFW_TSN_INTERFACE_CONFFILE_PATH                           (NULL)
+#define ETHFW_TSN_UC_DBFILE_PATH                                    (NULL)
+
+/* ========================================================================== */
+/*                         Structure Declarations                             */
+/* ========================================================================== */
+
+/* Container structure for database name and value pairs for yang configurations */
+typedef struct EthFwTsn_DbNameVal_s
+{
+    char *name;
+    char *val;
+} EthFwTsn_DbNameVal;
+
+/* Container structure for database name and value pairs, for non-yang configurations */
+typedef struct EthFwTsn_DbIntVal_s
+{
+    char *name;
+    int item;
+    int val;
+} EthFwTsn_DbIntVal;
+
+typedef struct EthFwTsn_dbArgs_s
+{
+    uc_dbald *dbald;
+    xl4_data_data_t *xdd;
+    yang_db_runtime_dataq_t *ydrd;
+} EthFwTsn_dbArgs;
+
+typedef int32_t (*EthFwTsn_OnModuleDBInit)(EthFwTsn_dbArgs *dbArgs);
+
+typedef void (*EthFwTsn_OnModuleStart)(void *arg1, void *arg2);
+
+typedef struct EthFwTsn_GptpOpt_s
+{
+    char *devlist;
+    const char **confFiles;
+    uint32_t domainNum;
+    uint32_t domains[GPTP_MAX_DOMAINS];
+    uint32_t instNum;
+    uint32_t numConf;
+} EthFwTsn_GptpOpt;
+
+/* Container structure for Uniconf config params */
+typedef struct EthFwTsn_UniconfCfg_s
+{
+    char *dbName;
+    ucman_data_t ucData;
+    UC_NOTICE_SIG_T ucReadySem;
+    bool dbInitFlag;
+} EthFwTsn_UniconfCfg;
+
+/* Container structure for TSN Modules config params */
+typedef struct EthFwTsn_ModuleCfg_s
+{
+    bool stopFlag;
+    int taskPriority;
+    TaskP_Handle hTaskHandle;
+    const char *taskName;
+    uint8_t *stackBuffer;
+    uint32_t stackSize;
+    EthFwTsn_OnModuleDBInit onModuleDBInit;
+    EthFwTsn_OnModuleStart onModuleRunner;
+    bool enable;
+} EthFwTsn_ModuleCfg;
+
 /*!
  * \brief Structure holding gPTP and TSN configs
  */
@@ -140,9 +229,6 @@ typedef struct EthFwTsn_Obj_s
 {
     /* Whether TSN stack has been initialized or not */
     bool tsnInit;
-
-    /* Whether gPTP has been started or not */
-    bool ptpStarted;
 
     /* To run log Task in the loop*/
     bool logTaskrun;
@@ -155,12 +241,6 @@ typedef struct EthFwTsn_Obj_s
 
     /* Number of active netdevs */
     uint32_t numNetDevs;
-
-    /* gPTP task handle */
-    TaskP_Handle hPtpTask;
-
-    /* gPTP task stack buffer */
-    uint8_t gPtpStackBuf[ETHFW_TSN_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_TASK_STACK_ALIGN)));
 
     /* Mutex object used for TSN stack logging */
     MutexP_Object logMutexObj;
@@ -188,22 +268,51 @@ typedef struct EthFwTsn_Obj_s
 
     /* gPTP config callback argument */
     void *configPtpCbArg;
+
+    /* Uniconf Module Config */
+    EthFwTsn_UniconfCfg ucCfg;
 } EthFwTsn_Obj;
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void EthFwTsn_init(void);
-
-void EthFwTsn_deInit(void);
-
-static void EthFwTsn_gptpStart(char *netdevs[],
-                               uint32_t numNetDevs);
-
 static int32_t EthFwTsn_logBuffer(bool flush, const char *str);
 
 static void EthFwTsn_startLogTask(void);
+
+static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg);
+
+static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t moduleIdx);
+
+static int32_t EthFwTsn_startMod(void);
+
+static int32_t EthFwTsn_uniconfInit(EthFwTsn_dbArgs *dbArgs);
+
+static int32_t EthFwTsn_gptpDbInit(EthFwTsn_dbArgs *dbArgs);
+
+static void EthFwTsn_gptpTask(void *a0,
+                              void *a1);
+
+static void EthFwTsn_uniconfTask(void *a1,
+                                 void *a2);
+
+static int32_t EthFwTsn_gptpNonYangConfig(uint8_t instance);
+
+static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
+                                       uint32_t instance,
+                                       uint32_t domain);
+
+static void EthFwTsn_cfgGptpDefaultDs(yang_db_runtime_dataq_t *ydrd,
+                                      uint32_t instance,
+                                      uint32_t domain,
+                                      bool dbInitFlag);
+
+static void EthFwTsn_cfgGptpPortDs(yang_db_runtime_dataq_t *ydrd,
+                                   uint32_t instance,
+                                   uint32_t domain,
+                                   int portIndex,
+                                   bool dbInitFlag);
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -216,6 +325,121 @@ static void EthFwTsn_startLogTask(void);
 /* ========================================================================== */
 
 EthFwTsn_Obj gEthFwTsnObj;
+
+/* Uniconf Stack buffer */
+uint8_t gUniconfStackBuf[ETHFW_TSN_UC_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_UC_TASK_STACK_ALIGN)));
+
+/* gPTP task stack buffer */
+uint8_t gPtpStackBuf[ETHFW_TSN_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_TASK_STACK_ALIGN)));
+
+/* TSN Module Task ID */
+typedef enum {
+    ETHFWTSN_UNICONF_TASK_IDX,
+    ETHFWTSN_GPTP_TASK_IDX,
+    ETHFWTSN_MAX_TASK_IDX
+} EthFwTsn_TaskIdx;
+
+/* Default values for gptp port data set */
+static EthFwTsn_DbNameVal gGptpPortDsRw[] =
+{
+    {"port-enable", "true"},
+    {"log-announce-interval", "0"},
+    {"gptp-cap-receipt-timeout", "3"},
+    {"announce-receipt-timeout", "3"},
+    {"initial-log-announce-interval", "0"},
+    {"initial-log-sync-interval", "-3"},
+    {"sync-receipt-timeout", "3"},
+    {"initial-log-pdelay-req-interval", "0"},
+    {"allowed-lost-responses", "9"},
+    {"allowed-faults", "9"},
+    {"mean-link-delay-thresh", "0x27100000"}
+};
+
+static EthFwTsn_DbNameVal gGptpPortDsRo[] =
+{
+    {"log-sync-interval", "-3"},
+    {"minor-version-number", "1"},
+    {"current-log-sync-interval", "-3"},
+    {"current-log-gptp-cap-interval", "3"},
+    {"current-log-pdelay-req-interval", "0"},
+};
+
+/* Default values for gptp default data set */
+static EthFwTsn_DbNameVal gGptpDefaultDsRw[] =
+{
+    {"priority1", "248"},
+    {"priority2", "248"},
+    {"external-port-config-enable", "false"},
+    {"clock-quality/clock-class", "cc-default"},
+    {"clock-quality/clock-accuracy", "ca-time-accurate-to-250-ns"},
+    {"clock-quality/offset-scaled-log-variance", "0x436a"}
+};
+
+static EthFwTsn_DbNameVal gGptpDefaultDsRo[] =
+{
+    {"time-source", "internal-oscillator"},
+    {"ptp-timescale", "true"},
+};
+
+/* Default values for gptp non-yang data set */
+static EthFwTsn_DbIntVal gGptpNonYangDs[] =
+{
+    {"SINGLE_CLOCK_MODE", XL4_EXTMOD_XL4GPTP_SINGLE_CLOCK_MODE, 1},
+    {"USE_HW_PHASE_ADJUSTMENT", XL4_EXTMOD_XL4GPTP_USE_HW_PHASE_ADJUSTMENT, 1},
+    {"CLOCK_COMPUTE_INTERVAL_MSEC", XL4_EXTMOD_XL4GPTP_CLOCK_COMPUTE_INTERVAL_MSEC, 100},
+    {"FREQ_OFFSET_IIR_ALPHA_START_VALUE", XL4_EXTMOD_XL4GPTP_FREQ_OFFSET_IIR_ALPHA_START_VALUE, 1},
+    {"FREQ_OFFSET_IIR_ALPHA_STABLE_VALUE", XL4_EXTMOD_XL4GPTP_FREQ_OFFSET_IIR_ALPHA_STABLE_VALUE, 4},
+    {"PHASE_OFFSET_IIR_ALPHA_START_VALUE", XL4_EXTMOD_XL4GPTP_PHASE_OFFSET_IIR_ALPHA_START_VALUE, 1},
+    {"PHASE_OFFSET_IIR_ALPHA_STABLE_VALUE", XL4_EXTMOD_XL4GPTP_PHASE_OFFSET_IIR_ALPHA_STABLE_VALUE, 4},
+    {"MAX_DOMAIN_NUMBER", XL4_EXTMOD_XL4GPTP_MAX_DOMAIN_NUMBER, GPTP_MAX_DOMAINS},
+#if GPTP_MAX_DOMAINS == 2
+    {"CMLDS_MODE", XL4_EXTMOD_XL4GPTP_CMLDS_MODE, 1},
+    {"SECOND_DOMAIN_THIS_CLOCK", XL4_EXTMOD_XL4GPTP_SECOND_DOMAIN_THIS_CLOCK, 1}
+#endif
+};
+
+EthFwTsn_ModuleCfg gModCfgTable[ETHFWTSN_MAX_TASK_IDX] =
+{
+        [ETHFWTSN_GPTP_TASK_IDX] =
+        {
+            .enable = BFALSE,
+            .stopFlag = BTRUE,
+            .taskPriority = ETHFW_TSN_GPTP_TASK_PRIORITY,
+            .taskName = ETHFW_TSN_GPTP_TASK_NAME,
+            .stackBuffer = gPtpStackBuf,
+            .stackSize = sizeof(gPtpStackBuf),
+            .onModuleDBInit = EthFwTsn_gptpDbInit,
+            .onModuleRunner = EthFwTsn_gptpTask,
+        },
+        [ETHFWTSN_UNICONF_TASK_IDX] =
+        {
+            .enable = BFALSE,
+            .stopFlag = BTRUE,
+            .taskPriority = ETHFW_TSN_UC_TASK_PRIORITY,
+            .taskName = ETHFW_TSN_UC_TASK_NAME,
+            .stackBuffer = gUniconfStackBuf,
+            .stackSize = sizeof(gUniconfStackBuf),
+            .onModuleDBInit = EthFwTsn_uniconfInit,
+            .onModuleRunner = EthFwTsn_uniconfTask,
+        },
+};
+
+/* gPTP supporting maximum two time domains */
+static EthFwTsn_GptpOpt gGptpOpt =
+{
+    .confFiles = NULL,
+    .domainNum = GPTP_MAX_DOMAINS,
+#if GPTP_MAX_DOMAINS == 1U
+    .domains = {0},
+#elif GPTP_MAX_DOMAINS == 2U
+    .domains = {0, 1},
+#else
+    #error "Only support 2 domains"
+#endif
+    .instNum = 0U,
+    .numConf = 0U,
+};
+
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -305,14 +529,44 @@ static void EthFwTsn_startLogTask(void)
 static void EthFwTsn_gptpTask(void *a0,
                               void *a1)
 {
-    char **netdevs = (char **)a0;
-    uint32_t numNetDevs = (uint32_t)a1;
     int32_t i;
     int32_t status;
+    const char *netdevs[IFNAMSIZ];
+    EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_GPTP_TASK_IDX];
+
+    /* Let app overwrite any gPTP configuration parameters */
+    if (gEthFwTsnObj.configPtpCb != NULL)
+    {
+        gEthFwTsnObj.configPtpCb(gEthFwTsnObj.configPtpCbArg);
+    }
+
+    for (i = 0U; i < gEthFwTsnObj.numNetDevs; i++)
+    {
+        netdevs[i] = gEthFwTsnObj.netDevs[i];
+    }
 
     /* This function start gPTP, it has a true loop inside */
-    status = gptpman_run(netdevs, numNetDevs, 1, NULL);
-    ETHFWTRACE_ERR_IF((status < 0), status, "gptpman_run() failed");
+    status = gptpman_run(gGptpOpt.instNum, netdevs, gEthFwTsnObj.numNetDevs,
+                         NULL, &mod->stopFlag);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "gptpman_run() failed");
+}
+
+static void EthFwTsn_uniconfTask(void *a1,
+                                 void *a2)
+{
+    EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_UNICONF_TASK_IDX];
+    EthFwTsn_UniconfCfg *uniConfCfg = &gEthFwTsnObj.ucCfg;
+    const char *configFiles[2] = {ETHFW_TSN_INTERFACE_CONFFILE_PATH, NULL};
+
+    uniConfCfg->ucData.ucmode      = UC_CALLMODE_THREAD|UC_CALLMODE_UNICONF;
+    uniConfCfg->ucData.stoprun     = &mod->stopFlag;
+    uniConfCfg->ucData.hwmod       = "";
+    uniConfCfg->ucData.ucmanstart  = &uniConfCfg->ucReadySem;
+    uniConfCfg->ucData.dbname      = uniConfCfg->dbName;
+    uniConfCfg->ucData.configfiles = configFiles;
+    uniConfCfg->ucData.numconfigfile = ETHFW_TSN_UC_CONF_FILE_NUM;
+
+    uniconf_main(&uniConfCfg->ucData);
 }
 
 void EthFwTsn_init(void)
@@ -323,7 +577,7 @@ void EthFwTsn_init(void)
     {
         /*refer to 'ub_logging.h for logging levels*/
         ubb_default_initpara(&params);
-        params.ub_log_initstr    = "5,ubase:5,cbase:5,gptp:5";
+        params.ub_log_initstr    = "4,ubase:45,cbase:45,uconf:45,gptp:45";
         params.cbset.gettime64   = cb_lld_gettime64;
         params.cbset.console_out = EthFwTsn_logBuffer;
         gEthFwTsnObj.logTaskrun = BTRUE;
@@ -332,13 +586,16 @@ void EthFwTsn_init(void)
 
         unibase_init(&params);
         ubb_memory_out_init(NULL, 0);
+        gEthFwTsnObj.ucCfg.dbName = ETHFW_TSN_UC_DBFILE_PATH;
+        gEthFwTsnObj.ucCfg.dbInitFlag = BFALSE;
         gEthFwTsnObj.tsnInit = BTRUE;
     }
 }
 
 void EthFwTsn_deInit(void)
 {
-    unibase_close();
+    EthFwTsn_ModuleCfg *mod;
+    uint32_t i;
 
     gEthFwTsnObj.logTaskrun = BFALSE;
 
@@ -347,51 +604,33 @@ void EthFwTsn_deInit(void)
         TaskP_delete(gEthFwTsnObj.hLogTask);
         gEthFwTsnObj.hLogTask = NULL;
     }
-    if (gEthFwTsnObj.hPtpTask != NULL)
-    {
-        TaskP_delete(gEthFwTsnObj.hPtpTask);
-        gEthFwTsnObj.hPtpTask = NULL;
-    }
     if (gEthFwTsnObj.hLogMutex != NULL)
     {
         MutexP_delete(&gEthFwTsnObj.hLogMutex);
         gEthFwTsnObj.hLogMutex = NULL;
     }
+    if (gEthFwTsnObj.ucCfg.ucReadySem != NULL)
+    {
+        CB_SEM_DESTROY(&gEthFwTsnObj.ucCfg.ucReadySem);
+    }
+    if (gEthFwTsnObj.tsnInit)
+    {
+        for (i = 0; i < ETHFWTSN_MAX_TASK_IDX; i++)
+        {
+            mod = &gModCfgTable[i];
+            if (mod->hTaskHandle != NULL)
+            {
+                TaskP_delete(mod->hTaskHandle);
+                mod->hTaskHandle = NULL;
+                mod->enable = BFALSE;
+            }
+        }
+    }
 
     unibase_close();
 
     gEthFwTsnObj.tsnInit    = BFALSE;
-    gEthFwTsnObj.ptpStarted = BFALSE;
     gEthFwTsnObj.logTaskrun = BFALSE;
-}
-
-static void EthFwTsn_gptpStart(char *netdevs[],
-                               uint32_t numNetDevs)
-{
-    TaskP_Params params;
-
-    if (!gEthFwTsnObj.ptpStarted)
-    {
-        /* gPTP Task Init */
-        TaskP_Params_init(&params);
-        params.priority  = ETHFW_TSN_GPTP_TASK_PRIORITY;
-        params.stack     = &gEthFwTsnObj.gPtpStackBuf[0];
-        params.stacksize = sizeof(gEthFwTsnObj.gPtpStackBuf);
-        params.name      = "ETHFW gPTP Task";
-        params.arg0      = netdevs;
-        params.arg1      = (void *)numNetDevs;
-
-        gEthFwTsnObj.hPtpTask = TaskP_create(&EthFwTsn_gptpTask, &params);
-        if (NULL == gEthFwTsnObj.hPtpTask)
-        {
-            ETHFWTRACE_ERR(ETHFW_EFAIL, "Failed to create gptp task");
-            EnetAppUtils_assert(BFALSE);
-        }
-        else
-        {
-            gEthFwTsnObj.ptpStarted = BTRUE;
-        }
-    }
 }
 
 int32_t EthFwTsn_initTimeSyncPtp(EthFwTsn_Config *config,
@@ -400,7 +639,7 @@ int32_t EthFwTsn_initTimeSyncPtp(EthFwTsn_Config *config,
 {
     lld_ethdev_t ethdevs[MAX_NUMBER_ENET_DEVS] = {0};
     Enet_MacPort macPort;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
     int32_t singleClk = 1;
     int32_t i;
     int32_t j = 0;
@@ -432,26 +671,374 @@ int32_t EthFwTsn_initTimeSyncPtp(EthFwTsn_Config *config,
 
     /* Filling netdev table where each entry consists of an interface,
      * its MAC port and mac addr (if any) */
-    if (status == ENET_SOK)
+    if (status == ETHFW_SOK)
     {
         status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.numNetDevs,
                                          (Enet_Type) config->enetType,
                                          config->instId);
-        ETHFWTRACE_ERR_IF((status < 0), status, "Failed to int devs table");
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to int devs table");
     }
 
-    /* CPSW has a single clock for all the ports */
-    gptpconf_set_item(CONF_SINGLE_CLOCK_MODE, &singleClk);
-
-    /* Let app overwrite any gPTP configuration parameters */
-    if (gEthFwTsnObj.configPtpCb != NULL)
-    {
-        gEthFwTsnObj.configPtpCb(gEthFwTsnObj.configPtpCbArg);
-    }
-
-    EthFwTsn_gptpStart(gEthFwTsnObj.gPtpNetDevs, gEthFwTsnObj.numNetDevs);
+    status = EthFwTsn_startMod();
 
     ETHFWTRACE_INFO("TimeSync PTP enabled");
+
+    return status;
+}
+
+static int32_t EthFwTsn_uniconfInit(EthFwTsn_dbArgs *dbArgs)
+{
+    int32_t status = ETHFW_SOK;
+    char buffer[MAX_KEY_SIZE]={0};
+    uint32_t i;
+
+    for (i = 0; i < gEthFwTsnObj.numNetDevs; i++)
+    {
+        snprintf(buffer, sizeof(buffer),
+                 "/ietf-interfaces/interfaces/interface|name:%s|/enabled",
+                 gEthFwTsnObj.netDevs[i]);
+        status=yang_db_runtime_put_oneline(dbArgs->ydrd, buffer, (char*)"true",
+                                        YANG_DB_ONHW_NOACTION);
+
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "yang_db_runtime_put_oneline failed");
+    }
+
+    return status;
+}
+
+static int32_t EthFwTsn_gptpDbInit(EthFwTsn_dbArgs *dbArgs)
+{
+    EthFwTsn_UniconfCfg *ucCfg = &gEthFwTsnObj.ucCfg;
+    int32_t (*gptpNonYangConfig)(uint8_t instance);
+    int32_t status = ETHFW_SOK;
+    uint32_t i;
+
+    if (gGptpOpt.numConf == 0U)
+    {
+        /* There is no config file is specified, set config file for gptp*/
+        for (i = 0; i < gGptpOpt.domainNum; i++)
+        {
+            status = EthFwTsn_gptpYangConfig(dbArgs->ydrd, gGptpOpt.instNum,
+                                             gGptpOpt.domains[i]);
+
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                  "Failed to set gptp run time config");
+        }
+
+        gptpNonYangConfig = EthFwTsn_gptpNonYangConfig;
+    }
+    else
+    {
+        gptpNonYangConfig = NULL;
+    }
+
+    if (ETHFW_SOK == status)
+    {
+        status = gptpgcfg_init(ucCfg->dbName, gGptpOpt.confFiles, gGptpOpt.instNum, BTRUE,
+                               gptpNonYangConfig);
+
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                          "gptpgcfg_init() error in %s", __func__);
+    }
+
+    return status;
+}
+
+static int32_t EthFwTsn_gptpNonYangConfig(uint8_t instance)
+{
+    uint32_t i;
+    int32_t status;
+
+    for (i = 0; i < sizeof(gGptpNonYangDs)/sizeof(gGptpNonYangDs[0]); i++)
+    {
+        status = gptpgcfg_set_item(instance, gGptpNonYangDs[i].item,
+                                   YDBI_CONFIG, &gGptpNonYangDs[i].val,
+                                   sizeof(gGptpNonYangDs[i].val));
+
+        ETHFWTRACE_DBG_IF(status == ETHFW_SOK,"%s:XL4_EXTMOD_XL4GPTP_%s=%d\n", __func__,
+                               gGptpNonYangDs[i].name, gGptpNonYangDs[i].val); 
+
+        if ((status != ETHFW_SOK))
+        {
+            ETHFWTRACE_ERR(ETHFW_EFAIL,"%s: failed to set nonyang param: %s\n",
+                            __func__, gGptpNonYangDs[i].name); 
+            break;  
+        }
+    }
+    return status;
+}
+
+static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
+                                       uint32_t instance,
+                                       uint32_t domain)
+{
+    char buffer[MAX_KEY_SIZE];
+    char value_str[32];
+    char *plus;
+    uint32_t i;
+    uint32_t status = ETHFW_SOK;
+    EthFwTsn_UniconfCfg *cfg = &gEthFwTsnObj.ucCfg;
+
+    ETHFWTRACE_INFO("%s:domain=%d", __func__, domain);
+
+    do {
+        /* skip setting of 'rw' yang configs when db is already initialized */
+        if (!cfg->dbInitFlag)
+        {
+            plus = ((instance | domain) != 0) ? "+": "";
+            snprintf(buffer, sizeof(buffer), "/ieee1588-ptp/ptp/instance-domain-map%s",
+                     plus);
+            snprintf(value_str, sizeof(value_str), "0x%04x", instance<<8|domain);
+            yang_db_runtime_put_oneline(ydrd, buffer,
+                                        value_str, YANG_DB_ONHW_NOACTION);
+        }
+
+        /* set for default-ds */
+        EthFwTsn_cfgGptpDefaultDs(ydrd, instance, domain, cfg->dbInitFlag);
+
+        // portindex starts from 1
+        for (i = 0; i < gEthFwTsnObj.numNetDevs; i++)
+        {
+            /* skip setting of 'rw' yang configs when db is already initialized */
+            if (!cfg->dbInitFlag)
+            {
+                snprintf(buffer, sizeof(buffer),
+                         "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                         "/ports/port|port-index:%d|/underlying-interface",
+                         instance, domain, i+1);
+                yang_db_runtime_put_oneline(ydrd, buffer, gEthFwTsnObj.netDevs[i],
+                                            YANG_DB_ONHW_NOACTION);
+            }
+
+            /* set for port-ds */
+            EthFwTsn_cfgGptpPortDs(ydrd, instance, domain, i+1, cfg->dbInitFlag);
+        }
+
+        /* skip setting of 'rw' yang configs when db is already initialized */
+        if (!cfg->dbInitFlag)
+        {
+            /* disable performance by default */
+            snprintf(buffer, sizeof(buffer),
+                     "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                     "/performance-monitoring-ds/enable",
+                     instance, domain);
+            yang_db_runtime_put_oneline(ydrd, buffer, "false", YANG_DB_ONHW_NOACTION);
+        }
+    } while (0);
+
+    return status;
+}
+
+static void EthFwTsn_cfgGptpDefaultDs(yang_db_runtime_dataq_t *ydrd,
+                                      uint32_t instance,
+                                      uint32_t domain,
+                                      bool dbInitFlag)
+{
+    uint32_t i;
+    char buffer[MAX_KEY_SIZE];
+
+    if (!dbInitFlag)
+    {
+        for (i = 0; i < sizeof(gGptpDefaultDsRw)/sizeof(gGptpDefaultDsRw[0]); i++)
+        {
+            snprintf(buffer, sizeof(buffer),
+                     "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                     "/default-ds/%s",
+                     instance, domain, gGptpDefaultDsRw[i].name);
+            yang_db_runtime_put_oneline(ydrd, buffer, gGptpDefaultDsRw[i].val,
+                                        YANG_DB_ONHW_NOACTION);
+        }
+    }
+
+    for (i = 0; i < sizeof(gGptpDefaultDsRo)/sizeof(gGptpDefaultDsRo[0]); i++)
+    {
+        snprintf(buffer, sizeof(buffer),
+                 "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                 "/default-ds/%s",
+                 instance, domain, gGptpDefaultDsRo[i].name);
+        yang_db_runtime_put_oneline(ydrd, buffer, gGptpDefaultDsRo[i].val,
+                                    YANG_DB_ONHW_NOACTION);
+    }
+}
+
+static void EthFwTsn_cfgGptpPortDs(yang_db_runtime_dataq_t *ydrd,
+                                   uint32_t instance,
+                                   uint32_t domain,
+                                   int portIndex,
+                                   bool dbInitFlag)
+{
+    uint32_t i;
+    char buffer[MAX_KEY_SIZE];
+
+    if (!dbInitFlag)
+    {
+        for (i = 0; i < sizeof(gGptpPortDsRw)/sizeof(gGptpPortDsRw[0]); i++)
+        {
+            snprintf(buffer, sizeof(buffer),
+                     "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                     "/ports/port|port-index:%d|/port-ds/%s",
+                     instance, domain, portIndex, gGptpPortDsRw[i].name);
+
+            yang_db_runtime_put_oneline(ydrd, buffer, gGptpPortDsRw[i].val,
+                                        YANG_DB_ONHW_NOACTION);
+        }
+    }
+
+    for (i = 0; i < sizeof(gGptpPortDsRo)/sizeof(gGptpPortDsRo[0]); i++)
+    {
+        snprintf(buffer, sizeof(buffer),
+                 "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                 "/ports/port|port-index:%d|/port-ds/%s",
+                 instance, domain, portIndex, gGptpPortDsRo[i].name);
+
+        yang_db_runtime_put_oneline(ydrd, buffer, gGptpPortDsRo[i].val,
+                                    YANG_DB_ONHW_NOACTION);
+    }
+}
+
+
+static int32_t EthFwTsn_startMod(void)
+{
+    uint32_t i;
+    int32_t status = ETHFW_SOK;
+    EthFwTsn_ModuleCfg *mod;
+
+    if (CB_SEM_INIT(&gEthFwTsnObj.ucCfg.ucReadySem, 0, 0) < 0)
+    {
+        ETHFWTRACE_ERR(status, "Failed to initialize ucReadySem semaphore!");
+        status = ETHFW_EFAIL;
+    }
+
+    if (gEthFwTsnObj.tsnInit)
+    {
+        for (i = ETHFWTSN_UNICONF_TASK_IDX; i < ETHFWTSN_MAX_TASK_IDX; i++)
+        {
+            mod = &gModCfgTable[i];
+            if (mod->enable == BFALSE)
+            {
+                status = EthFwTsn_startModTask(mod, i);
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, 
+                                  " Failed to start Task for moduleIdx %u", i);
+            }
+        }
+    }
+
+    return status;
+}
+
+static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t moduleIdx)
+{
+     TaskP_Params taskParams;
+     int32_t status = ETHFW_SOK;
+
+     if (gEthFwTsnObj.ucCfg.ucReadySem != NULL)
+    {
+        TaskP_Params_init(&taskParams);
+        taskParams.priority = modCfg->taskPriority;
+        taskParams.stack = &modCfg->stackBuffer[0];
+        taskParams.stacksize = modCfg->stackSize;
+        taskParams.name = modCfg->taskName;
+
+        modCfg->hTaskHandle = TaskP_create(modCfg->onModuleRunner, &taskParams);
+
+        if (NULL == modCfg->hTaskHandle)
+        {
+            status = ETHFW_EFAIL;
+            ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", &modCfg->taskName);
+            EnetAppUtils_assert(BFALSE);
+        }
+
+        else
+        {
+            modCfg->stopFlag = BFALSE;
+            modCfg->enable = BTRUE;
+            if (moduleIdx == ETHFWTSN_UNICONF_TASK_IDX)
+            {
+                /* initDb must be run right after UNICONF is started and
+                   before starting any other tasks. */
+                status = EthFwTsn_initDb(&gEthFwTsnObj.ucCfg);
+            }
+        }
+    }
+
+    return status;
+}
+
+/* Can be read from cfg files, or in case of no db file is specified, init runtime config */
+static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
+{
+    EthFwTsn_ModuleCfg *mod;
+    EthFwTsn_dbArgs dbArgs;
+    int32_t i;
+    int32_t status = ETHFW_SOK;
+    uint32_t timeout_ms = 1000U;
+
+    do
+    {
+        /*waiting for the uniconf to be ready */
+        status = CB_SEM_WAIT(&ucCfg->ucReadySem);
+        if (ETHFW_SOK != status)
+        {
+            ETHFWTRACE_ERR(status, "Failed to wait for the uniconf");
+            break;
+        }
+
+        status = uniconf_ready(ucCfg->dbName, UC_CALLMODE_THREAD, timeout_ms);
+        if (status)
+        {
+            ETHFWTRACE_ERR(status, "The uniconf must be run first!");
+            break;
+        }
+
+        dbArgs.dbald = uc_dbal_open(ucCfg->dbName, "w", UC_CALLMODE_THREAD);
+        if (!dbArgs.dbald)
+        {
+            status = ETHFW_EFAIL;
+            ETHFWTRACE_ERR(status, "ETHFW: Failed to open DB!\n");
+            break;
+        }
+        dbArgs.xdd = xl4_data_init(dbArgs.dbald);
+        if (!dbArgs.xdd)
+        {
+            status = ETHFW_EFAIL;
+            ETHFWTRACE_ERR(status, "ETHFW: Failed to init xl4 data");
+            break;
+        }
+        dbArgs.ydrd = yang_db_runtime_init(dbArgs.xdd, dbArgs.dbald, NULL);
+        if (!dbArgs.ydrd)
+        {
+            status = ETHFW_EFAIL;
+            ETHFWTRACE_ERR(status, "ETHFW: Failed to init yang db runtime");
+            break;
+        }
+
+        for (i = 0; i < ETHFWTSN_MAX_TASK_IDX; i++)
+        {
+            mod = &gModCfgTable[i];
+            if (mod->onModuleDBInit != NULL)
+            {
+                status = mod->onModuleDBInit(&dbArgs);
+                if (ETHFW_SOK != status)
+                {
+                    ETHFWTRACE_ERR(ETHFW_EFAIL, "Module DB Init failed for ModuleIdx %u", i);
+                    break;
+                }
+            }
+        }
+    } while (0);
+
+    if (dbArgs.ydrd)
+    {
+        yang_db_runtime_close(dbArgs.ydrd);
+    }
+    if (dbArgs.xdd)
+    {
+        xl4_data_close(dbArgs.xdd);
+    }
+    if (dbArgs.dbald)
+    {
+        uc_dbal_close(dbArgs.dbald, UC_CALLMODE_THREAD);
+    }
 
     return status;
 }

@@ -102,7 +102,9 @@
 
 #if defined(ETHFW_GPTP_SUPPORT)
 /* Timesync header files */
-#include <tsn_gptp/gptp_config.h>
+#include <tsn_buildconf/jacinto_buildconf.h>
+#include <tsn_gptp/gptpconf/gptpgcfg.h>
+#include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
 
@@ -1863,7 +1865,8 @@ static void EthApp_configPtpCb(void *arg)
     int32_t useHwPhase = 1;
 
     /* Apply phase adjustment directly to the HW */
-    gptpconf_set_item(CONF_USE_HW_PHASE_ADJUSTMENT, &useHwPhase);
+    gptpgcfg_set_item(0, XL4_EXTMOD_XL4GPTP_USE_HW_PHASE_ADJUSTMENT, 
+                      YDBI_CONFIG, &useHwPhase, sizeof(useHwPhase));
 }
 
 static void EthApp_initPtp(void)
@@ -1879,9 +1882,9 @@ static void EthApp_initPtp(void)
     tsnCfg.configPtpCbArg = NULL;
 
     /* MAC port used for PTP */
-    #if defined(ETHFW_BOOT_TIME_PROFILING)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
     portMask = ENET_MACPORT_MASK(gEthAppPorts[0U]);
-    #else
+#else
     for (i = 0U; i < ENET_ARRAYSIZE(gEthAppSwitchPorts); i++)
     {
         portMask |= ENET_MACPORT_MASK(gEthAppSwitchPorts[i]);

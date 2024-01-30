@@ -26,6 +26,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/contrib
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
     IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
+    IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/tsn_combase/tilld/jacinto
 endif
 endif
 ifeq ($(TARGET_OS),SAFERTOS)
@@ -61,6 +62,8 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     LDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
     LDIRS += $(PDK_PATH)/packages/ti/transport/tsn/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+    LDIRS += $(PDK_PATH)/packages/ti/drv/mmcsd/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+    LDIRS += $(PDK_PATH)/packages/ti/fs/fatfs/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 endif
 endif
 
@@ -101,8 +104,12 @@ ifneq (,$(filter ${TARGET_CPU},R5F R5Ft))
     endif
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
     ADDITIONAL_STATIC_LIBS += tsn_gptp.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += tsn_uniconf.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += tsn_combase.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += tsn_unibase.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.drv.mmcsd.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.fs.fatfs.ae$(TARGET_CPU_SUFFIX)
+    
 endif
     ADDITIONAL_STATIC_LIBS += $(ENET_APPUTILS_LIB).ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enetsoc.ae$(TARGET_CPU_SUFFIX)
@@ -186,6 +193,9 @@ PDK_LIB_RULES += board
 PDK_LIB_RULES += ipc
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
 PDK_LIB_RULES += tsn_gptp
+PDK_LIB_RULES += tsn_uniconf
 PDK_LIB_RULES += tsn_combase
 PDK_LIB_RULES += tsn_unibase
+PDK_LIB_RULES += mmcsd
+PDK_LIB_RULES += fatfs_indp
 endif

@@ -37,6 +37,7 @@ endif
 ifeq ($(ETHFW_GPTP_SUPPORT),yes)
   ifeq ($(TARGET_OS),FREERTOS)
     IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
+    IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/tsn_combase/tilld/jacinto
   endif
 endif
 

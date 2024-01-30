@@ -110,7 +110,7 @@ typedef struct EthFwTsn_Config_s
     /*! Argument to be passed to gPTP config callback function */
     void *configPtpCbArg;
 
-}EthFwTsn_Config;
+} EthFwTsn_Config;
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
@@ -123,11 +123,12 @@ typedef struct EthFwTsn_Config_s
 /* ========================================================================== */
 
 /*!
- * \brief Initialize and enable EthFw gPTP stack
+ * \brief Initialize and enable EthFw gPTP stack.
  *
  * Initializes and enable the EthFw gPTP stack with the provided configuration parameters.
  *
- * \param hostMacAddr   Host Port MAC Address
+ * \param tsnCfg        TSN config params filled by main application
+ * \param hostMacAddr   Host port MAC Address
  * \param portMask      Mask of ports used for PTP. The mask is built by or-ing
  *                      ENET_MACPORT_MASK(macPort).
  *
@@ -137,6 +138,21 @@ typedef struct EthFwTsn_Config_s
 int32_t EthFwTsn_initTimeSyncPtp(EthFwTsn_Config *tsnCfg,
                                  const uint8_t *hostMacAddr,
                                  uint32_t portMask);
+
+/*!
+ * \brief Initilize unibase and log buffer task configurations.
+ *
+ * EthFwTsn_initTimeSyncPtp should be called after this function to initilize
+ * and start Uniconf, gPTP tasks.
+ */
+void EthFwTsn_init(void);
+
+/*!
+ * \brief De-initializes all the opened gPTP related tasks.
+ *
+ * Closes unibase, kills all the tasks, semaphores and mutexes.
+ */
+void EthFwTsn_deInit(void);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

@@ -101,8 +101,7 @@
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
-/* Timesync header files */
-#include <tsn_combase/tilld/lldenet.h>
+#include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
 
 /* EthFw utils header files */
@@ -267,12 +266,6 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
                                           EthRemoteCfg_NotifyType notifyid,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len);
-
-#if defined(ETHFW_GPTP_SUPPORT)
-extern void EthFwTsn_init(void);
-
-extern void EthFwTsn_deInit(void);
-#endif
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
