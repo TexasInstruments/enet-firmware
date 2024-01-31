@@ -314,7 +314,7 @@ typedef struct CpswProxyServer_Obj_s
     Enet_Handle hEnet;
     /* Remote core object for holding all core specific information */
     CpswProxyServer_RemoteCoreObj coreObj[IPC_MAX_PROCS];
-    /* checksum offload enable */
+    /* set to true when checksum offload is enabled */
     bool csumOffloadEn;
 } CpswProxyServer_Obj;
 
@@ -674,41 +674,54 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
     EthRemoteCfg_VirtPort virtPort = ETHREMOTECFG_VIRTPORT_DENORM(portId);
     bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
     bool csumEnable;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    if (hServer->coreObj[hostId].rmRefCnt == 0U)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        EnetMcm_coreAttach(hServer->hMcmCmdIf, hostId, &attachInfo);
-        memcpy(&hServer->coreObj[hostId].attachInfo, &attachInfo, sizeof(attachInfo));
-    }
-    hServer->coreObj[hostId].rmRefCnt++;
-
-    attachInfo = hServer->coreObj[hostId].attachInfo;
-    *pRxMtu = attachInfo.rxMtu;
-    EnetAppUtils_assert(txMtuArraySize == ENET_ARRAYSIZE(attachInfo.txMtu));
-    memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
-
-    *pFeatures = 0U;
-    if (hServer->csumOffloadEn)
-    {
-        *pFeatures |= ETHREMOTECFG_FEATURE_TXCSUM;
-    }
-    if (!isMacPort)
-    {
-        *pFeatures |= ETHREMOTECFG_FEATURE_MC_FILTER;
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
     }
 
-    /* Save parameters in client object */
-    hClient->token     = CPSWPROXY_VIRTPORT_2_TOKEN(virtPort);
-    hClient->virtPort  = virtPort;
-    hClient->coreId    = hostId;
-    hClient->features  = *pFeatures;
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        if (hServer->coreObj[hostId].rmRefCnt == 0U)
+        {
+            EnetMcm_coreAttach(hServer->hMcmCmdIf, hostId, &attachInfo);
+            memcpy(&hServer->coreObj[hostId].attachInfo, &attachInfo, sizeof(attachInfo));
+        }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+        hServer->coreObj[hostId].rmRefCnt++;
+
+        attachInfo = hServer->coreObj[hostId].attachInfo;
+        *pRxMtu = attachInfo.rxMtu;
+        EnetAppUtils_assert(txMtuArraySize == ENET_ARRAYSIZE(attachInfo.txMtu));
+        memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
+
+        *pFeatures = 0U;
+        if (hServer->csumOffloadEn)
+        {
+            *pFeatures |= ETHREMOTECFG_FEATURE_TXCSUM;
+        }
+        if (!isMacPort)
+        {
+            *pFeatures |= ETHREMOTECFG_FEATURE_MC_FILTER;
+        }
+
+        /* Save parameters in client object */
+        hClient->token     = CPSWPROXY_VIRTPORT_2_TOKEN(virtPort);
+        hClient->virtPort  = virtPort;
+        hClient->coreId    = hostId;
+        hClient->features  = *pFeatures;
+    }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Attach failed for coreId: %u", hostId);
+    }
+
+    return status;
 }
 
 
@@ -737,7 +750,6 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
     {
         /* Check that server itself is ready */
         hServer = CpswProxyServer_getHandle();
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
         if ((hServer != NULL) && (hServer->initDone == BTRUE))
         {
             coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
@@ -745,6 +757,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
         else
         {
             status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            ETHFWTRACE_ERR(status, "ETHFW server is not ready");
             EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
         }
     }
@@ -793,6 +806,8 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
         EnetUtils_copyMacAddr(&hClient->macAddr[0U], macAddr);
     }
 
+    ETHFWTRACE_ERR_IF((ENET_SOK != status), status, "Attach Ext failed for coreId: %u", hostId);
+
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
 
@@ -827,6 +842,10 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
         if (ENET_SOK == status)
         {
             hClient->psilDstId = *pTxPsilDstId;
+        }
+        else
+        {
+            ETHFWTRACE_ERR(status, "Failed to alloc TX channel");
         }
     }
 
@@ -865,13 +884,18 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
                                             hostId,
                                             pRxFlowIdxBase,
                                             pRxFlowIdxOffset);
-    }
-    if (ENET_SOK == status)
-    {
-        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
 
-        hClient->flowIdxBase   = *pRxFlowIdxBase;
-        hClient->flowIdxOffset = *pRxFlowIdxOffset;
+        if (ENET_SOK == status)
+        {
+            CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
+
+            hClient->flowIdxBase   = *pRxFlowIdxBase;
+            hClient->flowIdxOffset = *pRxFlowIdxOffset;
+        }
+        else
+        {
+            ETHFWTRACE_ERR(status, "Failed to alloc RX channel");
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -907,6 +931,10 @@ static int32_t CpswProxyServer_allocMacHandlerCb(CpswProxyServer_ClientHandle hC
         if (ENET_SOK == status)
         {
             EnetUtils_copyMacAddr(&hClient->macAddr[0U], macAddr);
+        }
+        else
+        {
+            ETHFWTRACE_ERR(status, "Failed to alloc MAC Address");
         }
     }
 
@@ -945,6 +973,10 @@ static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hCli
 
         EnetMcm_releaseHandleInfo(hServer->hMcmCmdIf);
     }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Failed to detach the coreId: %u", hostId);
+    }
 
     return status;
 }
@@ -981,6 +1013,10 @@ static int32_t CpswProxyServer_freeTxHandlerCb(CpswProxyServer_ClientHandle hCli
         {
             hClient->psilDstId = 0U;
         }
+        else
+        {
+            ETHFWTRACE_ERR(status, "Failed to free Tx channel with Id: %u", pTxPsilDstId);
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1015,12 +1051,17 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
                                          coreKey,
                                          hostId,
                                          pRxFlowIdxOffset);
-    }
 
-    if (ENET_SOK == status)
-    {
-        hClient->flowIdxBase   = 0U;
-        hClient->flowIdxOffset = 0U;
+        if (ENET_SOK == status)
+        {
+            hClient->flowIdxBase   = 0U;
+            hClient->flowIdxOffset = 0U;
+        }
+        else
+        {
+            ETHFWTRACE_ERR(status, "Failed to free Rx flow with base: %u,"
+                           "offset: %u", pRxFlowIdxBase, pRxFlowIdxOffset);
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1058,6 +1099,12 @@ static int32_t CpswProxyServer_freeMacHandlerCb(CpswProxyServer_ClientHandle hCl
         {
             memcpy(&hClient->macAddr[0U], 0U, ENET_MAC_ADDR_LEN);
         }
+        else
+        {
+            ETHFWTRACE_ERR(status, "Failed to free the macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
+                           macAddr[0U], macAddr[1U], macAddr[2U],
+                           macAddr[3U], macAddr[4U], macAddr[5U]);
+        }
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1072,7 +1119,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
     CpswProxyServer_Obj *hServer = NULL;
     Enet_MacPort macPort;
     bool isSwitchPort;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
 #if defined(ETHFW_VEPA_SUPPORT)
     struct eth_addr hwAddr;
@@ -1091,54 +1138,63 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
     }
 
-    CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (isSwitchPort)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        /* Setup MAC address based classifier to the requested RX flow */
-        status = EnetAppUtils_regDstMacRxFlow(hServer->hEnet,
-                                              coreKey,
-                                              hostId,
-                                              flowIdxBase,
-                                              flowIdxOffset,
-                                              macAddr);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC addr based route");
+        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (isSwitchPort)
+        {
+            /* Setup MAC address based classifier to the requested RX flow */
+            status = EnetAppUtils_regDstMacRxFlow(hServer->hEnet,
+                                                    coreKey,
+                                                    hostId,
+                                                    flowIdxBase,
+                                                    flowIdxOffset,
+                                                    macAddr);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC addr based route");
 
 #if defined(ETHFW_VEPA_SUPPORT)
-        if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
-        {
-            SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
-            status = EthFwVepa_registerClient(hServer->hEnet, hostId, flowIdxOffset,
-                                              hServer->dfltVlanIdSwitchPorts,
-                                              hClient->virtPort,
-                                              &hwAddr);
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                              "Failed to register client core %u "
-                              "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
-                              hostId,
-                              macAddr[0], macAddr[1], macAddr[2],
-                              macAddr[3], macAddr[4], macAddr[5]);
-        }
-        if (status == ETHFW_SOK)
-        {
-            hClient->vlanRefCnt++;
-        }
+            if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
+            {
+                SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
+                status = EthFwVepa_registerClient(hServer->hEnet, hostId, flowIdxOffset,
+                                                    hServer->dfltVlanIdSwitchPorts,
+                                                    hClient->virtPort,
+                                                    &hwAddr);
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                    "Failed to register client core %u "
+                                    "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
+                                    hostId,
+                                    macAddr[0], macAddr[1], macAddr[2],
+                                    macAddr[3], macAddr[4], macAddr[5]);
+            }
+            if (status == ETHFW_SOK)
+            {
+                hClient->vlanRefCnt++;
+            }
 #endif
+        }
+        else
+        {
+            macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+
+            /* Setup MAC port based classifier to the requested RX flow */
+            status = CpswProxyServer_regMacPortFlow(hServer->hEnet,
+                                                    coreKey,
+                                                    hostId,
+                                                    macPort,
+                                                    macAddr,
+                                                    flowIdxBase,
+                                                    flowIdxOffset);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC port based route");
+        }
     }
     else
     {
-        macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
-
-        /* Setup MAC port based classifier to the requested RX flow */
-        status = CpswProxyServer_regMacPortFlow(hServer->hEnet,
-                                                coreKey,
-                                                hostId,
-                                                macPort,
-                                                macAddr,
-                                                flowIdxBase,
-                                                flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC port based route");
+        ETHFWTRACE_ERR(status, "Failed to register macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
+                        macAddr[0U], macAddr[1U], macAddr[2U],
+                        macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1153,7 +1209,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
     CpswProxyServer_Obj *hServer = NULL;
     Enet_MacPort macPort;
     bool isSwitchPort;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
 
     /* Check that server itself is ready */
@@ -1169,52 +1225,61 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
     }
 
-    CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (isSwitchPort)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        /* Teardown MAC address based classifier */
-        status = EnetAppUtils_unregDstMacRxFlow(hServer->hEnet,
-                                                coreKey,
-                                                hostId,
-                                                flowIdxBase,
-                                                flowIdxOffset,
-                                                macAddr);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC addr based route");
+        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (isSwitchPort)
+        {
+            /* Teardown MAC address based classifier */
+            status = EnetAppUtils_unregDstMacRxFlow(hServer->hEnet,
+                                                    coreKey,
+                                                    hostId,
+                                                    flowIdxBase,
+                                                    flowIdxOffset,
+                                                    macAddr);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC addr based route");
 
 #if defined(ETHFW_VEPA_SUPPORT)
-        if (status == ENET_SOK)
-        {
-            hClient->vlanRefCnt--;
-        }
-        if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
-        {
-            status = EthFwVepa_unregisterClient(hServer->hEnet, hostId, flowIdxOffset,
-                                                hServer->dfltVlanIdSwitchPorts,
-                                                hClient->virtPort);
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                              "Failed to unregister client core %u "
-                              "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
-                             hostId,
-                             macAddr[0], macAddr[1], macAddr[2],
-                             macAddr[3], macAddr[4], macAddr[5]);
-        }
+            if (status == ENET_SOK)
+            {
+                hClient->vlanRefCnt--;
+            }
+            if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
+            {
+                status = EthFwVepa_unregisterClient(hServer->hEnet, hostId, flowIdxOffset,
+                                                    hServer->dfltVlanIdSwitchPorts,
+                                                    hClient->virtPort);
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                "Failed to unregister client core %u "
+                                "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
+                                hostId,
+                                macAddr[0], macAddr[1], macAddr[2],
+                                macAddr[3], macAddr[4], macAddr[5]);
+            }
 #endif
+        }
+        else
+        {
+            macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+
+            /* Teardown MAC port based classifier */
+            status = CpswProxyServer_unregMacPortFlow(hServer->hEnet,
+                                                    coreKey,
+                                                    hostId,
+                                                    macPort,
+                                                    macAddr,
+                                                    flowIdxBase,
+                                                    flowIdxOffset);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC port based route");
+        }
     }
     else
     {
-        macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
-
-        /* Teardown MAC port based classifier */
-        status = CpswProxyServer_unregMacPortFlow(hServer->hEnet,
-                                                  coreKey,
-                                                  hostId,
-                                                  macPort,
-                                                  macAddr,
-                                                  flowIdxBase,
-                                                  flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC port based route");
+        ETHFWTRACE_ERR(status, "Failed to de-register macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
+                        macAddr[0U], macAddr[1U], macAddr[2U],
+                        macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -1236,35 +1301,48 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (isSwitchPort)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        /* Add IPv4:MAC address to ETHFW ARP table */
-#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
-        IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
-        SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-        status = EthFwArp_addAddr(&ip4Addr, &hwAddr, vlanId);
-        if (status != ETHFW_SOK)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (isSwitchPort)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to add ARP entry");
+            /* Add IPv4:MAC address to ETHFW ARP table */
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
+            IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
+            SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
+
+            status = EthFwArp_addAddr(&ip4Addr, &hwAddr, vlanId);
+            if (status != ETHFW_SOK)
+            {
+                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to add ARP entry");
+            }
+            else
+            {
+                EthFwArp_printTable();
+            }
+#endif
         }
         else
         {
-            EthFwArp_printTable();
+            /* ETHFW ARP table is supported only on virtual switch ports.
+            * Virtual MAC ports don't needed proxy ARP because all traffic is already
+            * forwarded to the remote client */
+            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            ETHFWTRACE_ERR(status, "IPv4:MAC registration is not supported on virtual MAC ports");
         }
-#endif
     }
     else
     {
-        /* ETHFW ARP table is supported only on virtual switch ports.
-         * Virtual MAC ports don't needed proxy ARP because all traffic is already
-         * forwarded to the remote client */
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
-        ETHFWTRACE_ERR(status, "IPv4:MAC registration is not supported on virtual MAC ports");
+        ETHFWTRACE_ERR(status, "Failed to register ipAddr=%u.%u.%u.%u",
+                       ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
     }
 
     return status;
@@ -1284,32 +1362,45 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (isSwitchPort)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        /* Remove IP address from ETHFW proxy ARP table */
-#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
-        IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-        status = EthFwArp_delAddr(&ip4Addr, vlanId);
-        if (status != ETHFW_SOK)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (isSwitchPort)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to remove ARP entry");
+            /* Remove IP address from ETHFW proxy ARP table */
+#if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
+            IP4_ADDR(&ip4Addr, ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
+
+            status = EthFwArp_delAddr(&ip4Addr, vlanId);
+            if (status != ETHFW_SOK)
+            {
+                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to remove ARP entry");
+            }
+            else
+            {
+                EthFwArp_printTable();
+            }
+#endif
         }
         else
         {
-            EthFwArp_printTable();
+            /* ETHFW ARP table is supported only on virtual switch ports */
+            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            ETHFWTRACE_ERR(status, "IPv4:MAC deregistration is not supported on virtual MAC ports");
         }
-#endif
     }
     else
     {
-        /* ETHFW ARP table is supported only on virtual switch ports */
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
-        ETHFWTRACE_ERR(status, "IPv4:MAC deregistration is not supported on virtual MAC ports");
+        ETHFWTRACE_ERR(status, "Failed to de-register ipAddr=%u.%u.%u.%u",
+                       ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
     }
 
     return status;
@@ -1323,19 +1414,31 @@ static int32_t CpswProxyServer_vlanJoinHandlerCb(CpswProxyServer_ClientHandle hC
                                                  uint32_t flowIdxOffset)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-    status = EthFwVlan_join(hServer->hEnet,
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        status = EthFwVlan_join(hServer->hEnet,
                             hClient->virtPort,
                             vlanId,
                             macAddr,
                             flowIdxOffset);
-    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                      "Failed to join VLAN %u", vlanId);
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                          "Failed to join VLAN %u", vlanId);
+    }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Failed to join the vlan");
+    }
 
     return status;
 }
@@ -1348,19 +1451,31 @@ static int32_t CpswProxyServer_vlanLeaveHandlerCb(CpswProxyServer_ClientHandle h
                                                   uint32_t flowIdxOffset)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-    status = EthFwVlan_leave(hServer->hEnet,
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        status = EthFwVlan_leave(hServer->hEnet,
                              hClient->virtPort,
                              vlanId,
                              macAddr,
                              flowIdxOffset);
-    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                       "Failed to leave VLAN %u", vlanId);
+    }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Failed to leave the vlan");
+    }
 
     return status;
 }
@@ -1378,29 +1493,41 @@ int32_t CpswProxyServer_promiscModeHandlerCb(CpswProxyServer_ClientHandle hClien
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    isMacPort = EthRemoteCfg_isMacPort(hClient->virtPort);
-    if (isMacPort)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        /* Enable promiscuous mode on virtual MAC ports (MAC-only CAF) */
-        macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
-        ENET_IOCTL_SET_IN_ARGS(&prms, &macPort);
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-        cmd = enable ? CPSW_ALE_IOCTL_ENABLE_PROMISC_MODE : CPSW_ALE_IOCTL_DISABLE_PROMISC_MODE;
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        isMacPort = EthRemoteCfg_isMacPort(hClient->virtPort);
+        if (isMacPort)
+        {
+            /* Enable promiscuous mode on virtual MAC ports (MAC-only CAF) */
+            macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+            ENET_IOCTL_SET_IN_ARGS(&prms, &macPort);
 
-        status = Enet_ioctl(hServer->hEnet, hostId, cmd, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Failed to %s promiscuous mode on MAC port %u",
-                          enable ? "enable" : "disable", ENET_MACPORT_ID(macPort));
+            cmd = enable ? CPSW_ALE_IOCTL_ENABLE_PROMISC_MODE : CPSW_ALE_IOCTL_DISABLE_PROMISC_MODE;
 
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
+            status = Enet_ioctl(hServer->hEnet, hostId, cmd, &prms);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                            "Failed to %s promiscuous mode on MAC port %u",
+                            enable ? "enable" : "disable", ENET_MACPORT_ID(macPort));
+
+            status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        }
+        else
+        {
+            /* Promiscuous mode is not supported on virtual switch ports */
+            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            ETHFWTRACE_ERR(status, "Promiscuous mode is not supported on virtual switch ports");
+        }
     }
     else
     {
-        /* Promiscuous mode is not supported on virtual switch ports */
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
-        ETHFWTRACE_ERR(status, "Promiscuous mode is not supported on virtual switch ports");
+        ETHFWTRACE_ERR(status, "Failed to perform promiscous %s", enable ? "enable" : "disable" );
     }
 
     return status;
@@ -1580,20 +1707,32 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
     }
 
-    CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (isSwitchPort)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        status = EnetAppUtils_regDfltRxFlow(hServer->hEnet, coreKey, hostId, flowIdxBase, flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (isSwitchPort)
+        {
+            status = EnetAppUtils_regDfltRxFlow(hServer->hEnet,
+                                                coreKey, 
+                                                hostId, 
+                                                flowIdxBase, 
+                                                flowIdxOffset);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
+            status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        }
+        else
+        {
+            /* RX default flow is supported only on virtual switch ports */
+            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+        }
     }
     else
     {
-        /* RX default flow is supported only on virtual switch ports */
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
-        ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+        ETHFWTRACE_ERR(status, "Failed to register default flow for Rx flowId"
+                       "base:%u, offset:%u", flowIdxBase, flowIdxOffset);
     }
 
     return status;
@@ -1622,20 +1761,32 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
     }
 
-    CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (isSwitchPort)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        status = EnetAppUtils_unregDfltRxFlow(hServer->hEnet, coreKey, hostId, flowIdxBase, flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (isSwitchPort)
+        {
+            status = EnetAppUtils_unregDfltRxFlow(hServer->hEnet,
+                                                  coreKey,
+                                                  hostId, 
+                                                  flowIdxBase, 
+                                                  flowIdxOffset);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
+            status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        }
+        else
+        {
+            /* RX default flow is supported only on virtual switch ports */
+            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+        }
     }
     else
     {
-        /* RX default flow is supported only on virtual switch ports */
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
-        ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+        ETHFWTRACE_ERR(status, "Failed to de-register default flow for Rx flowId"
+                       "base:%u, offset:%u", flowIdxBase, flowIdxOffset);
     }
 
     return status;
@@ -1923,47 +2074,59 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    *speed  = ENET_SPEED_10MBIT;
-    *duplex = ENET_DUPLEX_HALF;
-
-    isMacPort = EthRemoteCfg_isMacPort(hClient->virtPort);
-    if (isMacPort)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        phyInArgs.macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &phyInArgs, isLinked);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        *speed  = ENET_SPEED_10MBIT;
+        *duplex = ENET_DUPLEX_HALF;
 
-        memset(&phyOutArgs, 0, sizeof(phyOutArgs));
-
-        status = Enet_ioctl(hServer->hEnet, hostId, ENET_PHY_IOCTL_IS_LINKED, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Failed to get port %u link status", ENET_MACPORT_ID(phyInArgs.macPort));
-
-        //FIXME: link speed/duplex IOCTL has to be PHY agnostics (i.e. MAC-to-MAC mode).
-        if (*isLinked)
+        isMacPort = EthRemoteCfg_isMacPort(hClient->virtPort);
+        if (isMacPort)
         {
-            ENET_IOCTL_SET_INOUT_ARGS(&prms, &phyInArgs, &phyOutArgs);
+            phyInArgs.macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
 
-            status = Enet_ioctl(hServer->hEnet, hostId, ENET_PHY_IOCTL_GET_LINK_MODE, &prms);
+            ENET_IOCTL_SET_INOUT_ARGS(&prms, &phyInArgs, isLinked);
+
+            memset(&phyOutArgs, 0, sizeof(phyOutArgs));
+
+            status = Enet_ioctl(hServer->hEnet, hostId, ENET_PHY_IOCTL_IS_LINKED, &prms);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                              "Failed to get port %u link params", ENET_MACPORT_ID(phyInArgs.macPort));
+                            "Failed to get port %u link status", ENET_MACPORT_ID(phyInArgs.macPort));
 
-            if (status == ENET_SOK)
+            //FIXME: link speed/duplex IOCTL has to be PHY agnostics (i.e. MAC-to-MAC mode).
+            if (*isLinked)
             {
-                *speed  = phyOutArgs.speed;
-                *duplex = phyOutArgs.duplexity;
-            }
-        }
+                ENET_IOCTL_SET_INOUT_ARGS(&prms, &phyInArgs, &phyOutArgs);
 
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
+                status = Enet_ioctl(hServer->hEnet, hostId, ENET_PHY_IOCTL_GET_LINK_MODE, &prms);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                                "Failed to get port %u link params", ENET_MACPORT_ID(phyInArgs.macPort));
+
+                if (status == ENET_SOK)
+                {
+                    *speed  = phyOutArgs.speed;
+                    *duplex = phyOutArgs.duplexity;
+                }
+            }
+
+            status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        }
+        else
+        {
+            *isLinked = BTRUE;
+            *speed    = ENET_SPEED_1GBIT;
+            *duplex   = ENET_DUPLEX_FULL;
+        }
     }
     else
     {
-        *isLinked = BTRUE;
-        *speed    = ENET_SPEED_1GBIT;
-        *duplex   = ENET_DUPLEX_FULL;
+        ETHFWTRACE_ERR(status, "Failed to get the Link status");
     }
 
     return status;
@@ -1999,30 +2162,42 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_Client
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (isSwitchPort)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
-        setPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
-        setPolicerInArgs.policerMatch.etherType = etherType;
-        setPolicerInArgs.threadIdEn = BTRUE;
-        setPolicerInArgs.threadId   = flowIdxOffset;
-        setPolicerInArgs.peakRateInBitsPerSec   = 0U;
-        setPolicerInArgs.commitRateInBitsPerSec = 0U;
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (isSwitchPort)
+        {
+            memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
+            setPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+            setPolicerInArgs.policerMatch.etherType = etherType;
+            setPolicerInArgs.threadIdEn = BTRUE;
+            setPolicerInArgs.threadId   = flowIdxOffset;
+            setPolicerInArgs.peakRateInBitsPerSec   = 0U;
+            setPolicerInArgs.commitRateInBitsPerSec = 0U;
 
-        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Failed to setup EtherType based route");
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
+            ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
+
+            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                            "Failed to setup EtherType based route");
+            status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        }
+        else
+        {
+            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            ETHFWTRACE_ERR(status, "EtherType route is not supported on virtual MAC ports");
+        }
     }
     else
     {
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
-        ETHFWTRACE_ERR(status, "EtherType route is not supported on virtual MAC ports");
+        ETHFWTRACE_ERR(status, "Failed to register Ethertype: %u",etherType);
     }
 
     return status;
@@ -2040,27 +2215,39 @@ static int32_t CpswProxyServer_deregisterEthertypeHandlerCb(CpswProxyServer_Clie
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
-    if (!isSwitchPort)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        memset(&delPolicerInArgs, 0, sizeof(delPolicerInArgs));
-        delPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
-        delPolicerInArgs.policerMatch.etherType = etherType;
-        delPolicerInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ETHERTYPE;
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-        ENET_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        if (!isSwitchPort)
+        {
+            memset(&delPolicerInArgs, 0, sizeof(delPolicerInArgs));
+            delPolicerInArgs.policerMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_ETHERTYPE;
+            delPolicerInArgs.policerMatch.etherType = etherType;
+            delPolicerInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ETHERTYPE;
 
-        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Failed to teardown EtherType based route");
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
+            ENET_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
+
+            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                            "Failed to teardown EtherType based route");
+            status = CPSWPROXY_ENET2RPMSG_ERR(status);
+        }
+        else
+        {
+            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            ETHFWTRACE_ERR(status, "EtherType route is not supported on virtual MAC ports");
+        }
     }
     else
     {
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
-        ETHFWTRACE_ERR(status, "EtherType route is not supported on virtual MAC ports");
+        ETHFWTRACE_ERR(status, "Failed to de-register Ethertype: %u",etherType);
     }
 
     return status;
@@ -2076,45 +2263,58 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
     CpswProxyServer_Obj *hServer;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
     uint32_t instId = 0U;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
+    /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
-        status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+        status = ENET_EBADARGS;
         ETHFWTRACE_ERR(status, "Invalid HW push num %u", hwPushNum);
     }
 
-    /* Register hardware push callback */
-    if (status == ENET_SOK)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        hwPushCbInArgs.hwPushNum = (CpswCpts_HwPush)hwPushNum;
-        hwPushCbInArgs.hwPushNotifyCb = CpswProxyServer_hwPushNotifyFxn;
-        hwPushCbInArgs.hwPushNotifyCbArg = (void *)hServer;
+        /* Register hardware push callback */
+        if (status == ETHREMOTECFG_CMDSTATUS_OK)
+        {
+            hwPushCbInArgs.hwPushNum = (CpswCpts_HwPush)hwPushNum;
+            hwPushCbInArgs.hwPushNotifyCb = CpswProxyServer_hwPushNotifyFxn;
+            hwPushCbInArgs.hwPushNotifyCbArg = (void *)hServer;
 
-        ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushCbInArgs);
+            ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushCbInArgs);
 
-        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Failed to register CPTS HW Push callback");
+            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK, &prms);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                            "Failed to register CPTS HW Push callback");
+        }
+
+        /* Configure timesync router */
+        if (status == ENET_SOK)
+        {
+            status = EnetAppUtils_setTimeSyncRouter(hServer->enetType,
+                                                    instId,
+                                                    timerId,
+                                                    hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set TSR");
+        }
+
+        if (status == ENET_SOK)
+        {
+            hServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNorm] = hostId;
+            hServer->notifyServiceObj.hwPush2TokenMap[hwPushNorm] = hClient->token;
+        }
     }
-
-    /* Configure timesync router */
-    if (status == ENET_SOK)
+    else
     {
-        status = EnetAppUtils_setTimeSyncRouter(hServer->enetType,
-                                                instId,
-                                                timerId,
-                                                hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set TSR");
-    }
-
-    if (status == ENET_SOK)
-    {
-        hServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNorm] = hostId;
-        hServer->notifyServiceObj.hwPush2TokenMap[hwPushNorm] = hClient->token;
+        ETHFWTRACE_ERR(status, "Failed to register remote timer");
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -2130,41 +2330,54 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
     uint32_t instId = 0U;
 
+    /* Check that server itself is ready */
+    hServer = CpswProxyServer_getHandle();
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
-        status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+        status = ENET_EBADARGS;
         ETHFWTRACE_ERR(status, "Invalid HW push num %u", hwPushNum);
     }
 
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-
-    /* Unregister hardware push callback */
-    if (status == ENET_SOK)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        hwPushNum = (CpswCpts_HwPush)hwPushNum;
-        ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushNum);
-        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_UNREGISTER_HWPUSH_CALLBACK, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                          "Failed to deregister CPTS HW push callback");
+        /* Unregister hardware push callback */
+        if (status == ENET_SOK)
+        {
+            hwPushNum = (CpswCpts_HwPush)hwPushNum;
+            ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushNum);
+            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_UNREGISTER_HWPUSH_CALLBACK, &prms);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                            "Failed to deregister CPTS HW push callback");
+        }
+
+        /* Clear timesync router configuration for hardware push,
+        * Note: This assumes input signal is stopped */
+        if (status == ENET_SOK)
+        {
+            status = EnetAppUtils_setTimeSyncRouter(hServer->enetType,
+                                                    instId,
+                                                    0U,
+                                                    hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set TSR");
+        }
+
+        if (status == ENET_SOK)
+        {
+            /* Use IPC_MAX_PROCS as invalid core id */
+            hServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNorm] = IPC_MAX_PROCS;
+            hServer->notifyServiceObj.hwPush2TokenMap[hwPushNorm] = ETHREMOTECFG_TOKEN_NONE;
+        }
     }
-
-    /* Clear timesync router configuration for hardware push,
-     * Note: This assumes input signal is stopped */
-    if (status == ENET_SOK)
+    else
     {
-        status = EnetAppUtils_setTimeSyncRouter(hServer->enetType,
-                                                instId,
-                                                0U,
-                                                hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set TSR");
-    }
-
-    if (status == ENET_SOK)
-    {
-        /* Use IPC_MAX_PROCS as invalid core id */
-        hServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNorm] = IPC_MAX_PROCS;
-        hServer->notifyServiceObj.hwPush2TokenMap[hwPushNorm] = ETHREMOTECFG_TOKEN_NONE;
+        ETHFWTRACE_ERR(status, " Failed to de-register remote timer");
     }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
@@ -2185,46 +2398,58 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
     uint64_t inArgsBuf[(ETHREMOTECFG_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
     uint64_t outArgsBuf[(ETHREMOTECFG_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
 
+    /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && hServer->initDone == BTRUE);
-    hEnet = hServer->hEnet;
-
-    /* Skip PHY link status check prints as they happen too often */
-    if (cmd != ENET_PER_IOCTL_IS_PORT_LINK_UP)
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
     {
-        prms.inArgsSize = inargsLen;
-        prms.outArgsSize = outargsLen;
-        EnetAppUtils_assert(inargsLen <= sizeof(inArgsBuf));
-        /* To ensure structure are aligned, copy the inArgs to unit64_t aligned buffer */
-        memcpy(inArgsBuf, inargs, inargsLen);
-        prms.inArgs = inArgsBuf;
-        /* To ensure structure are aligned, use unit64_t aligned buffer for outArgs  */
-        EnetAppUtils_assert(outargsLen <= sizeof(outArgsBuf));
-        prms.outArgs = outArgsBuf;
-        if (prms.inArgsSize == 0)
-        {
-            prms.inArgs = NULL;
-        }
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-        if (prms.outArgsSize == 0)
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        /* Skip PHY link status check prints as they happen too often */
+        if (cmd != ENET_PER_IOCTL_IS_PORT_LINK_UP)
         {
-            prms.outArgs = NULL;
+            prms.inArgsSize = inargsLen;
+            prms.outArgsSize = outargsLen;
+            EnetAppUtils_assert(inargsLen <= sizeof(inArgsBuf));
+            /* To ensure structure are aligned, copy the inArgs to unit64_t aligned buffer */
+            memcpy(inArgsBuf, inargs, inargsLen);
+            prms.inArgs = inArgsBuf;
+            /* To ensure structure are aligned, use unit64_t aligned buffer for outArgs  */
+            EnetAppUtils_assert(outargsLen <= sizeof(outArgsBuf));
+            prms.outArgs = outArgsBuf;
+            if (prms.inArgsSize == 0)
+            {
+                prms.inArgs = NULL;
+            }
+
+            if (prms.outArgsSize == 0)
+            {
+                prms.outArgs = NULL;
+            }
+
+            status = Enet_ioctl(hEnet, hostId, cmd, &prms);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to run IOCTL 0x%x", cmd);
+
+            if (status == ENET_SOK)
+            {
+                /* Copy the outArgs from temporary aligned buffer back to msg buffer */
+                memcpy(outargs, outArgsBuf, outargsLen);
+            }
+            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
-
-        status = Enet_ioctl(hEnet, hostId, cmd, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to run IOCTL 0x%x", cmd);
-
-        if (status == ENET_SOK)
+        else
         {
-            /* Copy the outArgs from temporary aligned buffer back to msg buffer */
-            memcpy(outargs, outArgsBuf, outargsLen);
+            status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Unsupported IOCTL cmd 0x%x", cmd);
         }
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
     else
     {
-        status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Unsupported IOCTL cmd 0x%x", cmd);
+        ETHFWTRACE_ERR(status, "Failed to perform the IOCTL command: %u", cmd);
     }
 
     return status;
@@ -2244,7 +2469,12 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
     if (!EnetUtils_isMcastAddr(macAddr))
     {
@@ -2284,6 +2514,12 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
             ETHFWTRACE_ERR(status, "Failed to add multicast");
         }
     }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Failed to add MacAddr:%02x:%02x:%02x:%02x:%02x:%02x to"
+                       "the multicast filter", macAddr[0U], macAddr[1U], macAddr[2U],
+                       macAddr[3U], macAddr[4U], macAddr[5U]);
+    }
 
     return status;
 }
@@ -2299,7 +2535,12 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
     if (!EnetUtils_isMcastAddr(macAddr))
     {
@@ -2340,6 +2581,12 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
             ETHFWTRACE_ERR(status, "Failed to remove multicast");
         }
     }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Failed to delete MacAddr:%02x:%02x:%02x:%02x:%02x:%02x to"
+                       "the multicast filter", macAddr[0U], macAddr[1U], macAddr[2U],
+                       macAddr[3U], macAddr[4U], macAddr[5U]);
+    }
 
     return status;
 }
@@ -2367,6 +2614,9 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
     hServer->alePortMask = cfg->enabledPortMask;
     hServer->aleMacOnlyPortMask = cfg->macOnlyPortMask;
+
+    hServer->getMcmCmdIfCb = cfg->getMcmCmdIfCb;
+    hServer->initEthfwDeviceDataCb = cfg->initEthfwDeviceDataCb;
 
     if ((hServer->aleMacOnlyPortMask & hServer->alePortMask) !=
         hServer->aleMacOnlyPortMask)
@@ -2414,9 +2664,6 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         hServer->clientServiceObj.rpmsgStartSem = SemaphoreP_create(0, &sem_params);
         EnetAppUtils_assert(hServer->clientServiceObj.rpmsgStartSem != NULL);
 
-        hServer->getMcmCmdIfCb = cfg->getMcmCmdIfCb;
-        hServer->initEthfwDeviceDataCb = cfg->initEthfwDeviceDataCb;
-
         CpswProxyServer_initClientHandle(cfg);
 
         ETHFWTRACE_INFO("Virtual port configuration:");
@@ -2455,19 +2702,31 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     Enet_IoctlPrms prms;
 
+    /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    hEnet = hServer->hEnet;
+    if ((hServer == NULL) || (hServer->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
 
-    ENET_IOCTL_SET_NO_ARGS(&prms);
-    status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
-    EnetAppUtils_assert(status == ENET_SOK);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        ENET_IOCTL_SET_NO_ARGS(&prms);
+        status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
+        EnetAppUtils_assert(status == ENET_SOK);
 
-    ENET_IOCTL_SET_NO_ARGS(&prms);
-    status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms);
-    EnetAppUtils_assert(status == ENET_SOK);
+        ENET_IOCTL_SET_NO_ARGS(&prms);
+        status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms);
+        EnetAppUtils_assert(status == ENET_SOK);
 
-    CpswProxyServer_printStats(hEnet, hServer->enetType, hostId);
+        CpswProxyServer_printStats(hEnet, hServer->enetType, hostId);
+    }
+    else
+    {
+        ETHFWTRACE_ERR(status, "Failed to dump stats for coreId:%u", hostId);
+    }
 
     return CPSWPROXY_ENET2RPMSG_ERR(status);
 }
