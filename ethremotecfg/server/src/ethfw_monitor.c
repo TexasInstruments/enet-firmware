@@ -97,6 +97,10 @@
 #include "ethfw_vepa_priv.h"
 #endif
 
+#if defined(ETHFW_GPTP_SUPPORT)
+#include <tsn_combase/tilld/lldenet.h>
+#endif
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
