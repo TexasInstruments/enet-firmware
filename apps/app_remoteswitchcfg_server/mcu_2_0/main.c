@@ -210,14 +210,18 @@
 #if defined(SAFERTOS)
 #define ETHAPP_LWIP_TASK_STACKSIZE              (16U * 1024U)
 #define ETHAPP_TRACEBUF_TASK_STACKSIZE          (16U * 1024U)
+#define ETHAPP_INIT_TASK_STACKSIZE              (16U * 1024U)
 #define ETHAPP_LWIP_TASK_STACKALIGN             ETHAPP_LWIP_TASK_STACKSIZE
 #define ETHAPP_TRACEBUF_TASK_STACKALIGN         ETHAPP_TRACEBUF_TASK_STACKSIZE
+#define ETHAPP_INIT_TASK_STACKALIGN             ETHAPP_INIT_TASK_STACKSIZE
 #define ETHAPP_IPC_TASK_STACKALIGN              IPC_TASK_STACKSIZE
 #else
 #define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
 #define ETHAPP_TRACEBUF_TASK_STACKSIZE          (1U * 1024U)
+#define ETHAPP_INIT_TASK_STACKSIZE              (10U * 1024U)
 #define ETHAPP_LWIP_TASK_STACKALIGN             (32)
 #define ETHAPP_TRACEBUF_TASK_STACKALIGN         (32)
+#define ETHAPP_INIT_TASK_STACKALIGN             (32)
 #define ETHAPP_IPC_TASK_STACKALIGN              (8192U)
 #endif
 
@@ -756,7 +760,7 @@ static EthFwVlan_VlanCfg gEthApp_vlanCfg[] =
     },
 };
 
-static uint8_t gEthAppStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
+static uint8_t gEthAppStackBuf[ETHAPP_INIT_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_INIT_TASK_STACKALIGN)));
 
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(ETHAPP_LWIP_TASK_STACKALIGN)));
 
