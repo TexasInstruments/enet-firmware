@@ -214,6 +214,8 @@ void EthFwMon_initCfg(EthFwMon_Cfg *monCfg);
  * before calling this function.
  *
  * \param monCfg    Configuration parameters
+ * \param enetType  EnetType
+ * \param numPorts  Number of ports opened by EthFw
  *
  * \returns ETHFW_SOK if EthFw Monitor initialization was successful
  */

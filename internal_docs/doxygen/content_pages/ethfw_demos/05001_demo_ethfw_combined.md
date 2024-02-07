@@ -962,7 +962,7 @@ region to allow other cores to access it.
 > -# Match the same with ICQ_BASE_ADDR and BUFPOOL_BASE_ADDR (with their corresponding memory length) in <b>`<ethfw>/apps/tap/<soc>.conf`</b>
 
 > As an extra check corresponding values should match with Linux device tree overlay's <b>reserved_memory</b> (i.e. main_r5fss0_core0_shared_memory_queue_region and main_r5fss0_core0_shared_memory_bufpool_region) for inter-core network communication as well. Download and install PSDK Linux, instructions are [here](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-jacinto7/latest/exports/docs/vision_apps/docs/user_guide/ENVIRONMENT_SETUP.html).
-> -# Device-tree overlays are present in <b>${PSDKL_PATH}/board-support/ti-linux-kernel-<version>/arch/arm64/boot/dts/ti</b> folder.
+> -# Device-tree overlays are present in <b>${PSDKL_PATH}/board-support/ti-linux-kernel-(version)/arch/arm64/boot/dts/ti</b> folder.
 > -# Overlay names are k3-j721e-evm-virt-mac-client.dtso for J721E, k3-j7200-evm-virt-mac-client.dtso for J7200 and k3-j784s4-evm-virt-mac-client.dtso for J784S4 respectively.
 
 ##### Compiling and installing TAP application {#intercore_linux_tap_compilation}
