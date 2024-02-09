@@ -533,6 +533,33 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     memcpy(aleCfg->policerTablePartSize, gEthFw_policerTablePartSize, sizeof(gEthFw_policerTablePartSize));
 }
 
+static int32_t EthFw_setDscpPriorityMapRegisters(void)
+{
+    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
+    EnetPort_DscpPriorityMap setHostInArgs;
+    Enet_IoctlPrms prms;
+    uint32_t i;
+    int32_t status;
+
+    setHostInArgs.dscpIPv4En = BTRUE;
+    setHostInArgs.dscpIPv6En = BTRUE;
+
+    for (i = 0U; i < ENET_ARRAYSIZE(setHostInArgs.tosMap); i++)
+    {
+        setHostInArgs.tosMap[i] = (i % 8U);
+    }
+
+    ENET_IOCTL_SET_IN_ARGS(&prms, &setHostInArgs);
+
+    status = Enet_ioctl(hEnet,
+                        gEthFwObj.coreId,
+                        ENET_HOSTPORT_IOCTL_SET_INGRESS_DSCP_PRI_MAP,
+                        &prms);
+
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set ingress DSCP priority mapping");
+    return status;
+}
+
 static int32_t EthFw_getDfltVlanId(const EthFw_Config *config)
 {
     int32_t status = ENET_SOK;
@@ -1014,11 +1041,15 @@ void EthFw_initConfigParams(Enet_Type enetType,
     vlanCfg->outerVlan = ENET_ETHERTYPE_CUSTOMER_VLAN;
 #endif
     /* Host port configuration */
-    hostPortCfg->removeCrc       = BTRUE;
-    hostPortCfg->padShortPacket  = BTRUE;
-    hostPortCfg->passCrcErrors   = BTRUE;
-    hostPortCfg->rxMtu           = 1522U;
-    hostPortCfg->vlanCfg.portVID = ETHFW_HOST_PORT_VLAN_ID;
+    hostPortCfg->removeCrc         = BTRUE;
+    hostPortCfg->padShortPacket    = BTRUE;
+    hostPortCfg->passCrcErrors     = BTRUE;
+    hostPortCfg->rxMtu             = 1522U;
+    hostPortCfg->vlanCfg.portVID   = ETHFW_HOST_PORT_VLAN_ID;
+    /* To honor the vlan/dscp packet priority instead of CPPI thread id for mapping */
+    hostPortCfg->rxVlanRemapEn     = BTRUE;
+    hostPortCfg->rxDscpIPv4RemapEn = BTRUE;
+    hostPortCfg->rxDscpIPv6RemapEn = BTRUE;
 #if defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
     hostPortCfg->csumOffloadEn   = BFALSE;
 #else
@@ -1191,6 +1222,17 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     {
         status = EthFw_setupVlan(config);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup static VLANs");
+    }
+
+    /* As P0_RX_DSCP_MAP registers are not set to identity mapping by default
+     * we are calling ENET_HOSTPORT_IOCTL_SET_INGRESS_DSCP_PRI_MAP to set the same.
+     * It also sets P0_CONTROL_REG_DSCP_IPV4_EN and P0_CONTROL_REG_DSCP_IPV6_EN.
+     * Note that P0_RX_PRI_MAP (for VLAN) is set to identity mapping by default.
+     * Only P0_CONTROL_REG_RX_REMAP_VLAN needs to be set for vlan tagged packets */
+    if (status == ENET_SOK)
+    {
+        status = EthFw_setDscpPriorityMapRegisters();
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to set DSCP priority mapping");
     }
 
 #if defined(ETHFW_GPTP_SUPPORT)
