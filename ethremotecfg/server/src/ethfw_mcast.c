@@ -129,12 +129,6 @@ typedef struct EthFwMcast_Obj_s
 
     /* ALE MAC-only port mask */
     uint32_t macOnlyPortMask;
-
-    /*! Mutex object used to protect multicast configuration tables */
-    MutexP_Object mutexObj;
-
-    /*! Handle to multicast table mutex */
-    MutexP_Handle hMutex;
 } EthFwMcast_Obj;
 
 /* ========================================================================== */
@@ -197,20 +191,9 @@ int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
 
     memset(&gEthFwMcastObj, 0, sizeof(gEthFwMcastObj));
 
-    /* Create mutex to protect MCAST configuration table */
-    gEthFwMcastObj.hMutex = MutexP_create(&gEthFwMcastObj.mutexObj);
-    if (gEthFwMcastObj.hMutex == NULL)
-    {
-        status = ETHFW_EFAIL;
-        ETHFWTRACE_ERR(status, "Failed to create mutex");
-    }
-
     /* Get shared multicast configuration */
-    if (status == ETHFW_SOK)
-    {
-        status = EthFwMcast_getSharedMcastCfg(&cfg->sharedMcastCfg);
-        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get shared mcast config");
-    }
+    status = EthFwMcast_getSharedMcastCfg(&cfg->sharedMcastCfg);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get shared mcast config");
 
     /* Get reserved multicast configuration */
     if (status == ETHFW_SOK)
@@ -230,12 +213,7 @@ int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
 
 void EthFwMcast_deinit(void)
 {
-    /* Delete multicast configuration table mutex */
-    if (gEthFwMcastObj.hMutex != NULL)
-    {
-        MutexP_delete(gEthFwMcastObj.hMutex);
-        gEthFwMcastObj.hMutex = NULL;
-    }
+    /* Nothing to do here */
 }
 
 int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
