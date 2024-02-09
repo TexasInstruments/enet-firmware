@@ -292,6 +292,9 @@ void CpswProxy_close(CpswProxy_Handle hProxy);
  *                    this function.
  * \param txMtu       Array of maximum transmit packet length per priority
  *                    supported by the Ethernet device.
+ * \param pNumTxCh    Pointer to number of tx channels allocated to the virtual port
+ * 
+ * \param pNumRxFlow  Pointer to number of rx flows allocated to the virtual port
  *
  * \returns \ref CPSWPROXY_SOK if client has been successfully attached, or
  *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
@@ -299,7 +302,9 @@ void CpswProxy_close(CpswProxy_Handle hProxy);
 int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
                          EthRemoteCfg_VirtPort virtPort,
                          uint32_t *rxMtu,
-                         uint32_t *txMtu);
+                         uint32_t *txMtu,
+                         uint32_t *pNumTxCh,
+                         uint32_t *pNumRxFlow);
 
 /*!
  * \brief Attach to Ethernet device with extended response.
@@ -359,12 +364,14 @@ int32_t CpswProxy_detach(CpswProxy_Handle hProxy);
  * \param hProxy         Handle to Cpsw Proxy.
  * \param txPSILThreadId Allocated Tx channel CPSW PSIL destination thread id,
  *                       populated by this function.
+ * \param chRelPriority  Tx channel priority (relative) which client want to allocate
  *
  * \returns \ref CPSWPROXY_SOK if TX channel has been successfully allocated, or
  *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
-                            uint32_t *txPSILThreadId);
+                            uint32_t *txPSILThreadId,
+                            uint32_t chRelPriority);
 
 /*!
  * \brief Free Tx channel.

@@ -493,7 +493,9 @@ void CpswProxy_close(CpswProxy_Handle hProxy)
 int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
                          EthRemoteCfg_VirtPort virtPort,
                          uint32_t *rxMtu,
-                         uint32_t *txMtu)
+                         uint32_t *txMtu,
+                         uint32_t *pNumTxCh,
+                         uint32_t *pNumRxFlow)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachRes res;
@@ -516,6 +518,8 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
     {
         hProxy->token    = res.hdr.common.token;
         hProxy->features = res.features;
+        *pNumTxCh        = res.numTxCh;
+        *pNumRxFlow      = res.numRxFlow;
 
         *rxMtu = res.rxMtu;
         for (i = 0U; i < ETHFW_ARRAYSIZE(res.txMtu); i++)
@@ -524,8 +528,8 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
         }
     }
 
-    ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x status=%d",
-                    (int32_t)res.hdr.common.token, res.rxMtu, res.features, status);
+    ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x %numTxCh %numRxFlow status=%d",
+                    (int32_t)res.hdr.common.token, res.rxMtu, res.features, res.numTxCh, res.numRxFlow, status);
 
     return status;
 }
@@ -605,13 +609,16 @@ int32_t CpswProxy_detach(CpswProxy_Handle hProxy)
 }
 
 int32_t CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
-                            uint32_t *txPSILThreadId)
+                            uint32_t *txPSILThreadId,
+                            uint32_t chRelPriority)
 {
-    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_AllocTxReq req;
     EthRemoteCfg_AllocTxRes res;
     int32_t status;
 
-    ETHFWTRACE_INFO("ALLOC_TX | C2S | token=%d", (int32_t)hProxy->token);
+    ETHFWTRACE_INFO("ALLOC_TX | C2S | token=%d chRelPri=%u", (int32_t)hProxy->token, chRelPriority);
+
+    req.chRelPriority = chRelPriority;
 
     memset(&res, 0, sizeof(EthRemoteCfg_AllocTxRes));
 
@@ -622,8 +629,8 @@ int32_t CpswProxy_allocTxCh(CpswProxy_Handle hProxy,
 
     *txPSILThreadId  = res.txPsilDstId;
 
-    ETHFWTRACE_INFO("ALLOC_TX | S2C | token=%d txPsil=0x%x status=%d",
-                    (int32_t)hProxy->token, res.txPsilDstId, status);
+    ETHFWTRACE_INFO("ALLOC_TX | S2C | token=%d txPsil=0x%x chRelPri=%u status=%d",
+                    (int32_t)hProxy->token, res.txPsilDstId, chRelPriority ,status);
 
     return status;
 }

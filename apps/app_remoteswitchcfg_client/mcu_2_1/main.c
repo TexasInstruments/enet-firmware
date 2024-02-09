@@ -409,7 +409,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
 #endif
     .hEnetDma         = NULL,
     .useDefaultRxFlow = BFALSE,
-    .useExtAttach     = BTRUE,
+    .useExtAttach     = BFALSE,
     .virtNetif        =
     {
         {
@@ -1432,6 +1432,9 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     uint32_t rxStartFlowId;
     uint32_t rxFlowIdOffset;
     bool isSwitchPort;
+    uint32_t numTxCh;
+    uint32_t numRxFlow;
+    uint32_t relChPriority = 0U;
 
     virtNetif = container_of(inArgs->netif, CpswRemoteApp_VirtNetif, netif);
     localAssert(virtNetif->hCpswProxy != NULL);
@@ -1466,9 +1469,22 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         CpswProxy_attach(virtNetif->hCpswProxy,
                          virtNetif->virtPort,
                          &outArgs->hostPortRxMtu,
-                         outArgs->txMtu);
+                         outArgs->txMtu,
+                         &numTxCh,
+                         &numRxFlow);
+        ETHFWTRACE_ERR_IF((numTxCh == 0U), ETHFW_EFAIL, "Number of tx channel allocated cannot be 0U");
+        ETHFWTRACE_ERR_IF((numRxFlow == 0U), ETHFW_EFAIL, "Number of rx flow allocated cannot be 0U");
+        /* To demonstrate the QoS functionality we should allocate multiple channels
+         * But Out of box we are only giving 1 tx channel for each virtual port for RTOS client
+         * Suppose 3 channels are allocated (update ethfw server main.c virtual port config for the same),
+         * to allocate first channel with low priority, second channel with medium
+         * and third channel with highest priority give relative channel priority to
+         * be 0U, 1U and 2U in order respectively.
+         * It is important that the numTxCh allocated should be > 1 to test the functionality.
+         * relChPriority range from 0U to numTxCh - 1U */
         CpswProxy_allocTxCh(virtNetif->hCpswProxy,
-                            &txPSILId);
+                            &txPSILId,
+                            relChPriority);
         CpswProxy_allocRxFlow(virtNetif->hCpswProxy,
                               &rxStartFlowId,
                               &rxFlowIdOffset);
