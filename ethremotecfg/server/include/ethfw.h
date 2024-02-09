@@ -239,6 +239,8 @@ typedef int32_t (*EthFw_setPortCfg)(Enet_MacPort macPort,
                                     EnetPhy_Cfg *phyCfg,
                                     EnetMacPort_LinkCfg *linkCfg);
 
+/*! Callback for setting gPTP config parameters from the application */
+typedef void (*EthFw_configPtpCb)(void *arg);
 
 /*!
  * \brief Ethernet Firmware configuration
@@ -283,6 +285,12 @@ typedef struct EthFw_Config_s
     /*! Callback function for application to set port link parameters
      *  (MII, PHY, speed, duplexity, etc) */
     EthFw_setPortCfg setPortCfg;
+
+    /*! Callback for setting gPTP config parameters from the application */
+    EthFw_configPtpCb configPtpCb;
+
+    /*! Argument to be passed to gPTP config callback function */
+    void *configPtpCbArg;
 
     /*! VEPA configuration passed from application */
     EthFwVepa_Cfg vepaCfg;

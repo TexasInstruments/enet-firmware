@@ -942,6 +942,9 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     char *time = __TIME__;
     uint32_t i;
     int32_t status = ENET_SOK;
+#if defined(ETHFW_GPTP_SUPPORT)
+    EthFwTsn_Config tsnCfg;
+#endif
 
     EthFw_compileTimeChecks();
 
@@ -1105,9 +1108,13 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Initializes tsn stack before calling gPTP task */
+    tsnCfg.enetType       = gEthFwObj.enetType;
+    tsnCfg.instId         = gEthFwObj.instId;
+    tsnCfg.configPtpCb    = config->configPtpCb;
+    tsnCfg.configPtpCbArg = config->configPtpCbArg;
     if (status == ENET_SOK)
     {
-        EthFwTsn_init();
+        EthFwTsn_init(&tsnCfg);
     }
 #endif
 

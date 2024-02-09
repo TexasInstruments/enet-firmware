@@ -71,7 +71,7 @@
 /* ========================================================================== */
 
 /* EthFwTrace id for this module, must be unique within ETHFW */
-#define ETHFWTRACE_MOD_ID 0x106
+#define ETHFWTRACE_MOD_ID 0x107
 
 #include <stdint.h>
 #include <stdbool.h>

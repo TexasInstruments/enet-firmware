@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2023 Texas Instruments Incorporated
+ * Copyright (c) 2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -61,7 +61,7 @@
  */
 
 /*!
- * \file ethfw_tsn.c
+ * \file ethfw_tsn.h
  *
  * \brief This file contains the private type definitions, helper macros and functions
  *        required for Ethernet Firmware TSN and gPTP support.
@@ -98,10 +98,10 @@ typedef void (*EthFwTsn_configPtpCb)(void *arg);
 */
 typedef struct EthFwTsn_Config_s
 {
-    /* Enet instance type */
+    /*! Enet instance type */
     uint32_t enetType;
 
-    /* Enet instance id */
+    /*! Enet instance id */
     uint32_t instId;
 
     /*! Callback for setting gPTP config parameters from the application */
@@ -127,7 +127,6 @@ typedef struct EthFwTsn_Config_s
  *
  * Initializes and enable the EthFw gPTP stack with the provided configuration parameters.
  *
- * \param tsnCfg        TSN config params filled by main application
  * \param hostMacAddr   Host port MAC Address
  * \param portMask      Mask of ports used for PTP. The mask is built by or-ing
  *                      ENET_MACPORT_MASK(macPort).
@@ -135,8 +134,7 @@ typedef struct EthFwTsn_Config_s
  * \retval ENET_SOK if gPTP initialization was successful
  * \retval Negative error code if initialization failed
  */
-int32_t EthFwTsn_initTimeSyncPtp(EthFwTsn_Config *tsnCfg,
-                                 const uint8_t *hostMacAddr,
+int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
                                  uint32_t portMask);
 
 /*!
@@ -145,7 +143,7 @@ int32_t EthFwTsn_initTimeSyncPtp(EthFwTsn_Config *tsnCfg,
  * EthFwTsn_initTimeSyncPtp should be called after this function to initilize
  * and start Uniconf, gPTP tasks.
  */
-void EthFwTsn_init(void);
+void EthFwTsn_init(EthFwTsn_Config *tsnCfg);
 
 /*!
  * \brief De-initializes all the opened gPTP related tasks.
@@ -153,10 +151,6 @@ void EthFwTsn_init(void);
  * Closes unibase, kills all the tasks, semaphores and mutexes.
  */
 void EthFwTsn_deInit(void);
-
-/* ========================================================================== */
-/*                        Deprecated Function Declarations                    */
-/* ========================================================================== */
 
 /* None */
 

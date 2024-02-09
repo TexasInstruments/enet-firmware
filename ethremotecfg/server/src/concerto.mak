@@ -9,7 +9,9 @@ ifeq ($(ETHFW_CPSW_VEPA_SUPPORT),yes)
   CSOURCES += ethfw_vepa.c
 endif
 ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+    ifeq ($(TARGET_OS),FREERTOS)
   CSOURCES += ethfw_tsn.c
+    endif
 endif
 CSOURCES += cpsw_proxy_server.c
 CSOURCES += ethfw_mcast.c
