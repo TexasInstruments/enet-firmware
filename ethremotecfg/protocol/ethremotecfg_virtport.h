@@ -176,7 +176,7 @@ typedef enum EthRemoteCfg_VirtPort_e
  */
 static bool EthRemoteCfg_isSwitchPort(EthRemoteCfg_VirtPort portId)
 {
-    return (portId <= ETHREMOTECFG_SWITCH_PORT_LAST);
+    return ((portId >= ETHREMOTECFG_SWITCH_PORT_0) && (portId <= ETHREMOTECFG_SWITCH_PORT_LAST));
 }
 
 /*!
@@ -188,7 +188,7 @@ static bool EthRemoteCfg_isSwitchPort(EthRemoteCfg_VirtPort portId)
  */
 static bool EthRemoteCfg_isMacPort(EthRemoteCfg_VirtPort portId)
 {
-    return (portId >= ETHREMOTECFG_MAC_PORT_1);
+    return ((portId >= ETHREMOTECFG_MAC_PORT_1) && (portId <= ETHREMOTECFG_MAC_PORT_LAST));
 }
 
 /*!

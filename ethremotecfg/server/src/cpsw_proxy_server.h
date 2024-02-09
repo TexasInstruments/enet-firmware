@@ -173,7 +173,7 @@ extern "C" {
 #define CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX       (5U)
 
 /*! Max number of remote client virtual ports */
-#define CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX    (4U)
+#define CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX    (6U)
 
 /*!
  * \brief Application callback function pointer to initialize Ethernet Firmware data
@@ -263,6 +263,15 @@ typedef struct CpswProxyServer_VirtPortCfg_s
 
     /*! Virtual port id */
     EthRemoteCfg_VirtPort portId;
+
+    /*! Number of tx channels allocated for a given virtual port */
+    uint32_t numTxCh;
+
+    /*! Array of tx channels allocated for a given virtual port */
+    EnetRm_TxCh txCh[ENET_CFG_TX_CHANNELS_NUM];
+
+    /*! Number of rx channels allocated for a given virtual port */
+    uint32_t numRxFlow;
 } CpswProxyServer_VirtPortCfg;
 
 /*!

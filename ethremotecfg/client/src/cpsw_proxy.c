@@ -528,7 +528,7 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
         }
     }
 
-    ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x %numTxCh %numRxFlow status=%d",
+    ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x numTxCh=%u numRxFlow=%u status=%d",
                     (int32_t)res.hdr.common.token, res.rxMtu, res.features, res.numTxCh, res.numRxFlow, status);
 
     return status;

@@ -128,8 +128,8 @@ extern "C" {
 /*! GIT Commit SHA length in octets */
 #define ETHFW_VERSION_COMMITSHALEN        (8)
 
-/*! Max number of remote clients sharing resources with ETHFW(Linux, QNX, RTOS) */
-#define ETHFW_REMOTE_CLIENT_MAX           (4U)
+/*! Max number of remote clients sharing resources with ETHFW(Linux, QNX, RTOS, AUTOSAR) */
+#define ETHFW_REMOTE_CLIENT_MAX           (6U)
 
 /*! Max number of Remote clients requesting resource allocation data */
 #define ETHFW_REMOTE_CLIENT_ALLOC_MAX     (5U)
@@ -188,6 +188,21 @@ typedef struct EthFw_VirtPortCfg_s
 
     /*! Remote core id */
     uint32_t remoteCoreId;
+
+    /*! Number of tx channels allocated for a given virtual port */
+    uint32_t numTxCh;
+
+    /*! Array of tx channels allocated for a given virtual port */
+    EnetRm_TxCh txCh[ENET_CFG_TX_CHANNELS_NUM];
+
+    /*! Number of rx channels allocated for a given virtual port */
+    uint32_t numRxFlow;
+
+    /*! Number of mac address allocated allocated for a given virtual port */
+    uint32_t numMacAddress;
+
+    /*! Mask of client id's using this virtual port */
+    uint32_t clientIdMask;
 } EthFw_VirtPortCfg;
 
 /*!
@@ -252,13 +267,6 @@ typedef struct EthFw_Config_s
     /*! Number of virtual ports accessed via remote_device framework */
     uint32_t numVirtPorts;
 
-    /*! Virtual ports used by remote AUTOSAR cores */
-    EthFw_VirtPortCfg *autosarVirtPortCfg;
-
-    /*! Number of virtual ports accessed by AUTOSAR cores.
-     *  Note: Single virtual port is supported for AUTOSAR core */
-    uint32_t numAutosarVirtPorts;
-
     /*! Multicast configuration. */
     EthFwMcast_Cfg mcastCfg;
 
@@ -292,6 +300,9 @@ typedef struct EthFw_Config_s
 
     /*! CPSW monitor and recovery configuration */
     EthFwMon_Cfg monitorCfg;
+
+    /*! Flag to let application allocate absolute tx channels */
+    bool isStaticTxChanAllocated;
 } EthFw_Config;
 
 /*!

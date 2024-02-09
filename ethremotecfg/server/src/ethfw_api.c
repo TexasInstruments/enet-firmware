@@ -242,12 +242,6 @@ typedef struct EthFw_Obj_s
     /* Number of valid virtual port configuration entries */
     uint32_t numVirtPorts;
 
-    /* AUTOSAR virtual port configuration */
-    EthFw_VirtPortCfg autosarVirtPortCfg[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
-
-    /* Number of valid AUTOSAR virtual port configuration entries */
-    uint32_t numAutosarVirtPorts;
-
     /* Default VLAN id to be used for MAC ports configured in MAC-only mode */
     uint16_t dfltVlanIdMacOnlyPorts;
 
@@ -397,14 +391,10 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
         },
         [2] =
         {
-            /* EthFw's RM usage:
-             * TX chans: lwIP + PTP + SW interVLAN
-             * RX flows: lwIP + proxy ARP + PTP + SW interVLAN + default flow
-             * MAC addr: lwIP */
             .coreId        = IPC_MCU2_0,
-            .numTxCh       = 3U,
-            .numRxFlows    = 5U,
-            .numMacAddress = 1U,
+            .numTxCh       = 0U,
+            .numRxFlows    = 0U,
+            .numMacAddress = 0U,
         },
         [3] =
         {
@@ -435,6 +425,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
 #else
     .numCores = 4U,
 #endif
+    .isStaticTxChanAllocated = BFALSE,
 };
 
 /* EthFw IOCTLs: allow all on all cores */
@@ -626,13 +617,6 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
                        config->numVirtPorts, ETHFW_REMOTE_CLIENT_MAX);
     }
 
-    if (config->numAutosarVirtPorts > CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX)
-    {
-        status = ENET_EINVALIDPARAMS;
-        ETHFWTRACE_ERR(status, "Too many AUTOSAR virtual ports requested (%u), max is %u",
-                       config->numAutosarVirtPorts, CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
-    }
-
     for (i = 0U; i <= ENET_MAC_PORT_NUM; i++)
     {
         /* Default VLAN of all ports is set to ETHFW_VLAN_ID_MAX, as 0U is reserved for MAC only ports */
@@ -655,25 +639,11 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
 
         /* Get the port mask of all ports in MAC-only mode */
         gEthFwObj.numVirtPorts = config->numVirtPorts;
+        gEthFw_rmResPrms.isStaticTxChanAllocated = config->isStaticTxChanAllocated;
         for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
         {
             gEthFwObj.virtPortCfg[i] = config->virtPortCfg[i];
             virtPort = gEthFwObj.virtPortCfg[i].portId;
-
-            if (EthRemoteCfg_isMacPort(virtPort))
-            {
-                macPort = EthRemoteCfg_getMacPort(virtPort);
-
-                gEthFwObj.macOnlyPortMask |= ENET_MACPORT_MASK(macPort);
-            }
-        }
-
-        /* Get the port mask of all AUTOSAR ports in MAC-only mode */
-        gEthFwObj.numAutosarVirtPorts = config->numAutosarVirtPorts;
-        for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
-        {
-            gEthFwObj.autosarVirtPortCfg[i] = config->autosarVirtPortCfg[i];
-            virtPort = gEthFwObj.autosarVirtPortCfg[i].portId;
 
             if (EthRemoteCfg_isMacPort(virtPort))
             {
@@ -871,21 +841,39 @@ static void EthFw_setPortMode(void)
 #endif
 }
 
-static EnetRm_ResourceInfo *EthFw_getRmInfo(uint32_t coreId)
+static void EthFw_setTxChRmInfo(uint32_t coreIdx,
+                                uint32_t virtPortId)
 {
     EnetRm_ResourceInfo *rmInfo = NULL;
     uint32_t i;
+    uint32_t j = 0U;
 
-    for (i = 0U; i < gEthFw_rmResPrms.numCores; i++)
+    /* Populate the tx channel for individual core from virtual port configuration */
+    for (i = 0U; i < ENET_CFG_TX_CHANNELS_NUM; i++)
     {
-        if (gEthFw_rmResPrms.coreDmaResInfo[i].coreId == coreId)
+        if (gEthFw_rmResPrms.coreDmaResInfo[coreIdx].txCh[i] == ENET_RM_TX_CH_NONE)
         {
-            rmInfo = &gEthFw_rmResPrms.coreDmaResInfo[i];
+            gEthFw_rmResPrms.coreDmaResInfo[coreIdx].txCh[i] = gEthFwObj.virtPortCfg[virtPortId].txCh[j];
+            j++;
+        }
+    }
+}
+
+static uint32_t EthFw_getCoreDmaResIndex(uint32_t coreId)
+{
+    uint32_t coreIdx;
+
+    for (coreIdx = 0U; coreIdx < gEthFw_rmResPrms.numCores; coreIdx++)
+    {
+        /* Find the first entry with the same coreId */
+        if (gEthFw_rmResPrms.coreDmaResInfo[coreIdx].coreId == coreId)
+        {
             break;
         }
     }
 
-    return rmInfo;
+    ETHFWTRACE_ERR_IF((coreIdx == gEthFw_rmResPrms.numCores), ETHFW_EFAIL, "Failed to find core dma resource index");
+    return coreIdx;
 }
 
 static void EthFw_updateEnetRm(void)
@@ -894,47 +882,22 @@ static void EthFw_updateEnetRm(void)
     EnetRm_ResPrms *rmPrms = &resCfg->resPartInfo;
     EnetRm_ResourceInfo *rmInfo;
     uint32_t req = 0U;
-    uint32_t coreId;
+    uint32_t coreIdx;
     uint32_t i;
-    uint32_t rdevVirtPorts[IPC_MAX_PROCS];
-    uint32_t autosarVirtPorts[IPC_MAX_PROCS];
     uint32_t virtPortCnt = 0U;
 
-    memset(rdevVirtPorts, 0, sizeof(rdevVirtPorts));
-    memset(autosarVirtPorts, 0, sizeof(autosarVirtPorts));
-
-    /* Count the number of remote_device-based virtual ports */
+    /* Add RM needed by virtual ports, each one needs:
+     * - numTxCh x TX channel
+     * - numRxFlow x RX flow
+     * - numMacAddress x MAC address from ETHFW pool
+     */
     for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
     {
-        coreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
-        rdevVirtPorts[coreId]++;
-    }
-
-    /* Count the number of AUTOSAR virtual ports */
-    for (i = 0U; i < gEthFwObj.numAutosarVirtPorts; i++)
-    {
-        coreId = gEthFwObj.autosarVirtPortCfg[i].remoteCoreId;
-        autosarVirtPorts[coreId]++;
-    }
-
-    /* Add RM needed by virtual ports, each one needs:
-     * - 1 x TX channel
-     * - 1 x RX flow
-     * - 1 x MAC address from ETHFW pool
-     */
-    for (i = 0U; i < IPC_MAX_PROCS; i++)
-    {
-        virtPortCnt = EnetUtils_max(rdevVirtPorts[i], autosarVirtPorts[i]);
-        if (virtPortCnt > 0U)
-        {
-            rmInfo = EthFw_getRmInfo(i);
-            if (rmInfo != NULL)
-            {
-                rmInfo->numTxCh += virtPortCnt;
-                rmInfo->numRxFlows += virtPortCnt;
-                rmInfo->numMacAddress += virtPortCnt;
-            }
-        }
+        coreIdx = EthFw_getCoreDmaResIndex(gEthFwObj.virtPortCfg[i].remoteCoreId);
+        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numTxCh       += gEthFwObj.virtPortCfg[i].numTxCh;
+        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numRxFlows    += gEthFwObj.virtPortCfg[i].numRxFlow;
+        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numMacAddress += gEthFwObj.virtPortCfg[i].numMacAddress;
+        EthFw_setTxChRmInfo(coreIdx, i);
     }
 
     /* Overwriting RM with our own */
@@ -998,10 +961,6 @@ void EthFw_initConfigParams(Enet_Type enetType,
     config->mcastCfg.sharedMcastCfg.numMcast = 0U;
     config->mcastCfg.rsvdMcastCfg.mcastCfg = NULL;
     config->mcastCfg.rsvdMcastCfg.numMcast = 0U;
-
-    /* Virtual ports (bare IPC, AUTOSAR) */
-    config->autosarVirtPortCfg = NULL;
-    config->numAutosarVirtPorts = 0U;
 
     /* Default VLAN ids */
     config->dfltVlanIdMacOnlyPorts = ETHFW_MAC_ONLY_PORTS_VLAN_ID;
@@ -1312,6 +1271,9 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     CpswProxyServer_Config_t cfg;
     int32_t status;
     uint32_t i;
+    uint32_t numAutosarVirtPorts = 0U;
+    uint32_t clientIdMask;
+    uint32_t j;
 
     EnetAppUtils_assert(hEthFw != NULL);
 
@@ -1331,24 +1293,33 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     }
 
     /* Remote cores which use remote_device framework */
-    cfg.numVirtPorts = gEthFwObj.numVirtPorts;
-    for (i = 0U; i < cfg.numVirtPorts; i++)
+    for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
     {
-        cfg.virtPortCfg[i].remoteCoreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
-        cfg.virtPortCfg[i].portId       = gEthFwObj.virtPortCfg[i].portId;
+        clientIdMask = gEthFwObj.virtPortCfg[i].clientIdMask;
+        /* If this virtual port is used by Autosar */
+        if (ETHFW_IS_BIT_SET(clientIdMask, ETHREMOTECFG_CLIENTID_AUTOSAR))
+        {
+            cfg.autosarPortCfg[numAutosarVirtPorts].remoteCoreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
+            cfg.autosarPortCfg[numAutosarVirtPorts].portId    = gEthFwObj.virtPortCfg[i].portId;
+            cfg.autosarEthDeviceEndPointId[numAutosarVirtPorts]   = EthFw_getRemoteEndptId(cfg.autosarPortCfg[numAutosarVirtPorts].remoteCoreId);
+            numAutosarVirtPorts++;
+        }
+        
+        cfg.virtPortCfg[i].remoteCoreId  = gEthFwObj.virtPortCfg[i].remoteCoreId;
+        cfg.virtPortCfg[i].portId        = gEthFwObj.virtPortCfg[i].portId;
         cfg.notifyServiceRemoteCoreId[i] = gEthFwObj.virtPortCfg[i].remoteCoreId;
+        cfg.virtPortCfg[i].numTxCh       = gEthFwObj.virtPortCfg[i].numTxCh;
+        cfg.virtPortCfg[i].numRxFlow     = gEthFwObj.virtPortCfg[i].numRxFlow;
+        for (j = 0; j < ENET_CFG_TX_CHANNELS_NUM; j++)
+        {
+            cfg.virtPortCfg[i].txCh[j]   = gEthFwObj.virtPortCfg[i].txCh[j];
+        }
     }
+    cfg.numVirtPorts = gEthFwObj.numVirtPorts;
 
     /* AUTOSAR virtual clients */
-    EnetAppUtils_assert(gEthFwObj.numAutosarVirtPorts <= CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
-
-    cfg.autosarEthVirtPortNum = gEthFwObj.numAutosarVirtPorts;
-    for (i = 0U; i < cfg.autosarEthVirtPortNum; i++)
-    {
-        cfg.autosarPortCfg[i].remoteCoreId = gEthFwObj.autosarVirtPortCfg[i].remoteCoreId;
-        cfg.autosarPortCfg[i].portId    = gEthFwObj.autosarVirtPortCfg[i].portId;
-        cfg.autosarEthDeviceEndPointId[i]   = EthFw_getRemoteEndptId(cfg.autosarPortCfg[i].remoteCoreId);
-    }
+    EnetAppUtils_assert(numAutosarVirtPorts <= CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
+    cfg.autosarEthVirtPortNum = numAutosarVirtPorts;
 
     /* Alloc resources for the remote clients */
     EnetAppUtils_assert(gEthFwObj.numClients <= CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX);

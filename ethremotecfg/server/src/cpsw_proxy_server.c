@@ -316,6 +316,10 @@ typedef struct CpswProxyServer_Obj_s
     CpswProxyServer_RemoteCoreObj coreObj[IPC_MAX_PROCS];
     /* set to true when checksum offload is enabled */
     bool csumOffloadEn;
+    /* Virtual port configurations */
+    CpswProxyServer_VirtPortCfg virtPortCfg[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
+    /* Number of remote virtual ports that remotes cores can attach to */
+    uint32_t numVirtPorts;
 } CpswProxyServer_Obj;
 
 /* ========================================================================== */
@@ -369,6 +373,13 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
 
 static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
                                           uint32_t notifyId);
+
+static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
+                                                 EthRemoteCfg_VirtPort virtPort);
+
+static uint32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virtPort,
+                                                       uint32_t *pNumTxCh,
+                                                       uint32_t *pNumRxFlow);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -620,7 +631,7 @@ static int32_t CpswProxyServer_getPortMask(uint32_t clientId,
     hServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hServer != NULL) && hServer->initDone == BTRUE);
 
-    for (i = 0; i < CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX; i++)
+    for (i = 0U; i < CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX; i++)
     {
         if ((hServer->allocObj[i].clientId == clientId) && (hServer->allocObj[i].remoteProcId == hostId))
         {
@@ -666,7 +677,9 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
                                                uint32_t *pRxMtu,
                                                uint32_t *pTxMtu,
                                                uint32_t txMtuArraySize,
-                                               uint32_t *pFeatures)
+                                               uint32_t *pFeatures,
+                                               uint32_t *pNumTxCh,
+                                               uint32_t *pNumRxFlow)
 {
     CpswProxyServer_Obj *hServer = NULL;
     EnetPer_AttachCoreOutArgs attachInfo;
@@ -710,6 +723,15 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
             *pFeatures |= ETHREMOTECFG_FEATURE_MC_FILTER;
         }
 
+        /* If number of tx channels and rx flows allocated are required by the client
+         * i.e. called not called from CpswProxyServer_attachExtHandlerCb attach */
+        if (pNumTxCh != NULL && pNumRxFlow != NULL)
+        {
+            status = CpswProxyServer_getClientTxChRxFlowNum(virtPort, pNumTxCh, pNumRxFlow);   
+        }
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                        "Failed to get tx and rx channels for virtual port %d", virtPort);
+
         /* Save parameters in client object */
         hClient->token     = CPSWPROXY_VIRTPORT_2_TOKEN(virtPort);
         hClient->virtPort  = virtPort;
@@ -743,7 +765,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
     uint32_t coreKey;
 
     /* Actual attach operation */
-    status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, txMtuArraySize, pFeatures);
+    status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, txMtuArraySize, pFeatures, NULL, NULL);
     EnetAppUtils_assert(ETHREMOTECFG_CMDSTATUS_OK == status);
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
@@ -813,11 +835,13 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
 
 static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                 uint32_t hostId,
-                                                uint32_t *pTxPsilDstId)
+                                                uint32_t *pTxPsilDstId,
+                                                uint32_t chRelPriority)
 {
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
+    uint32_t txChNum;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -834,10 +858,14 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        status = EnetAppUtils_allocTxCh(hServer->hEnet,
-                                        coreKey,
-                                        hostId,
-                                        pTxPsilDstId);
+        /* Get absolute tx channel number from relative tx channel */
+        txChNum = CpswProxyServer_getAbsTxChNumber(chRelPriority, hClient->virtPort);
+        EnetAppUtils_assert(txChNum != ENET_RM_TXCHNUM_INVALID);
+        status = EnetAppUtils_allocAbsTxCh(hServer->hEnet,
+                                          coreKey,
+                                          hostId,
+                                          pTxPsilDstId,
+                                          txChNum);
 
         if (ENET_SOK == status)
         {
@@ -2664,6 +2692,12 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         hServer->clientServiceObj.rpmsgStartSem = SemaphoreP_create(0, &sem_params);
         EnetAppUtils_assert(hServer->clientServiceObj.rpmsgStartSem != NULL);
 
+        hServer->numVirtPorts = cfg->numVirtPorts;
+        for (i = 0U; i < hServer->numVirtPorts; i++)
+        {
+            hServer->virtPortCfg[i] = cfg->virtPortCfg[i];
+        }
+
         CpswProxyServer_initClientHandle(cfg);
 
         ETHFWTRACE_INFO("Virtual port configuration:");
@@ -2789,7 +2823,9 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                                                      &res->rxMtu,
                                                      &res->txMtu[0U],
                                                      ENET_ARRAYSIZE(res->txMtu),
-                                                     &res->features);
+                                                     &res->features,
+                                                     &res->numTxCh,
+                                                     &res->numRxFlow);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to attach virtual port %u core %u",
                               req->virtPort, remoteProcId);
@@ -2868,6 +2904,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         }
         case ETHREMOTECFG_CMD_ALLOC_TX:
         {
+            EthRemoteCfg_AllocTxReq *req = (EthRemoteCfg_AllocTxReq *)reqBuf;
             EthRemoteCfg_AllocTxRes *res = (EthRemoteCfg_AllocTxRes *)resBuf;
 
             ETHFWTRACE_INFO("ALLOC_TX | C2S | core=%u endpt=%u token=%d",
@@ -2879,7 +2916,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             status = CpswProxyServer_allocTxHandlerCb(hClient,
                                                       remoteProcId,
-                                                      &res->txPsilDstId);
+                                                      &res->txPsilDstId,
+                                                      req->chRelPriority);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc TX channel");
 
             resLen = sizeof(*res);
@@ -4164,4 +4202,46 @@ int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
     ETHFWTRACE_INFO_IF((retVal == IPC_SOK), "Announce Endpoint Service to Linux");
 
     return retVal;
+}
+
+static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
+                                                 EthRemoteCfg_VirtPort virtPort)
+{
+    uint32_t i;
+    uint32_t txChNum = ENET_RM_TXCHNUM_INVALID;
+    CpswProxyServer_Obj *hServer;
+    hServer = CpswProxyServer_getHandle();
+    for (i = 0U; i < hServer->numVirtPorts; i++)
+    {
+        if (hServer->virtPortCfg[i].portId == virtPort)
+        {
+            ETHFWTRACE_ERR_IF((hServer->virtPortCfg[i].txCh[chRelPriority] == ENET_RM_TX_CH_NONE),
+                               ETHFW_EFAIL,
+                               "Failed to get absolute tx channel number");
+            txChNum = hServer->virtPortCfg[i].txCh[chRelPriority] - ENET_RM_TX_CH_0;
+            break;
+        }
+    }
+    return txChNum;
+}
+
+static uint32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virtPort,
+                                                       uint32_t *pNumTxCh,
+                                                       uint32_t *pNumRxFlow)
+{
+    uint32_t i;
+    uint32_t status = ETHFW_EFAIL;
+    CpswProxyServer_Obj *hServer;
+    hServer = CpswProxyServer_getHandle();
+    for (i = 0U; i < hServer->numVirtPorts; i++)
+    {
+        if (hServer->virtPortCfg[i].portId == virtPort)
+        {
+            *pNumTxCh = hServer->virtPortCfg[i].numTxCh;
+            *pNumRxFlow = hServer->virtPortCfg[i].numRxFlow;
+            status = ETHFW_SOK;
+            break;
+        }
+    }
+    return status;
 }

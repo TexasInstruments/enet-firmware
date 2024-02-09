@@ -936,6 +936,12 @@ typedef struct EthRemoteCfg_AttachRes_s
 
     /*! Feature bitmask based on defines \ref EthRemoteCfg_FeatureMask. */
     uint32_t features;
+
+    /*! Number of tx channel allocated for this virtual port */
+    uint32_t numTxCh;
+
+    /*! Number of rx flows allocated for this virtual port */
+    uint32_t numRxFlow;
 } __attribute__((packed)) EthRemoteCfg_AttachRes;
 
 /*!
@@ -996,6 +1002,21 @@ typedef struct EthRemoteCfg_AllocRxRes_s
     /*! Rx PSIL peer source thread id */
     uint32_t rxPsilSrcId;
 } __attribute__((packed)) EthRemoteCfg_AllocRxRes;
+
+/*!
+ * \brief Request params for \ref ETHREMOTECFG_CMD_ALLOC_TX command.
+ *
+ * This request provides the tx channel priority (relative) by client
+ * which needs to be allocated.
+ */
+typedef struct EthRemoteCfg_AllocTxReq_s
+{
+    /*! Request message common header. */
+    EthRemoteCfg_ReqHdr hdr;
+
+    /*! Tx channel priority (relative) which client want to allocate */
+    uint32_t chRelPriority;
+} __attribute__((packed)) EthRemoteCfg_AllocTxReq;
 
 /*!
  * \brief Response params for \ref ETHREMOTECFG_CMD_ALLOC_TX command.
