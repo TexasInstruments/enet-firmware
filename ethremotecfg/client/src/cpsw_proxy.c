@@ -658,15 +658,18 @@ int32_t CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
 
 int32_t CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
                               uint32_t *rxFlowIdxBase,
-                              uint32_t *rxFlowIdxOffset)
+                              uint32_t *rxFlowIdxOffset,
+                              uint32_t flowIdx)
 {
-    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_AllocRxReq req;
     EthRemoteCfg_AllocRxRes res;
     int32_t status;
 
     ETHFWTRACE_INFO("ALLOC_RX | C2S | token=%d", (int32_t)hProxy->token);
 
     memset(&res, 0, sizeof(EthRemoteCfg_AllocRxRes));
+
+    req.flowIdx = flowIdx;
 
     status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_RX,
                                &req.hdr, sizeof(req),

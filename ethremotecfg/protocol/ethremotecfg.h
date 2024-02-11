@@ -983,6 +983,22 @@ typedef struct EthRemoteCfg_AttachExtRes_s
 } __attribute__((packed)) EthRemoteCfg_AttachExtRes;
 
 /*!
+ * \brief Request params for \ref ETHREMOTECFG_CMD_ALLOC_RX command.
+ *
+ * This request provides the rx flow to the client which needs to be allocated.
+ * FlowIdx 0U being given to default flow and any custom policers cannot be
+ * created for it.
+ */
+typedef struct EthRemoteCfg_AllocRxReq_s
+{
+    /*! Request message common header. */
+    EthRemoteCfg_ReqHdr hdr;
+
+    /*! Relative index of RX flow among available numRxFlow */
+    uint32_t flowIdx;
+} __attribute__((packed)) EthRemoteCfg_AllocRxReq;
+
+/*!
  * \brief Response params \ref ETHREMOTECFG_CMD_ALLOC_RX command.
  *
  * This response holds the information of the  allocated Rx flow which is

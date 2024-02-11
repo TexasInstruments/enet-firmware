@@ -1435,6 +1435,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     uint32_t numTxCh;
     uint32_t numRxFlow;
     uint32_t relChPriority = 0U;
+    uint32_t flowIdx = 0U;
 
     virtNetif = container_of(inArgs->netif, CpswRemoteApp_VirtNetif, netif);
     localAssert(virtNetif->hCpswProxy != NULL);
@@ -1485,9 +1486,14 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         CpswProxy_allocTxCh(virtNetif->hCpswProxy,
                             &txPSILId,
                             relChPriority);
+        /* As we have not added multiple rx flow support for QoS on RTOS client side.
+         * For now we are allocating only 1 rx flow (i.e. default flow).
+         * But we have tested rx QoS by manually calling multiple allocRxFlow
+         * i.e. with default flow and extended flow as well */
         CpswProxy_allocRxFlow(virtNetif->hCpswProxy,
                               &rxStartFlowId,
-                              &rxFlowIdOffset);
+                              &rxFlowIdOffset,
+                              flowIdx);
         CpswProxy_allocMac(virtNetif->hCpswProxy,
                            virtNetif->macAddr);
     }

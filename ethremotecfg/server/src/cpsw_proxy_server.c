@@ -884,7 +884,8 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
                                                 uint32_t hostId,
                                                 uint32_t *pRxFlowIdxBase,
                                                 uint32_t *pRxFlowIdxOffset,
-                                                uint32_t *pRxPsilSrcId)
+                                                uint32_t *pRxPsilSrcId,
+                                                uint32_t flowIdx)
 {
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
@@ -2928,6 +2929,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         }
         case ETHREMOTECFG_CMD_ALLOC_RX:
         {
+            EthRemoteCfg_AllocRxReq *req = (EthRemoteCfg_AllocRxReq *)reqBuf;
             EthRemoteCfg_AllocRxRes *res = (EthRemoteCfg_AllocRxRes *)resBuf;
 
             ETHFWTRACE_INFO("ALLOC_RX | C2S | core=%u endpt=%u token=%d",
@@ -2941,7 +2943,8 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                                                       remoteProcId,
                                                       &res->rxFlowIdxBase,
                                                       &res->rxFlowIdxOffset,
-                                                      &res->rxPsilSrcId);
+                                                      &res->rxPsilSrcId,
+                                                      req->flowIdx);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc RX flow");
 
             resLen = sizeof(*res);

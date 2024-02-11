@@ -398,13 +398,15 @@ int32_t CpswProxy_freeTxCh(CpswProxy_Handle hProxy,
  * \param hProxy           Handle to Cpsw Proxy.
  * \param rxFlowIdxBase    Pointer to RX flow index base value.
  * \param rxFlowIdxOffset  Pointer to RX flow offset to be allocated.
+ * \param flowIdx          Relative index of rx flow among available numRxFlow
  *
  * \returns \ref CPSWPROXY_SOK if RX flow has been successfully allocated, or
  *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_allocRxFlow(CpswProxy_Handle hProxy,
                               uint32_t *rxFlowIdxBase,
-                              uint32_t *rxFlowIdxOffset);
+                              uint32_t *rxFlowIdxOffset,
+                              uint32_t flowIdx);
 
 /*!
  * \brief Free Rx flow.
