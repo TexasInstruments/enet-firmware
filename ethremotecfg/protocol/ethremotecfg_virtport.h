@@ -75,6 +75,7 @@
 /* ========================================================================== */
 
 #include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/mod/cpsw_ale.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -92,6 +93,11 @@ extern "C" {
  * virtport number and converts it to a #EthRemoteCfg_VirtPort enum.
  */
 #define ETHREMOTECFG_VIRTPORT_DENORM(n)                ((EthRemoteCfg_VirtPort)((n) + ETHREMOTECFG_SWITCH_PORT_0))
+
+/*!
+ * \brief Maximum number of custom policers per flow
+ */
+#define ETHREMOTECFG_POLICER_PERFLOW                   (10U)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -144,6 +150,23 @@ typedef enum EthRemoteCfg_VirtPort_e
     /*! Last virtual MAC port id. */
     ETHREMOTECFG_MAC_PORT_LAST = ETHREMOTECFG_MAC_PORT_8,
 } EthRemoteCfg_VirtPort;
+
+/*!
+ * \brief Flow information for primary and extended flows
+ */
+typedef struct EthRemoteCfg_FlowInfo_s
+{
+    /*! Allocated flow index offset. */
+    uint32_t rxFlowIdxOffset;
+
+    /*! Number of custom policers for this flow */
+    uint32_t numCustomPolicers;
+
+    /*! Address of custom policers (which application wants to generate) input arguments
+     * 1 rx flow can have multiple custom policers for it */
+    CpswAle_SetPolicerEntryInPartitionInArgs *customPolicersInArgs[ETHREMOTECFG_POLICER_PERFLOW];
+} EthRemoteCfg_RxFlowInfo;
+
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */

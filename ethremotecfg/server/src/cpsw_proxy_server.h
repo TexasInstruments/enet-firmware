@@ -254,6 +254,18 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId);
 int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
                                          uint32_t *idleClients);
 /*!
+ * \brief Cpsw Proxy Server Virtual Port Configuration structure for AUTOSAR
+ */
+typedef struct CpswProxyServer_AutosarVirtPortCfg_s
+{
+    /*! Remote Core Id that can attach */
+    uint32_t remoteCoreId;
+
+    /*! Virtual port id */
+    EthRemoteCfg_VirtPort portId;
+} CpswProxyServer_AutosarVirtPortCfg;
+
+/*!
  * \brief Cpsw Proxy Server Virtual Port Configuration structure
  */
 typedef struct CpswProxyServer_VirtPortCfg_s
@@ -272,6 +284,9 @@ typedef struct CpswProxyServer_VirtPortCfg_s
 
     /*! Number of rx channels allocated for a given virtual port */
     uint32_t numRxFlow;
+
+    /*! Array of rx flow information for a given virtual port */
+    EthRemoteCfg_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
 } CpswProxyServer_VirtPortCfg;
 
 /*!
@@ -321,7 +336,7 @@ typedef struct CpswProxyServer_Config_s
     uint32_t autosarEthDeviceEndPointId[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
 
     /*! Virtual port configuration */
-    CpswProxyServer_VirtPortCfg autosarPortCfg[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
+    CpswProxyServer_AutosarVirtPortCfg autosarPortCfg[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
 
     /*! Number of AUTOSAR virtual ports that remotes cores can attach to */
     uint32_t autosarEthVirtPortNum;

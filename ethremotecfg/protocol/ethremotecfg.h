@@ -320,7 +320,7 @@ typedef enum EthRemoteCfg_CmdType_e
      * Client should use the allocated Tx channel as Tx DMA channel CPSW PSIL
      * destination thread id when configuring the Tx DMA channel.
      *
-     * Request (C2S): \ref EthRemoteCfg_CommonReq
+     * Request (C2S): \ref EthRemoteCfg_AllocTxReq
      * Response (S2C): \ref EthRemoteCfg_AllocTxRes
      */
     ETHREMOTECFG_CMD_ALLOC_TX,
@@ -331,7 +331,7 @@ typedef enum EthRemoteCfg_CmdType_e
      * Client should use the allocated Rx flow id to configure the DNA Rx flow
      * to establish Rx data flow path on remote client.
      *
-     * Request (C2S): \ref EthRemoteCfg_CommonReq
+     * Request (C2S): \ref EthRemoteCfg_AllocRxReq
      * Response (S2C): \ref EthRemoteCfg_AllocRxRes
      */
     ETHREMOTECFG_CMD_ALLOC_RX,

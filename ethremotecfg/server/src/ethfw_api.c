@@ -460,9 +460,14 @@ static EthFw_Autosar_EpId gEthFw_autosarEndptId[] =
  * CPSW_ALE_POLICER_PARTITION_LEVEL_1 having the highest priority */
 static uint32_t gEthFw_policerTablePartSize[CPSW_ALE_POLICER_TABLE_PART_MAX] =
 {
+    /* This partition is used for private VLAN by default */
     [CPSW_ALE_POLICER_PARTITION_LEVEL_1] = 10U,
-    [CPSW_ALE_POLICER_PARTITION_LEVEL_2] = 20U,
-    [CPSW_ALE_POLICER_PARTITION_LEVEL_3] = 0U,
+    /* This partition is used for custom policers by default.
+     * These are policers which are created by ethfw application for each virtual port
+     * on specific rx flows (extended).
+     * Custom policer configuration can be changed from ethfw application */
+    [CPSW_ALE_POLICER_PARTITION_LEVEL_2] = ETHFW_UTILS_NUM_CUSTOM_POLICERS,
+    [CPSW_ALE_POLICER_PARTITION_LEVEL_3] = 10U,
     [CPSW_ALE_POLICER_PARTITION_LEVEL_4] = 0U,
     /* Give the unused/default partition size to be 0
      * Partitions with size 0 are clubbed to default partition */
@@ -1274,6 +1279,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     uint32_t numAutosarVirtPorts = 0U;
     uint32_t clientIdMask;
     uint32_t j;
+    uint32_t k;
 
     EnetAppUtils_assert(hEthFw != NULL);
 
@@ -1310,9 +1316,22 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         cfg.notifyServiceRemoteCoreId[i] = gEthFwObj.virtPortCfg[i].remoteCoreId;
         cfg.virtPortCfg[i].numTxCh       = gEthFwObj.virtPortCfg[i].numTxCh;
         cfg.virtPortCfg[i].numRxFlow     = gEthFwObj.virtPortCfg[i].numRxFlow;
-        for (j = 0; j < ENET_CFG_TX_CHANNELS_NUM; j++)
+        for (j = 0U; j < cfg.virtPortCfg[i].numTxCh; j++)
         {
             cfg.virtPortCfg[i].txCh[j]   = gEthFwObj.virtPortCfg[i].txCh[j];
+        }
+        /* Storing each rx flow information for a virtual port */
+        for (j = 0U; j < cfg.virtPortCfg[i].numRxFlow; j++)
+        {
+            cfg.virtPortCfg[i].rxFlowsInfo[j].numCustomPolicers = gEthFwObj.virtPortCfg[i].rxFlowsInfo[j].numCustomPolicers;
+            /* Copying custom policers for each rx flow for a virtual port */
+            if (cfg.virtPortCfg[i].rxFlowsInfo[j].numCustomPolicers != 0U)
+            {
+                for (k = 0U; k < cfg.virtPortCfg[i].rxFlowsInfo[j].numCustomPolicers; k++)
+                {
+                    cfg.virtPortCfg[i].rxFlowsInfo[j].customPolicersInArgs[k] = gEthFwObj.virtPortCfg[i].rxFlowsInfo[j].customPolicersInArgs[k];
+                }
+            }
         }
     }
     cfg.numVirtPorts = gEthFwObj.numVirtPorts;

@@ -164,6 +164,8 @@
 
 #define CPSWPROXY_PRINT_STATS_NONZERO(str, val)          ETHFWTRACE_INFO_IF(((val) != 0ULL), str, val)
 #define CPSWPROXY_PRINT_STATS_IDX_NONZERO(str, idx, val) ETHFWTRACE_INFO_IF(((val) != 0ULL), str, idx, val)
+#define CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX            (0U)
+#define CPSWPROXY_CLIENT_INVALID_FLOW_IDX_OFFSET         (0xFFU)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -380,6 +382,28 @@ static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
 static uint32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virtPort,
                                                        uint32_t *pNumTxCh,
                                                        uint32_t *pNumRxFlow);
+
+static int32_t CpswProxyServer_createCustomPolicer(Enet_Handle hEnet,
+                                                   uint32_t coreId,
+                                                   CpswAle_SetPolicerEntryInPartitionInArgs *customPolInArgs);
+
+static int32_t CpswProxyServer_deleteCustomPolicer(Enet_Handle hEnet,
+                                                   uint32_t coreId,
+                                                   CpswAle_SetPolicerEntryInPartitionInArgs *customPolInArgs);
+
+static int32_t CpswProxyServer_getRxFlowInfo(EthRemoteCfg_VirtPort virtPort,
+                                             uint32_t relFlowIdx,
+                                             EthRemoteCfg_RxFlowInfo **rxFlowInfo);
+
+/* Returns relative flow index from rx flows assigned to this virtual port */
+static int32_t CpswProxyServer_getRelFlowIdx(EthRemoteCfg_VirtPort virtPort,
+                                             uint32_t *relFlowIdx,
+                                             uint32_t rxFlowIdxOffset);
+
+/* Stores the flowIdxOffset assigned to a specific flow in virtual port configuration */
+static void CpswProxyServer_saveRxFlowOffset(EthRemoteCfg_VirtPort virtPort,
+                                             uint32_t relFlowIdx,
+                                             uint32_t rxFlowIdxOffset);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -727,10 +751,10 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
          * i.e. called not called from CpswProxyServer_attachExtHandlerCb attach */
         if (pNumTxCh != NULL && pNumRxFlow != NULL)
         {
-            status = CpswProxyServer_getClientTxChRxFlowNum(virtPort, pNumTxCh, pNumRxFlow);   
+            status = CpswProxyServer_getClientTxChRxFlowNum(virtPort, pNumTxCh, pNumRxFlow);
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                               "Failed to get tx and rx channels for virtual port %d", virtPort);
         }
-        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                        "Failed to get tx and rx channels for virtual port %d", virtPort);
 
         /* Save parameters in client object */
         hClient->token     = CPSWPROXY_VIRTPORT_2_TOKEN(virtPort);
@@ -795,6 +819,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
         if (ENET_SOK == status)
         {
             CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
+            CpswProxyServer_saveRxFlowOffset(hClient->virtPort, CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX, *pRxFlowIdxOffset);
         }
     }
 
@@ -885,11 +910,13 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
                                                 uint32_t *pRxFlowIdxBase,
                                                 uint32_t *pRxFlowIdxOffset,
                                                 uint32_t *pRxPsilSrcId,
-                                                uint32_t flowIdx)
+                                                uint32_t relFlowIdx)
 {
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
+    EthRemoteCfg_RxFlowInfo *rxFlowInfo;
+    uint32_t i;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -924,6 +951,29 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
         else
         {
             ETHFWTRACE_ERR(status, "Failed to alloc RX channel");
+        }
+
+        if (status == ENET_SOK)
+        {
+            CpswProxyServer_saveRxFlowOffset(hClient->virtPort, relFlowIdx, *pRxFlowIdxOffset);
+            status = CpswProxyServer_getRxFlowInfo(hClient->virtPort, relFlowIdx, &rxFlowInfo);
+            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                               "Failed to get virtual port %u rx flow %u info",
+                               hClient->virtPort,
+                               pRxFlowIdxOffset);
+            if (status == ETHREMOTECFG_CMDSTATUS_OK)
+            {
+                /* Flow has been allocated, create custom policer for it (if any) */
+                for (i = 0U; i < rxFlowInfo->numCustomPolicers; i++)
+                {
+                    rxFlowInfo->customPolicersInArgs[i]->threadId = *pRxFlowIdxOffset;
+                    status = CpswProxyServer_createCustomPolicer(hServer->hEnet, hostId, rxFlowInfo->customPolicersInArgs[i]);
+                    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                                       "Failed to create custom policer for virtual port %u flow %u",
+                                       hClient->virtPort,
+                                       *pRxFlowIdxOffset);
+                }
+            }
         }
     }
 
@@ -1059,6 +1109,9 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
+    uint32_t relFlowIdx;
+    EthRemoteCfg_RxFlowInfo *rxFlowInfo;
+    uint32_t i;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -1071,6 +1124,26 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
         status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         ETHFWTRACE_ERR(status, "ETHFW server is not ready");
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    {
+        status = CpswProxyServer_getRxFlowInfo(hClient->virtPort, relFlowIdx, &rxFlowInfo);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                            "Failed to get virtual port %u rx flow %u info",
+                            hClient->virtPort,
+                            pRxFlowIdxOffset);
+        /* Remove custom policers for this flow (if any) */
+        for (i = 0U; i < rxFlowInfo->numCustomPolicers; i++)
+        {
+            status = CpswProxyServer_deleteCustomPolicer(hServer->hEnet, hostId, rxFlowInfo->customPolicersInArgs[i]);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                                "Failed to delete custom policer for virtual port %u flow %u",
+                                hClient->virtPort,
+                                pRxFlowIdxOffset);
+        }
+        /* Remove flowIdxOffset assigned to specific flow from virtual port config */
+        CpswProxyServer_saveRxFlowOffset(hClient->virtPort, relFlowIdx, CPSWPROXY_CLIENT_INVALID_FLOW_IDX_OFFSET);
     }
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
@@ -1150,6 +1223,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
     bool isSwitchPort;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
+    uint32_t relFlowIdx;
 #if defined(ETHFW_VEPA_SUPPORT)
     struct eth_addr hwAddr;
 #endif
@@ -1165,6 +1239,21 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
         status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         ETHFWTRACE_ERR(status, "ETHFW server is not ready");
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    /* Make sure that CpswProxyServer_registerMacHandlerCb is requested on primary flow */
+    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                       "Failed to get relative flow index for virtual port %u flow %u",
+                       hClient->virtPort,
+                       flowIdxOffset);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        {
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            ETHFWTRACE_ERR(status, "Failed to register MAC addr on extended flow, must be on primary flow");
+        }
     }
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
@@ -1240,6 +1329,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
     bool isSwitchPort;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
+    uint32_t relFlowIdx;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -1252,6 +1342,21 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
         status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         ETHFWTRACE_ERR(status, "ETHFW server is not ready");
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    /* Make sure that CpswProxyServer_unregisterMacHandlerCb is requested on primary flow */
+    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                       "Failed to get relative flow index for virtual port %u flow %u",
+                       hClient->virtPort,
+                       flowIdxOffset);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        {
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            ETHFWTRACE_ERR(status, "Failed to unregister MAC addr on extended flow, must be on primary flow");
+        }
     }
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
@@ -1623,7 +1728,7 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
         polInArgs.threadId               = flowIdx;
         polInArgs.peakRateInBitsPerSec   = 0;
         polInArgs.commitRateInBitsPerSec = 0;
-        polInArgs.policerPartLevel       = CPSW_ALE_POLICER_PARTITION_LEVEL_2;
+        polInArgs.policerPartLevel       = CPSW_ALE_POLICER_PARTITION_LEVEL_3;
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
         status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
@@ -1722,6 +1827,7 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
     bool isSwitchPort;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
+    uint32_t relFlowIdx;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -1734,6 +1840,21 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
         status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         ETHFWTRACE_ERR(status, "ETHFW server is not ready");
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    /* Make sure that CpswProxyServer_registerRxDefaultHandlerCb is requested on primary flow */
+    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                       "Failed to get relative flow index for virtual port %u flow %u",
+                       hClient->virtPort,
+                       flowIdxOffset);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        {
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            ETHFWTRACE_ERR(status, "Failed to register rx default flow on extended flow, must be on primary flow");
+        }
     }
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
@@ -1776,6 +1897,7 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
     bool isSwitchPort;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
+    uint32_t relFlowIdx;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -1788,6 +1910,21 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
         status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         ETHFWTRACE_ERR(status, "ETHFW server is not ready");
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    /* Make sure that CpswProxyServer_deregisterRxDefaultHandlerCb is requested on primary flow */
+    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                       "Failed to get relative flow index for virtual port %u flow %u",
+                       hClient->virtPort,
+                       flowIdxOffset);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        {
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            ETHFWTRACE_ERR(status, "Failed to deregister rx default flow on extended flow, must be on primary flow");
+        }
     }
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
@@ -2495,6 +2632,7 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
     CpswProxyServer_Obj *hServer = NULL;
     uint16_t hwVlanId = vlanId;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    uint32_t relFlowIdx;
 
     /* Check that server itself is ready */
     hServer = CpswProxyServer_getHandle();
@@ -2503,6 +2641,21 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
         status = ETHREMOTECFG_CMDSTATUS_EFAIL;
         ETHFWTRACE_ERR(status, "ETHFW server is not ready");
         EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    }
+
+    /* Make sure that CpswProxyServer_filterAddMacHandlerCb is requested on primary flow */
+    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                       "Failed to get relative flow index for virtual port %u flow %u",
+                       hClient->virtPort,
+                       flowIdxOffset);
+    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    {
+        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        {
+            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            ETHFWTRACE_ERR(status, "Failed to add filter MAC on extended flow, must be on primary flow");
+        }
     }
 
     if (!EnetUtils_isMcastAddr(macAddr))
@@ -4214,6 +4367,7 @@ static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
     uint32_t txChNum = ENET_RM_TXCHNUM_INVALID;
     CpswProxyServer_Obj *hServer;
     hServer = CpswProxyServer_getHandle();
+
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
         if (hServer->virtPortCfg[i].portId == virtPort)
@@ -4225,6 +4379,7 @@ static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
             break;
         }
     }
+
     return txChNum;
 }
 
@@ -4236,6 +4391,7 @@ static uint32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort vir
     uint32_t status = ETHFW_EFAIL;
     CpswProxyServer_Obj *hServer;
     hServer = CpswProxyServer_getHandle();
+
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
         if (hServer->virtPortCfg[i].portId == virtPort)
@@ -4246,5 +4402,125 @@ static uint32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort vir
             break;
         }
     }
+
     return status;
+}
+
+static int32_t CpswProxyServer_createCustomPolicer(Enet_Handle hEnet,
+                                                   uint32_t coreId,
+                                                   CpswAle_SetPolicerEntryInPartitionInArgs *customPolInArgs)
+{
+    CpswAle_SetPolicerEntryOutArgs polOutArgs;
+    Enet_IoctlPrms prms;
+    int32_t status = ETHFW_EFAIL;
+
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, customPolInArgs, &polOutArgs);
+
+    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                      "Failed to create custom policer for core %u",
+                       coreId);
+
+    return status;
+}
+
+static int32_t CpswProxyServer_deleteCustomPolicer(Enet_Handle hEnet,
+                                                   uint32_t coreId,
+                                                   CpswAle_SetPolicerEntryInPartitionInArgs *customPolInArgs)
+{
+    CpswAle_DelPolicerEntryInArgs polInArgs;
+    Enet_IoctlPrms prms;
+    int32_t status = ETHFW_EFAIL;
+
+    polInArgs.policerMatch = customPolInArgs->policerMatch;
+    /* Remove ALE policer and entry from ALE as well */
+    polInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ALL;
+    ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
+
+    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                      "Failed to create custom policer for core %u",
+                       coreId);
+
+    return status;
+}
+
+static int32_t CpswProxyServer_getRxFlowInfo(EthRemoteCfg_VirtPort virtPort,
+                                             uint32_t relFlowIdx,
+                                             EthRemoteCfg_RxFlowInfo **rxFlowInfo)
+{
+    uint32_t i;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+    CpswProxyServer_Obj *hServer;
+    hServer = CpswProxyServer_getHandle();
+
+    for (i = 0U; i < hServer->numVirtPorts; i++)
+    {
+        if (hServer->virtPortCfg[i].portId == virtPort)
+        {
+            if (relFlowIdx < hServer->virtPortCfg[i].numRxFlow)
+            {
+                *rxFlowInfo = &hServer->virtPortCfg[i].rxFlowsInfo[relFlowIdx];
+                status = ETHREMOTECFG_CMDSTATUS_OK;
+            }
+            else
+            {
+                ETHFWTRACE_ERR(status,
+                               "Invalid rel flow index %u passed to virtual port %u",
+                               relFlowIdx,
+                               virtPort);
+            }
+            break;
+        }
+    }
+
+    return status;
+}
+
+static int32_t CpswProxyServer_getRelFlowIdx(EthRemoteCfg_VirtPort virtPort,
+                                             uint32_t *relFlowIdx,
+                                             uint32_t rxFlowIdxOffset)
+{
+    uint32_t i;
+    uint32_t j;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+    CpswProxyServer_Obj *hServer;
+    hServer = CpswProxyServer_getHandle();
+
+    for (i = 0U; i < hServer->numVirtPorts; i++)
+    {
+        if (hServer->virtPortCfg[i].portId == virtPort)
+        {
+            for (j = 0U; j < ENET_CFG_RX_FLOWS_NUM; j++)
+            {
+                if (hServer->virtPortCfg[i].rxFlowsInfo[j].rxFlowIdxOffset == rxFlowIdxOffset)
+                {
+                    *relFlowIdx = j;
+                    status = ETHREMOTECFG_CMDSTATUS_OK;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    return status;
+}
+
+static void CpswProxyServer_saveRxFlowOffset(EthRemoteCfg_VirtPort virtPort,
+                                             uint32_t relFlowIdx,
+                                             uint32_t rxFlowIdxOffset)
+{
+    uint32_t i;
+    CpswProxyServer_Obj *hServer;
+    hServer = CpswProxyServer_getHandle();
+
+    for (i = 0U; i < hServer->numVirtPorts; i++)
+    {
+        if (hServer->virtPortCfg[i].portId == virtPort)
+        {
+            hServer->virtPortCfg[i].rxFlowsInfo[relFlowIdx].rxFlowIdxOffset = rxFlowIdxOffset;
+            break;
+        }
+    }
 }
