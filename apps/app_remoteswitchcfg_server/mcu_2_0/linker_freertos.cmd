@@ -66,11 +66,7 @@ SECTIONS
 */
      }     > DDR_MCU2_0
 
-    .text_rest{
-       _text_rest_begin = .;
-       *(.text)
-       _text_rest_end = .;
-    } palign(32)    >  DDR_MCU2_0
+    .text               : {} palign(8)      > DDR_MCU2_0
 
     .const              : {} palign(8)      > DDR_MCU2_0
     .rodata             : {} palign(8)      > DDR_MCU2_0
