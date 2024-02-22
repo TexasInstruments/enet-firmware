@@ -511,6 +511,7 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
     Enet_MacPort macPort;
     uint32_t i;
     int32_t status = ENET_SOK;
+    uint32_t j;
 
     if (config->setPortCfg == NULL)
     {
@@ -536,6 +537,15 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
     {
         /* Default VLAN of all ports is set to ETHFW_VLAN_ID_MAX, as 0U is reserved for MAC only ports */
         gEthFwObj.cpswCfg.aleCfg.portCfg[i].pvidCfg.vlanIdInfo.vlanId = ETHFW_VLAN_ID_MAX;
+    }
+
+    /* Initializing absolute tx channels for each core */
+    for (i = 0U; i < gEthFw_rmResPrms.numCores; i++)
+    {
+        for (j = 0U; j < ENET_CFG_TX_CHANNELS_NUM; j++)
+        {
+            gEthFw_rmResPrms.coreDmaResInfo[i].txCh[j] = ENET_RM_TX_CH_ANY;
+        }
     }
 
     if (status == ENET_SOK)
@@ -766,10 +776,16 @@ static void EthFw_setTxChRmInfo(uint32_t coreIdx,
     /* Populate the tx channel for individual core from virtual port configuration */
     for (i = 0U; i < ENET_CFG_TX_CHANNELS_NUM; i++)
     {
-        if (gEthFw_rmResPrms.coreDmaResInfo[coreIdx].txCh[i] == ENET_RM_TX_CH_NONE)
+        if (gEthFw_rmResPrms.coreDmaResInfo[coreIdx].txCh[i] == ENET_RM_TX_CH_ANY)
         {
             gEthFw_rmResPrms.coreDmaResInfo[coreIdx].txCh[i] = gEthFwObj.virtPortCfg[virtPortId].txCh[j];
             j++;
+        }
+
+        /* All the tx channels for this virtual port has been added to coreDmaResInfo */
+        if (j == gEthFwObj.virtPortCfg[virtPortId].numTxCh)
+        {
+            break;
         }
     }
 }

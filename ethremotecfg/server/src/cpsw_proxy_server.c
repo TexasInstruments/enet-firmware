@@ -4372,10 +4372,15 @@ static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
     {
         if (hServer->virtPortCfg[i].portId == virtPort)
         {
-            ETHFWTRACE_ERR_IF((hServer->virtPortCfg[i].txCh[chRelPriority] == ENET_RM_TX_CH_NONE),
-                               ETHFW_EFAIL,
-                               "Failed to get absolute tx channel number");
-            txChNum = hServer->virtPortCfg[i].txCh[chRelPriority] - ENET_RM_TX_CH_0;
+            if (chRelPriority < hServer->virtPortCfg[i].numTxCh)
+            {
+                txChNum = hServer->virtPortCfg[i].txCh[chRelPriority];
+            }
+            else
+            {
+                ETHFWTRACE_ERR(ETHFW_EFAIL, "Failed to get absolute tx channel number, invalid relative channel id %u passed",
+                               chRelPriority);
+            }
             break;
         }
     }
