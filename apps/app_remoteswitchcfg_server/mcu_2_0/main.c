@@ -573,17 +573,15 @@ static Enet_MacPort gEthAppPorts[] =
  * ports in non MAC-only mode */
 static Enet_MacPort gEthAppSwitchPorts[]=
 {
+#if defined(SOC_J721E)
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     ENET_MAC_PORT_2, /* SGMII */
 #else
-#if defined(SOC_J721E)
     ENET_MAC_PORT_3,
     ENET_MAC_PORT_8,
 #if defined(ENABLE_QSGMII_PORTS)
     ENET_MAC_PORT_2,
     ENET_MAC_PORT_5,
-    ENET_MAC_PORT_6,
-    ENET_MAC_PORT_7,
 #endif
 #endif
 #endif
