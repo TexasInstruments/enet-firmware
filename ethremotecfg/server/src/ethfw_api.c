@@ -1065,7 +1065,8 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     {
         status = EthFwMcast_init(&config->mcastCfg,
                                  gEthFwObj.switchPortMask,
-                                 gEthFwObj.macOnlyPortMask);
+                                 gEthFwObj.macOnlyPortMask,
+                                 ETHFW_HOST_PORT_VLAN_ID);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Incorrect shared mcast configuration");
     }
 
