@@ -218,7 +218,7 @@
 #else
 #define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
 #define ETHAPP_TRACEBUF_TASK_STACKSIZE          (1U * 1024U)
-#define ETHAPP_INIT_TASK_STACKSIZE              (10U * 1024U)
+#define ETHAPP_INIT_TASK_STACKSIZE              (16U * 1024U)
 #define ETHAPP_LWIP_TASK_STACKALIGN             (32)
 #define ETHAPP_TRACEBUF_TASK_STACKALIGN         (32)
 #define ETHAPP_INIT_TASK_STACKALIGN             (32)

@@ -117,17 +117,17 @@
 #define ETHFW_TSN_LOGGER_TASK_PRIORITY                              (1U)
 
 /*! gPTP stack priority - should be higher than other non-critical tasks which could interfere */
-#define ETHFW_TSN_GPTP_TASK_PRIORITY                                (10U)
+#define ETHFW_TSN_GPTP_TASK_PRIORITY                                (5U)
 
 /*! gPTP Task name */
 #define ETHFW_TSN_GPTP_TASK_NAME                                    "gPTP Task"
 
 /*! TSN stack size and alignment */
 #define ETHFW_TSN_TASK_STACK_SIZE                                   (16U * 1024U)
-#define ETHFW_TSN_TASK_STACK_ALIGN                                  ETHFW_TSN_TASK_STACK_SIZE
+#define ETHFW_TSN_TASK_STACK_ALIGN                                  (32U)
 
 /*! Uniconf stack priority */
-#define ETHFW_TSN_UC_TASK_PRIORITY                                  (7U)
+#define ETHFW_TSN_UC_TASK_PRIORITY                                  (4U)
 
 /*! Uniconf Task name */
 #define ETHFW_TSN_UC_TASK_NAME                                      "Uniconf Task"
@@ -141,7 +141,7 @@
 #define ETHFW_TSN_LOGGER_TASK_STACK_ALIGN                           (32U)
 
 /*! Size of the buffer used for storing logs before printing */
-#define ETHFW_TSN_BUFFER_SIZE                                       (5120U)
+#define ETHFW_TSN_BUFFER_SIZE                                       (8960U)
 
 /*! Max size of the TSN log print buffer length */
 #define ETHFW_TSN_TRACE_MAX_BUFFER_SIZE                             (250U)
@@ -487,7 +487,7 @@ static void EthFwTsn_logTask(void *a0, void *a1)
             while (retLen > 0U && i <= len);
         }
 
-        TaskP_sleep(1000U);
+        TaskP_sleepInMsecs(100U);
     }
 }
 
