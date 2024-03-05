@@ -393,7 +393,7 @@ static int32_t CpswProxyServer_deleteCustomPolicer(Enet_Handle hEnet,
 
 static int32_t CpswProxyServer_getRxFlowInfo(EthRemoteCfg_VirtPort virtPort,
                                              uint32_t relFlowIdx,
-                                             EthRemoteCfg_RxFlowInfo **rxFlowInfo);
+                                             EthFw_RxFlowInfo **rxFlowInfo);
 
 /* Returns relative flow index from rx flows assigned to this virtual port */
 static int32_t CpswProxyServer_getRelFlowIdx(EthRemoteCfg_VirtPort virtPort,
@@ -915,7 +915,7 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
-    EthRemoteCfg_RxFlowInfo *rxFlowInfo;
+    EthFw_RxFlowInfo *rxFlowInfo;
     uint32_t i;
 
     /* Check that server itself is ready */
@@ -1110,7 +1110,7 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
     uint32_t relFlowIdx;
-    EthRemoteCfg_RxFlowInfo *rxFlowInfo;
+    EthFw_RxFlowInfo *rxFlowInfo;
     uint32_t i;
 
     /* Check that server itself is ready */
@@ -4452,7 +4452,7 @@ static int32_t CpswProxyServer_deleteCustomPolicer(Enet_Handle hEnet,
 
 static int32_t CpswProxyServer_getRxFlowInfo(EthRemoteCfg_VirtPort virtPort,
                                              uint32_t relFlowIdx,
-                                             EthRemoteCfg_RxFlowInfo **rxFlowInfo)
+                                             EthFw_RxFlowInfo **rxFlowInfo)
 {
     uint32_t i;
     int32_t status = ETHREMOTECFG_CMDSTATUS_EFAIL;

@@ -202,7 +202,7 @@ typedef struct EthFw_VirtPortCfg_s
     uint32_t numRxFlow;
 
     /*! Array of rx flow information for a given virtual port */
-    EthRemoteCfg_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
+    EthFw_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
 
     /*! Number of mac address allocated allocated for a given virtual port */
     uint32_t numMacAddress;

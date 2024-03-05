@@ -627,14 +627,14 @@ static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
          * for each allocated flow.
          * Map the customPolicersInArgs with global custom policer's (i.e. gEthApp_customPolicers) array.
          * For example if numRxFlow is 1 and we want to create 1 custom policer to match with 2'nd custom policer in global array do this: 
-         * .rxFlowInfo = {  
+         * .rxFlowsInfo = {  
          *                  [0] = {
          *                           .numCustomPolicers    = 1U,
          *                           .customPolicersInArgs = {
          *                                                       [0] = &gEthApp_customPolicers[2U],
          *                                                   }
          *                         }
-         *               }
+         *               },
          * It is important to note that number of custom policers per rx flow is <= ETHREMOTECFG_POLICER_PERFLOW */
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_LINUX) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_QNX),
