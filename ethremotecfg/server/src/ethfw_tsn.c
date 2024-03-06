@@ -80,12 +80,11 @@
 /* TSN header files */
 #include <tsn_buildconf/jacinto_buildconf.h>
 #include <tsn_gptp/tilld/lld_gptp_private.h>
-#include <tsn_uniconf/yangs/tsn_data.h>
 #include <tsn_uniconf/yangs/yang_db_runtime.h>
 #include <tsn_uniconf/yangs/yang_modules.h>
 #include <tsn_uniconf/uc_dbal.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
-#include <tsn_uniconf/yangs/ieee1588-ptp_access.h>
+#include <tsn_uniconf/yangs/ieee1588-ptp-tt_access.h>
 #include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
 #include <tsn_uniconf/uc_dbal.h>
 #include <tsn_uniconf/ucman.h>
@@ -117,7 +116,7 @@
 #define ETHFW_TSN_LOGGER_TASK_PRIORITY                              (1U)
 
 /*! gPTP stack priority - should be higher than other non-critical tasks which could interfere */
-#define ETHFW_TSN_GPTP_TASK_PRIORITY                                (5U)
+#define ETHFW_TSN_GPTP_TASK_PRIORITY                                (2U)
 
 /*! gPTP Task name */
 #define ETHFW_TSN_GPTP_TASK_NAME                                    "gPTP Task"
@@ -127,7 +126,7 @@
 #define ETHFW_TSN_TASK_STACK_ALIGN                                  (32U)
 
 /*! Uniconf stack priority */
-#define ETHFW_TSN_UC_TASK_PRIORITY                                  (4U)
+#define ETHFW_TSN_UC_TASK_PRIORITY                                  (2U)
 
 /*! Uniconf Task name */
 #define ETHFW_TSN_UC_TASK_NAME                                      "Uniconf Task"
@@ -182,7 +181,6 @@ typedef struct EthFwTsn_DbIntVal_s
 typedef struct EthFwTsn_dbArgs_s
 {
     uc_dbald *dbald;
-    xl4_data_data_t *xdd;
     yang_db_runtime_dataq_t *ydrd;
 } EthFwTsn_dbArgs;
 
@@ -360,7 +358,7 @@ static EthFwTsn_DbNameVal gGptpPortDsRw[] =
     {"initial-log-pdelay-req-interval", "0"},
     {"allowed-lost-responses", "9"},
     {"allowed-faults", "9"},
-    {"mean-link-delay-thresh", "0x27100000"}
+    {"mean-link-delay-thresh", "0x27100000"},
 };
 
 static EthFwTsn_DbNameVal gGptpPortDsRo[] =
@@ -370,6 +368,10 @@ static EthFwTsn_DbNameVal gGptpPortDsRo[] =
     {"current-log-sync-interval", "-3"},
     {"current-log-gptp-cap-interval", "3"},
     {"current-log-pdelay-req-interval", "0"},
+    {"initial-one-step-tx-oper", "1"},
+    {"current-one-step-tx-oper", "1"},
+    {"use-mgt-one-step-tx-oper", "false"},
+    {"mgt-one-step-tx-oper", "1"},
 };
 
 /* Default values for gptp default data set */
@@ -542,6 +544,7 @@ static void EthFwTsn_gptpTask(void *a0,
     int32_t status;
     const char *netdevs[IFNAMSIZ];
     EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_GPTP_TASK_IDX];
+    EthFwTsn_UniconfCfg *ucCfg = &gEthFwTsnObj.ucCfg;
 
     /* Let app overwrite any gPTP configuration parameters */
     if (gEthFwTsnObj.configPtpCb != NULL)
@@ -554,10 +557,21 @@ static void EthFwTsn_gptpTask(void *a0,
         netdevs[i] = gEthFwTsnObj.netDevs[i];
     }
 
-    /* This function start gPTP, it has a true loop inside */
-    status = gptpman_run(gGptpOpt.instNum, netdevs, gEthFwTsnObj.numNetDevs,
-                         NULL, &mod->stopFlag);
-    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "gptpman_run() failed");
+    status = gptpgcfg_init(ucCfg->dbName, gGptpOpt.confFiles, gGptpOpt.instNum, true,
+                           EthFwTsn_gptpNonYangConfig);
+
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                      "gptpgcfg_init() error in %s", __func__);
+
+    if (ETHFW_SOK == status)
+    {
+        /* This function start gPTP, it has a true loop inside */
+        status = gptpman_run(gGptpOpt.instNum, netdevs, gEthFwTsnObj.numNetDevs,
+                             NULL, &mod->stopFlag);
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "gptpman_run() failed");
+    }
+
+    gptpgcfg_close(gGptpOpt.instNum);
 }
 
 static void EthFwTsn_uniconfTask(void *a1,
@@ -725,7 +739,6 @@ static int32_t EthFwTsn_uniconfInit(EthFwTsn_dbArgs *dbArgs)
 static int32_t EthFwTsn_gptpDbInit(EthFwTsn_dbArgs *dbArgs)
 {
     EthFwTsn_UniconfCfg *ucCfg = &gEthFwTsnObj.ucCfg;
-    int32_t (*gptpNonYangConfig)(uint8_t instance);
     int32_t status = ETHFW_SOK;
     uint32_t i;
 
@@ -740,21 +753,6 @@ static int32_t EthFwTsn_gptpDbInit(EthFwTsn_dbArgs *dbArgs)
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                   "ETHFW: Failed to set gptp run time config");
         }
-
-        gptpNonYangConfig = EthFwTsn_gptpNonYangConfig;
-    }
-    else
-    {
-        gptpNonYangConfig = NULL;
-    }
-
-    if (ETHFW_SOK == status)
-    {
-        status = gptpgcfg_init(ucCfg->dbName, gGptpOpt.confFiles, gGptpOpt.instNum, BTRUE,
-                               gptpNonYangConfig);
-
-        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                          "gptpgcfg_init() error in %s", __func__);
     }
 
     return status;
@@ -790,7 +788,7 @@ static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
 {
     char buffer[MAX_BUFFER_SIZE];
     char valueStr[MAX_KEY_SIZE];
-    char *plus;
+    const char *plus;
     uint32_t i;
     int32_t status = ETHFW_SOK;
     EthFwTsn_UniconfCfg *cfg = &gEthFwTsnObj.ucCfg;
@@ -802,7 +800,7 @@ static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
         if (!cfg->dbInitFlag)
         {
             plus = ((instance | domain) != 0) ? "+": "";
-            snprintf(buffer, sizeof(buffer), "/ieee1588-ptp/ptp/instance-domain-map%s",
+            snprintf(buffer, sizeof(buffer), "/ieee1588-ptp-tt/ptp/instance-domain-map%s",
                      plus);
             snprintf(valueStr, sizeof(valueStr), "0x%04x", instance<<8|domain);
             yang_db_runtime_put_oneline(ydrd, buffer,
@@ -819,7 +817,7 @@ static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
             if (!cfg->dbInitFlag)
             {
                 snprintf(buffer, sizeof(buffer),
-                         "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                         "/ieee1588-ptp-tt/ptp/instances/instance|instance-index:%d,%d|"
                          "/ports/port|port-index:%d|/underlying-interface",
                          instance, domain, i+1);
                 yang_db_runtime_put_oneline(ydrd, buffer, gEthFwTsnObj.netDevs[i],
@@ -835,7 +833,7 @@ static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
         {
             /* Disable performance by default */
             snprintf(buffer, sizeof(buffer),
-                     "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                     "/ieee1588-ptp-tt/ptp/instances/instance|instance-index:%d,%d|"
                      "/performance-monitoring-ds/enable",
                      instance, domain);
             yang_db_runtime_put_oneline(ydrd, buffer, "false", YANG_DB_ONHW_NOACTION);
@@ -858,7 +856,7 @@ static void EthFwTsn_cfgGptpDefaultDs(yang_db_runtime_dataq_t *ydrd,
         for (i = 0U; i < sizeof(gGptpDefaultDsRw)/sizeof(gGptpDefaultDsRw[0]); i++)
         {
             snprintf(buffer, sizeof(buffer),
-                     "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                     "/ieee1588-ptp-tt/ptp/instances/instance|instance-index:%d,%d|"
                      "/default-ds/%s",
                      instance, domain, gGptpDefaultDsRw[i].name);
             yang_db_runtime_put_oneline(ydrd, buffer, gGptpDefaultDsRw[i].val,
@@ -869,7 +867,7 @@ static void EthFwTsn_cfgGptpDefaultDs(yang_db_runtime_dataq_t *ydrd,
     for (i = 0U; i < sizeof(gGptpDefaultDsRo)/sizeof(gGptpDefaultDsRo[0]); i++)
     {
         snprintf(buffer, sizeof(buffer),
-                 "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                 "/ieee1588-ptp-tt/ptp/instances/instance|instance-index:%d,%d|"
                  "/default-ds/%s",
                  instance, domain, gGptpDefaultDsRo[i].name);
         yang_db_runtime_put_oneline(ydrd, buffer, gGptpDefaultDsRo[i].val,
@@ -891,7 +889,7 @@ static void EthFwTsn_cfgGptpPortDs(yang_db_runtime_dataq_t *ydrd,
         for (i = 0U; i < sizeof(gGptpPortDsRw)/sizeof(gGptpPortDsRw[0]); i++)
         {
             snprintf(buffer, sizeof(buffer),
-                     "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                     "/ieee1588-ptp-tt/ptp/instances/instance|instance-index:%d,%d|"
                      "/ports/port|port-index:%d|/port-ds/%s",
                      instance, domain, portIndex, gGptpPortDsRw[i].name);
 
@@ -903,7 +901,7 @@ static void EthFwTsn_cfgGptpPortDs(yang_db_runtime_dataq_t *ydrd,
     for (i = 0U; i < sizeof(gGptpPortDsRo)/sizeof(gGptpPortDsRo[0]); i++)
     {
         snprintf(buffer, sizeof(buffer),
-                 "/ieee1588-ptp/ptp/instances/instance|instance-index:%d,%d|"
+                 "/ieee1588-ptp-tt/ptp/instances/instance|instance-index:%d,%d|"
                  "/ports/port|port-index:%d|/port-ds/%s",
                  instance, domain, portIndex, gGptpPortDsRo[i].name);
 
@@ -1012,14 +1010,7 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
             ETHFWTRACE_ERR(status, "ETHFW: Failed to open DB!\n");
             break;
         }
-        dbArgs.xdd = xl4_data_init(dbArgs.dbald);
-        if (!dbArgs.xdd)
-        {
-            status = ETHFW_EFAIL;
-            ETHFWTRACE_ERR(status, "ETHFW: Failed to init xl4 data");
-            break;
-        }
-        dbArgs.ydrd = yang_db_runtime_init(dbArgs.xdd, dbArgs.dbald, NULL);
+        dbArgs.ydrd = yang_db_runtime_init(dbArgs.dbald, NULL);
         if (!dbArgs.ydrd)
         {
             status = ETHFW_EFAIL;
@@ -1045,10 +1036,6 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
     if (dbArgs.ydrd)
     {
         yang_db_runtime_close(dbArgs.ydrd);
-    }
-    if (dbArgs.xdd)
-    {
-        xl4_data_close(dbArgs.xdd);
     }
     if (dbArgs.dbald)
     {

@@ -718,7 +718,7 @@ static int32_t EthFwMon_resetHandler(void)
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Close the gPTP DMA channels */
-    LLDEnetDmaClose();
+    //LLDEnetDmaClose();
 #endif
 
     /* Save the context */
@@ -746,7 +746,7 @@ static int32_t EthFwMon_resetHandler(void)
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* start the gPTP DMA channels */
-    LLDEnetDmaOpen();
+    //LLDEnetDmaOpen();
 #endif
 
     /* Open MAC Ports */
