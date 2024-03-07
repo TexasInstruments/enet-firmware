@@ -186,7 +186,7 @@ typedef struct EthFwTsn_dbArgs_s
 
 typedef int32_t (*EthFwTsn_OnModuleDBInit)(EthFwTsn_dbArgs *dbArgs);
 
-typedef void (*EthFwTsn_OnModuleStart)(void *arg1, void *arg2);
+typedef void* (*EthFwTsn_OnModuleStart)(void *arg1);
 
 typedef struct EthFwTsn_GptpOpt_s
 {
@@ -212,7 +212,7 @@ typedef struct EthFwTsn_ModuleCfg_s
 {
     bool stopFlag;
     int taskPriority;
-    TaskP_Handle hTaskHandle;
+    CB_THREAD_T hTaskHandle;
     const char *taskName;
     uint8_t *stackBuffer;
     uint32_t stackSize;
@@ -297,11 +297,9 @@ static int32_t EthFwTsn_uniconfInit(EthFwTsn_dbArgs *dbArgs);
 
 static int32_t EthFwTsn_gptpDbInit(EthFwTsn_dbArgs *dbArgs);
 
-static void EthFwTsn_gptpTask(void *a0,
-                              void *a1);
+static void *EthFwTsn_gptpTask(void *args);
 
-static void EthFwTsn_uniconfTask(void *a1,
-                                 void *a2);
+static void *EthFwTsn_uniconfTask(void *args);
 
 static int32_t EthFwTsn_gptpNonYangConfig(uint8_t instance);
 
@@ -337,13 +335,6 @@ uint8_t gUniconfStackBuf[ETHFW_TSN_UC_TASK_STACK_SIZE] __attribute__ ((aligned(E
 
 /* gPTP task stack buffer */
 uint8_t gPtpStackBuf[ETHFW_TSN_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_TASK_STACK_ALIGN)));
-
-/* TSN Module Task ID */
-typedef enum {
-    ETHFWTSN_UNICONF_TASK_IDX,
-    ETHFWTSN_GPTP_TASK_IDX,
-    ETHFWTSN_MAX_TASK_IDX
-} EthFwTsn_TaskIdx;
 
 /* Default values for gptp port data set */
 static EthFwTsn_DbNameVal gGptpPortDsRw[] =
@@ -537,8 +528,7 @@ static void EthFwTsn_startLogTask(void)
     }
 }
 
-static void EthFwTsn_gptpTask(void *a0,
-                              void *a1)
+static void *EthFwTsn_gptpTask(void *args)
 {
     int32_t i;
     int32_t status;
@@ -572,10 +562,10 @@ static void EthFwTsn_gptpTask(void *a0,
     }
 
     gptpgcfg_close(gGptpOpt.instNum);
+    return NULL;
 }
 
-static void EthFwTsn_uniconfTask(void *a1,
-                                 void *a2)
+static void *EthFwTsn_uniconfTask(void *args)
 {
     EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_UNICONF_TASK_IDX];
     EthFwTsn_UniconfCfg *uniConfCfg = &gEthFwTsnObj.ucCfg;
@@ -589,7 +579,7 @@ static void EthFwTsn_uniconfTask(void *a1,
     uniConfCfg->ucData.configfiles = configFiles;
     uniConfCfg->ucData.numconfigfile = ETHFW_TSN_UC_CONF_FILE_NUM;
 
-    uniconf_main(&uniConfCfg->ucData);
+    return uniconf_main(&uniConfCfg->ucData);
 }
 
 void EthFwTsn_init(EthFwTsn_Config *tsnCfg)
@@ -600,7 +590,7 @@ void EthFwTsn_init(EthFwTsn_Config *tsnCfg)
     {
         /*refer to 'ub_logging.h for logging levels*/
         ubb_default_initpara(&params);
-        params.ub_log_initstr    = "4,ubase:45,cbase:45,uconf:45,gptp:45";
+        params.ub_log_initstr    = "4,ubase:45,cbase:45,uconf:34,gptp:45";
         params.cbset.gettime64   = cb_lld_gettime64;
         params.cbset.console_out = EthFwTsn_logBuffer;
         gEthFwTsnObj.logTaskrun = BTRUE;
@@ -645,13 +635,7 @@ void EthFwTsn_deInit(void)
     {
         for (i = 0; i < ETHFWTSN_MAX_TASK_IDX; i++)
         {
-            mod = &gModCfgTable[i];
-            if (mod->hTaskHandle != NULL)
-            {
-                TaskP_delete(mod->hTaskHandle);
-                mod->hTaskHandle = NULL;
-                mod->enable = BFALSE;
-            }
+            EthFwTsn_stopModule(i);
         }
     }
 
@@ -659,6 +643,44 @@ void EthFwTsn_deInit(void)
 
     gEthFwTsnObj.tsnInit    = BFALSE;
     gEthFwTsnObj.logTaskrun = BFALSE;
+}
+
+void EthFwTsn_stopModule(uint32_t moduleIdx)
+{
+    if ((moduleIdx >= 0) && (moduleIdx < ETHFWTSN_MAX_TASK_IDX))
+    {
+        EthFwTsn_ModuleCfg *mod;
+        mod = &gModCfgTable[moduleIdx];
+        if (mod->hTaskHandle != NULL)
+        {
+            mod->stopFlag = BTRUE;
+            CB_THREAD_JOIN(mod->hTaskHandle, NULL);
+            mod->hTaskHandle = NULL;
+            ETHFWTRACE_INFO("Task: %s is terminated.", mod->taskName);
+        }
+    }
+}
+
+int32_t EthFwTsn_startModule(uint32_t moduleIdx)
+{
+    int32_t status = ETHFW_SOK;
+
+    if ((moduleIdx >= 0) && (moduleIdx < ETHFWTSN_MAX_TASK_IDX))
+    {
+        EthFwTsn_ModuleCfg *mod;
+        mod = &gModCfgTable[moduleIdx];
+
+        if ((mod->enable == BTRUE) && (mod->stopFlag == BTRUE))
+        {
+            status = EthFwTsn_startModTask(mod, moduleIdx);
+            ETHFWTRACE_INFO_IF((ETHFW_SOK==status),"Task: %s is created.", mod->taskName);
+        }
+    }
+    else
+    {
+        status = ETHFW_EFAIL;
+    }
+    return status;
 }
 
 int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
@@ -942,20 +964,19 @@ static int32_t EthFwTsn_startMod(void)
 
 static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t moduleIdx)
 {
-     TaskP_Params taskParams;
-     int32_t status = ETHFW_SOK;
+    cb_tsn_thread_attr_t attr;
+    int32_t status = ETHFW_SOK;
 
      if (gEthFwTsnObj.ucCfg.ucReadySem != NULL)
     {
-        TaskP_Params_init(&taskParams);
-        taskParams.priority = modCfg->taskPriority;
-        taskParams.stack = &modCfg->stackBuffer[0];
-        taskParams.stacksize = modCfg->stackSize;
-        taskParams.name = modCfg->taskName;
+        cb_tsn_thread_attr_init(&attr, modCfg->taskPriority,
+                                modCfg->stackSize, modCfg->taskName);
+        cb_tsn_thread_attr_set_stackaddr(&attr, modCfg->stackBuffer);
 
-        modCfg->hTaskHandle = TaskP_create(modCfg->onModuleRunner, &taskParams);
+        status = CB_THREAD_CREATE(&modCfg->hTaskHandle,
+                                  &attr, modCfg->onModuleRunner, modCfg);
 
-        if (NULL == modCfg->hTaskHandle)
+        if (ETHFW_SOK != status)
         {
             status = ETHFW_EFAIL;
             ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", &modCfg->taskName);

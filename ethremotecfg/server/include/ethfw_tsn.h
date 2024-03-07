@@ -116,7 +116,12 @@ typedef struct EthFwTsn_Config_s
 /*                         Global Variables Declarations                      */
 /* ========================================================================== */
 
-/* None */
+/* TSN Module Task ID */
+typedef enum {
+    ETHFWTSN_UNICONF_TASK_IDX,
+    ETHFWTSN_GPTP_TASK_IDX,
+    ETHFWTSN_MAX_TASK_IDX
+} EthFwTsn_TaskIdx;
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
@@ -151,6 +156,21 @@ void EthFwTsn_init(EthFwTsn_Config *tsnCfg);
  * Closes unibase, kills all the tasks, semaphores and mutexes.
  */
 void EthFwTsn_deInit(void);
+
+/*!
+ * \brief start any TSN module
+ *
+ * This API takes the TSN module Idx as input and starts that task module
+ * Returns ETHFW_SOK on successful start else ETHFW_EFAIL.
+ */
+int32_t EthFwTsn_startModule(uint32_t moduleIdx);
+
+/*!
+ * \brief Stop any TSN module
+ *
+ * This API takes the TSN module Idx as input and stops task module
+ */
+void EthFwTsn_stopModule(uint32_t moduleIdx);
 
 /* None */
 

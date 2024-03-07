@@ -99,6 +99,7 @@
 
 #if defined(ETHFW_GPTP_SUPPORT)
 #include <tsn_combase/tilld/lldenet.h>
+#include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
 
 /* ========================================================================== */
@@ -638,6 +639,11 @@ static void EthFwMon_Task(void *a0,
                     TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
                 }
 
+#if defined(ETHFW_GPTP_SUPPORT)
+                /* start the gPTP module */
+                EthFwTsn_startModule(ETHFWTSN_GPTP_TASK_IDX);
+#endif
+
                 /* Notify the clients about the HW error recovery completion */
                 CpswProxyServer_bcastNotify(ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE);
             }
@@ -717,8 +723,8 @@ static int32_t EthFwMon_resetHandler(void)
     gEthFwMonObj.monitor.closeLwipDmaCb(gEthFwMonObj.monitor.lwipDmaCbArg);
 
 #if defined(ETHFW_GPTP_SUPPORT)
-    /* Close the gPTP DMA channels */
-    //LLDEnetDmaClose();
+    /* Stop the gPTP module */
+    EthFwTsn_stopModule(ETHFWTSN_GPTP_TASK_IDX);
 #endif
 
     /* Save the context */
@@ -743,11 +749,6 @@ static int32_t EthFwMon_resetHandler(void)
 
     /* Call App callback to open the Lwip Dma channels */
     gEthFwMonObj.monitor.openLwipDmaCb(gEthFwMonObj.monitor.lwipDmaCbArg);
-
-#if defined(ETHFW_GPTP_SUPPORT)
-    /* start the gPTP DMA channels */
-    //LLDEnetDmaOpen();
-#endif
 
     /* Open MAC Ports */
     status = EnetMcm_openMacPorts(&gEthFwMonObj.mcmCmdIf);
