@@ -70,6 +70,13 @@ ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
 endif
 
+# Feature flags: ETHFW EST demo - should be supported with gPTP
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+  ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+    DEFS += ETHFW_EST_DEMO_SUPPORT
+  endif
+endif
+
 ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT := ${shell cd ${ETHFW_PATH};git rev-parse --short=8 HEAD 2>/dev/null}
 DEFS += ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT="\"${ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT}\""
 

@@ -34,6 +34,9 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += ethfw_remotecfg_server
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+STATIC_LIBS += ethfw_estdemo
+endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -124,6 +127,9 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += ethfw_remotecfg_server
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+STATIC_LIBS += ethfw_estdemo
+endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -207,6 +213,9 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += ethfw_remotecfg_server
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+STATIC_LIBS += ethfw_estdemo
+endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -258,6 +267,13 @@ endif
 # Ethfw Intervlan demo
 ifeq ($(ETHFW_DEMO_SUPPORT),yes)
   DEFS += ETHFW_DEMO_SUPPORT
+endif
+
+# Feature flags: ETHFW EST demo - should be supported with gPTP
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+  ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+    DEFS += ETHFW_EST_DEMO_SUPPORT
+  endif
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

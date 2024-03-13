@@ -108,4 +108,7 @@ ETHFW_DEMO_SUPPORT?=no
 # Support for random MAC Address generation
 ETHFW_RAND_MACADDR_GEN?=yes
 
+# Ethfw EST Demo App support
+ETHFW_EST_DEMO_SUPPORT?=no
+
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)

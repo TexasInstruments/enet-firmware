@@ -913,9 +913,15 @@ void EthFw_initConfigParams(Enet_Type enetType,
     resCfg->selfCoreId = EnetSoc_getCoreId();
     resCfg->macList.numMacAddress = 0U;
 
+    /* CPTS host receive timestamp is only enabled for Demo purpose
+     * And strictly advised not to use for production */
+#if defined(ETHFW_EST_DEMO_SUPPORT)
+    cptsCfg->hostRxTsEn = BTRUE;
+#else
     /* Disable CPTS host receive timestamping as it can cause
      * MAC port lockup in packets with corrupted SFD */
     cptsCfg->hostRxTsEn = BFALSE;
+#endif
 
     /* VLAN configuration */
     vlanCfg->vlanAware = BTRUE;
