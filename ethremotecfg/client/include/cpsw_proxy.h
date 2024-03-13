@@ -175,13 +175,6 @@ typedef struct CpswProxy_Config_s
 } CpswProxy_Config;
 
 /*!
- * \brief CPSW Proxy handle
- *
- * CPSW Proxy opaque handle.
- */
-typedef struct CpswProxy_ClientObj_s *CpswProxy_Handle;
-
-/*!
  * \brief CPTS HW push notify params.
  *
  * Parameters passed in \ref ETHREMOTECFG_NOTIFY_HWPUSH notification.
@@ -208,6 +201,45 @@ typedef struct CpswProxy_HwPushNotifyParams_s
 typedef void (*CpswProxy_NotifyCbFxn)(uint32_t notifyType,
                                       void *notifyArg,
                                       void *cbArg);
+
+/* Notify callback info */
+typedef struct CpswProxy_NotifyCb_s
+{
+    /*! Callback function */
+    CpswProxy_NotifyCbFxn cbFxn;
+
+    /*! Hardware push notify arguments */
+    void *cbArg;
+} CpswProxy_NotifyCb;
+
+/* Client - shares the same IPC channel with other clients */
+typedef struct CpswProxy_ClientObj_s
+{
+    /* Whether client object is already in used by an app */
+    bool inUse;
+
+    /* Saved configuration params */
+    CpswProxy_Config cfg;
+
+    /* Token used after attaching to ETHFW */
+    uint32_t token;
+
+    /* Sequential request id number */
+    uint32_t reqId;
+
+    /* Features supported by related virtual port */
+    uint32_t features;
+
+    /* Notiy callbacks */
+    CpswProxy_NotifyCb notifyCb[ETHREMOTECFG_NOTIFY_TYPE_COUNT];
+} CpswProxy_ClientObj;
+
+/*!
+ * \brief CPSW Proxy handle
+ *
+ * CPSW Proxy opaque handle.
+ */
+typedef struct CpswProxy_ClientObj_s *CpswProxy_Handle;
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */

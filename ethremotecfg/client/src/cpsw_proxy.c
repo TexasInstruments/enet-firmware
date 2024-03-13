@@ -192,16 +192,6 @@ typedef struct CpswProxy_Msg_s
     uint64_t buf[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];
 } CpswProxy_Msg;
 
-/* Notify callback info */
-typedef struct CpswProxy_NotifyCb_s
-{
-    /*! Callback function */
-    CpswProxy_NotifyCbFxn cbFxn;
-
-    /*! Hardware push notify arguments */
-    void *cbArg;
-} CpswProxy_NotifyCb;
-
 /* Notify service */
 typedef struct CpswProxy_NotifyService_s
 {
@@ -280,28 +270,6 @@ typedef struct CpswProxy_CmdService_s
             __attribute__ ((aligned(CPSWPROXY_TASK_STACKALIGN)));
 } CpswProxy_CmdService;
 
-/* Client - shares the same IPC channel with other clients */
-typedef struct CpswProxy_ClientObj_s
-{
-    /* Whether client object is already in used by an app */
-    bool inUse;
-
-    /* Saved configuration params */
-    CpswProxy_Config cfg;
-
-    /* Token used after attaching to ETHFW */
-    uint32_t token;
-
-    /* Sequential request id number */
-    uint32_t reqId;
-
-    /* Features supported by related virtual port */
-    uint32_t features;
-
-    /* Notiy callbacks */
-    CpswProxy_NotifyCb notifyCb[ETHREMOTECFG_NOTIFY_TYPE_COUNT];
-} CpswProxy_ClientObj;
-
 /* Cpsw Proxy - services multiple clients */
 typedef struct CpswProxy_Obj_s
 {
@@ -341,7 +309,7 @@ static int32_t CpswProxy_initCmdSvc(CpswProxy_CmdService *svc);
 
 static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc);
 
-static int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
+int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                                  uint32_t reqType,
                                  EthRemoteCfg_ReqHdr *req,
                                  uint16_t reqLen,
@@ -1513,7 +1481,7 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
     ETHFWTRACE_DBG("Command service has been deinitialized");
 }
 
-static int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
+int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                                  uint32_t reqType,
                                  EthRemoteCfg_ReqHdr *req,
                                  uint16_t reqLen,

@@ -1,0 +1,276 @@
+/*
+ *
+ * Copyright (c) 2023 Texas Instruments Incorporated
+ *
+ * All rights reserved not granted herein.
+ *
+ * Limited License.
+ *
+ * Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
+ * license under copyrights and patents it now or hereafter owns or controls to make,
+ * have made, use, import, offer to sell and sell ("Utilize") this software subject to the
+ * terms herein.  With respect to the foregoing patent license, such license is granted
+ * solely to the extent that any such patent is necessary to Utilize the software alone.
+ * The patent license shall not apply to any combinations which include this software,
+ * other than combinations with devices manufactured by or for TI ("TI Devices").
+ * No hardware patent is licensed hereunder.
+ *
+ * Redistributions must preserve existing copyright notices and reproduce this license
+ * (including the above copyright notice and the disclaimer and (if applicable) source
+ * code license limitations below) in the documentation and/or other materials provided
+ * with the distribution
+ *
+ * Redistribution and use in binary form, without modification, are permitted provided
+ * that the following conditions are met:
+ *
+ * *       No reverse engineering, decompilation, or disassembly of this software is
+ * permitted with respect to any software provided in binary form.
+ *
+ * *       any redistribution and use are licensed by TI for use only with TI Devices.
+ *
+ * *       Nothing shall obligate TI to provide you with source code for the software
+ * licensed and provided to you in object code.
+ *
+ * If software source code is provided to you, modification and redistribution of the
+ * source code are permitted provided that the following conditions are met:
+ *
+ * *       any redistribution and use of the source code, including any resulting derivative
+ * works, are licensed by TI for use only with TI Devices.
+ *
+ * *       any redistribution and use of any object code compiled from the source code
+ * and any resulting derivative works, are licensed by TI for use only with TI Devices.
+ *
+ * Neither the name of Texas Instruments Incorporated nor the names of its suppliers
+ *
+ * may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * DISCLAIMER.
+ *
+ * THIS SOFTWARE IS PROVIDED BY TI AND TI'S LICENSORS "AS IS" AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL TI AND TI'S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+/*!
+ * \file ethfw_vepa_utils.c
+ *
+ * \brief VEPA utils functions for Ethernet Firmware.
+ */
+
+/* ========================================================================== */
+/*                             Include Files                                  */
+/* ========================================================================== */
+
+/* EthFwTrace id for this module, must be unique within ETHFW */
+#define ETHFWTRACE_MOD_ID 0x802
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <ti/osal/MutexP.h>
+
+/* Enet LLD header files */
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/per/cpsw.h>
+
+/* EthFw header files */
+#include <ethremotecfg/client/include/cpsw_proxy.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
+#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_common/include/ethfw_utils.h>
+
+#include <unity.h>
+#include "ethfw_test_cases.h"
+
+/* ========================================================================== */
+/*                           Macros & Typedefs                                */
+/* ========================================================================== */
+
+/* ========================================================================== */
+/*                          Function Declarations                             */
+/* ========================================================================== */
+
+
+/* ========================================================================== */
+/*                            Global Variables                                */
+/* ========================================================================== */
+
+/* ========================================================================== */
+/*                          Function Definitions                              */
+/* ========================================================================== */
+
+void EthFwUT_attachCmd1(void *args)
+{
+    EthRemoteCfg_AttachReq req;
+    EthRemoteCfg_AttachRes res;
+    CpswProxy_Handle hProxy;
+    int32_t status;
+
+    hProxy = (CpswProxy_Handle)args;
+    TEST_ASSERT_NOT_NULL(hProxy);
+
+    req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
+
+    /* Send request to server and wait for response */
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+
+    if((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
+    {
+        TEST_PASS();
+    }
+    else
+    {
+        TEST_FAIL();
+    }
+}
+
+void EthFwUT_attachCmd2(void *args)
+{
+    EthRemoteCfg_AttachReq req;
+    EthRemoteCfg_AttachRes res;
+    CpswProxy_Handle hProxy;
+    int32_t status;
+
+    hProxy = (CpswProxy_Handle)args;
+    TEST_ASSERT_NOT_NULL(hProxy);
+
+    req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
+
+    /* Send request to server and wait for response */
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+
+    if((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
+    {
+        TEST_PASS();
+    }
+    else
+    {
+        TEST_FAIL();
+    }
+}
+
+void EthFwUT_attachCmdNegTest(void *args)
+{
+    EthRemoteCfg_AttachReq req;
+    EthRemoteCfg_AttachRes res;
+    CpswProxy_Handle hProxy;
+    int32_t status;
+
+    hProxy = (CpswProxy_Handle)args;
+    TEST_ASSERT_NOT_NULL(hProxy);
+
+    req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
+
+    /* Send incorrect parameters: req size swapped with res */
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH,
+                               &req.hdr, sizeof(res),
+                               &res.hdr, sizeof(req));
+
+    /* Negative check: above status should fail */
+    if(status != CPSWPROXY_SOK)
+    {
+        TEST_PASS();
+    }
+    else
+    {
+        TEST_FAIL();
+    }
+}
+
+void EthFwUT_detachCmd1(void *args)
+{
+    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_StatusRes res;
+    CpswProxy_Handle hProxy;
+    int32_t status;
+
+    hProxy = (CpswProxy_Handle)args;
+    TEST_ASSERT_NOT_NULL(hProxy);
+
+    memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    /* Send incorrect parameters: req size swapped with res */
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DETACH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+
+    if(status == CPSWPROXY_SOK)
+    {
+        TEST_PASS();
+    }
+    else
+    {
+        TEST_FAIL();
+    }
+}
+
+void EthFwUT_detachCmd2(void *args)
+{
+    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_StatusRes res;
+    CpswProxy_Handle hProxy;
+    int32_t status;
+
+    hProxy = (CpswProxy_Handle)args;
+    TEST_ASSERT_NOT_NULL(hProxy);
+
+    memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    /* Send incorrect parameters: req size swapped with res */
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DETACH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+
+    if(status == CPSWPROXY_SOK)
+    {
+        TEST_PASS();
+    }
+    else
+    {
+        TEST_FAIL();
+    }
+}
+
+void EthFwUT_testConnection(void *args)
+{
+    CpswProxy_Handle hProxy;
+    int32_t status;
+
+    hProxy = (CpswProxy_Handle)args;
+    TEST_ASSERT_NOT_NULL(hProxy);
+
+    UNITY_BEGIN();
+
+    RUN_TEST(EthFwUT_attachCmd1,  0, (void *)hProxy);
+
+    RUN_TEST(EthFwUT_attachCmd2,  0, (void *)hProxy);
+
+    RUN_TEST(EthFwUT_detachCmd1,  0, (void *)hProxy);
+
+    RUN_TEST(EthFwUT_detachCmd2,  0, (void *)hProxy);
+
+    RUN_TEST(EthFwUT_attachCmdNegTest,  0, (void *)hProxy);
+
+    UNITY_END();
+
+}
