@@ -91,7 +91,7 @@ ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1)))
 endif
 
 # gPTP stack support - currently supported in FreeRTOS build only
-ETHFW_GPTP_SUPPORT?=no
+ETHFW_GPTP_SUPPORT?=yes
 
 # Enable EthFw Monitor - to monitor the EthFw status and handle any HW Errors if detected.
 ETHFW_MONITOR_SUPPORT?=yes
