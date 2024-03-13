@@ -11,6 +11,7 @@ DIRECTORIES += utils
 DIRECTORIES += apps
 DIRECTORIES += ethremotecfg
 DIRECTORIES += ethfw
+DIRECTORIES += unit_test
 
 TARGET_COMBOS :=
 
