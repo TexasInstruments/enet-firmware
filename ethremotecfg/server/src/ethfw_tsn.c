@@ -77,10 +77,17 @@
 #include <stdbool.h>
 #include <string.h>
 
+
+/* EthFw header files */
+#include <utils/ethfw_common/include/ethfw_utils.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
+#include <ethremotecfg/server/include/ethfw_tsn.h>
+#if defined(ETHFW_EST_DEMO_SUPPORT)
+#include <utils/ethfw_estdemo/include/ethfw_estdemo.h>
+#endif
+
 /* TSN header files */
-#include <tsn_buildconf/jacinto_buildconf.h>
 #include <tsn_gptp/tilld/lld_gptp_private.h>
-#include <tsn_uniconf/yangs/yang_db_runtime.h>
 #include <tsn_uniconf/yangs/yang_modules.h>
 #include <tsn_uniconf/uc_dbal.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
@@ -101,11 +108,6 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-
-/* EthFw header files */
-#include <utils/ethfw_common/include/ethfw_utils.h>
-#include <utils/ethfw_common/include/ethfw_trace.h>
-#include <ethremotecfg/server/include/ethfw_tsn.h>
 
 
 /* ========================================================================== */
@@ -145,19 +147,8 @@
 /*! Max size of the TSN log print buffer length */
 #define ETHFW_TSN_TRACE_MAX_BUFFER_SIZE                             (250U)
 
-/*! Number of MAC ports supported by the gPTP stack */
-#if defined(SOC_J721E) || defined(SOC_J784S4)
-#define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (8U)
-#else
-#define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (4U)
-#endif
-
 #define MAX_KEY_SIZE                                                (32U)
 #define MAX_BUFFER_SIZE                                             (256U)
-
-#define ETHFW_TSN_UC_CONF_FILE_NUM                                  (0U)
-#define ETHFW_TSN_INTERFACE_CONFFILE_PATH                           (NULL)
-#define ETHFW_TSN_UC_DBFILE_PATH                                    (NULL)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -178,16 +169,6 @@ typedef struct EthFwTsn_DbIntVal_s
     int val;
 } EthFwTsn_DbIntVal;
 
-typedef struct EthFwTsn_dbArgs_s
-{
-    uc_dbald *dbald;
-    yang_db_runtime_dataq_t *ydrd;
-} EthFwTsn_dbArgs;
-
-typedef int32_t (*EthFwTsn_OnModuleDBInit)(EthFwTsn_dbArgs *dbArgs);
-
-typedef void* (*EthFwTsn_OnModuleStart)(void *arg1);
-
 typedef struct EthFwTsn_GptpOpt_s
 {
     char *devlist;
@@ -206,20 +187,6 @@ typedef struct EthFwTsn_UniconfCfg_s
     UC_NOTICE_SIG_T ucReadySem;
     bool dbInitFlag;
 } EthFwTsn_UniconfCfg;
-
-/* Container structure for TSN Modules config params */
-typedef struct EthFwTsn_ModuleCfg_s
-{
-    bool stopFlag;
-    int taskPriority;
-    CB_THREAD_T hTaskHandle;
-    const char *taskName;
-    uint8_t *stackBuffer;
-    uint32_t stackSize;
-    EthFwTsn_OnModuleDBInit onModuleDBInit;
-    EthFwTsn_OnModuleStart onModuleRunner;
-    bool enable;
-} EthFwTsn_ModuleCfg;
 
 /*
  * \brief Structure holding gPTP and TSN configs
@@ -373,7 +340,7 @@ static EthFwTsn_DbNameVal gGptpDefaultDsRw[] =
     {"external-port-config-enable", "false"},
     {"clock-quality/clock-class", "cc-default"},
     {"clock-quality/clock-accuracy", "ca-time-accurate-to-250-ns"},
-    {"clock-quality/offset-scaled-log-variance", "0x436a"}
+    {"clock-quality/offset-scaled-log-variance", "0x436a"},
 };
 
 static EthFwTsn_DbNameVal gGptpDefaultDsRo[] =
@@ -713,6 +680,10 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
 
     gEthFwTsnObj.numNetDevs = j;
 
+#if defined(ETHFW_EST_DEMO_SUPPORT)
+    EthFwEstDemo_addEstAppModCtx(gModCfgTable);
+#endif
+
     /* Filling netdev table where each entry consists of an interface,
      * its MAC port and mac addr (if any) */
     if (status == ETHFW_SOK)
@@ -967,7 +938,7 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
     cb_tsn_thread_attr_t attr;
     int32_t status = ETHFW_SOK;
 
-     if (gEthFwTsnObj.ucCfg.ucReadySem != NULL)
+     if (gEthFwTsnObj.ucCfg.ucReadySem != NULL  && modCfg->onModuleRunner != NULL)
     {
         cb_tsn_thread_attr_init(&attr, modCfg->taskPriority,
                                 modCfg->stackSize, modCfg->taskName);
@@ -995,6 +966,12 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
             }
         }
     }
+     else
+     {
+         status = ETHFW_EFAIL;
+         ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", &modCfg->taskName);
+         EnetAppUtils_assert(BFALSE);
+     }
 
     return status;
 }
@@ -1063,6 +1040,28 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
     if (dbArgs.dbald)
     {
         uc_dbal_close(dbArgs.dbald, UC_CALLMODE_THREAD);
+    }
+
+    return status;
+}
+
+int32_t EthFwTsn_getDevInfo(EthFwTsn_netDevInfo *devInfo)
+{
+    uint32_t i;
+    int32_t status = ETHFW_SOK;
+    devInfo->numNetDevs = gEthFwTsnObj.numNetDevs;
+
+    if (gEthFwTsnObj.numNetDevs != 0U)
+    {
+        for (i = 0U; i < gEthFwTsnObj.numNetDevs; i++)
+        {
+            devInfo->netdevs[i] = gEthFwTsnObj.gPtpNetDevs[i];
+        }
+    }
+    else
+    {
+        status = ETHFW_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW: No Netdevices have been defined for TSN");
     }
 
     return status;

@@ -75,6 +75,11 @@
 /* ========================================================================== */
 
 #include <utils/ethfw_common/include/ethfw_types.h>
+#include <tsn_uniconf/uc_dbal.h>
+#include <tsn_uniconf/ucman.h>
+#include <tsn_combase/combase.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+#include <ti/osal/TaskP.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,20 +89,339 @@ extern "C" {
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
-/* None */
+#define AVTP_VLAN_ID                    (110U)
+#define AVTP_AAF_SUBTYPE                (2U)
+
+/* Default interface configured for the application, please change it
+ * if you want to test it for the port other than mac port 3 (tilld3)
+ * This value holds the ondex of the netdevs defined for TSN
+*/
+#if defined(SOC_J721E) || defined(SOC_J7200)
+#define DEFAULT_INTERFACE_INDEX         (1U)
+#elif defined(SOC_J784S4)
+#define DEFAULT_INTERFACE_INDEX         (0U)
+#endif
+
+#define MAX_KEY_SIZE                    (256U)
+#define MAX_LOG_LEN                     (256U)
+#define MAX_VAL_SIZE                    (64U)
+
+#define ESTDEMO_MAX_STREAMS             (8U)
+#define ESTDEMO_NUM_OF_STREAMS          (7U)
+#define ESTDEMO_TASK_PRIORITY           (1U)
+#define ESTDEMO_PRIORITY_MAX            (8U)
+
+#define ESTDEMO_VLAN_TPID               (0x8100U)
+#define ESTDEMO_VLAN_PCP_OFFSET         (13U)
+#define ESTDEMO_VLAN_PCP_MASK           (0x7U)
+#define ESTDEMO_VLAN_DEI_OFFSET         (12U)
+#define ESTDEMO_VLAN_DEI_MASK           (0x1U)
+#define ESTDEMO_VLAN_VID_MASK           (0xFFFU)
+#define ESTDEMO_VLAN_TCI(pcp, dei, vid) ( (((pcp) & ESTDEMO_VLAN_PCP_MASK) << ESTDEMO_VLAN_PCP_OFFSET)| \
+                                           (((dei) & ESTDEMO_VLAN_DEI_MASK)<< ESTDEMO_VLAN_DEI_OFFSET) | \
+                                           ((vid) & ESTDEMO_VLAN_VID_MASK) )
+
+#define TRAFFIC_CLASS_NODE              "/ietf-interfaces/interfaces/interface|name:%s|" \
+                                        "/bridge-port/traffic-class"
+#define TRAFFIC_CLASS_TABLE_NODE        TRAFFIC_CLASS_NODE"/traffic-class-table"
+#define TRAFFIC_CLASS_DATA_NODE         TRAFFIC_CLASS_NODE"/tc-data"
+#define PHYSICAL_QUEUE_MAP_NODE         TRAFFIC_CLASS_NODE"/pqueue-map"
+
+#define YANGDB_RUNTIME_WRITE(key,val)   do {                              \
+        status = yang_db_runtime_put_oneline(ydrd, key, val, YANG_DB_ONHW_NOACTION); \
+        DebugP_assert(status == 0);                                        \
+        } while (0)
+
+UB_ABIT32_FIELD(cmsh_sv, 23, 0x1)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
 
-/* None */
+typedef struct EstDemoCommonParam_s
+{
+    /*! Name of network interface */
+    char *netdev;
+    /*! index is priority, value of each index is TC, -1: not used. */
+    int8_t priority2TcMapping[ESTDEMO_PRIORITY_MAX];
+    uint8_t nTCs;                 /*! Num of traffic classes */
+    uint8_t nQueues;              /*! Num of HW queue */
+} EstDemoCommonParam;
+
+typedef struct EstDemoBitrateCtrl_s
+{
+    uint32_t maxCapacity; /*!  Maximum bytes of the bucket */
+    uint64_t bitRate;     /*!  bit per second. */
+    uint32_t tokens;      /*!  Number of available tokens in bytes */
+    uint64_t lastTs;      /*!  Timestamp of previous sent packet */
+} EstDemoBitrateCtrl;
+
+struct EstDemoCommonStreamParam
+{
+    uint8_t subtype; /*! Subtype of AVTP header */
+    uint8_t bf0;
+    uint8_t seqn;    /*! Sequence number of AVTP header */
+    uint8_t bf1;
+} __attribute__ ((packed));
+
+typedef struct EstDemoCommonStreamHdr_s
+{
+    union
+    {
+        struct EstDemoCommonStreamParam hh;
+        uint32_t bf;
+    };
+    ub_streamid_t streamId;   /*! Stream ID  */
+    uint32_t headerTimestamp; /*! Timestamp of AVTP packet */
+    uint32_t fsd2;
+    uint16_t pdLength;        /*! packet data length */
+    uint16_t fsd3;
+} __attribute__ ((packed)) EstDemoCommonStreamHdr;
+
+typedef struct EstDemoStreamParams_s
+{
+    ub_streamid_t sid; /*!  8 bytes stream id */
+    /*! priority of traffic has on-to-one mapping with PCP(3 bits) */
+    uint8_t priority;
+    /*! traffic class of the stream */
+    uint8_t tc;
+    /*!  Sequence number of AVTP packet */
+    uint8_t seqn;
+    /*! Seceived timestamp of the received packet */
+    uint64_t rxts;
+    /*! Present timestamp in avtp header which
+     * is captured when sending by application.
+     */
+    int64_t txts;
+    /*! numof bytes received */
+    uint64_t rxBytes;
+    /*! The previous time it shows the bitrate */
+    uint64_t prevTs;
+    /*! bitRate of a stream. */
+    uint64_t bitRate;
+    /*!  Length of payload data in the Ethernet
+     * packet for each stream.
+     */
+    uint32_t payloadLen;
+    /*!  Num of broken packets. */
+    uint32_t nBrokenPkt;
+} EstDemoStreamParams;
+
+typedef struct EstDemoTaskCfg_s
+{
+    /*! A string which indicate task name */
+    char *name;
+    /*! Priority of task */
+    int8_t priority;
+    /*! Start address of a buffer allocaing for task stack  */
+    void *stackBuffer;
+    /*! Size of buffer allocated for the stack */
+    uint32_t stackBufferSize;
+} EstDemoTaskCfg;
+
+typedef struct EstDemoTaskCtx_s
+{
+    /*!  Handle of the task.*/
+    CB_THREAD_T hTaskHandle;
+    /*! true: Enable task running, false: disable task running. */
+    bool enable;
+    /*! Num of traffic classes */
+    uint8_t nTCs;
+    /*!  VLAN ID of the stream. */
+    uint16_t vid;
+    /*!  Num of streams for talker or listener. */
+    uint16_t nStreams;
+    /*! Buffer for sending or receiving ethernet packet */
+    uint8_t buffer[sizeof(EthVlanFrameHeader)+ETH_PAYLOAD_LEN];
+    /*! Info associated for each stream of this task */
+    EstDemoStreamParams streams[ESTDEMO_MAX_STREAMS];
+    /*! Handle of an object to control bitrate for the talker */
+    EstDemoBitrateCtrl bitrateCtrl[ESTDEMO_MAX_STREAMS];
+    /*! A semaphore to signal receiver thread for availability of packets */
+    CB_SEM_T rxPacketSem;
+    /*!  A semaphore to signal the parent thread when
+     * child thread is terminated.
+     */
+    CB_SEM_T terminatedSem;
+} EstDemoTaskCtx;
+
+typedef struct EstDemoPacket_s
+{
+    /*! Start address of buffer for containing an ethernet packet */
+    void *buffer;
+    /*! Size of buffer */
+    uint32_t bufferSize;
+    /*! Meta info of the buffer */
+    CB_SOCKADDR_LL_T recvAddr;
+} EstDemoPacket;
+
+/*! Callback for notifying packet receiption to higher layer application */
+typedef void (*PacketHandlerCb)(void *ctx, EstDemoPacket *pkt);
+
+typedef struct EstDemoAppCtx_s
+{
+    /*! Socket handle for entire application */
+    CB_SOCKET_T est_sock;
+    /*! Source address associated with the socket above. */
+    ub_macaddr_t source_mac;
+    /*! Address associated with the socket above. */
+    CB_SOCKADDR_LL_T sockAddress;
+    /*! A handle of talker of the app */
+    EstDemoTaskCtx talker;
+    /*! A handle of listener of the app */
+    EstDemoTaskCtx listener;
+    /*! An active network interface used for this app */
+    char *netdev[MAX_NUMBER_ENET_DEVS];
+    /*! How many network interfaces */
+    int32_t netdevSize;
+    /*! A delay offset for applying a schedule in microsecond unit */
+    int64_t adminDelayOffset;
+    /*! Default interface index of the network interface for the application */
+    int32_t ifidx;
+    /*! A pointer to a context object. */
+    void *ectx;
+    /*! Callback to notify application on packet reception */
+    PacketHandlerCb packetHandlerCb;
+} EstDemoAppCtx;
+
+typedef struct EstDemoStreamCfgParams_s
+{
+    /*! Bitrate of the stream in Kbps */
+    uint32_t bitRateKbps;
+    /*! Length of payload */
+    uint32_t payloadLen;
+    /*! Traffic class ID */
+    uint8_t tc;
+    /*! Priority of traffic (PCP) */
+    uint8_t priority;
+} EstDemoStreamCfgParams;
+
+typedef struct EstDemoStreamConfig_s
+{
+    /*! Config parameters of the streams to be run */
+    EstDemoStreamCfgParams streamParams[ESTDEMO_MAX_STREAMS];
+    /*! How many streams requested by user */
+    int nStreams;
+} EstDemoStreamConfig;
 
 
 /* ========================================================================== */
 /*                       Static Function Definitions                          */
 /* ========================================================================== */
 
-/* None */
+/*!
+ * \brief Initialize EST Demo application.
+ *
+ * \param ctx    [OUT] a context object to be initialized
+ * \param modCtx [IN]  specify config parameters on network interfaces.
+ * \param cb     [IN]  callback to be called when packet received.
+ *
+ * \return ETHFW_SOK: On Sucess;  ETHFW_EFAIL: on Failure
+ */
+int  EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
+                             EthFwTsn_ModuleCfg *modCtx,
+                             PacketHandlerCb cb);
+
+/*!
+ * \brief Deinitialize the demo application.
+ *
+ * \param ctx [IN]  A context object to be deinitialized
+ */
+void  EthFwEstDemo_deinitialize(EstDemoAppCtx *ctx);
+
+/*!
+ * \brief Open a Yang DB for reading or writing.
+ *
+ * \param dbarg [OUT]  Keep necessary handles after openning a DB.
+ * \param dbName[IN] Name of the DB. Could be null to use default DB.
+ * \param mode  [IN] r: reading ; w: writing mode
+ *
+ * \return ETHFW_SOK: On Sucess;  ETHFW_EFAIL: on Failure
+ */
+int  EthFwEstDemo_openDB(EthFwTsn_dbArgs *dbarg,
+                         char *dbName,
+                         const char *mode);
+
+/*!
+ * \brief Close a Yang DB after use.
+ *
+ * \param dbarg [IN]  Hold necessary handles for closing a DB.
+ */
+void EthFwEstDemo_closeDB(EthFwTsn_dbArgs *dbarg);
+
+/*!
+ * \brief Start a talker.
+ *  Talker will be run in a separate task.
+
+ * \param ctx   [IN] Point to context object of the application
+ * \param cfg   [IN] Config parameter of task which run talker.
+ * \param stParams  [IN] Config parameters for all streams.
+ */
+void EthFwEstDemo_startCfgTalker(EstDemoAppCtx *ctx,
+                                 EstDemoTaskCfg *cfg,
+                                 EstDemoStreamConfig *stParams);
+
+/*!
+ * \brief Stop a talker.
+
+ * \param ctx   [IN] Point to context object of the application
+ */
+static void EthFwEstDemo_stopTalker(EstDemoAppCtx *ctx);
+
+/*!
+ * \brief Start a listener.
+ *  Listener will be run in a separate task.
+
+ * \param ctx   [IN] Point to context object of the application
+ * \param cfg   [IN] Config parameter of task which run talker.
+ */
+void EthFwEstDemo_startCfgListener(EstDemoAppCtx *ctx,
+                                   EstDemoTaskCfg *cfg);
+
+/*!
+ * \brief Stop a listener.
+
+ * \param ctx   [IN] Point to context object of the application
+ */
+static void EthFwEstDemo_stopListener(EstDemoAppCtx *ctx);
+
+/*!
+ * \brief print stats info of host and all mac ports.
+
+ * \param ctx   [IN] Point to context object of the application
+ */
+void EthFwEstDemo_printStats(EstDemoAppCtx *ctx);
+
+
+/*!
+ * \brief Reset stats info of host and all mac ports.
+
+ * \param ctx   [IN] Point to context object of the application
+ */
+void EthFwEstDemo_resetStats(EstDemoAppCtx *ctx);
+
+/*!
+ * \brief Set common parameters for all streams in the yang DB.
+
+ * \param dbarg [IN] necessary handles to access a DB.
+ * \param ctx   [IN] Point to context object of the application
+ *
+ * \return ETHFW_SOK: On Sucess;  ETHFW_EFAIL: on Failure
+ */
+int EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
+                                EthFwTsn_dbArgs *dbarg);
+
+/*!
+ * \brief Get current time.
+
+* \return 0U: On Failure; ts != 0U: Current time in microsecond unit.
+ */
+uint64_t EthFwEstDemo_getCurrentTimeUs(void);
+
+/*!
+* \brief Add a module to EthFwTsn_startMod()
+*/
+void EthFwEstDemo_addEstAppModCtx(EthFwTsn_ModuleCfg *modCtxTbl);
 
 #ifdef __cplusplus
 }
