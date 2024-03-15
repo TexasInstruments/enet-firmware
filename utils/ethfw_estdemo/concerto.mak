@@ -8,6 +8,18 @@ ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
 CSOURCES += src/ethfw_estdemo.c
 endif
 
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+  ifeq ($(ETHFW_EST_DEMO_TALKER),yes)
+    DEFS += ETHFW_EST_DEMO_TALKER
+  endif
+endif
+
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+  ifeq ($(ETHFW_EST_DEMO_LISTENER),yes)
+    DEFS += ETHFW_EST_DEMO_LISTENER
+  endif
+endif
+
 IDIRS := ${ETHFW_PATH}
 IDIRS += $(PDK_PATH)/packages
 IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack

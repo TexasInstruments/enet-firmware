@@ -323,13 +323,6 @@ int  EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
                              PacketHandlerCb cb);
 
 /*!
- * \brief Deinitialize the demo application.
- *
- * \param ctx [IN]  A context object to be deinitialized
- */
-void  EthFwEstDemo_deinitialize(EstDemoAppCtx *ctx);
-
-/*!
  * \brief Open a Yang DB for reading or writing.
  *
  * \param dbarg [OUT]  Keep necessary handles after openning a DB.
@@ -362,13 +355,6 @@ void EthFwEstDemo_startCfgTalker(EstDemoAppCtx *ctx,
                                  EstDemoStreamConfig *stParams);
 
 /*!
- * \brief Stop a talker.
-
- * \param ctx   [IN] Point to context object of the application
- */
-static void EthFwEstDemo_stopTalker(EstDemoAppCtx *ctx);
-
-/*!
  * \brief Start a listener.
  *  Listener will be run in a separate task.
 
@@ -377,28 +363,6 @@ static void EthFwEstDemo_stopTalker(EstDemoAppCtx *ctx);
  */
 void EthFwEstDemo_startCfgListener(EstDemoAppCtx *ctx,
                                    EstDemoTaskCfg *cfg);
-
-/*!
- * \brief Stop a listener.
-
- * \param ctx   [IN] Point to context object of the application
- */
-static void EthFwEstDemo_stopListener(EstDemoAppCtx *ctx);
-
-/*!
- * \brief print stats info of host and all mac ports.
-
- * \param ctx   [IN] Point to context object of the application
- */
-void EthFwEstDemo_printStats(EstDemoAppCtx *ctx);
-
-
-/*!
- * \brief Reset stats info of host and all mac ports.
-
- * \param ctx   [IN] Point to context object of the application
- */
-void EthFwEstDemo_resetStats(EstDemoAppCtx *ctx);
 
 /*!
  * \brief Set common parameters for all streams in the yang DB.

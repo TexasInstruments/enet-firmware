@@ -452,24 +452,6 @@ static bool EthFwEstDemo_isPTPClockStateSync(EstDemoAppCtx *ctx,
     return syncFlag;
 }
 
-static void EthFwEstDemo_showMenu(void)
-{
-    appLogPrintf("\r\nCPSW EST Test Menu\n:");
-
-    appLogPrintf(" 't'  -  Start Talker\r\n");
-    appLogPrintf(" 'l'  -  Start Listener\r\n");
-    appLogPrintf(" 'b'  -  Start EST Bridge mode\r\n");
-    appLogPrintf(" 'x'  -  Stop Talker\r\n");
-    appLogPrintf(" 'n'  -  Stop Listener\r\n");
-
-
-    appLogPrintf(" Others:\r\n");
-    appLogPrintf(" 's'  -  Print statistics\r\n");
-    appLogPrintf(" 'S'  -  Reset statistics\r\n");
-    appLogPrintf(" 'd'  -  Show EST stats good/bad packets\r\n");
-    appLogPrintf(" 'h'  -  Show this menu\r\n");
-}
-
 static int32_t EthFwEstDemo_getAdminBaseTime(uint64_t *time)
 {
     int32_t status = ETHFW_SOK;
@@ -593,41 +575,9 @@ static void EthFwEstDemo_startListener(EstDemoAppCtx *ctx)
     return EthFwEstDemo_startCfgListener(ctx, &cfg);
 }
 
-static void EthFwEstDemo_rxPacketHandler(void *arg,
-                                         EstDemoPacket *pkt)
-{
-    bool goodPktFlag = BFALSE;
-    uint32_t i, priority;
-    EthFwEstDemoCtx *estAppCtx = (EthFwEstDemoCtx *)arg;
-    EnetTas_ControlList *adminList = &gEthFwEstDemoTestLists[estAppCtx->schedIdx].list;
-    int64_t timeSlot = pkt->recvAddr.rxts - adminList->baseTime;
-
-    priority = pkt->recvAddr.tcid;
-    if (priority < ESTDEMO_PRIORITY_MAX)
-    {
-        timeSlot = timeSlot%adminList->cycleTime;
-
-        for (i = 0U; i < estAppCtx->exptTimeSlots[priority].nLength; i++)
-        {
-            if (timeSlot >= estAppCtx->exptTimeSlots[priority].timeSlots[i].start &&
-                timeSlot <= estAppCtx->exptTimeSlots[priority].timeSlots[i].end)
-            {
-                estAppCtx->estStatsInfo[priority].nGoodPkt++;
-                goodPktFlag = BTRUE;
-                break;
-            }
-        }
-    }
-    if (!goodPktFlag)
-    {
-        estAppCtx->estStatsInfo[priority].nBadPkt++;
-    }
-}
-
-static void EthFwEstDemo_showEstStats(EstDemoAppCtx *ctx)
+static void EthFwEstDemo_showEstStats(EthFwEstDemoCtx *estAppCtx)
 {
     uint32_t i;
-    EthFwEstDemoCtx *estAppCtx = (EthFwEstDemoCtx *)ctx;
     char buffer[MAX_LOG_LEN];
     uint64_t goodPkts, badPkts;
 
@@ -646,6 +596,46 @@ static void EthFwEstDemo_showEstStats(EstDemoAppCtx *ctx)
         {
             appLogPrintf("No good or bad packets received of priority: %d\n", i);
         }
+    }
+}
+
+static void EthFwEstDemo_rxPacketHandler(void *arg,
+                                         EstDemoPacket *pkt)
+{
+    bool goodPktFlag = BFALSE;
+    uint32_t i, priority;
+    EthFwEstDemoCtx *estAppCtx = (EthFwEstDemoCtx *)arg;
+    EnetTas_ControlList *adminList = &gEthFwEstDemoTestLists[estAppCtx->schedIdx].list;
+    int64_t timeSlot = pkt->recvAddr.rxts - adminList->baseTime;
+    uint64_t numGoodPkt = 0U;
+    uint64_t numBadPkt = 0U;
+    uint64_t pktCount = 1000U;
+
+    priority = pkt->recvAddr.tcid;
+    if (priority < ESTDEMO_PRIORITY_MAX)
+    {
+        timeSlot = timeSlot%adminList->cycleTime;
+
+        for (i = 0U; i < estAppCtx->exptTimeSlots[priority].nLength; i++)
+        {
+            if (timeSlot >= estAppCtx->exptTimeSlots[priority].timeSlots[i].start &&
+                timeSlot <= estAppCtx->exptTimeSlots[priority].timeSlots[i].end)
+            {
+                estAppCtx->estStatsInfo[priority].nGoodPkt++;
+                numGoodPkt = estAppCtx->estStatsInfo[priority].nGoodPkt;
+                goodPktFlag = BTRUE;
+                break;
+            }
+        }
+    }
+    if (!goodPktFlag)
+    {
+        estAppCtx->estStatsInfo[priority].nBadPkt++;
+        numBadPkt = estAppCtx->estStatsInfo[priority].nBadPkt;
+    }
+    if ((numGoodPkt + numBadPkt) % pktCount == 0U)
+    {
+        EthFwEstDemo_showEstStats(estAppCtx);
     }
 }
 
@@ -756,24 +746,6 @@ static void EthFwEstDemo_runListener(EstDemoAppCtx *ctx)
     }
 }
 
-static void EthFwEstDemo_runBridgeMode(EstDemoAppCtx *ctx)
-{
-    uint32_t i, schedIdx = 0U;
-    int32_t status = ETHFW_SOK;
-
-    for (i = 0U; i < ctx->netdevSize; i++)
-    {
-        while (!EthFwEstDemo_isPTPClockStateSync(ctx, ctx->netdev[i]))
-        {
-            appLogPrintf("Waiting for PTP clock to be synchronized!\n");
-            TaskP_sleepInMsecs(2000ULL);
-        }
-        status = EthFwEstDemo_runSchedule(ctx, &gEthFwEstDemoTestLists[schedIdx].list,
-                                     ctx->netdev[i]);
-        DebugP_assert(status == ETHFW_SOK);
-    }
-}
-
 static void *EthFw_estDemoTask(void *arg1)
 {
 #if defined(ETHFW_EST_DEMO_SUPPORT)
@@ -786,47 +758,17 @@ static void *EthFw_estDemoTask(void *arg1)
                                      EthFwEstDemo_rxPacketHandler);
     DebugP_assert(status == ETHFW_SOK);
 
-    EthFwEstDemo_showMenu(); //TODO
+#if defined(ETHFW_EST_DEMO_TALKER) && defined(ETHFW_EST_DEMO_LISTENER)
+#error "ETHFW: EST: Cannot support both Listener and Talker at the same time "
+#endif
 
-    while (modCtx->enable)
-    {
-        option = EnetAppUtils_getChar2();
-
-        switch(option)
-        {
-        case 't':
-            appLogPrintf("ETHFW: Starting Talker!\n");
-            EthFwEstDemo_runTalker(ctx);
-            break;
-        case 'l':
-            appLogPrintf("ETHFW: Starting Listener!\n");
-            EthFwEstDemo_runListener(ctx);
-            break;
-        case 'b':
-            EthFwEstDemo_runBridgeMode(ctx);
-            break;
-        case 's':
-            EthFwEstDemo_printStats(ctx);
-            break;
-        case 'r':
-            EthFwEstDemo_resetStats(ctx);
-            break;
-        case 'd':
-            EthFwEstDemo_showEstStats(ctx);
-            break;
-        case 'x':
-            EthFwEstDemo_stopTalker(ctx);
-            break;
-        case 'n':
-            EthFwEstDemo_stopListener(ctx);
-            break;
-        default:
-            EthFwEstDemo_showMenu();
-            break;
-        }
-        TaskP_yield();
-    }
-    EthFwEstDemo_stopListener(ctx);
+#if defined(ETHFW_EST_DEMO_TALKER)
+    EthFwEstDemo_runTalker(ctx);
+#elif defined(ETHFW_EST_DEMO_LISTENER)
+    EthFwEstDemo_runListener(ctx);
+#else
+#error "ETHFW: EST: Please enable listener or talker for running EST: "
+#endif
 #else
     appLogPrintf("ETHFW: EST Demo build flag is disabled!\n");
 #endif
@@ -853,7 +795,7 @@ void EthFwEstDemo_deinitEthFwEstDemo_BitrateCtrl(EstDemoBitrateCtrl *bc)
     memset(bc, 0, sizeof(EstDemoBitrateCtrl));
 }
 
-static void EthFwEstDemo_updateTokensForEthFwEstDemo_BitrateCtrl(EstDemoBitrateCtrl *bc)
+static void EthFwEstDemo_updateTokensForBitrateCtrl(EstDemoBitrateCtrl *bc)
 {
     if (bc->lastTs == 0U)
     {
@@ -881,7 +823,7 @@ bool EthFwEstDemo_checkTransmitReady(EstDemoBitrateCtrl *bc,
                                      uint64_t *sleepTimeUs)
 {
     bool res = BFALSE;
-    EthFwEstDemo_updateTokensForEthFwEstDemo_BitrateCtrl(bc);
+    EthFwEstDemo_updateTokensForBitrateCtrl(bc);
     if (bytes <= bc->tokens)
     {
         bc->tokens -= bytes;
@@ -1109,12 +1051,6 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
     return status;
 }
 
-void EthFwEstDemo_deinitialize(EstDemoAppCtx *ctx)
-{
-    cb_rawsock_close(ctx->est_sock);
-    gptpmasterclock_close();
-}
-
 static void EthFwEstDemo_createAVTPHeader(EstDemoStreamParams *sprm,
                                           EstDemoCommonStreamHdr *avtphdr,
                                           uint16_t dataLen)
@@ -1190,6 +1126,7 @@ static void *EthFwEstDemo_talkerHandler(void *arg)
     EstDemoCommonStreamHdr *avtphdr;
     uint32_t payloadLen, frameLen;
     uint32_t nShortSleep = 0U;
+    uint64_t sentPkt = 0U;
 #define HIGH_CPU_LOADHRESHOLD (15)
 
     while (talker->enable)
@@ -1347,32 +1284,6 @@ void EthFwEstDemo_startCfgTalker(EstDemoAppCtx *ctx,
     }
 }
 
-static void EthFwEstDemo_stopTalker(EstDemoAppCtx *ctx)
-{
-    if (ctx->talker.enable)
-    {
-        ctx->talker.enable = BFALSE;
-        CB_SEM_WAIT(&ctx->talker.terminatedSem);
-        CB_THREAD_JOIN(ctx->talker.hTaskHandle, NULL);
-
-        ctx->talker.hTaskHandle = NULL;
-        CB_SEM_DESTROY(&ctx->talker.terminatedSem);
-        appLogPrintf("Terminate the talker succesfully!\n");
-    }
-}
-
-static void EthFwEstDemo_stopListener(EstDemoAppCtx *ctx)
-{
-    if (ctx->listener.enable)
-    {
-        ctx->listener.enable = BFALSE;
-        CB_SEM_WAIT(&ctx->listener.terminatedSem);
-        ctx->listener.hTaskHandle = NULL;
-        CB_SEM_DESTROY(&ctx->listener.terminatedSem);
-        CB_SEM_DESTROY(&ctx->listener.rxPacketSem);
-    }
-}
-
 static inline  void EthFwEstDemo_showRecvBitrate(EstDemoStreamParams *stream,
                                                  EstDemoPacket *pktinfo)
 {
@@ -1508,59 +1419,5 @@ void EthFwEstDemo_startCfgListener(EstDemoAppCtx *ctx,
     else
     {
         appLogPrintf("Create listener task succesfully!\n");
-    }
-}
-
-void EthFwEstDemo_printStats(EstDemoAppCtx *ctx)
-{
-    cb_tilld_port_stats_t stats;
-    int32_t status;
-    uint32_t port, i;
-
-    status = cb_lld_get_port_stats(ctx->est_sock, 0xFFU, &stats);
-    if (status)
-    {
-        appLogPrintf("Failed to get host port stats: %d\n", status);
-    }
-    else
-    {
-        appLogPrintf("----------------Host port stats info --------------------\n");
-        EnetAppUtils_printHostPortStats9G((CpswStats_HostPort_Ng *)&stats);
-
-        for (i = 0U; i < ctx->netdevSize; i++)
-        {
-            port = cb_lld_netdev_to_macport(ctx->netdev[i]);
-            if (port < 0U)
-            {
-                appLogPrintf("Invalid mac port translated from netdev %s\n",
-                       ctx->netdev[i]);
-            }
-            else
-            {
-                memset(&stats, 0, sizeof(cb_tilld_port_stats_t));
-
-                status = cb_lld_get_port_stats(ctx->est_sock, port, &stats);
-                if (status == ETHFW_SOK)
-                {
-                    appLogPrintf("---------MAC port[%d] stats info -----------\n", i);
-                    EnetAppUtils_printMacPortStats9G((CpswStats_MacPort_Ng *)&stats);
-                }
-                else
-                {
-                    appLogPrintf("Failed to get MAC port stats info\n");
-                }
-            }
-        }
-    }
-}
-
-void EthFwEstDemo_resetStats(EstDemoAppCtx *ctx)
-{
-    int32_t i, port;
-    cb_lld_reset_port_stats(ctx->est_sock, 0xFFU);
-    for (i = 0U; i < ctx->netdevSize; i++)
-    {
-        port = cb_lld_netdev_to_macport(ctx->netdev[i]);
-        cb_lld_reset_port_stats(ctx->est_sock, port);
     }
 }
