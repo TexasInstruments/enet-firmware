@@ -1014,8 +1014,41 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
     cb_rawsock_paras_t param;
     EthFwTsn_netDevInfo *devInfo;
     EthFwEstDemoCtx *estStatCtx = (EthFwEstDemoCtx *)ctx;
+    CpswAle_VlanEntryInfo vlanInArgs;
+    Enet_IoctlPrms prms;
+    uint32_t aleEntry;
+    Enet_Type enetType;
+    uint32_t instId;
+    uint32_t coreId;
+    Enet_Handle hEnet;
 
-    status = EthFwTsn_getDevInfo(devInfo);
+#if defined(SOC_J721E) || defined(SOC_J784S4)
+    enetType = ENET_CPSW_9G,
+    instId   = 0U,
+#elif defined(SOC_J7200)
+    enetType = ENET_CPSW_5G,
+    instId   = 0U,
+#endif
+
+    hEnet = Enet_getHandle(enetType, instId);
+    coreId = EnetSoc_getCoreId();
+
+    /* Add ALE VLAN entry */
+    memset(&vlanInArgs, 0U, sizeof (CpswAle_VlanEntryInfo));
+    vlanInArgs.vlanIdInfo.vlanId       = AVTP_VLAN_ID;
+    vlanInArgs.vlanIdInfo.tagType      = ENET_VLAN_TAG_TYPE_INNER;
+    vlanInArgs.vlanMemberList          = ESTDEMO_VLAN_VID_MASK;
+    vlanInArgs.regMcastFloodMask       = ESTDEMO_VLAN_VID_MASK;
+    vlanInArgs.unregMcastFloodMask     = ESTDEMO_VLAN_VID_MASK;
+
+    ENET_IOCTL_SET_INOUT_ARGS(&prms, &vlanInArgs, &aleEntry);
+
+    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+
+    if(ETHFW_SOK == status)
+    {
+        status = EthFwTsn_getDevInfo(devInfo);
+    }
 
     if(ETHFW_SOK == status)
     {
