@@ -247,60 +247,214 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
 
 > **Note:** Make sure that all IPs assigned manually are in the same subnet as the Ethernet Firmware.
 
-### gPTP stack {#demo_ethfw_ptp_stack}
+### gPTP stack with Yang support {#demo_ethfw_ptp_stack}
 
+Before initializing gPTP support in ETHFW, following components have to be
+initilized and set up:
+
+- Uniconf : Init the utility libraries needed by the TSN stack
+- Logger : Define the logger task and their log levels for all the stack modules
+- Netdev : Define and provide the net devices supported by a given board to the stack
+- Uniconf : Init uniconf for retrieving/ writing yang parameters from/to database
+
+All the above components are handled internally by EthFw inside `ethfw_tsn.c` file.
+Uniconf and Logger Init are called by `EthFwTsn_init()` in `ethfw_api.c` file.
 gPTP stack is initialized when Ethernet Firmware RTOS application calls
-`EthFw_initTimeSyncPtp()` function, and will continue to run in a separate task.
+`EthFw_initTimeSyncPtp()` function, inside which all the supported netdevs are defined to the 
+`combase` module of the TSN stack and starts separate tasks for uniconf and gPTP.
 
+#### Uniconf configuration
+
+Universal configuration daemon for Yang, provides APIs for developing a client application which retreives/writes yang parameters from/to database and ask the uniconf for configurating HW.
+
+Uniconf supports the following config paramaters:
+
+```C
+    typedef struct ucman_data {
+      const char *dbname;
+      const char **configfiles;
+      int numconfigfile;
+      uint8_t ucmode;
+      bool *stoprun;
+      int rval;
+      UC_NOTICE_SIG_T *ucmanstart;
+      const char *hwmod;
+      } ucman_data_t;
+```
+
+- `dbname`: Specify the path of database file in the file system.
+  If user wants to write all config parameters to database file to make the config parameter
+  persist after a reboot, the full path of database file must be set via this parameter.
+  Currently, as file system is not supported, this parameter is set to `NULL`.
+- `configfiles`: array of runtime config files will be used by the uniconf. Run time config file is a
+  text file which has one-to-one mapping with yang files, the format of each line of a
+  run time config file is specified under `<pdk>/packages/ti/transport/tsn/tsn-stack/tsn_uniconf/README.org`.
+  Currently, as file system is not supported, this parameter is set to `NULL`.
+- `numofconfigfile`: Specify how many config files have been set via the the `configfiles` array above.
+  Currently, this parameter is set to `0`.
+- `ucmode`: This is for setting the expected mode of uniconf. The uniconf can only run in a separated thread, please set `UC_CALLMODE_THREAD|UC_CALLMODE_UNICONF` for this parameter.
+- `stoprun`: Address to a flag which signals the uniconf to stop in case the flag is true.
+- `rval`: Error code of the uniconf in case error occurs.
+- `ucmanstart`: The name of semaphore or a semaphore object in case of FreeRTOS. If this parameter
+  is not `NULL`, the uniconf will post this semaphore to signal application layer indicating
+  that it has been started successfully.
+- `hwmod`: Configure the HW for the uniconf. If an empty string is specified (hwmod=""),
+  it means the uniconf will configure HW.
+  If "NONE" is specified (hwmod="NONE"), the uniconf will not configure HW when client
+  side writes the database and ask it for an update.
+
+In EthFw the uniconf config is called in the `EthFwTsn_uniconfTask()` as follows:
+
+```C
+   void EthFwTsn_uniconfTask(void *a1,
+                             void *a2)
+{
+    EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_UNICONF_TASK_IDX];
+    EthFwTsn_UniconfCfg *uniConfCfg = &gEthFwTsnObj.ucCfg;
+    const char *configFiles[2] = {ETHFW_TSN_INTERFACE_CONFFILE_PATH, NULL};
+
+    uniConfCfg->ucData.ucmode      = UC_CALLMODE_THREAD|UC_CALLMODE_UNICONF;
+    uniConfCfg->ucData.stoprun     = &mod->stopFlag;
+    uniConfCfg->ucData.hwmod       = "";
+    uniConfCfg->ucData.ucmanstart  = &uniConfCfg->ucReadySem;
+    uniConfCfg->ucData.dbname      = uniConfCfg->dbName;
+    uniConfCfg->ucData.configfiles = configFiles;
+    uniConfCfg->ucData.numconfigfile = ETHFW_TSN_UC_CONF_FILE_NUM;
+
+    uniconf_main(&uniConfCfg->ucData);
+}
+```
+
+
+#### gPTP Yang Config Parameters
+This section describes the standard Yang parameters utilized for gPTP.
+To access the list of these parameters along with their default values for gPTP, please refer to the file located at:
+`<pdk>/packages/ti/transport/tsn/tsn-stack/tsn_gptp/gptpconf/gptp-yangconfig.xml`.
+
+For detailed descriptions of each parameter, please refer to the following Yang files:
+<a href="https://github.com/YangModels/yang/blob/main/standard/ieee/draft/1588/ieee1588-ptp-ms.yang">ieee1588-ptp.yang</a> and
+<a href="https://github.com/YangModels/yang/blob/main/standard/ieee/draft/802.1/ASdn/ieee802-dot1as-ptp.yang">ieee802-dot1as-ptp.yang</a>
+
+To modify the default value of the Yang parameters, please refer to the `gptp_yang_config()`.
+
+#### gPTP Non-Yang Config Parameters
+
+In addition to the standard Yang parameters, gPTP also includes a set of non-Yang configuration parameters
+that are specific to its implementation. To access the list of these parameters, along with their descriptions
+and default values for gPTP, please refer to the file located at: ``<pdk>/packages/ti/transport/tsn/tsn-stack/tsn_gptp/gptpconf/gptp_nonyangconfig.xml``.
+
+To modify the default value of the Non-Yang parameters, please refer to the ``gptp_nonyang_config()`` function, 
+this function will invoke ``gptpgcfg_set_item()`` to configure each params as referred in `main.c` file:
+
+```C
+          int gptpgcfg_set_item(uint8_t gptpInstanceIndex, uint8_t confitem,
+                                bool status, void *value, uint32_t vsize);
+```
+
+- `gptpInstanceIndex` : Index of the gptp to be configured. For TI FreeRTOS there is only one instance is applicable, this should be set to 0.
+- `confitem`: The configuration item. To create an item, prepend the parameter name from the gptp_nonyangconfig.xml
+  with the `XL4_EXTMOD_XL4GPTP` prefix, as follows: `USE_HW_PHASE_ADJUSTMENT` becomes `XL4_EXTMOD_XL4GPTP_USE_HW_PHASE_ADJUSTMENT`.
+- `status`: `YDBI_CONFIG` or `YDBI_STATUS`.  `YDBI_CONFIG` is used
+  to configure the parameter at runtime.  `YDBI_STATUS` is used to
+  configure the parameter at runtime and store the value in the database
+  for persistence.
+- `value`: Pointer to the value to be set.
+- `vsize`: Size of the value to be set, for the items.
+
+Example usage:
+
+```C
+      gptpgcfg_set_item(gpoptd.instnum, XL4_EXTMOD_XL4GPTP_USE_HW_PHASE_ADJUSTMENT,
+                        YDBI_CONFIG, &use_hwphase, sizeof(use_hwphase));
+```
+
+### gPTP Multiple Domains
+At the moment, our system supports two domains, but this feature is turned off by default.
+To turn on multiple domains, follow these steps:
+
+- Set `GPTP_MAX_DOMAINS` as 2 in the `<pdk>/packages/ti/transport/tsn/tsn-stack/tsn_buildconf/jacinto_buildconf.h` file
+- In the file `<ethfw>/ethremotecfg/server/src/ethfw_tsn.c`, you will see the following settings are set:
+
+```C
+      #if GPTP_MAX_DOMAINS == 2
+         {"CMLDS_MODE", XL4_EXTMOD_XL4GPTP_CMLDS_MODE, 1},
+         {"SECOND_DOMAIN_THIS_CLOCK", XL4_EXTMOD_XL4GPTP_SECOND_DOMAIN_THIS_CLOCK, 1}
+      #endif
+```
+
+This will activate the second domain in the gPTP system.
+
+### gPTP Shorter Sync Interval
 Once master-slave connection is established between either of the EVMs, slave prints
 logs showing the hardware/software clock adjustment rate in *ppb* (parts-per-billion)
 and difference in master-slave correction in nanoseconds.
 
 This stack supports gPTP config parameters which can be configured in the stack
 via application, like phase adjustment, clock modes, phase offsets etc.
-By enabling some optimization config params, an accuracy around +/- 18 nanoseconds
-can be achieved with convergence time around 4500 msecs.
-
 These params can be configured inside `EthApp_configPtpCb()` function in
 `<ethfw>/apps/app_remoteswitchcfg_server/mcu2_0/main.c` file.
 
-```C
-/*
- * Optimization for best synchronization.
- * This config will make the adjustment happen more often.
- * Note that this may have an impact on system performance.
- */
-int phase_alpha = 1;
-int compute_intv = 100;
-int mrate_ppb = 5;
-int freq_alpha = 2;
+By default, the gPTP Sync interval is set to 125 milliseconds.
+If you need a shorter Sync interval, you can adjust it by setting
+a specific value in the ``jacinto_buildconf.h`` file:
 
-gptpconf_set_item(CONF_PHASE_OFFSET_IIR_ALPHA_STABLE_VALUE, &phase_alpha);
-gptpconf_set_item(CONF_FREQ_OFFSET_IIR_ALPHA_STABLE_VALUE, &freq_alpha);
-gptpconf_set_item(CONF_CLOCK_COMPUTE_INTERVAL_MSEC, &compute_intv);
-gptpconf_set_item(CONF_FREQ_OFFSET_UPDATE_MRATE_PPB, &mrate_ppb);
+```C
+      /* Interval timeout in nanoseconds used to generate timers in GPTP.
+      * Supported values are 125, 62.5, 31.25, 15.625 and 7.8125 milliseconds. */
+      #define GPTPNET_INTERVAL_TIMEOUT_NSEC 15625000u
 ```
 
-gPTP stack is enabled only in MAC port 3 in the default Ethernet Firmware configuration.
-When running gPTP demo, user must make sure that MAC port 3 is connected to the gPTP
+`GPTPNET_INTERVAL_TIMEOUT_NSEC` must be equal to or less than the desired Sync interval time.
+For instance, if you want a Sync interval time of 31.25 milliseconds, set `GPTPNET_INTERVAL_TIMEOUT_NSEC` to 31.25, 15.625, or 7.8125 milliseconds.
+Be aware that decreasing `GPTPNET_INTERVAL_TIMEOUT_NSEC` will increase CPU load.
+Additionally, adjust the `log-sync-interval` in the standard yang config by referring to the `ethfw_tsn.c` file.
+For example, to set the Sync interval to 31.25 milliseconds, set `log-sync-interval` to -5.
+
+### gPTP Performance optimization
+Out of box configuration is not optimized for performance as the connected devices (e.g. Intel I218/219) may not be compatible with these optimal configuration.
+The following configurations can be tuned for optimizing the gPTP performance:
+
+ - `XL4_EXTMOD_XL4GPTP_CLOCK_COMPUTE_INTERVAL_MSEC` : 
+
+  The interval in milliseconds at which the gPTP clock is computed.
+  The default value is currently set to `1000`, and has a parameter vsize of `1` (uint8_t).
+
+ - `XL4_EXTMOD_XL4GPTP_FREQ_OFFSET_UPDATE_MRATE_PPB` : 
+
+  The rate at which the frequency offset is updated.
+  The default value is currently set to `10`, and has a parameter vsize of `4` (uint32_t).
+
+ - `XL4_EXTMOD_XL4GPTP_PHASE_OFFSET_IIR_ALPHA_STABLE_VALUE` :
+
+  The reciprocal of this is the alpha value of the IIR filter used to compute the phase offset.
+  The default value is currently set to `10`, and has a parameter vsize of `4` (uint32_t).
+
+ - `XL4_EXTMOD_XL4GPTP_FREQ_OFFSET_IIR_ALPHA_STABLE_VALUE` :
+ 
+  The reciprocal of this is the alpha value of the IIR filter used to compute the frequency offset.
+  The default value is currently set to `10`, and has a parameter vsize of `4` (uint32_t).
+
+The following is an example configuration which you can use in the example to get better accuaracy if compatible with your devices in the setup:
+```C
+
+      uint8_t compute_interval = 100;
+      uint32_t freq_offset_update_mrate_ppb = 5;
+      uint32_t phase_offset_iir_alpha_stable_value = 1;
+      uint32_t freq_offset_iir_alpha_stable_value = 2;
+
+      gptpgcfg_set_item(gpoptd.instnum, XL4_EXTMOD_XL4GPTP_CLOCK_COMPUTE_INTERVAL_MSEC, YDBI_CONFIG, &compute_interval, sizeof(compute_interval));
+      gptpgcfg_set_item(gpoptd.instnum, XL4_EXTMOD_XL4GPTP_FREQ_OFFSET_UPDATE_MRATE_PPB, YDBI_CONFIG, &freq_offset_update_mrate_ppb, sizeof(freq_offset_update_mrate_ppb));
+      gptpgcfg_set_item(gpoptd.instnum, XL4_EXTMOD_XL4GPTP_PHASE_OFFSET_IIR_ALPHA_STABLE_VALUE, YDBI_CONFIG, &phase_offset_iir_alpha_stable_value, sizeof(phase_offset_iir_alpha_stable_value));
+      gptpgcfg_set_item(gpoptd.instnum, XL4_EXTMOD_XL4GPTP_FREQ_OFFSET_IIR_ALPHA_STABLE_VALUE, YDBI_CONFIG, &freq_offset_iir_alpha_stable_value, sizeof(freq_offset_iir_alpha_stable_value));
+```
+
+gPTP stack is enabled only MAC ports defined in `gEthAppSwitchPorts` in `main.c` in the 
+default Ethernet Firmware configuration.
+When running gPTP demo, user must make sure that MAC ports defined from this array connected to the gPTP
 capable device (i.e. another EVM, PC, TSN switch).
 
-> **Note:** gPTP stack is enabled only on MAC port 3.
-
-> **Note:** gPTP stack is required on **PC 2** or run ETHFW on another EVM.
-
-> **Note:** **gPTP master (PC 2)** should be connected to MAC port 3 in J721E. Refer
-> to @ref ethfw_depend_evm_gesi_j721e for MAC port numbers in J721E EVM.
-> CPTS event lookup errors will be seen if connected to a different MAC port.
-
-> **Note:** **gPTP master (PC 2)** should be connected to MAC port 3 in J7200. Refer
-> to  @ref ethfw_depend_evm_quadport_j7200 for MAC port numbers in J7200 EVM.
-> CPTS event lookup errors will be seen if connected to a different MAC port.
-
-> **Note:** **gPTP master (PC 2)** should be connected to MAC port 3 in J784S4. Refer
-> to @ref ethfw_depend_evm_quadport_j784s4 for MAC port numbers in J784S4 EVM.
-> CPTS event lookup errors will be seen if connected to a different MAC port.
-
+> **Note:** gPTP stack is enabled only on non MAC-only mode ports defined in `gEthAppSwitchPorts` else
+> CPTS event lookup errors will be seen.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -539,13 +693,19 @@ the external devices, **PC 1** or **PC 2**.
 ## gPTP Stack {#ethfw_demo_gptp}
 
 The gPTP stack demo can be run using two TI EVMs running ETHFW SDK 9.x or later.
-MAC port 3 is the only port where gPTP is enabled by default in Ethernet Firmware
-configuration, hence the demo requires connecting MAC port 3 on both TI EVMs.
+MAC port 3 is the only port where gPTP is enabled by default in ETHFW SDK 9.0.
+Later SDKs support MAC ports defined inside the array `gEthAppSwitchPorts[]`, 
+hence the demo requires connecting non-MAC only ports on both TI EVMs, based on
+the SDK version the user is working with.
 The diagram below shows the suggested setup.
 
 ![](EthFw_gPTP_demo_connection.png "EthFw gPTP demo connections with 2 TI EVMs")
 
-At runtime, both EVMs will negotiate which device runs as *master* or *slave*.
+In the above suggested setup, Macport 3 is used for supporting gPTP on both the EVMs,
+but if the user is working on 9.1 or later SDKs any Macport from `gEthAppSwitchPorts` 
+should work, however it is suggested to use MAC PORT 3.
+
+At runtime, both EVMs will negotiate which device runs as *master* or *slave* (BMCA)
 ETHFW traces will show the MAC address of the device that will be running as
 *master* as shown in the log snippet below:
 
@@ -556,7 +716,7 @@ INF:gptp:000006-513181:domainIndex=0, GM changed old=70:FF:76:FF:FE:1E:01:C8, ne
 By default, ETHFW configures gPTP logging to informational trace level to limit
 the amount of ETHFW traces.  However, user may want to see the accuracy of the
 synchronization achieved on the *slave* device.  This requires a change in the
-logging level in ETHFW library, from `gptp:4` to `gptp:5` as shown in below code
+logging level in ETHFW library, from `gptp:45` to `gptp:55` as shown in below code
 snippet.
 
 ```C
@@ -568,7 +728,7 @@ static void EthFw_tsnInit(void)
 
     /*refer to 'ub_logging.h for logging levels*/
     ubb_default_initpara(&params);
-    params.ub_log_initstr  = "5,ubase:5,cbase:5,gptp:5";
+    params.ub_log_initstr  = "4,ubase:45,cbase:45,uconf:45,gptp:45";
 
     ...
 
@@ -578,7 +738,7 @@ static void EthFw_tsnInit(void)
 }
 ```
 
-With gPTP log level 5, the following traces can be seen in the *master* and *slave*
+With gPTP log level 55, the following traces can be seen in the *master* and *slave*
 devices.  It's worth noting that these logs are captured using the optimization
 settings suggested in \ref demo_ethfw_ptp_stack section.
 
@@ -667,7 +827,6 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
    STATISTICS** tab.
 
 [Back To Top](@ref demo_ethfw_combined_top)
-
 
 ## InterVLAN Routing {#ethfw_intervlan_routing}
 

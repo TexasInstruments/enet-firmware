@@ -69,7 +69,7 @@ Refer to the \ref ethfw_mcast_support section for more information.
 Ethernet Firmware runs gPTP stack which operates either as master or slave clock based on the
 gPTP configurations set, supporting both software and hardware adjustments for the CPTS clock.
 This PTP implementation sets up CPSW ALE classifiers with PTP multicast MAC address and PTP
-EtherType PTP classifier as match criteria to have PTP traffic routed to dedicated UDMA RX flow.
+EtherType classifier as match criteria to have PTP traffic routed to dedicated UDMA RX flow.
 
 The remote configuration infrastructure provided by Ethernet Firmware is built using
 the *ethremotecfg* framework which uses IPC LLD. Ethernet Firmware supports three types of messages namely, 
@@ -2043,9 +2043,7 @@ sizes required by the Enet LLD lwIP interface implementation. This file is locat
 
 ### TSN stack {#ethfw_depend_tsn}
 
-\note SDK 9.0 provides support only for gPTP stack. No other TSN protocol is supported.
-
-Starting in SDK 9.0, a new gPTP stack is integrated on top of Enet LLD in PDK, it can be
+Starting from SDK 9.0, a new gPTP stack is integrated on top of Enet LLD in PDK, it can be
 located at: `<pdk>/packages/ti/transport/tsn/tsn-stack`.
 The previous gPTP test stack used in SDK 8.x and older releases is no longer supported
 and has been fully removed from both, Enet LLD and Ethernet Firmware.
@@ -2056,9 +2054,11 @@ for J721E, J7200 and J784S4. The stack is composed of the following modules:
   - **tsn_unibase** : Universal utility libraries that are platform-independent.
   - **tsn_combase** : Communication utility libraries that provide support for functions
     like sockets, mutexes, and semaphores.
+  - **tsn_uniconf**: Universal configuration daemon for Yang, provides APIs for developing
+    a client application which retreives/writes yang parameters from/to database
   - **tsn_gptp**: Implementation of the IEEE 802.1 AS gptp protocol.
 
-This stack can be used for production and testing purposes.  For more information about
+This stack can be used for production and testing purposes. For more information about
 the stack, please refer to PDK documentation:
 
   - API Guide is located under *Time Sensitive Networking (TSN) Stack* section of
