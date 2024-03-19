@@ -521,7 +521,7 @@ static void EthFwMon_Task(void *a0,
 {
     Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
     Enet_MacPort macPort;
-    Enet_MacPort recoveryMacPort;
+    Enet_MacPort recoveryMacPort = ENET_MAC_PORT_INV;
     bool needsRecovery = BFALSE;
     uint32_t i;
     int32_t status = ENET_SOK;

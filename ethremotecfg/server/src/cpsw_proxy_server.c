@@ -2557,7 +2557,7 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
                                               uint8_t *outargs,
                                               uint32_t outargsLen)
 {
-    int32_t status;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer;
     Enet_Handle hEnet;
     Enet_IoctlPrms prms;
