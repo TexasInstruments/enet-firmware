@@ -643,14 +643,15 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
 -# After getting the IP address printed on the console, launch the GUI tool:
 
        cd <SDK_INSTALL_PATH>/pdk_jacinto_xx_yy_zz/packages/ti/drv/enet/tools/cpsw_configclient
-       sudo python3 switchconfig_client.py
+       python3 switchconfig_client.py
 
     You should be able to see a window opening up as shown below.
 
     ![](cpswconfigurationtool.png "CPSW Remote Configuration Tool")
 
 -# Select the **SETTINGS** tab and enter the target IP `192.168.1.<r5f_0>` as
-   shown below.
+   shown below. Please note that you need to setup local dhcp server on PC 1 to 
+   provide IP address to r5f_0 core via PC 1.
 
    ![](cpsw_cfgtool_ipset.png "CPSW Remote Configuration Tool")
 

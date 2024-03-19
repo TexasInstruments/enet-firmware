@@ -616,11 +616,19 @@ static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
     {
         .remoteCoreId  = IPC_MPU1_0,
         .portId        = ETHREMOTECFG_SWITCH_PORT_0,
+#if defined(ETHFW_DEMO_SUPPORT)
+        .numTxCh       = 1U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_4
+
+                         },
+#else
         .numTxCh       = 2U,
         .txCh          = {
                             [0] = ENET_RM_TX_CH_4, 
                             [1] = ENET_RM_TX_CH_7
                          },
+#endif
         /* Number of rx flow for this virtual port */
         .numRxFlow     = 1U,
         /* To create custom policers on rx flows clients need to give flow information (i.e. numCustomPolicers and customPolicersInArgs)
@@ -654,11 +662,20 @@ static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
         /* Virtual switch port for Ethfw, using ETHREMOTECFG_SWITCH_PORT_LAST */
         .remoteCoreId  = IPC_MCU2_0,
         .portId        = ETHREMOTECFG_SWITCH_PORT_LAST,
+#if defined(ETHFW_DEMO_SUPPORT)
+        .numTxCh       = 3U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_0,
+                            [1] = ENET_RM_TX_CH_7,
+                            [2] = ENET_RM_TX_CH_6
+                         },
+#else
         .numTxCh       = 2U,
         .txCh          = {
                             [0] = ENET_RM_TX_CH_0,
                             [1] = ENET_RM_TX_CH_6
                          },
+#endif
         .numRxFlow     = 5U,
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_NONE),

@@ -1500,7 +1500,7 @@ static uint64_t EthApp_traceTs(void)
     TickType_t tickCnt;
     uint64_t tickUsecs;
 
-    tickUsecs = SEC_TO_USEC / uint64_t)configTICK_RATE_HZ;
+    tickUsecs = SEC_TO_USEC / (uint64_t)configTICK_RATE_HZ;
     tickCnt = xTaskGetTickCount();
     ts = (uint64_t)tickCnt * tickUsecs;
 
