@@ -1848,7 +1848,153 @@ application documentation.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+## Enhanced Schedule Traffic {#ethfw_est_demo_support}
+
+ETHFW supports EST demo application which demonstrates how to configure the 
+802.1 Qbv (EST) through the TSN yang interface. The yang interface in the TSN
+is governed by a module called `uniconf` which runs as a daemon. 
+Any application which interacts with the uniconf called a `uniconf client`.
+The uniconf client configures Qbv by opening yang database (DB), write config
+yang parameters to DB and trigger the uniconf for reading parameters from DB 
+and writing to HW. The uniconf reads or writes parameters from or to HW by 
+calling TI's Enet LLD driver.
+
+### Configuration parameters
+This demo uses `EthFwEstDemoTestParam ` structure which is populated by user as a static configuration.
+This structure contains all the params required for setting up EST, once the user fills the required
+configuration needed this gets passed to the TSN stack for enabling and scheduling EST.
+In the demo application provided out-of-box, following are the config params for EST:
+
+```C
+   static EthFwEstDemoTestParam gEthFwEstDemoTestLists[] =
+   {
+      {
+         .list =
+         {
+               .baseTime    = 0ULL,
+               .cycleTime   = 4*MIN_INTERVAL_NS,
+               .gateCmdList =
+               {
+                  { .gateStateMask = ENET_TAS_GATE_MASK(1, 0, 0, 0, 0, 0, 0, 1),
+                     .timeInterval =  MIN_INTERVAL_NS
+                  },
+                  { .gateStateMask = ENET_TAS_GATE_MASK(1, 0, 0, 0, 0, 1, 0, 0),
+                     .timeInterval =  MIN_INTERVAL_NS
+                  },
+                  { .gateStateMask = ENET_TAS_GATE_MASK(1, 0, 0, 0, 0, 0, 0, 1),
+                     .timeInterval =  MIN_INTERVAL_NS
+                  },
+                  { .gateStateMask = ENET_TAS_GATE_MASK(1, 0, 0, 0, 0, 1, 0, 0),
+                     .timeInterval =  MIN_INTERVAL_NS
+                  },
+               },
+               .listLength = 4U,
+         },
+         .stParam =
+         {
+               .streamParams =
+               {
+                  /* test appliction sends packet with interval 200us */
+                  {.bitRateKbps = CALC_BITRATE_KBPS(AVTP_PKT_PAYLOAD_LEN, 200),
+                  .payloadLen = AVTP_PKT_PAYLOAD_LEN,
+                  .tc = 0U,
+                  .priority = 0U,
+                  },
+                  /* test appliction sends packet with interval 200us */
+                  {.bitRateKbps = CALC_BITRATE_KBPS(AVTP_PKT_PAYLOAD_LEN, 200),
+                  .payloadLen = AVTP_PKT_PAYLOAD_LEN,
+                  .tc = 2U,
+                  .priority = 2U,
+                  },
+               },
+               .nStreams = 2U,
+         }
+      },
+   };
+```
+
+   The above structure holds the gate command list, interval time, cycle time 
+   and base time which are specific to EST configuration.
+   Base time will however be calculated later as future time in multiples of cycle time.
+   Additionally, one can set up the stream params (params per priority channel) with the
+   bitrate (in kbps) where each packet's size is 1200 Bytes. Here 200us denotes the time
+   interval between two consecutive priority packets.
+   User can add/remove priorities from gameCmdList and streamParams based on their requirement.
+   But the seventh priority channel should always be open for gPTP traffic, which is required
+   for keeping listener and talker in sync.
+
+### Yang Configuration for 802.1Qbv
+
+- Yang file for the 802.1Qbv is defined at
+  `standard/ieee/draft/802.1/Qcw/ieee802-dot1q-sched-bridge.yang`
+  and `standard/ieee/draft/802.1/Qcw/ieee802-dot1q-sched.yang`
+  from the <a href="https://github.com/YangModels/yang.git">EST YangModels</a>
+
+- Since Enet driver supports to configure the ``admin-control-list``,
+  `baseTime` (`admin-base-time`) and cycleTime (`admin-cycle-time`),
+  this section only describes the parameters of the ``admin-control-list``
+  Here are parameters of the ``admin-control-list`` after converting
+  parameters from yang to to xml:
+
+```C
+   <?xml version='1.0' encoding='UTF-8'?>
+      <data xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+         <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
+            <interface>
+            <name/>
+            <bridge-port xmlns="urn:ieee:std:802.1Q:yang:ieee802-dot1q-bridge">
+               <traffic-class>
+                  <traffic-class-table>
+                  <number-of-traffic-classes/>
+                  <priority0/>
+                  ...
+                  <priority7/>
+                  </traffic-class-table>
+                  <tc-data>
+                  <tc/>
+                  <lqueue/>
+                  ...
+                  </tc-data>
+                  <number-of-pqueues/>
+                  <pqueue-map>
+                  <pqueue/>
+                  <lqueue/>
+                  </pqueue-map>
+               </traffic-class>
+               <gate-parameter-table xmlns="urn:ieee:std:802.1Q:yang:ieee802-dot1q-sched-bridge">
+                  <gate-enabled></gate-enabled>
+                  <admin-control-list>
+                  <gate-control-entry>
+                     <index/>
+                     <operation-name/>
+                     <time-interval-value/>
+                     <gate-states-value/>
+                  </gate-control-entry>
+                  </admin-control-list>
+                  <admin-cycle-time>
+                  <numerator/>
+                  <denominator/>
+                  </admin-cycle-time>
+                  <admin-base-time>
+                  <seconds/>
+                  <nanoseconds/>
+                  </admin-base-time>
+               </gate-parameter-table>
+            </bridge-port>
+            </interface>
+         </interfaces>
+      </data>
+```
+
+- All the supported parameters for 802.1Qbv are from yang standard except the mechanism for mapping
+  traffic class and HW queue are augmented. To configure all parameters of 802.1Qbv above, application
+  calls the `yang_db_runtime_put_oneline` to write data to DB.
+
+Please refer [Enhanced Schedule Traffic demo](@ref ethfw_est_demo) section on how to run and build EST demo app.
+
+[Back To Top](@ref ethfw_c_ug_top)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Dependencies {#ethfw_instal_top}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2075,7 +2221,6 @@ The utilisation of these resources by gPTP stack on Ethernet Firmware is as foll
 | MAC address |   1    | Shared with TCP/IP lwIP netif
 
 \note The gPTP stack is supported only in FreeRTOS.  It's not supported in SafeRTOS.
-
 
 ### Ethernet Firmware Proxy ARP {#ethfw_depend_lwip_proxyarp}
 

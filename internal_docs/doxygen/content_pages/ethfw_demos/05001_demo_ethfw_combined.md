@@ -33,6 +33,7 @@ Below are top-level features demonstrated:
  - Time-synchronization using gPTP
  - Multi-core time-synchronization with RTOS client
  - Software based inter-core virtual Ethernet communication
+ - Enhance Schedule Traffic support demo
 
 The Ethernet Firmware demo application is in charge of:
 
@@ -252,22 +253,22 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
 Before initializing gPTP support in ETHFW, following components have to be
 initilized and set up:
 
-- Uniconf : Init the utility libraries needed by the TSN stack
+- Unibase : initialize the utility libraries needed by the TSN stack
 - Logger : Define the logger task and their log levels for all the stack modules
 - Netdev : Define and provide the net devices supported by a given board to the stack
-- Uniconf : Init uniconf for retrieving/ writing yang parameters from/to database
+- Uniconf : initialize uniconf for retrieving/ writing yang parameters from/to database
 
 All the above components are handled internally by EthFw inside `ethfw_tsn.c` file.
-Uniconf and Logger Init are called by `EthFwTsn_init()` in `ethfw_api.c` file.
+Uniconf and Logger initialization are called by `EthFwTsn_init()` in `ethfw_api.c` file.
 gPTP stack is initialized when Ethernet Firmware RTOS application calls
 `EthFw_initTimeSyncPtp()` function, inside which all the supported netdevs are defined to the 
 `combase` module of the TSN stack and starts separate tasks for uniconf and gPTP.
 
 #### Uniconf configuration
 
-Universal configuration daemon for Yang, provides APIs for developing a client application which retreives/writes yang parameters from/to database and ask the uniconf for configurating HW.
+Universal configuration daemon for Yang, provides APIs for developing a client application which retrieves/writes yang parameters from/to database and ask the uniconf for configuring HW.
 
-Uniconf supports the following config paramaters:
+Uniconf supports the following config parameters:
 
 ```C
     typedef struct ucman_data {
@@ -351,7 +352,7 @@ this function will invoke ``gptpgcfg_set_item()`` to configure each params as re
                                 bool status, void *value, uint32_t vsize);
 ```
 
-- `gptpInstanceIndex` : Index of the gptp to be configured. For TI FreeRTOS there is only one instance is applicable, this should be set to 0.
+- `gptpInstanceIndex` : Index of the gptp to be configured. Currently, only one instance is applicable, this should be set to 0.
 - `confitem`: The configuration item. To create an item, prepend the parameter name from the gptp_nonyangconfig.xml
   with the `XL4_EXTMOD_XL4GPTP` prefix, as follows: `USE_HW_PHASE_ADJUSTMENT` becomes `XL4_EXTMOD_XL4GPTP_USE_HW_PHASE_ADJUSTMENT`.
 - `status`: `YDBI_CONFIG` or `YDBI_STATUS`.  `YDBI_CONFIG` is used
@@ -669,7 +670,7 @@ iperf can be demonostrated by running iperf client on any external devices,
        iperf -c 192.168.1.<r5f_0> -t 20 -i 1
 
 > **Note:** While running iperf with gPTP on ETHFW server, user might observer missing Rx timestamp events
-> as the TCP(7) iperf task prioritie is greater than gPTP task priority(2).
+> as the TCP(7) iperf task priority is greater than gPTP task priority(2).
 
 For fixing this issue one can either disable gPTP or reduce the task priority for TCP
 for fixing this issue, which might cause few Mbps drop in bandwidth. You can change TCP priority at
@@ -712,11 +713,47 @@ The diagram below shows the suggested setup.
 
 ![](EthFw_gPTP_demo_connection.png "EthFw gPTP demo connections with 2 TI EVMs")
 
-In the above suggested setup, Macport 3 is used for supporting gPTP on both the EVMs,
-but if the user is working on 9.1 or later SDKs any Macport from `gEthAppSwitchPorts` 
-should work, however it is suggested to use MAC PORT 3.
+In the above suggested setup, MAC port 3 is used on both the EVMs,
+but from 9.1 SDK any MAC port from `gEthAppSwitchPorts` should work, 
+however it is suggested to use MAC port 3.
 
-At runtime, both EVMs will negotiate which device runs as *master* or *slave* (BMCA)
+```C
+static Enet_MacPort gEthAppSwitchPorts[]=
+{
+#if defined(SOC_J721E)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_2, /* SGMII */
+#else
+    ENET_MAC_PORT_3,
+    ENET_MAC_PORT_8,
+#if defined(ENABLE_QSGMII_PORTS)
+    ENET_MAC_PORT_2,
+    ENET_MAC_PORT_5,
+#endif
+#endif
+#endif
+
+#if defined(SOC_J7200)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_1,
+#else
+    ENET_MAC_PORT_2,
+    ENET_MAC_PORT_3,
+#endif
+#endif
+
+#if defined(SOC_J784S4)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_2,
+#else
+    ENET_MAC_PORT_3,
+    ENET_MAC_PORT_5,
+#endif
+#endif
+```
+
+At runtime, both EVMs will negotiate which device runs as *master* or *slave* 
+Best Master Clock Algorithm (BMCA).
 ETHFW traces will show the MAC address of the device that will be running as
 *master* as shown in the log snippet below:
 
@@ -1723,6 +1760,181 @@ RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 25336773966
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 42516532670
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 59696401829
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Enhanced Schedule Traffic {#ethfw_est_demo}
+
+This demo application demonstrates how to configure the 802.1 Qbv (EST)
+through the TSN yang interface.
+
+> **Note:** This demo is supported on MAC port 3 only for J721E, J7200, J784S4 boards,
+> whose interface name is `tilld3`
+
+- This application can only run as either listener or talker, where talker will be
+  sending out AVTP packets based on the configured EST schedule and listener receives those
+  packets and validates if the packect has been received in the expected time interval.
+  Number of streams on talker is 2 with traffic priorities 0 and 2 mapped to HW queue 0 and 2
+  respectively.
+
+- Both talker and listener need to apply the same EST schedule with the same `baseTime`
+  to have accurate test results. Thus, there is a `delayOffset` added to the `baseTime`
+  of the EST's AdminList so that both schedules can be applied in the future
+  and at the same time. 
+
+- The EST schedule should be applied and talker starts sending test traffic
+  after PTP synchronization is in good condition to have accurate test results.
+
+- The talker sends dummy data which is encapsulated in an AVTP packet. Packet
+  sent with VLAN ID 110.
+
+### Configuration parameters
+In the demo application provided out-of-box, following are the config params for EST:
+
+![](EST_schedule.png "EST schedule")
+
+- EST Schedule
+  The EST schedule is 248us long and it is composed of 4 intervals, each with a
+  gate mask that enables transmission of 2 priorities. The priority 7 is for gPTP traffic.
+  The gate of this priority is always opened to make sure there is no interruption
+  of the PTP packet which keeps the PTP in good synchronization status.
+  The remaining priorities are for test traffic (avtp packets):
+
+- `baseTime`:  PTP time round up to the `delayOffset` to have the same both
+   baseTime on talker and listener to apply the EST schedule that the same
+   time in the future.
+
+- `delayOffset`: Added time to current PTP time for `baseTime` to apply the
+   schedule in the future. It should be a multiple of the `cycleTime` and
+   large enough so that user can have enough time to start talker and listener
+   by entering a character to UART terminal.
+   The current `delayOffset` is `100000*cycleTime` = 24800000us (24.8 seconds).
+   The factor '100000' is chosen to have `delayOffset` above 20secs.
+
+| Parameters   | TimeValue                                                 |
+|--------------|-----------------------------------------------------------|
+| baseTime     | ((Current PTP Time + delayOffset)/delayOffset)*delayOffset|
+| cycleTime    | 248us                                                     |
+
+### Expected Behaviour
+With the schedule configured above, the expectation is that:
+
+- all priority 0 packets arrive on listener inside the time window `[(0,62us),(124us,186us)]`
+- all priority 0 packets arrive on listener inside the time window `[(62us,124us),(186us,248us)]`
+- To check whether packets received inside a time window, the rx timestamp,
+  called rxts (PTP time) of each received packet is captured by host port on
+  the listener's side. Then the `timeSlot` of each packet is calculated as:
+  `timeSlot = (rxts - BaseTime)%CycleTime`
+- Then the `timeSlot` is compared with the time windows above for each packet
+  to check whether the packet received inside or outside the expected time windows.
+  The EST works when percentage of packets received outside of expected time
+  windows less than or equal 1%.
+
+### Build EST Demo App
+Following build flags are defined in `<ethfw>/ethfw_build_flags.mak` file as:
+- `ETHFW_EST_DEMO_SUPPORT` : To enabled EST demo App
+- `ETHFW_EST_DEMO_TALKER` : To run EST demo app in talker mode
+- `ETHFW_EST_DEMO_LISTENER` : To run demo app in listener mode
+
+>**Note** : This demo is supported only is gPTP is enabled in EthFw, so make sure
+> ETHFW_GPTP_SUPPORT is `yes`
+
+As mentioned above, this demo is supported only on MAC port 3 for J721E, J7200, J784S4 boards.
+Use the following commands to build EthFw with EST demo application:
+
+```C
+make -s -j ethfw_all BUILD_SOC_LIST=<J721E/J7200/J784S4> PROFILE=<release/debug> ETHFW_EST_DEMO_SUPPORT=yes ETHFW_EST_DEMO_TALKER=yes
+```
+OR
+```C
+make -s -j ethfw_all BUILD_SOC_LIST=<J721E/J7200/J784S4> PROFILE=<release/debug> ETHFW_EST_DEMO_SUPPORT=yes ETHFW_EST_DEMO_LISTENER=yes
+```
+One cannot build EST demo app with both listener/talker enabled or disabled. It is necessary to state in which mode you want to run EST.
+In a nutshell to run EST demo app, you need to have the following build flags:
+- `ETHFW_EST_DEMO_SUPPORT`: yes
+- `ETHFW_EST_DEMO_TALKER` OR `ETHFW_EST_DEMO_LISTENER` : yes 
+- `ETHFW_GPTP_SUPPORT`: yes
+
+### Run EST Demo App
+- We need any two EVMs for running this demo (J7200-EVM, J721E-EVM or J784S4-EVM).
+- Build one EVM as talker and one EVM as listener and connect both of them via MAC port 3.
+- Once both the boards have been synchronized and in stable state, the talker will start sending packets.
+- Once both the boards have been synchronized, listener is ready to receive packets.
+- Listener starts printing the stats everytime it receives 20000 packets of priority 0 or 2.
+
+#### UART Console Logs (J7200 as Talker)
+```C
+    Waiting for PTP clock to be synchronized!
+    The following AdminList param will be configured for EST:
+    GateMask[7..0]=oCCCCCCo (0x81), start=0 ns, end=61999 ns, dur=62000 ns
+    GateMask[7..0]=oCCCCoCC (0x84), start=62000 ns, end=123999 ns, dur=62000 ns
+    GateMask[7..0]=oCCCCCCo (0x81), start=124000 ns, end=185999 ns, dur=62000 ns
+    GateMask[7..0]=oCCCCoCC (0x84), start=186000 ns, end=247999 ns, dur=62000 ns
+    Base time=24800000000ns,Cycle time=248000ns
+    Set admin control list succesfully
+    INF:cbase:TAS state is set to 2
+    INF:cbase:TAS operational list status updated:
+    INF:cbase:TAS state is set to 1
+    INF:cbase:Successfully configure TAS 
+    Talker: starting stream 0 with, payloadLen: 1200, bitrate: 24360 kbps, priority: 0
+    Talker: starting stream 1 with, payloadLen: 1200, bitrate: 24360 kbps, priority: 2
+    Talker[0], payloadLen: 1200 bytes, bitRate: 24360 kbps
+    Talker[1], payloadLen: 1200 bytes, bitRate: 24360 kbps
+    Start the talker successfully!
+    INF:cbase:cb_lld_task_create: EthFw EST demo Talker stack_size=16384
+    INF:cbase:task_fxn:task (EthFw EST demo Task) terminated.
+```
+
+#### UART Console Logs (J784S4 as Listener)
+```C
+    TimeSlots of PacketPriority: 0:   [0, 62000]ns,  [124000, 186000]ns,
+    TimeSlots of PacketPriority: 2:   [62000, 124000]ns,  [186000, 248000]ns,
+    The following AdminList param will be configured for EST:
+    GateMask[7..0]=oCCCCCCo (0x81), start=0 ns, end=61999 ns, dur=62000 ns
+    GateMask[7..0]=oCCCCoCC (0x84), start=62000 ns, end=123999 ns, dur=62000 ns
+    GateMask[7..0]=oCCCCCCo (0x81), start=124000 ns, end=185999 ns, dur=62000 ns
+    GateMask[7..0]=oCCCCoCC (0x84), start=186000 ns, end=247999 ns, dur=62000 ns
+    Base time=24800000000ns,Cycle time=248000ns
+    Set admin control list succesfully
+    Create listener task succesfully!
+    INF:cbase:TAS state is set to 2
+    INF:cbase:TAS operational list status updated:
+    INF:cbase:TAS state is set to 1
+    INF:cbase:Successfully configure TAS 
+    INF:cbase:cb_lld_task_create: EthFw EST demo Listener stack_size=16384
+    INF:cbase:LLDEnetFilter:destmc:91:E0:F0:00:FE:00, vlanId:110, ethType:0x22f0
+    INF:cbase:task_fxn:task (EthFw EST demo Task) terminated.
+    INF:gptp:domainIndex=0, clock_master_sync_receive:stable rate, 15687msec from unstable
+    PacketPriority[0], frameLength: 1218B, receivedBitrate: 0Kbps
+    PacketPriority[2], frameLength: 1218B, receivedBitrate: 0Kbps
+    PacketPriority: 0, nGoodPackets: 20000, nBadPackets: 150, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 19532, nBadPackets: 146, percentage of bad packets: 0%
+    PacketPriority: 0, nGoodPackets: 20483, nBadPackets: 153, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 20000, nBadPackets: 153, percentage of bad packets: 0%
+    PacketPriority: 0, nGoodPackets: 40000, nBadPackets: 301, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 39013, nBadPackets: 291, percentage of bad packets: 0%
+    PacketPriority: 0, nGoodPackets: 41009, nBadPackets: 310, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 40000, nBadPackets: 301, percentage of bad packets: 0%
+    PacketPriority[0], frameLength: 1218B, receivedBitrate: 20498Kbps
+    PacketPriority[2], frameLength: 1218B, receivedBitrate: 19990Kbps
+    PacketPriority: 0, nGoodPackets: 60000, nBadPackets: 462, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 58486, nBadPackets: 438, percentage of bad packets: 0%
+    PacketPriority: 0, nGoodPackets: 61552, nBadPackets: 475, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 60000, nBadPackets: 453, percentage of bad packets: 0%
+    PacketPriority: 0, nGoodPackets: 80000, nBadPackets: 621, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 77976, nBadPackets: 607, percentage of bad packets: 0%
+    PacketPriority: 0, nGoodPackets: 82067, nBadPackets: 640, percentage of bad packets: 0%
+    PacketPriority: 2, nGoodPackets: 80000, nBadPackets: 624, percentage of bad packets: 0%
+    PacketPriority[0], frameLength: 1218B, receivedBitrate: 20529Kbps
+    PacketPriority[2], frameLength: 1218B, receivedBitrate: 19997Kbps
+```
+
+Both the listener and talker logs print the EST schedule which has been configured on each side along with 
+admin base time and cycle time. Talker prints the streams which are sending the traffic long with the size
+and bit rate of the packets which can be cross-checked on the listener side later.
+Whereas on the listener side same info as on talker side is printed along with the number of good packets,
+bad packets and the percentage of bad packets per stream, where good packets are the packets which have been
+received in the expected time slot and bad ones being the one received out of time slot. High bad packet number
+will be observed if the listener and talker are not synchronized properly, suggested GMdiff < 1000nsecs.
+The bitrate of the received traffic stream is printed roughly around every 20 secs.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 

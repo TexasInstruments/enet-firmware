@@ -62,7 +62,7 @@
 <tr>
     <td rowspan="2">Transmit
     <td>Channels
-    <td>3 (1 for EthFw/lwIP, 1 for PTP, 1 for software interVLAN)
+    <td>3 (1 for EthFw/lwIP, 1 for PTP, 1 for software interVLAN/EST Demo)
 <tr>
     <td>Ring Acc
     <td>9 (rings per channel: 1 for FQ, 1 for CQ, 1 for TDCQ)
@@ -72,7 +72,7 @@
     <td>1
 <tr>
     <td>Flows
-    <td>5 (1 for EthFw/lwIP, 1 for Proxy ARP, 1 for PTP, 1 for software interVLAN, 1 default flow (drop flow))
+    <td>5 (1 for EthFw/lwIP, 1 for Proxy ARP, 1 for PTP, 1 for software interVLAN/EST Demo, 1 default flow (drop flow))
 <tr>
     <td>Ring Acc
     <td>20 (rings per flow: 1 for FQ, 1 for CQ, 1 for TDCQ, 1 for dropRing)
