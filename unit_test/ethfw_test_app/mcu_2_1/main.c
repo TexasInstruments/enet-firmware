@@ -233,6 +233,8 @@ CpswRemoteApp_Obj gRemoteAppObj =
     .useExtAttach     = BFALSE,
 };
 
+CpswProxy_Handle gProxy;
+
 static void EthApp_waitForDebugger(void);
 
 static uint64_t CpswRemoteApp_virtToPhysFxn(const void *virtAddr,
@@ -274,11 +276,36 @@ static void CpswRemoteApp_ipcPrint(const char *str)
 void setUp(void)
 {
 
+    /* Do the setup when gProxy is Null*/
+    if (gProxy == NULL)
+    {
+        CpswProxy_Config proxyConfig;
+        int32_t status;
+
+        /* Start Cpsw Proxy */
+        CpswProxy_init();
+
+        /* Wait for remote_device to be initialized on the server side */
+        do
+        {
+            status = CpswProxy_connect();
+        }
+        while (status != IPC_SOK);
+        
+        proxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+
+        gProxy = CpswProxy_open(&proxyConfig);
+        localAssert(gProxy != NULL);
+    }
+
 }
 
 void tearDown(void)
 {
 
+    CpswProxy_close(gProxy);
+    CpswProxy_deinit();
+    gProxy = NULL;
 }
 
 static void CpswRemoteTestApp_initTask(void* a0,
@@ -291,7 +318,6 @@ static void CpswRemoteTestApp_initTask(void* a0,
     RPMessage_Params cntrlParam;
     MailboxP_Params mbxParams;
     CpswProxy_Config proxyConfig;
-    CpswProxy_Handle hProxy;
     int32_t status;
 
 
@@ -363,22 +389,10 @@ static void CpswRemoteTestApp_initTask(void* a0,
     
     proxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
 
-    hProxy = CpswProxy_open(&proxyConfig);
-    localAssert(hProxy != NULL);
+    gProxy = CpswProxy_open(&proxyConfig);
+    localAssert(gProxy != NULL);
 
-    setUp();
-
-    EthFwUT_testConnection((void *)hProxy);
-
-    tearDown();
-
-    // UNITY_BEGIN();
-
-    // RUN_TEST(EthFwUT_attachCmdPosTest,  0, (void *)hProxy);
-
-    // RUN_TEST(EthFwUT_attachCmdNegTest,  0, (void *)hProxy);
-
-    // UNITY_END();
+    EthFwUT_testConnection((void *)gProxy);
 
 }
 

@@ -92,14 +92,6 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-extern int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
-                                 uint32_t reqType,
-                                 EthRemoteCfg_ReqHdr *req,
-                                 uint16_t reqLen,
-                                 EthRemoteCfg_ResHdr *res,
-                                 uint16_t resLen);
-
-
 void EthFwUT_testConnection(void *args);
 
 #ifdef __cplusplus
