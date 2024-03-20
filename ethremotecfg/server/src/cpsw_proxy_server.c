@@ -3416,7 +3416,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_SET_RX_DEFAULTFLOW:
         {
             EthRemoteCfg_RxDefaultFlowRegisterReq *req = (EthRemoteCfg_RxDefaultFlowRegisterReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("SET_RX_DEFAULTFLOW | C2S | core=%u endpt=%u token=%d flowIdx=%u,%u",
                             remoteProcId, remoteEndPt, (int32_t)token,
@@ -3440,7 +3440,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_DEL_RX_DEFAULTFLOW:
         {
             EthRemoteCfg_RxDefaultFlowRegisterReq *req = (EthRemoteCfg_RxDefaultFlowRegisterReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("DEL_RX_DEFAULTFLOW | C2S | core=%u endpt=%u token=%d flowIdx=%u,%u",
                             remoteProcId, remoteEndPt, (int32_t)token,
@@ -3464,7 +3464,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_REGISTER_MATCH_ETHTYPE:
         {
             EthRemoteCfg_MatchEthertypeAddReq *req = (EthRemoteCfg_MatchEthertypeAddReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("REGISTER_MATCH_ETHTYPE | C2S | core=%u endpt=%u token=%d "
                             "ethType=%x flowIdx=%u,%u",
@@ -3490,7 +3490,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_DEREGISTER_MATCH_ETHTYPE:
         {
             EthRemoteCfg_MatchEthertypeDelReq *req = (EthRemoteCfg_MatchEthertypeDelReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("DEREGISTER_MATCH_ETHTYPE | C2S | core=%u endpt=%u token=%d ethType=%x",
                             remoteProcId, remoteEndPt, (int32_t)token, req->ethertype);
@@ -3512,7 +3512,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_ADD_FILTER_MAC:
         {
             EthRemoteCfg_FilterMacAddReq *req = (EthRemoteCfg_FilterMacAddReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("ADD_FILTER_MAC | C2S | core=%u endpt=%u token=%d "
                             "macAdd=%02x:%02x:%02x:%02x:%02x:%02x vlanId=%u flowIdx=%u,%u",
@@ -3541,7 +3541,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_DEL_FILTER_MAC:
         {
             EthRemoteCfg_FilterMacDelReq *req = (EthRemoteCfg_FilterMacDelReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("DEL_FILTER_MAC | C2S | core=%u endpt=%u token=%d "
                             "macAdd=%02x:%02x:%02x:%02x:%02x:%02x vlanId=%u",
@@ -3613,7 +3613,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_WRITE_REGISTER:
         {
             EthRemoteCfg_RegWriteReq *req = (EthRemoteCfg_RegWriteReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)res;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
             ETHFWTRACE_INFO("WRITE_REGISTER | C2S | core=%u endpt=%u reg=0x%08x val=0x%08x",
                             remoteProcId, remoteEndPt, req->addr, req->val);
