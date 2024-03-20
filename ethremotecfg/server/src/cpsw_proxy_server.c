@@ -1103,13 +1103,13 @@ static int32_t CpswProxyServer_freeTxHandlerCb(CpswProxyServer_ClientHandle hCli
 
 static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                uint32_t hostId,
-                                               uint32_t pRxFlowIdxBase,
-                                               uint32_t pRxFlowIdxOffset)
+                                               uint32_t rxFlowIdxBase,
+                                               uint32_t rxFlowIdxOffset)
 {
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
-    uint32_t relFlowIdx;
+    uint32_t relFlowIdx = 0U;
     EthFw_RxFlowInfo *rxFlowInfo;
     uint32_t i;
 
@@ -1128,31 +1128,39 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
 
     if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
-        status = CpswProxyServer_getRxFlowInfo(hClient->virtPort, relFlowIdx, &rxFlowInfo);
+        status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, rxFlowIdxOffset);
         ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
-                            "Failed to get virtual port %u rx flow %u info",
+                           "Failed to get relative flow index for virtual port %u flow %u",
                             hClient->virtPort,
-                            pRxFlowIdxOffset);
-        /* Remove custom policers for this flow (if any) */
-        for (i = 0U; i < rxFlowInfo->numCustomPolicers; i++)
+                            rxFlowIdxOffset);
+        if (ETHREMOTECFG_CMDSTATUS_OK == status)
         {
-            status = CpswProxyServer_deleteCustomPolicer(hServer->hEnet, hostId, rxFlowInfo->customPolicersInArgs[i]);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                                "Failed to delete custom policer for virtual port %u flow %u",
+            status = CpswProxyServer_getRxFlowInfo(hClient->virtPort, relFlowIdx, &rxFlowInfo);
+            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                               "Failed to get virtual port %u rx flow %u info",
                                 hClient->virtPort,
-                                pRxFlowIdxOffset);
+                                rxFlowIdxOffset);
+            /* Remove custom policers for this flow (if any) */
+            for (i = 0U; i < rxFlowInfo->numCustomPolicers; i++)
+            {
+                status = CpswProxyServer_deleteCustomPolicer(hServer->hEnet, hostId, rxFlowInfo->customPolicersInArgs[i]);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                                   "Failed to delete custom policer for virtual port %u flow %u",
+                                    hClient->virtPort,
+                                    rxFlowIdxOffset);
+            }
+            /* Remove flowIdxOffset assigned to specific flow from virtual port config */
+            CpswProxyServer_saveRxFlowOffset(hClient->virtPort, relFlowIdx, CPSWPROXY_CLIENT_INVALID_FLOW_IDX_OFFSET);
         }
-        /* Remove flowIdxOffset assigned to specific flow from virtual port config */
-        CpswProxyServer_saveRxFlowOffset(hClient->virtPort, relFlowIdx, CPSWPROXY_CLIENT_INVALID_FLOW_IDX_OFFSET);
     }
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, pRxFlowIdxBase);
+        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, rxFlowIdxBase);
         status = EnetAppUtils_freeRxFlow(hServer->hEnet,
                                          coreKey,
                                          hostId,
-                                         pRxFlowIdxOffset);
+                                         rxFlowIdxOffset);
 
         if (ENET_SOK == status)
         {
@@ -1162,7 +1170,7 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
         else
         {
             ETHFWTRACE_ERR(status, "Failed to free Rx flow with base: %u,"
-                           "offset: %u", pRxFlowIdxBase, pRxFlowIdxOffset);
+                           "offset: %u", rxFlowIdxBase, rxFlowIdxOffset);
         }
     }
 
