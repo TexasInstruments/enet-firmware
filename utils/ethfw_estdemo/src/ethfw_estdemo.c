@@ -75,6 +75,7 @@
 #include <string.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #include <utils/ethfw_estdemo/include/ethfw_estdemo.h>
+#include <tsn_uniconf/yangs/yang_db_runtime.h>
 #include <tsn_unibase/unibase.h>
 #include <tsn_unibase/unibase_binding.h>
 #include <tsn_uniconf/yangs/yang_modules.h>
@@ -90,10 +91,8 @@
 
 #define DISPLAY_BITRATE_INTERVAL_SEC    (20U)
 
-#define ESTAPP_TASK_PRIORITY            (1U)
-#define ESTAPP_TASK_NAME                "EthFw EST demo Task"
-#define ESTAPP_TALKER_NAME              "EthFw EST demo Talker"
-#define ESTAPP_LISTENER_NAME            "EthFw EST demo Listener"
+#define EST_DEMO_TALKER_NAME            "EthFw EST demo Talker"
+#define EST_DEMO_LISTENER_NAME          "EthFw EST demo Listener"
 
 #define AVTP_PKT_PAYLOAD_LEN            (1200U)
 #define MIN_INTERVAL_NS                 (62000U)
@@ -101,6 +100,12 @@
 
 #define EST_DEMO_TSK_STACK_SIZE         (16U * 1024U)
 #define EST_DEMO_TSK_STACK_ALIGN        (32U)
+
+#define EST_DEMO_GPTP_GM_STABLE_SYNC    (2U)
+#define EST_DEMO_GPTP_MASTER_PORT       (6U)
+#define EST_DEMO_GPTP_SLAVE_PORT        (9U)
+
+#define HIGH_CPU_LOAD_THRESHOLD         (15U)
 
 /*! Base path of admin list parameters in yang file of Qbv */
 #define GATE_PARAM_TABLE_NODE "/ietf-interfaces/interfaces/interface|name:%s|" \
@@ -143,7 +148,7 @@ typedef struct EstDemoStatsInfo_s
 
 typedef struct EthFwEstDemoCtx_s
 {
-    EthFwTsn_ModuleCfg appCtx;/*! Common context param is general for all QoS applications. */
+    EstDemoAppCtx appCtx;/*! Common context param is general for all QoS applications. */
     uint32_t schedIdx;              /*! Index of EST schedule applied for talker and listener. */
     EstDemoStatsInfo estStatsInfo[ESTDEMO_PRIORITY_MAX];
     /*! Expected timeslot for all priority traffic */
@@ -156,15 +161,42 @@ typedef struct EthFwEstDemoTestParam_s
     EstDemoStreamConfig stParam; /*! Streams parameters */
 } EthFwEstDemoTestParam;
 
+typedef struct EstDemoDbArgs_s
+{
+    uc_dbald *dbald;
+    yang_db_runtime_dataq_t *ydrd;
+    uc_notice_data_t *ucntd;
+} EstDemoDbArgs;
+
 UB_SD_GETMEM_DEF_EXTERN(YANGINIT_GEN_SMEM);
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-#if defined(ETHFW_EST_DEMO_SUPPORT)
-static void *EthFw_estDemoTask(void *arg1);
-#endif
+void *EthFw_estDemoTask(void *arg1);
+
+int32_t  EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
+                                 const EthFwTsn_NetDevInfo *devInfo,
+                                 PacketHandlerCb cb);
+
+int32_t  EthFwEstDemo_openDB(EstDemoDbArgs *dbarg,
+                             char *dbName,
+                             const char *mode);
+
+void EthFwEstDemo_closeDB(EstDemoDbArgs *dbarg);
+
+void EthFwEstDemo_startCfgTalker(EstDemoAppCtx *ctx,
+                                 EstDemoTaskCfg *cfg,
+                                 EstDemoStreamConfig *stParams);
+
+void EthFwEstDemo_startCfgListener(EstDemoAppCtx *ctx,
+                                   EstDemoTaskCfg *cfg);
+
+int EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
+                                EstDemoDbArgs *dbarg);
+
+uint64_t EthFwEstDemo_getCurrentTimeUs(void);
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -175,9 +207,6 @@ static void *EthFw_estDemoTask(void *arg1);
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
-
-static uint8_t gEthFwEstDemoStackBuf[EST_DEMO_TSK_STACK_SIZE]
-__attribute__ ((aligned(EST_DEMO_TSK_STACK_ALIGN)));
 
 static uint8_t gEthFwEstDemoTalkerStackBuf[EST_DEMO_TSK_STACK_SIZE]
 __attribute__ ((aligned(EST_DEMO_TSK_STACK_ALIGN)));
@@ -216,14 +245,14 @@ static EthFwEstDemoTestParam gEthFwEstDemoTestLists[] =
             .streamParams =
             {
                 /* test appliction sends packet with interval 200us */
-                {.bitRateKbps = CALC_BITRATE_KBPS(AVTP_PKT_PAYLOAD_LEN, 200),
+                {.bitRateKbps = CALC_BITRATE_KBPS(AVTP_PKT_PAYLOAD_LEN, 400),
                  .payloadLen = AVTP_PKT_PAYLOAD_LEN,
                  .tc = 0U,
                  .priority = 0U,
                 },
 
                 /* test appliction sends packet with interval 200us */
-                {.bitRateKbps = CALC_BITRATE_KBPS(AVTP_PKT_PAYLOAD_LEN, 200),
+                {.bitRateKbps = CALC_BITRATE_KBPS(AVTP_PKT_PAYLOAD_LEN, 400),
                  .payloadLen = AVTP_PKT_PAYLOAD_LEN,
                  .tc = 2U,
                  .priority = 2U,
@@ -237,26 +266,6 @@ static EthFwEstDemoTestParam gEthFwEstDemoTestLists[] =
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-
-void EthFwEstDemo_addEstAppModCtx(EthFwTsn_ModuleCfg *modCtxTbl)
-{
-#if defined(ETHFW_EST_DEMO_SUPPORT)
-    EthFwTsn_ModuleCfg estAppModCtx =
-    {
-        .enable = BFALSE,
-        .stopFlag = BTRUE,
-        .taskPriority = ESTAPP_TASK_PRIORITY,
-        .taskName = ESTAPP_TASK_NAME,
-        .stackBuffer = gEthFwEstDemoStackBuf,
-        .stackSize = sizeof(gEthFwEstDemoStackBuf),
-        .onModuleDBInit = NULL,
-        .onModuleRunner = EthFw_estDemoTask,
-    };
-
-    memcpy(&modCtxTbl[ETHFWTSN_EST_TASK_IDX], &estAppModCtx,
-           sizeof(EthFwTsn_ModuleCfg));
-#endif
-}
 
 static void EthFwEstDemo_printAdminControlList(EnetTas_ControlList *list)
 {
@@ -291,9 +300,10 @@ static void EthFwEstDemo_printAdminControlList(EnetTas_ControlList *list)
     appLogPrintf("%s\n", buffer);
 }
 
-static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list, char *ifname,
-                                            yang_db_runtime_dataq_t *ydrd,
-                                            uc_notice_data_t *ucntd)
+static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
+                                                const char *ifname,
+                                                yang_db_runtime_dataq_t *ydrd,
+                                                uc_notice_data_t *ucntd)
 {
     int32_t i;
     int32_t status = ETHFW_SOK;
@@ -368,11 +378,11 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list, char 
 }
 
 static bool EthFwEstDemo_isPTPClockStateSync(EstDemoAppCtx *ctx,
-                                           char *netdev)
+                                             const char *netdev)
 {
     int32_t status = ETHFW_EFAIL;
     bool syncFlag = BFALSE;
-    EthFwTsn_dbArgs dbarg;
+    EstDemoDbArgs dbarg;
     char *dbName = ETHFW_TSN_UC_DBFILE_PATH;
 
     status = EthFwEstDemo_openDB(&dbarg, dbName, "w");
@@ -388,7 +398,7 @@ static bool EthFwEstDemo_isPTPClockStateSync(EstDemoAppCtx *ctx,
         uint8_t portState = 0U;
         /* Checks for gPTP sync and enables EST on this port */
         int8_t portIdx = DEFAULT_INTERFACE_INDEX;
-        DebugP_assert(portIdx >= 0U && portIdx < ETHFW_TSN_CFG_NUM_MAC_PORTS + 1);
+        DebugP_assert(portIdx >= 0U);
 
         snprintf(buffer, sizeof(buffer),
                  IEEE1588_PTP_TT_CLOCKSTATE_NODE"/gmstate");
@@ -399,7 +409,7 @@ static bool EthFwEstDemo_isPTPClockStateSync(EstDemoAppCtx *ctx,
             break;
         }
 
-        syncFlag = *(uint8_t *)val == 2? BTRUE: BFALSE;
+        syncFlag = *(uint8_t *)val == EST_DEMO_GPTP_GM_STABLE_SYNC? BTRUE: BFALSE;
         UB_SD_RELMEM(YANGINIT_GEN_SMEM, val);
         val  = NULL;
 
@@ -422,7 +432,8 @@ static bool EthFwEstDemo_isPTPClockStateSync(EstDemoAppCtx *ctx,
         val  = NULL;
 
         /* check ieee1588-ptp-tt.yang for description of portState */
-        if (portState != 6 && portState != 9)
+        if (portState != EST_DEMO_GPTP_MASTER_PORT
+            && portState != EST_DEMO_GPTP_SLAVE_PORT)
         {
             appLogPrintf("Current port-state: %d \n", portState);
             break;
@@ -437,11 +448,12 @@ static bool EthFwEstDemo_isPTPClockStateSync(EstDemoAppCtx *ctx,
         }
         bool asCapable = *(uint8_t*)val? BTRUE: BFALSE;
         UB_SD_RELMEM(YANGINIT_GEN_SMEM, val);
-        if ((portState == 6 || portState == 9) && asCapable)
+        if ((portState == EST_DEMO_GPTP_MASTER_PORT ||
+             portState == EST_DEMO_GPTP_SLAVE_PORT) && asCapable)
         {
             syncFlag = BTRUE;
         }
-        else if (portState == 9 && !asCapable)
+        else if (portState == EST_DEMO_GPTP_SLAVE_PORT && !asCapable)
         {
             syncFlag = BTRUE;
         }
@@ -468,11 +480,11 @@ static int32_t EthFwEstDemo_getAdminBaseTime(uint64_t *time)
 }
 
 static int32_t EthFwEstDemo_runSchedule(EstDemoAppCtx *ctx,
-                                    EnetTas_ControlList *adminList,
-                                    char *netdev)
+                                        EnetTas_ControlList *adminList,
+                                        const char *netdev)
 {
     bool openDBSuccess = BFALSE;
-    EthFwTsn_dbArgs dbarg;
+    EstDemoDbArgs dbarg;
     char *dbName = ETHFW_TSN_UC_DBFILE_PATH;
     int32_t status;
     uint32_t i;
@@ -519,8 +531,8 @@ static int32_t EthFwEstDemo_runSchedule(EstDemoAppCtx *ctx,
             ctx->adminDelayOffset = offset/1000; /* Convert to microsecond */
         }
         status = EthFwEstDemo_setAdminControlList(adminList,
-                                             netdev,
-                                             dbarg.ydrd, dbarg.ucntd);
+                                                  netdev,
+                                                  dbarg.ydrd, dbarg.ucntd);
         if (status)
         {
             appLogPrintf("Failed to set admin control list for %s\n",
@@ -547,7 +559,7 @@ static void EthFwEstDemo_startTalker(EstDemoAppCtx *ctx,
     uint32_t i;
     EstDemoTaskCfg cfg =
     {
-        .name = ESTAPP_TALKER_NAME,
+        .name = EST_DEMO_TALKER_NAME,
         .priority  = ESTDEMO_TASK_PRIORITY,
         .stackBuffer = gEthFwEstDemoTalkerStackBuf,
         .stackBufferSize = sizeof(gEthFwEstDemoTalkerStackBuf),
@@ -567,7 +579,7 @@ static void EthFwEstDemo_startListener(EstDemoAppCtx *ctx)
 {
     EstDemoTaskCfg cfg =
     {
-        .name = ESTAPP_LISTENER_NAME,
+        .name = EST_DEMO_LISTENER_NAME,
         .priority  = ESTDEMO_TASK_PRIORITY,
         .stackBuffer = gEthFwEstDemoListenerStackBuf,
         .stackBufferSize = sizeof(gEthFwEstDemoListenerStackBuf),
@@ -578,7 +590,6 @@ static void EthFwEstDemo_startListener(EstDemoAppCtx *ctx)
 static void EthFwEstDemo_showEstStats(EthFwEstDemoCtx *estAppCtx)
 {
     uint32_t i;
-    char buffer[MAX_LOG_LEN];
     uint64_t goodPkts, badPkts;
 
     for (i = 0U; i < ESTDEMO_PRIORITY_MAX; i++)
@@ -587,14 +598,8 @@ static void EthFwEstDemo_showEstStats(EthFwEstDemoCtx *estAppCtx)
         badPkts = estAppCtx->estStatsInfo[i].nBadPkt;
         if (goodPkts > 0U ||  badPkts > 0U)
         {
-            snprintf(buffer, sizeof(buffer),
-                     "PacketPriority: %d, nGoodPackets: %llu, nBadPackets: %llu, percentage of bad packets: %llu%%",
-                     i, goodPkts, badPkts, (badPkts*100)/(badPkts+goodPkts));
-            appLogPrintf("%s\n", buffer);
-        }
-        else
-        {
-            appLogPrintf("No good or bad packets received of priority: %d\n", i);
+            appLogPrintf("PacketPriority: %d, nGoodPackets: %llu, nBadPackets: %llu, percentage of bad packets: %llu%%\n",
+                          i, goodPkts, badPkts, (badPkts*100)/(badPkts+goodPkts));
         }
     }
 }
@@ -609,7 +614,7 @@ static void EthFwEstDemo_rxPacketHandler(void *arg,
     int64_t timeSlot = pkt->recvAddr.rxts - adminList->baseTime;
     uint64_t numGoodPkt = 0U;
     uint64_t numBadPkt = 0U;
-    uint64_t pktCount = 1000U;
+    uint64_t pktCount = 20000U;
 
     priority = pkt->recvAddr.tcid;
     if (priority < ESTDEMO_PRIORITY_MAX)
@@ -648,6 +653,7 @@ static void EthFwEstDemo_runTalker(EstDemoAppCtx *ctx)
         appLogPrintf("Waiting for PTP clock to be synchronized!\n");
         TaskP_sleepInMsecs(2000ULL);
     }
+
     uint32_t schedIdx = 0U;
     status = EthFwEstDemo_runSchedule(ctx,
                                    &gEthFwEstDemoTestLists[schedIdx].list,
@@ -665,6 +671,8 @@ static void EthFwEstDemo_defragmentTimeSlots(EstDemoPerPriorityTimeSlot *prm)
     uint32_t i;
     EstDemoTimeSlot timeSlots[ENET_TAS_MAX_CMD_LISTS];
     uint32_t count = 0U;
+
+    memset(timeSlots, 0 , sizeof(timeSlots));
 
     for (i = 0U; i < ENET_TAS_MAX_CMD_LISTS; i++)
     {
@@ -746,16 +754,15 @@ static void EthFwEstDemo_runListener(EstDemoAppCtx *ctx)
     }
 }
 
-static void *EthFw_estDemoTask(void *arg1)
+void *EthFw_estDemoTask(void *arg1)
 {
-#if defined(ETHFW_EST_DEMO_SUPPORT)
+#if defined(ETHFW_GPTP_SUPPORT)
     int32_t status;
     char option;
-    EthFwTsn_ModuleCfg *modCtx = (EthFwTsn_ModuleCfg *)arg1;
-    EstDemoAppCtx *ctx =  (EstDemoAppCtx *)&gEthFwEstDemoCtx;
+    const EthFwTsn_NetDevInfo *devInfo = (const EthFwTsn_NetDevInfo *)arg1;
+    EstDemoAppCtx *ctx = (EstDemoAppCtx *)&gEthFwEstDemoCtx;
 
-    status = EthFwEstDemo_initialize(ctx, modCtx,
-                                     EthFwEstDemo_rxPacketHandler);
+    status = EthFwEstDemo_initialize(ctx, devInfo, EthFwEstDemo_rxPacketHandler);
     DebugP_assert(status == ETHFW_SOK);
 
 #if defined(ETHFW_EST_DEMO_TALKER) && defined(ETHFW_EST_DEMO_LISTENER)
@@ -770,7 +777,7 @@ static void *EthFw_estDemoTask(void *arg1)
 #error "ETHFW: EST: Please enable listener or talker for running EST: "
 #endif
 #else
-    appLogPrintf("ETHFW: EST Demo build flag is disabled!\n");
+#error "ETHFW: gPTP is disabled!, please enable gPTP to run EST demo"
 #endif
     return NULL;
 }
@@ -844,7 +851,7 @@ bool EthFwEstDemo_checkTransmitReady(EstDemoBitrateCtrl *bc,
 }
 
 /* mode could be "w" for writing  or "r" for reading */
-int32_t EthFwEstDemo_openDB(EthFwTsn_dbArgs *dbarg, char *dbName, const char *mode)
+int32_t EthFwEstDemo_openDB(EstDemoDbArgs *dbarg, char *dbName, const char *mode)
 {
     int32_t status = ETHFW_SOK;
     uint32_t timeout_ms = 500;
@@ -879,7 +886,7 @@ int32_t EthFwEstDemo_openDB(EthFwTsn_dbArgs *dbarg, char *dbName, const char *mo
     return status;
 }
 
-void EthFwEstDemo_closeDB(EthFwTsn_dbArgs *dbarg)
+void EthFwEstDemo_closeDB(EstDemoDbArgs *dbarg)
 {
     uc_notice_close(dbarg->ucntd, 0U);
     yang_db_runtime_close(dbarg->ydrd);
@@ -887,7 +894,7 @@ void EthFwEstDemo_closeDB(EthFwTsn_dbArgs *dbarg)
 }
 
 int32_t EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
-                                EthFwTsn_dbArgs *dbarg)
+                                EstDemoDbArgs *dbarg)
 {
     int32_t status = ETHFW_SOK;
     uint32_t i = 0U;
@@ -948,13 +955,12 @@ static void EthFwEstDemo_rxNotifyCb(void* arg)
 }
 
 int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
-                            EthFwTsn_ModuleCfg *modCtx,
-                            PacketHandlerCb cb)
+                                const EthFwTsn_NetDevInfo *devInfo,
+                                PacketHandlerCb cb)
 {
     int32_t status;
     uint32_t i;
     cb_rawsock_paras_t param;
-    EthFwTsn_netDevInfo *devInfo;
     EthFwEstDemoCtx *estStatCtx = (EthFwEstDemoCtx *)ctx;
     CpswAle_VlanEntryInfo vlanInArgs;
     Enet_IoctlPrms prms;
@@ -963,6 +969,7 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
     uint32_t instId;
     uint32_t coreId;
     Enet_Handle hEnet;
+
 
 #if defined(SOC_J721E) || defined(SOC_J784S4)
     enetType = ENET_CPSW_9G,
@@ -989,15 +996,10 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
 
     if(ETHFW_SOK == status)
     {
-        status = EthFwTsn_getDevInfo(devInfo);
-    }
-
-    if(ETHFW_SOK == status)
-    {
         ctx->netdevSize = devInfo->numNetDevs;
         for (i = 0U; i < ctx->netdevSize; i++)
         {
-            ctx->netdev[i] = devInfo->netdevs[i];
+            ctx->netdev[i] = devInfo->netDevs[i];
         }
     }
     else
@@ -1126,8 +1128,6 @@ static void *EthFwEstDemo_talkerHandler(void *arg)
     EstDemoCommonStreamHdr *avtphdr;
     uint32_t payloadLen, frameLen;
     uint32_t nShortSleep = 0U;
-    uint64_t sentPkt = 0U;
-#define HIGH_CPU_LOADHRESHOLD (15)
 
     while (talker->enable)
     {
@@ -1171,15 +1171,16 @@ static void *EthFwEstDemo_talkerHandler(void *arg)
          */
         nShortSleep = minSleepTime < UB_MSEC_US? (nShortSleep+1): 0U;
 
-        if (nShortSleep >= HIGH_CPU_LOADHRESHOLD && minSleepTime > 0U)
+        if (nShortSleep >= HIGH_CPU_LOAD_THRESHOLD && minSleepTime > 0U)
         {
             minSleepTime = UB_MSEC_US;
             TaskP_yield();
             nShortSleep = 0U;
         }
+
         if (minSleepTime != UINT64_MAX && minSleepTime > 0U)
         {
-            TaskP_sleepInMsecs(minSleepTime);
+            CB_USLEEP(minSleepTime);
         }
         minSleepTime = UINT64_MAX;
     }
@@ -1243,7 +1244,7 @@ void EthFwEstDemo_startCfgTalker(EstDemoAppCtx *ctx,
             status = ETHFW_EFAIL;
         }
         talker->enable = BTRUE;
-        if (!talker->hTaskHandle && status == ETHFW_SOK)
+        if (!talker->hTask && status == ETHFW_SOK)
         {
             cb_tsn_thread_attr_t attr;
 
@@ -1257,7 +1258,7 @@ void EthFwEstDemo_startCfgTalker(EstDemoAppCtx *ctx,
             if (status == ETHFW_SOK)
             {
                 EthFwEstDemo_initTalker(&ctx->talker);
-                status = CB_THREAD_CREATE(&talker->hTaskHandle,
+                status = CB_THREAD_CREATE(&talker->hTask,
                                        &attr, EthFwEstDemo_talkerHandler,
                                        ctx);
             }
@@ -1293,13 +1294,8 @@ static inline  void EthFwEstDemo_showRecvBitrate(EstDemoStreamParams *stream,
 
     if (duration >= DISPLAY_BITRATE_INTERVAL_SEC*UB_SEC_US)
     {
-        char buffer[MAX_LOG_LEN];
-        n = snprintf(buffer, sizeof(buffer),
-                     "PacketPriority[%d], frameLength: %dB, receivedBitrate: %lluKbps, nBrokenPackets: %d",
-                     pktinfo->recvAddr.tcid, pktinfo->bufferSize, (stream->rxBytes*8*1000)/duration,
-                     stream->nBrokenPkt);
-        DebugP_assert(n < sizeof(buffer));
-        appLogPrintf("%s\n", buffer);
+        appLogPrintf("PacketPriority[%d], frameLength: %dB, receivedBitrate: %lluKbps\n",
+                      pktinfo->recvAddr.tcid, pktinfo->bufferSize, (stream->rxBytes*8*1000)/duration);
 
         stream->prevTs = now;
         stream->rxBytes = 0ULL;
@@ -1405,13 +1401,13 @@ void EthFwEstDemo_startCfgListener(EstDemoAppCtx *ctx,
     DebugP_assert(status == ETHFW_SOK);
     cb_tsn_thread_attr_t attr;
     EthFwEstDemo_initTaskCtx(&attr, cfg);
-    status = CB_THREAD_CREATE(&listener->hTaskHandle,
+    status = CB_THREAD_CREATE(&listener->hTask,
                            &attr, EthFwEstDemo_listenerHandler,
                            ctx);
     if (status)
     {
         ctx->listener.enable = BFALSE;
-        ctx->listener.hTaskHandle = NULL;
+        ctx->listener.hTask = NULL;
         CB_SEM_DESTROY(&ctx->listener.terminatedSem);
         CB_SEM_DESTROY(&ctx->listener.rxPacketSem);
         appLogPrintf("Failed to create listener task!\n");

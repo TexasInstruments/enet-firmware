@@ -28,10 +28,10 @@ IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/tsn_combase/tilld/jacin
 LDIRS += $(PDK_PATH)/packages/ti/transport/tsn/lib/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 endif
 
-# Feature flags: ETHFW EST demo - should be supported with gPTP
-ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
-  ifeq ($(ETHFW_GPTP_SUPPORT),yes)
-    DEFS += ETHFW_EST_DEMO_SUPPORT
+# Feature flags: ETHFW gPTP stack - for now, supported in FreeRTOS only
+ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+  ifeq ($(TARGET_OS),FREERTOS)
+    DEFS += ETHFW_GPTP_SUPPORT
   endif
 endif
 

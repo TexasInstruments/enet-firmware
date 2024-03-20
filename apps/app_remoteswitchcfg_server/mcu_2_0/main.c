@@ -236,6 +236,10 @@
 #error "LWIP_NETIF_LINK_CALLBACK is not enabled"
 #endif
 
+#if defined(ETHFW_EST_DEMO_SUPPORT) && defined(ETHFW_DEMO_SUPPORT)
+#error "ETHFW does not support support EST demo with other demos, please enable any one of them"
+#endif
+
 /* DHCP or static IP */
 #if defined(ETHFW_BOOT_TIME_PROFILING)
 #define ETHAPP_LWIP_USE_DHCP            (0)

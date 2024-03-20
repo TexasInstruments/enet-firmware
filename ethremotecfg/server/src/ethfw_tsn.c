@@ -77,17 +77,10 @@
 #include <stdbool.h>
 #include <string.h>
 
-
-/* EthFw header files */
-#include <utils/ethfw_common/include/ethfw_utils.h>
-#include <utils/ethfw_common/include/ethfw_trace.h>
-#include <ethremotecfg/server/include/ethfw_tsn.h>
-#if defined(ETHFW_EST_DEMO_SUPPORT)
-#include <utils/ethfw_estdemo/include/ethfw_estdemo.h>
-#endif
-
 /* TSN header files */
+#include <tsn_buildconf/jacinto_buildconf.h>
 #include <tsn_gptp/tilld/lld_gptp_private.h>
+#include <tsn_uniconf/yangs/yang_db_runtime.h>
 #include <tsn_uniconf/yangs/yang_modules.h>
 #include <tsn_uniconf/uc_dbal.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
@@ -108,6 +101,11 @@
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+
+/* EthFw header files */
+#include <utils/ethfw_common/include/ethfw_utils.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
+#include <ethremotecfg/server/include/ethfw_tsn.h>
 
 
 /* ========================================================================== */
@@ -150,6 +148,14 @@
 #define MAX_KEY_SIZE                                                (32U)
 #define MAX_BUFFER_SIZE                                             (256U)
 
+#if defined(ETHFW_EST_DEMO_SUPPORT)
+#define ETHFW_TSN_EST_TASK_PRIORITY                                 (1U)
+#define ETHFW_TSN_EST_TASK_NAME                                     "EthFw EST demo Task"
+
+#define ETHFW_TSN_EST_STACK_SIZE                                    (16U * 1024U)
+#define ETHFW_TSN_EST_STACK_ALIGN                                   (32U)
+#endif
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -168,6 +174,17 @@ typedef struct EthFwTsn_DbIntVal_s
     int item;
     int val;
 } EthFwTsn_DbIntVal;
+
+typedef struct EthFwTsn_dbArgs_s
+{
+    uc_dbald *dbald;
+    yang_db_runtime_dataq_t *ydrd;
+    uc_notice_data_t *ucntd;
+} EthFwTsn_dbArgs;
+
+typedef int32_t (*EthFwTsn_OnModuleDBInit)(EthFwTsn_dbArgs *dbArgs);
+
+typedef void *(*EthFwTsn_OnModuleStart)(void *arg1);
 
 typedef struct EthFwTsn_GptpOpt_s
 {
@@ -188,6 +205,21 @@ typedef struct EthFwTsn_UniconfCfg_s
     bool dbInitFlag;
 } EthFwTsn_UniconfCfg;
 
+/* Container structure for TSN Modules config params */
+typedef struct EthFwTsn_ModuleCfg_s
+{
+    bool stopFlag;
+    uint32_t taskPriority;
+    CB_THREAD_T hTaskHandle;
+    const char *taskName;
+    uint8_t *stackBuffer;
+    uint32_t stackSize;
+    EthFwTsn_OnModuleDBInit onModuleDBInit;
+    EthFwTsn_OnModuleStart onModuleRunner;
+    void *onModuleRunnerArgs;
+    bool enable;
+} EthFwTsn_ModuleCfg;
+
 /*
  * \brief Structure holding gPTP and TSN configs
  */
@@ -205,14 +237,8 @@ typedef struct EthFwTsn_Obj_s
     /* To run log Task in the loop*/
     bool logTaskrun;
 
-    /* TSN stack netdevs */
-    char netDevs[ETHFW_TSN_CFG_NUM_MAC_PORTS][IFNAMSIZ];
-
-    /* gPTP stack netdevs */
-    char *gPtpNetDevs[ETHFW_TSN_CFG_NUM_MAC_PORTS + 1];
-
-    /* Number of active netdevs */
-    uint32_t numNetDevs;
+    /* TSN stack netdev info */
+    EthFwTsn_NetDevInfo netDevInfo;
 
     /* Mutex object used for TSN stack logging */
     MutexP_Object logMutexObj;
@@ -289,7 +315,9 @@ static void EthFwTsn_cfgGptpPortDs(yang_db_runtime_dataq_t *ydrd,
 /*                          Extern variables                                  */
 /* ========================================================================== */
 
-/* None */
+#if defined(ETHFW_EST_DEMO_SUPPORT)
+extern void *EthFw_estDemoTask(void *arg1);
+#endif
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -302,6 +330,10 @@ uint8_t gUniconfStackBuf[ETHFW_TSN_UC_TASK_STACK_SIZE] __attribute__ ((aligned(E
 
 /* gPTP task stack buffer */
 uint8_t gPtpStackBuf[ETHFW_TSN_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_TASK_STACK_ALIGN)));
+
+#if defined(ETHFW_EST_DEMO_SUPPORT)
+static uint8_t gEthFwEstDemoStackBuf[ETHFW_TSN_EST_STACK_SIZE]__attribute__ ((aligned(ETHFW_TSN_EST_STACK_ALIGN)));
+#endif
 
 /* Default values for gptp port data set */
 static EthFwTsn_DbNameVal gGptpPortDsRw[] =
@@ -378,6 +410,7 @@ EthFwTsn_ModuleCfg gModCfgTable[ETHFWTSN_MAX_TASK_IDX] =
             .stackSize = sizeof(gPtpStackBuf),
             .onModuleDBInit = EthFwTsn_gptpDbInit,
             .onModuleRunner = EthFwTsn_gptpTask,
+            .onModuleRunnerArgs = NULL,
         },
         [ETHFWTSN_UNICONF_TASK_IDX] =
         {
@@ -389,7 +422,22 @@ EthFwTsn_ModuleCfg gModCfgTable[ETHFWTSN_MAX_TASK_IDX] =
             .stackSize = sizeof(gUniconfStackBuf),
             .onModuleDBInit = EthFwTsn_uniconfInit,
             .onModuleRunner = EthFwTsn_uniconfTask,
+            .onModuleRunnerArgs = NULL,
         },
+#if defined(ETHFW_EST_DEMO_SUPPORT)
+        [ETHFWTSN_EST_TASK_IDX] =
+        {
+            .enable = BFALSE,
+            .stopFlag = BTRUE,
+            .taskPriority = ETHFW_TSN_EST_TASK_PRIORITY,
+            .taskName = ETHFW_TSN_EST_TASK_NAME,
+            .stackBuffer = gEthFwEstDemoStackBuf,
+            .stackSize = sizeof(gEthFwEstDemoStackBuf),
+            .onModuleDBInit = NULL,
+            .onModuleRunner = EthFw_estDemoTask,
+            .onModuleRunnerArgs = &gEthFwTsnObj.netDevInfo,
+        },
+#endif
 };
 
 /* Max domains supported is defined as GPTP_MAX_DOMAINS in jacinto_buildconf.h.
@@ -509,9 +557,9 @@ static void *EthFwTsn_gptpTask(void *args)
         gEthFwTsnObj.configPtpCb(gEthFwTsnObj.configPtpCbArg);
     }
 
-    for (i = 0U; i < gEthFwTsnObj.numNetDevs; i++)
+    for (i = 0U; i < gEthFwTsnObj.netDevInfo.numNetDevs; i++)
     {
-        netdevs[i] = gEthFwTsnObj.netDevs[i];
+        netdevs[i] = gEthFwTsnObj.netDevInfo.netDevs[i];
     }
 
     status = gptpgcfg_init(ucCfg->dbName, gGptpOpt.confFiles, gGptpOpt.instNum, true,
@@ -523,7 +571,7 @@ static void *EthFwTsn_gptpTask(void *args)
     if (ETHFW_SOK == status)
     {
         /* This function start gPTP, it has a true loop inside */
-        status = gptpman_run(gGptpOpt.instNum, netdevs, gEthFwTsnObj.numNetDevs,
+        status = gptpman_run(gGptpOpt.instNum, netdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
                              NULL, &mod->stopFlag);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "gptpman_run() failed");
     }
@@ -666,29 +714,25 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
             macPort = ENET_MACPORT_DENORM(i);
 
             /* Linking each MAC port with an interface name */
-            snprintf(&gEthFwTsnObj.netDevs[j][0], IFNAMSIZ, "tilld%d", i + 1);
-            gEthFwTsnObj.gPtpNetDevs[j] = &gEthFwTsnObj.netDevs[j][0];
-            ethdevs[j].netdev  = gEthFwTsnObj.netDevs[j];
+            snprintf(&gEthFwTsnObj.netDevInfo.netDevs[j][0], IFNAMSIZ, "tilld%d", i + 1);
+            gEthFwTsnObj.netDevInfo.gPtpNetDevs[j] = &gEthFwTsnObj.netDevInfo.netDevs[j][0];
+            ethdevs[j].netdev  = gEthFwTsnObj.netDevInfo.netDevs[j];
             ethdevs[j].macport = macPort;
             memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
 
             ETHFWTRACE_INFO("ETHFW: Enable gPTP on MAC port %u (%s)",
-                            ENET_MACPORT_ID(macPort), gEthFwTsnObj.gPtpNetDevs[j]);
+                            ENET_MACPORT_ID(macPort), gEthFwTsnObj.netDevInfo.gPtpNetDevs[j]);
             j++;
         }
     }
 
-    gEthFwTsnObj.numNetDevs = j;
-
-#if defined(ETHFW_EST_DEMO_SUPPORT)
-    EthFwEstDemo_addEstAppModCtx(gModCfgTable);
-#endif
+    gEthFwTsnObj.netDevInfo.numNetDevs = j;
 
     /* Filling netdev table where each entry consists of an interface,
      * its MAC port and mac addr (if any) */
     if (status == ETHFW_SOK)
     {
-        status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.numNetDevs,
+        status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
                                          (Enet_Type) gEthFwTsnObj.enetType,
                                          gEthFwTsnObj.instId);
         
@@ -714,11 +758,11 @@ static int32_t EthFwTsn_uniconfInit(EthFwTsn_dbArgs *dbArgs)
     char buffer[MAX_BUFFER_SIZE]={0};
     uint32_t i;
 
-    for (i = 0U; i < gEthFwTsnObj.numNetDevs; i++)
+    for (i = 0U; i < gEthFwTsnObj.netDevInfo.numNetDevs; i++)
     {
         snprintf(buffer, sizeof(buffer),
                  "/ietf-interfaces/interfaces/interface|name:%s|/enabled",
-                 gEthFwTsnObj.netDevs[i]);
+                 gEthFwTsnObj.netDevInfo.netDevs[i]);
         status=yang_db_runtime_put_oneline(dbArgs->ydrd, buffer, (char*)"true",
                                         YANG_DB_ONHW_NOACTION);
 
@@ -804,7 +848,7 @@ static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
         EthFwTsn_cfgGptpDefaultDs(ydrd, instance, domain, cfg->dbInitFlag);
 
         /* Portindex starts from 1 */ 
-        for (i = 0; i < gEthFwTsnObj.numNetDevs; i++)
+        for (i = 0; i < gEthFwTsnObj.netDevInfo.numNetDevs; i++)
         {
             /* Skip setting of 'rw' yang configs when db is already initialized */
             if (!cfg->dbInitFlag)
@@ -813,7 +857,7 @@ static int32_t EthFwTsn_gptpYangConfig(yang_db_runtime_dataq_t *ydrd,
                          "/ieee1588-ptp-tt/ptp/instances/instance|instance-index:%d,%d|"
                          "/ports/port|port-index:%d|/underlying-interface",
                          instance, domain, i+1);
-                yang_db_runtime_put_oneline(ydrd, buffer, gEthFwTsnObj.netDevs[i],
+                yang_db_runtime_put_oneline(ydrd, buffer, gEthFwTsnObj.netDevInfo.netDevs[i],
                                             YANG_DB_ONHW_NOACTION);
             }
 
@@ -938,19 +982,18 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
     cb_tsn_thread_attr_t attr;
     int32_t status = ETHFW_SOK;
 
-     if (gEthFwTsnObj.ucCfg.ucReadySem != NULL  && modCfg->onModuleRunner != NULL)
+    if ((gEthFwTsnObj.ucCfg.ucReadySem != NULL) && (modCfg->onModuleRunner != NULL))
     {
         cb_tsn_thread_attr_init(&attr, modCfg->taskPriority,
                                 modCfg->stackSize, modCfg->taskName);
         cb_tsn_thread_attr_set_stackaddr(&attr, modCfg->stackBuffer);
 
-        status = CB_THREAD_CREATE(&modCfg->hTaskHandle,
-                                  &attr, modCfg->onModuleRunner, modCfg);
-
+        status = CB_THREAD_CREATE(&modCfg->hTaskHandle, &attr,
+                                  modCfg->onModuleRunner, modCfg->onModuleRunnerArgs);
         if (ETHFW_SOK != status)
         {
             status = ETHFW_EFAIL;
-            ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", &modCfg->taskName);
+            ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", modCfg->taskName);
             EnetAppUtils_assert(BFALSE);
         }
 
@@ -966,12 +1009,12 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
             }
         }
     }
-     else
-     {
-         status = ETHFW_EFAIL;
-         ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", &modCfg->taskName);
-         EnetAppUtils_assert(BFALSE);
-     }
+    else
+    {
+        status = ETHFW_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", modCfg->taskName);
+        EnetAppUtils_assert(BFALSE);
+    }
 
     return status;
 }
@@ -1040,28 +1083,6 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
     if (dbArgs.dbald)
     {
         uc_dbal_close(dbArgs.dbald, UC_CALLMODE_THREAD);
-    }
-
-    return status;
-}
-
-int32_t EthFwTsn_getDevInfo(EthFwTsn_netDevInfo *devInfo)
-{
-    uint32_t i;
-    int32_t status = ETHFW_SOK;
-    devInfo->numNetDevs = gEthFwTsnObj.numNetDevs;
-
-    if (gEthFwTsnObj.numNetDevs != 0U)
-    {
-        for (i = 0U; i < gEthFwTsnObj.numNetDevs; i++)
-        {
-            devInfo->netdevs[i] = gEthFwTsnObj.gPtpNetDevs[i];
-        }
-    }
-    else
-    {
-        status = ETHFW_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW: No Netdevices have been defined for TSN");
     }
 
     return status;

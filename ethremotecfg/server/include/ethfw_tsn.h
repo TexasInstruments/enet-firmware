@@ -75,8 +75,6 @@
 /* ========================================================================== */
 
 #include <stdint.h>
-#include <tsn_buildconf/jacinto_buildconf.h>
-#include <tsn_uniconf/yangs/yang_db_runtime.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,6 +84,9 @@ extern "C" {
 /*                                 Macros                                     */
 /* ========================================================================== */
 
+/*! Interface name size */
+#define ETHFW_TSN_IFNAMSIZ                                          (16U)
+
 /*! Number of MAC ports supported by the gPTP stack */
 #if defined(SOC_J721E) || defined(SOC_J784S4)
 #define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (8U)
@@ -93,8 +94,11 @@ extern "C" {
 #define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (4U)
 #endif
 
+/*! Number of Uniconf files */
 #define ETHFW_TSN_UC_CONF_FILE_NUM                                  (0U)
+/*! Uniconf file path */
 #define ETHFW_TSN_INTERFACE_CONFFILE_PATH                           (NULL)
+/*! Uniconf database file path */
 #define ETHFW_TSN_UC_DBFILE_PATH                                    (NULL)
 
 /* ========================================================================== */
@@ -124,40 +128,19 @@ typedef struct EthFwTsn_Config_s
 } EthFwTsn_Config;
 
 /*!
- * \brief Ethernet Firmware TSN Netdevices info
+ * \brief Ethernet Firmware TSN net devices info
  */
-typedef struct EthFwTsn_netDevInfo_s
+typedef struct EthFwTsn_NetDevInfo_s
 {
+    /*! TSN stack netdevs */
+    char netDevs[ETHFW_TSN_CFG_NUM_MAC_PORTS][ETHFW_TSN_IFNAMSIZ];
+
+    /*! gPTP stack netdevs */
+    char *gPtpNetDevs[ETHFW_TSN_CFG_NUM_MAC_PORTS + 1];
+
+    /*! Number of active netdevs */
     uint32_t numNetDevs;
-
-    char *netdevs[ETHFW_TSN_CFG_NUM_MAC_PORTS];
-
-}EthFwTsn_netDevInfo;
-
-typedef struct EthFwTsn_dbArgs_s
-{
-    uc_dbald *dbald;
-    yang_db_runtime_dataq_t *ydrd;
-    uc_notice_data_t *ucntd;
-} EthFwTsn_dbArgs;
-
-typedef int32_t (*EthFwTsn_OnModuleDBInit)(EthFwTsn_dbArgs *dbArgs);
-
-typedef void* (*EthFwTsn_OnModuleStart)(void *arg1);
-
-/* Container structure for TSN Modules config params */
-typedef struct EthFwTsn_ModuleCfg_s
-{
-    bool stopFlag;
-    uint32_t taskPriority;
-    CB_THREAD_T hTaskHandle;
-    const char *taskName;
-    uint8_t *stackBuffer;
-    uint32_t stackSize;
-    EthFwTsn_OnModuleDBInit onModuleDBInit;
-    EthFwTsn_OnModuleStart onModuleRunner;
-    bool enable;
-} EthFwTsn_ModuleCfg;
+} EthFwTsn_NetDevInfo;
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
@@ -168,9 +151,7 @@ typedef enum
 {
     ETHFWTSN_UNICONF_TASK_IDX,
     ETHFWTSN_GPTP_TASK_IDX,
-#if defined(ETHFW_EST_DEMO_SUPPORT)
     ETHFWTSN_EST_TASK_IDX,
-#endif
     ETHFWTSN_MAX_TASK_IDX
 } EthFwTsn_TaskIdx;
 
@@ -222,13 +203,6 @@ int32_t EthFwTsn_startModule(uint32_t moduleIdx);
  * This API takes the TSN module Idx as input and stops task module
  */
 void EthFwTsn_stopModule(uint32_t moduleIdx);
-
-/*!
- * \brief Get netDev info initialized for the stack
- *
- * This API returns numNetDevs and the netDevs
- */
-int32_t EthFwTsn_getDevInfo(EthFwTsn_netDevInfo *devInfo);
 
 #ifdef __cplusplus
 }

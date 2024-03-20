@@ -75,6 +75,7 @@
 /* ========================================================================== */
 
 #include <utils/ethfw_common/include/ethfw_types.h>
+#include <tsn_buildconf/jacinto_buildconf.h>
 #include <tsn_uniconf/uc_dbal.h>
 #include <tsn_uniconf/ucman.h>
 #include <tsn_combase/combase.h>
@@ -141,7 +142,7 @@ UB_ABIT32_FIELD(cmsh_sv, 23, 0x1)
 typedef struct EstDemoCommonParam_s
 {
     /*! Name of network interface */
-    char *netdev;
+    const char *netdev;
     /*! index is priority, value of each index is TC, -1: not used. */
     int8_t priority2TcMapping[ESTDEMO_PRIORITY_MAX];
     uint8_t nTCs;                 /*! Num of traffic classes */
@@ -222,7 +223,7 @@ typedef struct EstDemoTaskCfg_s
 typedef struct EstDemoTaskCtx_s
 {
     /*!  Handle of the task.*/
-    CB_THREAD_T hTaskHandle;
+    CB_THREAD_T hTask;
     /*! true: Enable task running, false: disable task running. */
     bool enable;
     /*! Num of traffic classes */
@@ -271,7 +272,7 @@ typedef struct EstDemoAppCtx_s
     /*! A handle of listener of the app */
     EstDemoTaskCtx listener;
     /*! An active network interface used for this app */
-    char *netdev[MAX_NUMBER_ENET_DEVS];
+    const char *netdev[MAX_NUMBER_ENET_DEVS];
     /*! How many network interfaces */
     int32_t netdevSize;
     /*! A delay offset for applying a schedule in microsecond unit */
@@ -308,84 +309,6 @@ typedef struct EstDemoStreamConfig_s
 /* ========================================================================== */
 /*                       Static Function Definitions                          */
 /* ========================================================================== */
-
-/*!
- * \brief Initialize EST Demo application.
- *
- * \param ctx    [OUT] a context object to be initialized
- * \param modCtx [IN]  specify config parameters on network interfaces.
- * \param cb     [IN]  callback to be called when packet received.
- *
- * \return ETHFW_SOK: On Sucess;  ETHFW_EFAIL: on Failure
- */
-int  EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
-                             EthFwTsn_ModuleCfg *modCtx,
-                             PacketHandlerCb cb);
-
-/*!
- * \brief Open a Yang DB for reading or writing.
- *
- * \param dbarg [OUT]  Keep necessary handles after openning a DB.
- * \param dbName[IN] Name of the DB. Could be null to use default DB.
- * \param mode  [IN] r: reading ; w: writing mode
- *
- * \return ETHFW_SOK: On Sucess;  ETHFW_EFAIL: on Failure
- */
-int  EthFwEstDemo_openDB(EthFwTsn_dbArgs *dbarg,
-                         char *dbName,
-                         const char *mode);
-
-/*!
- * \brief Close a Yang DB after use.
- *
- * \param dbarg [IN]  Hold necessary handles for closing a DB.
- */
-void EthFwEstDemo_closeDB(EthFwTsn_dbArgs *dbarg);
-
-/*!
- * \brief Start a talker.
- *  Talker will be run in a separate task.
-
- * \param ctx   [IN] Point to context object of the application
- * \param cfg   [IN] Config parameter of task which run talker.
- * \param stParams  [IN] Config parameters for all streams.
- */
-void EthFwEstDemo_startCfgTalker(EstDemoAppCtx *ctx,
-                                 EstDemoTaskCfg *cfg,
-                                 EstDemoStreamConfig *stParams);
-
-/*!
- * \brief Start a listener.
- *  Listener will be run in a separate task.
-
- * \param ctx   [IN] Point to context object of the application
- * \param cfg   [IN] Config parameter of task which run talker.
- */
-void EthFwEstDemo_startCfgListener(EstDemoAppCtx *ctx,
-                                   EstDemoTaskCfg *cfg);
-
-/*!
- * \brief Set common parameters for all streams in the yang DB.
-
- * \param dbarg [IN] necessary handles to access a DB.
- * \param ctx   [IN] Point to context object of the application
- *
- * \return ETHFW_SOK: On Sucess;  ETHFW_EFAIL: on Failure
- */
-int EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
-                                EthFwTsn_dbArgs *dbarg);
-
-/*!
- * \brief Get current time.
-
-* \return 0U: On Failure; ts != 0U: Current time in microsecond unit.
- */
-uint64_t EthFwEstDemo_getCurrentTimeUs(void);
-
-/*!
-* \brief Add a module to EthFwTsn_startMod()
-*/
-void EthFwEstDemo_addEstAppModCtx(EthFwTsn_ModuleCfg *modCtxTbl);
 
 #ifdef __cplusplus
 }
