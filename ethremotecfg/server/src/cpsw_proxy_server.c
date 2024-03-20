@@ -2567,7 +2567,6 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
 {
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     CpswProxyServer_Obj *hServer;
-    Enet_Handle hEnet;
     Enet_IoctlPrms prms;
     uint64_t inArgsBuf[(ETHREMOTECFG_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
     uint64_t outArgsBuf[(ETHREMOTECFG_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
@@ -2605,7 +2604,7 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
                 prms.outArgs = NULL;
             }
 
-            status = Enet_ioctl(hEnet, hostId, cmd, &prms);
+            status = Enet_ioctl(hServer->hEnet, hostId, cmd, &prms);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to run IOCTL 0x%x", cmd);
 
             if (status == ENET_SOK)
@@ -2893,7 +2892,6 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
                                            uint32_t hostId)
 {
-    Enet_Handle hEnet;
     CpswProxyServer_Obj *hServer;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     Enet_IoctlPrms prms;
@@ -2910,14 +2908,14 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
         ENET_IOCTL_SET_NO_ARGS(&prms);
-        status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
+        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
         EnetAppUtils_assert(status == ENET_SOK);
 
         ENET_IOCTL_SET_NO_ARGS(&prms);
-        status = Enet_ioctl(hEnet, hostId, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms);
+        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms);
         EnetAppUtils_assert(status == ENET_SOK);
 
-        CpswProxyServer_printStats(hEnet, hServer->enetType, hostId);
+        CpswProxyServer_printStats(hServer->hEnet, hServer->enetType, hostId);
     }
     else
     {

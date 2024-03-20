@@ -1007,6 +1007,8 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
     int32_t status = ETHFW_SOK;
     uint32_t timeout_ms = 1000U;
 
+    memset(&dbArgs, 0, sizeof(EthFwTsn_dbArgs));
+
     do
     {
         /*waiting for the uniconf to be ready */
