@@ -1610,7 +1610,7 @@ static int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     /* Return status from the command itself */
     if (status == CPSWPROXY_SOK)
     {
-        status = msg.status;
+        status = hdr->status;
         ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Cmd %u failed on remote side", reqType);
     }
 
