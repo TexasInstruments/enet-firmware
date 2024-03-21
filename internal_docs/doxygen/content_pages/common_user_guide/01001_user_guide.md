@@ -29,6 +29,7 @@ Multi-core broadcast an multicast support | Multi-core concurrent reception of b
 Remote configuration server | Firmware app hosting the IPC server to serve remote clients like Linux Virtual MAC driver
 Resource management library | Resource management library for CPSW resource sharing across cores
 Reset Recovery on CPSW  | Support to reset CPSW and recover it back to a working state from HW lockups.
+QoS             | Support for assignment of multiple TX channels/RX flows for clients
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -87,16 +88,18 @@ driver support and for Ethernet PHY configuration.  Enet LLD internally uses UDM
 packet exchange with the CPSW switch.  Along with CPSW remote configuration, it is the responsibilty
 of ETHFW to manage and distribute the resources among server and the remote clients.
 
+## Resource Utilization {#ethfw_resource_utilization}
+
 The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is as follows:
 
 | Resource    | Count  | EthFw Usage (mcu2_0)
 |:------------|:------:|:-----------------------------------
-| TX channel  |   3    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>SW interVLAN (1)</li></ul>
+| TX channel  |   2    | <ul><li>lwIP netif (1)</li><li>gPTP (1)
 | RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4)</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
 | MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
 
 UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
-available.  So, there are 5 TX channels to be shared among the differrent remote client cores
+available.  So, there are 6 TX channels to be shared among the differrent remote client cores
 and their virtual ports.
 
 With Ethernet Firmware's default port configuration, the following resources will be used by
@@ -104,7 +107,7 @@ Linux remote client on A72 core.
 
 | Resource    | Count  | Linux Client Usage
 |:------------|:------:|:-----------------------------------
-| TX channel  |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
+| TX channel  |   3    | <ul><li>Virtual switch port (2)</li><li>Virtual MAC port (1)</li></ul>
 | RX flow     |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
 | MAC address |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
 
@@ -406,7 +409,7 @@ RX traffic (to remote core) is segregated via CPSW ALE classifier with *unicast 
 match criteria. TX traffic (from remote core) is sent as *non-directed* packets.
 
 It's worth noting that virtual switch ports are not directly associated with any specific
-hardware MAC port, as these virtual ports can received traffic from any MAC port as long as
+hardware MAC port, as these virtual ports can receive traffic from any MAC port as long as
 the packets match the unicast MAC address classification criteria.
 
 SDK 8.0 or older supported only this type of virtual port.
@@ -415,43 +418,48 @@ Virtual port (*virtual switch* or *virtual MAC*) are allocated to a specific cor
 
 For example, below code snippet shows the virtual switch configuration:
 - For remote_device based clients in `gEthApp_virtPortCfg` where *virtual switch port 0* is allocated
-    for A72 core, and *virtual switch port 1* is allocated for Main R5F 0 Core 1.
-- For AUTOSAR clients in `gEthApp_autosarVirtPortCfg` where *virtual switch port 1* is allocated for
-    Main R5F 0 Core 1 and *virtual switch port 2* is allocated for MCU R5F 0 Core 0.
+    for A72 core (used by Linux or QNX client), and *virtual switch port 1* is allocated for Main R5F 0 Core 1
+    (used by RTOS or AUTOSAR clients). Also *virtual switch port 2* is allocated for MCU R5F 0 Core 0 for
+    AUTOSAR client as well. 
 
 It's worth noting that in this specific configuration *virtual switch port 1* can be used by an RTOS
-client or AUTOSAR client, depending on the OS running on Main R5F 0 Core 1.
+client or AUTOSAR client, depending on the OS running on Main R5F 0 Core 1. Same with *virtual switch port 0*
+as well.
 
 ```C
 static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
 {
     {
+        /* SWITCH_PORT_0 is used for both Linux and QNX client */
         .remoteCoreId = IPC_MPU1_0,
         .portId       = ETHREMOTECFG_SWITCH_PORT_0,
-    },
-    {
-        .remoteCoreId = IPC_MCU2_1,
-        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
-    },
-    {
-        .remoteCoreId = IPC_MPU1_0,
-        .portId       = ETHREMOTECFG_MAC_PORT_1,
-    },
-    {
-        .remoteCoreId = IPC_MCU2_1,
-        .portId       = ETHREMOTECFG_MAC_PORT_4,
-    },
-};
-
-static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
-{
-    {
-        .remoteCoreId = IPC_MCU2_1,
-        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_LINUX) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_QNX),
     },
     {
         .remoteCoreId = IPC_MCU1_0,
         .portId       = ETHREMOTECFG_SWITCH_PORT_2,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_AUTOSAR),
+    },
+    {
+        /* SWITCH_PORT_1 is used for both RTOS and Autosar client */
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_AUTOSAR) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_RTOS),
+    },
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_MAC_PORT_1,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_LINUX) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_QNX),
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_MAC_PORT_4,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_RTOS),
     },
 };
 
@@ -464,11 +472,6 @@ static int32_t EthApp_initEthFw(void)
     /* Set virtual port configuration parameters */
     ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
     ethFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
-
-    /* Set AUTOSAR virtual port configuration parameters */
-    ethFwCfg.autosarVirtPortCfg  = &gEthApp_autosarVirtPortCfg[0];
-    ethFwCfg.numAutosarVirtPorts = ARRAY_SIZE(gEthApp_autosarVirtPortCfg);
-
    ...
 }
 ```
@@ -500,32 +503,36 @@ in Linux and RTOS client, hence no virtual MAC ports are allocated for AUTOSAR c
 static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
 {
     {
+        /* SWITCH_PORT_0 is used for both Linux and QNX client */
         .remoteCoreId = IPC_MPU1_0,
         .portId       = ETHREMOTECFG_SWITCH_PORT_0,
-    },
-    {
-        .remoteCoreId = IPC_MCU2_1,
-        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
-    },
-    {
-        .remoteCoreId = IPC_MPU1_0,
-        .portId       = ETHREMOTECFG_MAC_PORT_1,
-    },
-    {
-        .remoteCoreId = IPC_MCU2_1,
-        .portId       = ETHREMOTECFG_MAC_PORT_4,
-    },
-};
-
-static EthFw_VirtPortCfg gEthApp_autosarVirtPortCfg[] =
-{
-    {
-        .remoteCoreId = IPC_MCU2_1,
-        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_LINUX) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_QNX),
     },
     {
         .remoteCoreId = IPC_MCU1_0,
         .portId       = ETHREMOTECFG_SWITCH_PORT_2,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_AUTOSAR),
+    },
+    {
+        /* SWITCH_PORT_1 is used for both RTOS and Autosar client */
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_AUTOSAR) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_RTOS),
+    },
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_MAC_PORT_1,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_LINUX) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_QNX),
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_MAC_PORT_4,
+        ...
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_RTOS),
     },
 };
 
@@ -538,11 +545,6 @@ static int32_t EthApp_initEthFw(void)
     /* Set virtual port configuration parameters */
     ethFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
     ethFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
-
-    /* Set AUTOSAR virtual port configuration parameters */
-    ethFwCfg.autosarVirtPortCfg  = &gEthApp_autosarVirtPortCfg[0];
-    ethFwCfg.numAutosarVirtPorts = ARRAY_SIZE(gEthApp_autosarVirtPortCfg);
-
    ...
 }
 ```
@@ -577,6 +579,7 @@ static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
     {
         .remoteCoreId = IPC_MCU2_1,              /* new MAC port allocated for MCU2_1 RTOS usage */
         .portId       = ETHREMOTECFG_MAC_PORT_5, /* new MAC port in MAC-only mode */
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_RTOS),
     },
 };
 
@@ -1456,6 +1459,257 @@ step 4 above. With respect to PHY, the state of PHY being alive or linked is not
 Similar to MAC ports, PHYs are expected to be closed before ``Enet_saveCtxt()`` is called.
 Both, MAC ports and PHYs, will be reconfigured when application explicitly re-enables the
 required ports during last stage of CPSW recovery.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Quality of Service (QoS) {#ethfw_qos}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Starting with SDK 9.2, Ethernet Firmware supports QoS mechanism via assignment of multiple TX channels/RX flows for clients.
+QoS helps in prioritizing one traffic over the other among multiple/same clients to external ports (TX channels).
+This helps in offering dedicated bandwidth, lesser delay, controlled jitter and low latency on higher priority channels.
+QoS helps in traffic segregation from external ports to multiple/same clients (RX flows) based on the custom policers (@ref ethfw_ale_classification)
+added for each RX flow.
+
+**Note:** Ethernet Firmware is providing information of the allocated resources (numTxChan and numRxFlows) to the clients in response of ATTACH 
+command. Clients can then call ALLOC_TX/ALLOC_RX (as many times as numTxChan/numRxFlows allocated) with relative channel/flow number to allocate 
+the resource. At the same time there is <b>NO</b> change in ATTACH_EXT command neither in request nor in response. 
+ATTACH_EXT command still remains as an extended function of ATTACH command with doing exactly 1 ALLOC_RX, 1 ALLOC_TX and 1 ALLOC_MAC
+for any client.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## TX QoS {#ethfw_tx_qos}
+
+QoS helps in prioritizing one traffic over the other among multiple/same clients to external ports (TX channels).
+Ethernet Firmware is mapping specific priority TX channels to virtual clients removing the first come first serve TX channel assignment.
+Configuration can set one or more TX channel with varying absolute TX channel priority to a virtual client.
+
+![](Tx_QoS.png "Tx Quality of Service")
+
+Below code snippet show how static allocation of TX channels is achieved for each individual virtual client. 
+
+```C
+static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
+{
+    {
+        /* SWITCH_PORT_0 is used for both Linux and QNX client */
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_0,
+        .numTxCh       = 2U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_4, 
+                            [1] = ENET_RM_TX_CH_7
+                         },
+        ...
+    },
+    {
+        .remoteCoreId = IPC_MCU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_2,
+        .numTxCh       = 1U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_5,
+                         },
+        ...
+    },
+    {
+        /* SWITCH_PORT_1 is used for both RTOS and Autosar client */
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+        .numTxCh       = 1U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_1
+                         },
+        ...
+    },
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_MAC_PORT_1,
+        .numTxCh       = 1U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_3
+                         },
+        ...
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_MAC_PORT_4,
+        .numTxCh       = 1U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_2
+                         },
+        ...
+    },
+};
+```
+**Note:** Any 2 virtual ports should not have same TX channel allocated to them (should be ensured by the application).
+
+-# Clients call ALLOC_TX with relative channel number to allocate specific priority TX channel.
+For example: Refer how IPC_MPU1_0 client has 2 TX channels allocated to it with absolute priority 4 and 7 respectively.
+Now to allocate second channel first, client will call ALLOC_TX with relative channel number as 1. Then client can call
+ALLOC_TX with relative channel number as 0 to allocate the first TX channel.
+
+-# **Priority of an untagged packets** is the **psilThreadId (DMA channel id)** at which the packet is put by the clients.
+This inherently adds priority between 2 untagged packets.
+
+-# At the same time Ethernet Firmware also honor **VLAN/DSCP packet priority i.e. priority between 2 tagged packets**.
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## RX QoS {#ethfw_rx_qos}
+
+Multiple classifiers (@ref ethfw_ale_classification) can match on a single packet. For example a classifier can be enabled
+to match on priority while another classifier could match on IP address. The ALE will return to the
+switch the highest classifier entries thread ID that matched with an enabled thread ID number.
+This could be used to further host routing of the packet.
+
+QoS helps in traffic segregation from external ports to multiple/same clients (RX flows) based on the custom policers
+added for each RX flow.
+What it means that when a packet is egressed from host port then custom policer will be matched to put the packet onto a
+specific RX flow. In this way traffic segregation is achieved with the help of policers.
+
+For example: Suppose we have 3 RX flow allocated to A72 core. We can have a policer to match that this specific IP (say: 138.24.190.64) should always redirect to A72 core's flow 2.
+Refer to this @ref ethfw_rx_qos_linux section for more deails.
+
+Ethernet Firmware provides infrastructure to add static custom policers by the clients on each of the allocated RX flow.
+To create static custom policers on RX flows, clients need to give flow information (i.e. numCustomPolicers and customPolicersInArgs) for each 
+allocated flow. Each flow can have multiple custom policers given in customPolicersInArgs.
+These policers are created at the moment client allocates those specific RX flow using ALLOC_RX command.
+
+![](Rx_QoS.png "Rx Quality of Service")
+
+Below code snippet show how static allocation of RX flows with custom policers can be achieved for each individual virtual client.
+
+```C
+/* Custom policers which clients need to provide to add their own policers.
+ * Make sure that size of this array is <= ETHFW_UTILS_NUM_CUSTOM_POLICERS */
+static CpswAle_SetPolicerEntryInPartitionInArgs gEthApp_customPolicers[ETHFW_UTILS_NUM_CUSTOM_POLICERS] = 
+{
+    /* Policer to match dst IP address */
+    [0] = {
+            .policerMatch.policerMatchEnMask                  = CPSW_ALE_POLICER_MATCH_IPDST,
+            /* Dummy IP address for policer */
+            .policerMatch.dstIpInfo.ipv4Info.ipv4Addr         = { 138, 24, 190, 64 },
+            .policerMatch.dstIpInfo.ipv4Info.numLSBIgnoreBits = 0U,
+            .policerMatch.dstIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV4,
+            .threadIdEn                                       = BTRUE,
+            /* Flow id will be updated at the time of policer creation */
+            .threadId                                         = 0U,
+            .peakRateInBitsPerSec                             = 0U,
+            .commitRateInBitsPerSec                           = 0U,
+            .policerPartLevel                                 = CPSW_ALE_POLICER_PARTITION_LEVEL_2,
+          },
+    /* Policer to match dst IP address */
+    [1] = {
+            .policerMatch.policerMatchEnMask                  = CPSW_ALE_POLICER_MATCH_IPDST,
+            /* Dummy IP address for policer */
+            .policerMatch.dstIpInfo.ipv4Info.ipv4Addr         = { 148, 24, 190, 64 },
+            .policerMatch.dstIpInfo.ipv4Info.numLSBIgnoreBits = 0U,
+            .policerMatch.dstIpInfo.ipAddrType                = CPSW_ALE_IPADDR_CLASSIFIER_IPV4,
+            .threadIdEn                                       = BTRUE,
+            /* Flow id will be updated at the time of policer creation */
+            .threadId                                         = 0U,
+            .peakRateInBitsPerSec                             = 0U,
+            .commitRateInBitsPerSec                           = 0U,
+            .policerPartLevel                                 = CPSW_ALE_POLICER_PARTITION_LEVEL_2,
+          },
+};
+
+
+static EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
+{
+    {
+        /* SWITCH_PORT_0 is used for both Linux and QNX client */
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_0,
+        /* 3 RX flow allocated for virtual port */
+        .numRxFlow     = 3U,
+        .rxFlowsInfo = {  
+                          /* To create custom policers on RX flows clients need to give flow information (i.e. numCustomPolicers and 
+                           * customPolicersInArgs) for each allocated flow. */
+                         [0] = {
+                                    .numCustomPolicers    = 0U,
+                                    .customPolicersInArgs = {}
+                                },
+                          /* 1 dst IP match based custom policer for this flow */
+                         [1] = {
+                                    .numCustomPolicers    = 1U,
+                                    .customPolicersInArgs = {
+                                                                [0] = &gEthApp_customPolicers[0U],
+                                                            }
+                                },
+                          /* 1 dst IP match based custom policer for this flow */
+                         [2] = {
+                                    .numCustomPolicers    = 1U,
+                                    .customPolicersInArgs = {
+                                                                [0] = &gEthApp_customPolicers[1U],
+                                                            }
+                                }
+                        },
+        ...
+    },
+    {
+        .remoteCoreId = IPC_MCU1_0,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_2,
+        .numRxFlow     = 1U,
+        ...
+    },
+    {
+        /* SWITCH_PORT_1 is used for both RTOS and Autosar client */
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_SWITCH_PORT_1,
+        .numRxFlow     = 1U,
+        ...
+    },
+    {
+        .remoteCoreId = IPC_MPU1_0,
+        .portId       = ETHREMOTECFG_MAC_PORT_1,
+        .numRxFlow     = 1U,
+        ...
+    },
+    {
+        .remoteCoreId = IPC_MCU2_1,
+        .portId       = ETHREMOTECFG_MAC_PORT_4,
+        .numRxFlow     = 1U,
+        ...
+    },
+};
+```
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+### ALE Classification {#ethfw_ale_classification}
+
+The ALE has a number of configurable policer engines. Each policer engine can be used for classification.
+Each policer can be enabled to classify on one or more of any of the below packet fields
+for classification. 
+
+-# Port or Trunk Group Number
+-# Priority extracted from VLAN, mapped from DSCP if enabled or Default Port Priority
+-# Organization Network Unique identifier
+-# Destination Address
+-# Source Address
+-# Outer VLANID
+-# Inner VLANID
+-# Ether Type
+-# IP Source Address 
+-# IP Destination Address
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+### Primary Flow and Extended Flow
+
+Only difference between a primary flow and an extended flow is that Ethernet Firmware restricts existing commands 
+(i.e. REGISTER_MAC, DEREGISTER_MAC, SET_RX_DEFAULTFLOW, DEL_RX_DEFAULTFLOW and ADD_FILTER_MAC)
+to be called only on primary flow. 
+Clients call ALLOC_RX with relative flow number to allocate the resource. To allocate a primary flow, relative flow number provided by the client
+should be <b>0U</b>. Similarly to allocate any extended flow, relative flow number vary from 1U to numRxFlows - 1U
+    
+**Note:** Number of custom policers per RX flow should be <= ETHREMOTECFG_POLICER_PERFLOW
 
 [Back To Top](@ref ethfw_c_ug_top)
 

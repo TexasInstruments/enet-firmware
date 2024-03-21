@@ -104,6 +104,11 @@ User must recompile ETHFW in order to enable these demos:
 
     make ethfw_all BUILD_SOC_LIST=<SOC> ETHFW_DEMO_SUPPORT=yes
 
+<b>Note</b>: With ETHFW_DEMO_SUPPORT enabled Ethernet Firmware will require 1 more TX channel for SW interVLAN with respect to base resource utilization count.
+Refer to [resource_utilization](@ref ethfw_resource_utilization) for base resource utilization.
+Hence in this case Ethernet Firmware on Main R5F 0 Core 0 will have 3 Tx channel allocated to it and 
+Linux remote client on A72 core will have only 2 Tx channel allocated to it (i.e. 1 for each virtual port).
+
 [Back To Top](@ref demo_ethfw_combined_top)
 
 
@@ -1110,7 +1115,94 @@ TCP window size: 85.0 KByte (default)
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## TX QoS test on linux client on J7200 {#ethfw_tx_qos_linux}
+
+**Configuration:** Virtual Switch Port 0 with 2 TX DMA Channels with IP on eth1 interface
+
+-# Use the Linux "tc" command to setup the priority to traffic class mapping.
+    Priorities 0, 1, 2 and 3 belong to TC 0 and Priorities 4, 5, 6 and 7 belong to TC 1.
+    TC0 traffic will use TX DMA Channel 0 and TC1 traffic will use TX DMA Channel 1.
+
+        $ tc qdisc add dev eth1 handle 100: parent root mqprio num_tc 2 \
+          map 0 0 0 0 1 1 1 1 0 0 0 0 0 0 0 0 queues 1@0 1@1 hw 0
+
+-# Use iperf3 to set DSCP values on Client when transmitting traffic.
+    TOS 0x8 maps to DSCP 0x2 => priority 2 => TX DMA Channel 0.
+    TOS 0xB8 maps to DSCP 0x2E => priority 6 => TX DMA Channel 1.
+
+-# Interrupts before transmitting traffic:
+
+        $ cat /proc/interrupts | grep "virt-port-0"
+           53:         12          0  MSI-INTA 13828218 Level     tx0-virt-port-0
+           54:         12          0  MSI-INTA 13828219 Level     tx1-virt-port-0
+
+-# Running iperf3 with TOS set to 0x8:
+    
+        $ iperf3 -c 192.168.1.102 -S 0x8
+
+-# Checking interrupts after transmitting traffic (ideally all interrupts should come in tx0):
+
+        $ cat /proc/interrupts | grep "virt-port-0"                   
+           53:     368355          0  MSI-INTA 13828218 Level     tx0-virt-port-0
+           54:         14          0  MSI-INTA 13828219 Level     tx1-virt-port-0
+
+-# Running iperf3 with TOS set to 0xB8:
+    
+        $ iperf3 -c 192.168.1.102 -S 0xB8
+    
+-# Checking interrupts after transmitting traffic (ideally all interrupts should come in tx1):
+
+        $ cat /proc/interrupts | grep "virt-port-0"
+           53:     368370          0  MSI-INTA 13828218 Level     tx0-virt-port-0
+           54:       3094          0  MSI-INTA 13828219 Level     tx1-virt-port-0
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## RX QoS test on linux client on J7200 {#ethfw_rx_qos_linux}
+
+**Configuration:** Virtual MAC Only Port 1 with 3 RX DMA Flows with IP on eth2 interface
+-# First flow is the client's default flow with IP 192.168.1.101
+-# Second flow will be used if the destination IP matches 138.24.190.64.
+-# Third flow will be used if the destination IP matches 148.24.190.64.
+
+We do iperf to eth2 with IP Address modified accordingly.
+
+-# Interrupts before transmitting traffic:
+
+        $ cat /proc/interrupts | grep "virt-port-4"
+           59:         20          0  MSI-INTA 13828224 Level     rx1-virt-port-4
+           61:          0          0  MSI-INTA 13828226 Level     rx2-virt-port-4
+           63:          0          0  MSI-INTA 13828228 Level     rx3-virt-port-4
+
+-# Interrupts after assigning eth2 an IP Address of 192.168.1.101 and running iperf test with eth2 as server (ideally all interrupts should be seen on rx1):
+
+        $ ifconfig eth2 192.168.1.101
+
+        $ cat /proc/interrupts | grep "virt-port-4"
+           59:     589854          0  MSI-INTA 13828224 Level     rx1-virt-port-4
+           61:          0          0  MSI-INTA 13828226 Level     rx2-virt-port-4
+           63:          0          0  MSI-INTA 13828228 Level     rx3-virt-port-4
+
+-# Interrupts after assigning eth2 an IP Address of 138.24.190.64 and running iperf test with eth2 as server (ideally all interrupts should be seen on rx2):
+
+        $ cat /proc/interrupts | grep "virt-port-4"
+           59:     589870          0  MSI-INTA 13828224 Level     rx1-virt-port-4
+           61:     591672          0  MSI-INTA 13828226 Level     rx2-virt-port-4
+           63:          0          0  MSI-INTA 13828228 Level     rx3-virt-port-4
+
+-# Interrupts after assigning eth2 an IP Address of 148.24.190.64 and running iperf test with eth2 as server  (ideally all interrupts should be seen on rx3):
+
+        $ cat /proc/interrupts | grep "virt-port-4"              
+           59:     589885          0  MSI-INTA 13828224 Level     rx1-virt-port-4
+           61:     591672          0  MSI-INTA 13828226 Level     rx2-virt-port-4
+           63:     591498          0  MSI-INTA 13828228 Level     rx3-virt-port-4
+
+[Back To Top](@ref ethfw_c_ug_top)
+
 
 ## Sample output {#demo_ethfw_combined_output}
 
