@@ -668,6 +668,17 @@ iperf can be demonostrated by running iperf client on any external devices,
 
        iperf -c 192.168.1.<r5f_0> -t 20 -i 1
 
+> **Note:** While running iperf with gPTP on ETHFW server, user might observer missing Rx timestamp events
+> as the TCP(7) iperf task prioritie is greater than gPTP task priority(2).
+
+For fixing this issue one can either disable gPTP or reduce the task priority for TCP
+for fixing this issue, which might cause few Mbps drop in bandwidth. You can change TCP priority at
+`lwipopts_common.h`
+
+```C
+#define TCPIP_THREAD_PRIO               (7)
+```
+
 [Back To Top](@ref demo_ethfw_combined_top)
 
 
