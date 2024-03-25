@@ -944,6 +944,29 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
 -# If packets are sent at a higher data rate, the CPU load will spike up.  This
    can be clearly seen from the GUI tool.
 
+#### ALE configuration {#ethfw_sw_intervlan_configuration}
+
+CONFIGURATION FILE (i.e. `sw_intervlan_routing_config.txt`) add these entries to ALE:
+
+-# Unicast entries of address **02:00:00:00:00:02** and **00:11:01:00:00:01**
+
+-# IP addresses **192.168.1.202** and **192.168.1.204**
+
+-# Ethertype **0x800** (payload contains IPv4 packet)
+
+-# VLAN entries **0x64** and **0xC8**
+
+-# VLAN/Unicast entries of address **00:11:01:00:00:01** with VLAN **0x64** and **0xC8**
+
+-# Classifier match:
+   * Destination MAC = `02:00:00:00:00:02`
+   * Source MAC: `00:11:01:00:00:01`
+   * VLAN ID: `0x64`
+   * Ethertype: `0x800`
+   * Source IP: `192.168.1.202`
+   * Destination IP: `192.168.1.204`
+   * Direct packet to sw_intervlan DMA flow
+
 
 ### Hardware InterVLAN Routing {#ethfw_hw_intervlan_routing}
 
@@ -1001,6 +1024,44 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
 
 -# Since the routing is now offloaded to hardware, there will be no impact on
    the CPU load even for data rates as high as 1Gbps.
+
+
+#### ALE configuration {#ethfw_hw_intervlan_configuration}
+
+CONFIGURATION FILE (i.e. `hw_intervlan_routing_config.txt`) add these entries to ALE:
+
+-# Unicast entries of address **02:00:00:00:00:02** and **00:11:01:00:00:01**
+
+-# IPv4 addresses **192.168.1.201** and **192.168.1.204**
+
+-# IPv6 address **20:00:00:00:00:00:00:01:00:00:00:00:00:00:00:00**, **20:00:00:00:00:00:00:02:00:00:00:00:00:00:00:00** and **20:00:00:01:00:00:00:04:00:00:00:00:00:00:00:00**
+
+-# Ethertype **0x86DD** (payload contains IPv6 packet)
+
+-# VLAN entries **0x64** , **0xC8** and **0x02**
+
+-# Classifier match:
+   * Port Num = `8`
+   * Destination MAC = `02:00:00:00:00:02`
+   * Source MAC: `00:11:01:00:00:01`
+   * VLAN ID: `0x64`
+   * Ethertype: `0x86dd`
+   * Source IP: `20:00:00:00:00:00:00:01:00:00:00:00:00:00:00:00`
+
+   * Port Num = `3`
+   * Destination MAC = `02:00:00:00:00:02`
+   * Source MAC: `00:11:02:00:00:01`
+   * VLAN ID: `0x002`
+   * Ethertype: `0x86dd`
+   * Source IP: `20:00:00:00:00:00:00:02:00:00:00:00:00:00:00:00`
+
+   * Destination MAC = `02:00:00:00:00:02`
+   * Source MAC: `00:11:01:00:00:01`
+   * VLAN ID: `0x64`
+   * Source IP: `192.168.1.201`
+   * Destination IP: `192.168.1.204`
+   * EGRESS_OP: 1, TRUNK_IDX: 0, TTL_CHECK: 1 
+
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
