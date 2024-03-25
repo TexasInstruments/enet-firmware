@@ -77,12 +77,12 @@ in the following table.
 
 | Boot stage                     |  J721E    |  J7200    | J784S4    |
 |:-------------------------------|:---------:|:---------:|:---------:|
-| main()                         |      0 us |      0 us |      0 us |
-| Layer-2 switching active       | 143.94 us | 185.59 us | 113.97 us |
-| Host port ready for RX/TX      |  57.92 us |  96.22 us |  29.92 us |
-| TCP/IP stack initialized       |  86.15 us | 123.12 us |  30.75 us |
-| gPTP stack initilized          |  86.67 us | 123.57 us |  31.22 us |
-| CPSW Proxy Server initialized  | 101.38 us | 135.01 us |  47.06 us |
+| main()                         |      0 ms |      0 ms |      0 ms |
+| Layer-2 switching active       | 143.94 ms | 188.96 ms | 112.97 ms |
+| Host port ready for RX/TX      |  58.54 ms | 101.22 ms |  29.91 ms |
+| TCP/IP stack initialized       |  90.71 ms | 127.87 ms |  30.75 ms |
+| gPTP stack initilized          | 230.21 ms | 190.56 ms |  94.39 ms |
+| CPSW Proxy Server initialized  | 307.27 ms | 222.49 ms | 132.32 ms |
 
 This table doesn't take into account the time between power-on reset (POR) and the 
 Firmware image loaded and made ready to run, as it will be bootloader dependent.
@@ -100,4 +100,5 @@ PHY configuration being used.
 Revision | Date          | Author        | Description           | Status
 ---------|---------------|---------------|-----------------------|----------------
 1.1      | 28 Nov 2023   | Misael Lopez  | Added SDK 9.1 results | Approved
+1.2      | 25 Mar 2024   | Misael Lopez  | Added SDK 9.2 results | Approved
 
