@@ -151,7 +151,9 @@ typedef enum
 {
     ETHFWTSN_UNICONF_TASK_IDX,
     ETHFWTSN_GPTP_TASK_IDX,
+#if defined(ETHFW_EST_DEMO_SUPPORT)
     ETHFWTSN_EST_TASK_IDX,
+#endif
     ETHFWTSN_MAX_TASK_IDX
 } EthFwTsn_TaskIdx;
 
