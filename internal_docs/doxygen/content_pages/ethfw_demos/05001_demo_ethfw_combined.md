@@ -1458,46 +1458,90 @@ ETHFW: VLAN 1024 member=0x1ed virtMember=0x7 regMcastFlood=0x1ed unregMcastFlood
 ETHFW: 1 VLAN entries added in ALE table
 
 ETHFW Version   : 0.04.00
-ETHFW Build Date: Nov 29, 2023
-ETHFW Build Time: 02:52:49
-ETHFW Commit SHA: 4a978a2e
+ETHFW Build Date: Mar 25, 2024
+ETHFW Build Time: 19:56:19
+ETHFW Commit SHA: d05117d8
 
-unibase-1.1.4-jacinto
+unibase-1.1.5-jacinto
 Starting lwIP, local interface IP is dhcp-enabled
 ETHFW: Virtual port configuration:
-ETHFW: Host MAC address: 70:ff:76:1e:c7:56
+ETHFW: Host MAC address: 70:ff:76:1d:93:50
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 [LWIPIF_LWIP_IC] Interface started successfully
 [LWIPIF_LWIP_IC] NETIF INIT SUCCESS
 [LWIPIF_LWIP_IC] Interface started successfully
 [LWIPIF_LWIP_IC] NETIF INIT SUCCESS
 Added interface 'br3', IP is 0.0.0.0
-ETHFW: Enable gPTP on MAC port 2 (tilld2)
-ETHFW: Enable gPTP on MAC port 3 (tilld3)
-ETHFW: Enable gPTP on MAC port 5 (tilld5)
-ETHFW: Enable gPTP on MAC port 6 (tilld6)
-ETHFW: Enable gPTP on MAC port 7 (tilld7)
-ETHFW: Enable gPTP on MAC port 8 (tilld8)
-ETHFW: ATTACH_EXT | C2S | core=4 endpt=101 virtPort=1
-ETHFW: TimeSync PTP enabled
-ETHFW: ATTACH_EXT | S2C | token=100 rxMtu=1522 features=9 flow=172,8 rxPsil=0x4a00 txPsil=0xca06 macAddr=70:ff:76:1e:c7:57
+ETHFW: ETHFW: Enable gPTP on MAC port 2 (tilld2)
+ETHFW: ETHFW: Enable gPTP on MAC port 3 (tilld3)
+ETHFW: ETHFW: Enable gPTP on MAC port 5 (tilld5)
+ETHFW: ETHFW: Enable gPTP on MAC port 8 (tilld8)
+ETHFW: EthFwTsn_gptpYangConfig:domain=0
+ETHFW: ETHFW: TimeSync PTP enabled
 ETHFW: CpswProxyServer: initialization completed (core: mcu2_0)
-ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=100 macAdd=70:ff:76:1e:c7:57 flowIdx=172,8
+INF:cbase:tilld2: has mac: 70:FF:76:1D:93:50
+INF:cbase:tilld3: has mac: 70:FF:76:1D:93:50
+INF:cbase:tilld5: has mac: 70:FF:76:1D:93:50
+INF:cbase:tilld8: has mac: 70:FF:76:1D:93:50
+INF:cbase:cb_lld_task_create: Uniconf Task stack_size=16384
+INF:cbasecb_rawsock_open:combase-1.1.4-jacinto
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannels=0 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:cb_lld_task_create: uniconf_hwal_thread stack_size=16384
+INF:cbase:cbl_query_response:tilld2 link DOWN !!!!
+INF:cbase:cbl_query_response:tilld3 link DOWN !!!!
+INF:cbase:cbl_query_response:tilld5 link DOWN !!!!
+INF:cbase:cbl_query_response:tilld8 link DOWN !!!!
+INF:cbase:cb_lld_task_create: gPTP Task stacksize=16384
+INF:gptp:gptpman_run:max_domains=1, max_ports=4
+INF:cbase:cb_rawsock_open:combase-1.1.4-jacinto
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannels=0 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:DmaOpen: TxChNum -1
+INF:cbase:DmaOCpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+en: Rx startIdx 172 flowId 6
+INF:cbase:LLDEnetFilter:destmac:01:80:C2:00:00:0E, vlanId:0, ethType:0x88f7
+INF:gptp:dev:tilld2 open success
+INF:gptp:dev:tilld3 open success
+INF:gptp:dev:tilld5 open success
+INF:gptp:dev:tilld8 open success
+INF:gptp:gptnet_init:Open lldtsync OK!
+INF:gptp:IEEE1588-2019 performance monitoring disabled.
+INF:gptp:onenet_activate:tilld2 status=0, duplex=1, speed=0Mbps
+INF:gptp:onenet_activate:tilld3 status=0, duplex=1, speed=0Mbps
+INF:gptp:onenet_activate:tilld5 status0, duplex=1, speed=0Mbps
+INF:gptp:onenet_activate:tilld8 status=0, duplex=1, speed=0Mbps
+INF:ubase:GPTP_MEDIUM_ALLOC: fragsize=16 fragused/fragnum=1294/1426 (90
+INF:ubase:GPTP_SMALL_ALLOC: fragsize=4 fragused/fragnum=31/97 (31
+INF:ubase:SM_DATA_NST: fragsize=8 fragused/fragnum=3806/3806 (100
+INF:gptp:gptpman_run:GPTPNET_INTERVAL_TIMEOUT_NSEC=125000000
+INF:gptp:000003-882340:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70:FF:76:FF:FE:1D:93:50
+INF:gptp:gptpclock_set_gmsync:gppInstanceIndex=0, domainIndex=0, gmstate=2
+INF:gptp:set_phase_offsetGM:domainIndex=0, New adjustment(New GM?)
+INF:cbase:cbl_query_response:tilld3: link UP, speed=1000, duplex=1 !!!!
+INF:gptp:index=2 speed=1000, duplex=full
+Added interface 'br3', IP is 10.24.68.55
+ETHFW: ATTACH | C2S | core=4 endpt=101 virtPort=1
+ETHFW: ATTACH | S2C | token=100 rxMtu=1522 features=9
+ETHFW: ALLOC_TX | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_TX | S2C | txPsil=0xca01 status=0
+ETHFW: ALLOC_RX | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_RX | S2C | flow=172,8 rxPsil=0x4a00 status=0
+ETHFW: ALLOC_MAC | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_MAC | S2C | macAddr=70:ff:76:1d:93:51 status=0
+ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=100 macAdd=70:ff:76:1d:93:51 flowIdx=172,8
 Cpsw_ioctlInternal: Registered MAC address (ALE entry=10, policer entry=2)
 ETHFW: REGISTER_MAC | S2C | status=0
-INF:cbase:cb_rawsock_open:dmaTxChId=-1 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
-INF:gptp:gptpnet_init:Open lldtsync OK!
-INF:gptp:000003-625399:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70:FF:76:FF:FE:1E:C7:56
-INF:gptp:set_phase_offsetGMCpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
-Cpsw_handleLinkUp: Port 4: Link up: 1-Gbps Full-Duplex
 ETHFW: REGISTER_REMOTE_TIMER | C2S | core=4 endpt=101 hwPushNum=2 timerId=1
 ETHFW: REGISTER_REMOTE_TIMER | S2C | status=0
-INF:gptp:index=2 speed=1000, duplex=full, ptpdev=tilld3
-ETHFW: ATTACH_EXT | C2S | core=4 endpt=101 virtPort=7
-ETHFW: ATTACH_EXT | S2C | token=700 rxMtu=1522 features=1 flow=172,9 rxPsil=0x4a00 txPsil=0xca07 macAddr=70:ff:76:1e:02:4d
-ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=700 macAdd=70:ff:76:1e:02:4d flowIdx=172,9
+ETHFW: ATTACH | C2S | core=4 endpt=101 virtPort=7
+ETHFW: ATTACH | S2C | token=700 rxMtu=1522 features=1
+ETHFW: ALLOC_TX | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_TX | S2C | txPsil=0xca02 status=0
+ETHFW: ALLOC_RX | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_RX | S2C | flow=172,9 rxPsil=0x4a00 status=0
+ETHFW: ALLOC_MAC | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_MAC | S2C | macAddr=70:ff:76:1d:87:2a status=0
+ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=700 macAdd=70:ff:76:1d:87:2a flowIdx=172,9
 ETHFW: REGISTER_MAC | S2C | status=0
-Added interface 'br3', IP is 172.24.227.248
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -1505,13 +1549,16 @@ Added interface 'br3', IP is 172.24.227.248
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 [MAIN_Cortex_R5_0_1] CpswProxy: Local cmd endpt 101, notify endpt 30
-CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
-CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
-CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
 CpswProxy: ETHFW services found at core 3 endpts 101 (ti.ethfw.ethdevice) and 102 (ti.ethfw.notifyservice)
 RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
-CpswProxy: ATTACH_EXT | C2S | virtPort=1
-CpswProxy: ATTACH_EXT | S2C | token=100 rxMtu=1522 features=9 flow=172,8 rxPsil=0x4a00 txPsil=0xca06 macAddr=70:ff:76:1e:c7:57
+CpswProxy: ATTACH | C2S | virtPort=1
+CpswProxy: ATTACH | S2C | token=100 rxMtu=1522 features=9 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=100 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=100 txPsil=0xca01 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=100
+CpswProxy: ALLOC_RX | S2C | token=100 flow=172,8 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=100
+CpswProxy: ALLOC_MAC | S2C | token=100 macAddr=70:ff:76:1d:93:51 status=0
 CpswProxy: REGISTER_MAC | C2S | token=100 flowIdx=172,8
 CpswProxy: REGISTER_MAC | S2C | token=100 status=0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
@@ -1522,17 +1569,23 @@ CpswProxy: REGISTER_REMOTE_TIMER | C2S | token=100 timerId=1 hwPushNum=2
 CpswProxy: REGISTER_REMOTE_TIMER | S2C | token=100 status=0
 RTOS-App: Added interface 'br2', IP is 0.0.0.0
 RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
-CpswProxy: ATTACH_EXT | C2S | virtPort=7
-CpswProxy: ATTACH_EXT | S2C | token=700 rxMtu=1522 features=1 flow=172,9 rxPsil=0x4a00 txPsil=0xca07 macAddr=70:ff:76:1e:02:4d
+CpswProxy: ATTACH | C2S | virtPort=7
+CpswProxy: ATTACH | S2C | token=700 rxMtu=1522 features=1 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=700 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=700 txPsil=0xca02 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=700
+CpswProxy: ALLOC_RX | S2C | token=700 flow=172,9 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=700
+CpswProxy: ALLOC_MAC | S2C | token=700 macAddr=70:ff:76:1d:87:2a status=0
 CpswProxy: REGISTER_MAC | C2S | token=700 flowIdx=172,9
 CpswProxy: REGISTER_MAC | S2C | token=700 status=0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 RTOS-App: Added interface 'ti3', IP is 0.0.0.0
-RTOS-App: Added interface 'br2', IP is 172.24.227.168
-RTOS-App: Added interface 'ti3', IP is 172.24.227.166
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 26361222870
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 43540968013
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 60720841713
+RTOS-App: Added interface 'br2', IP is 10.24.68.87
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 53444332639
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 70575888512
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 87755751908
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Back To Top](@ref demo_ethfw_combined_top)
@@ -1561,10 +1614,13 @@ ETHFW:   01:80:c2:00:00:0e
 ETHFW:   01:1b:19:00:00:00
 EnetMcm: CPSW_5G on MAIN NAVSS
 Mdio_open: MDIO manual mode enabled
+PHY 0 is alive
+PHY 3 is alive
 PHY 16 is alive
 PHY 17 is alive
 PHY 18 is alive
 PHY 19 is alive
+PHY 23 is alive
 EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
 EnetPhy_bindDriver: PHY 17: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
 EnetPhy_bindDriver: PHY 18: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
@@ -1573,45 +1629,81 @@ ETHFW: VLAN 1024 member=0xd virtMember=0x7 regMcastFlood=0xd unregMcastFlood=0xd
 ETHFW: 1 VLAN entries added in ALE table
 
 ETHFW Version   : 0.04.00
-ETHFW Build Date: Nov 29, 2023
-ETHFW Build Time: 03:21:29
-ETHFW Commit SHA: 4a978a2e
+ETHFW Build Date: Mar 25, 2024
+ETHFW Build Time: 19:59:25
+ETHFW Commit SHA: d05117d8
 
-unibase-1.1.4-jacinto
+unibase-1.1.5-jacinto
 Starting lwIP, local interface IP is dhcp-enabled
 ETHFW: Virtual port configuration:
-ETHFW: Host MAC address: 70:ff:76:1d:a0:7e
+ETHFW: Host MAC address: 70:ff:76:1e:af:db
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 [LWIPIF_LWIP_IC] Interface started successfully
 [LWIPIF_LWIP_IC] NETIF INIT SUCCESS
 [LWIPIF_LWIP_IC] Interface started successfully
 [LWIPIF_LWIP_IC] NETIF INIT SUCCESS
 Added interface 'br3', IP is 0.0.0.0
-ETHFW: Enable gPTP on MAC port 2 (tilld2)
-ETHFW: Enable gPTP on MAC port 3 (tilld3)
-ETHFW: ATTACH_EXT | C2S | core=4 endpt=101 virtPort=1
-ETHFW: TimeSync PTP enabled
-ETHFW: ATTACH_EXT | S2C | token=100 rxMtu=1522 features=9 flow=84,8 rxPsil=0x4a00 txPsil=0xca06 macAddr=70:b0:da:eb:8b:27
+ETHFW: ETHFW: Enable gPTP on MAC port 2 (tilld2)
+ETHFW: ETHFW: Enable gPTP on MAC port 3 (tilld3)
+ETHFW: EthFwTsn_gptpYangConfig:domain=0
+ETHFW: ETHFW: TimeSync PTP enabled
 ETHFW: CpswProxyServer: initialization completed (core: mcu2_0)
-INF:cbase:cb_rawsock_open:dmaTxChId=-1 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:tilld2: has mac: 70:FF:76:1E:AF:DB
+INF:cbase:tilld3: has mac: 70:FF:76:1E:AF:DB
+INF:cbase:cb_lld_task_create: Uniconf Task stack_size=16384
+INF:cbase:cb_rawsock_open:combase-1.1.4-jacinto
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannel=0 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:cb_lld_task_create: uniconf_hwal_thread stack_size=16384
+INF:cbase:cb_lld_task_create: gPTP Task stack_size=16384
+INF:gptp:gptpman_run:max_domains=1, max_ports=2
+INF:cbase:cb_rawsock_open:combase-1.1.4-jacinto
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannels=0 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=
+INF:cbase:cbl_query_response:tilld2 link DOWN !!!!
+INF:cbase:cbl_query_response:tilld3 link DOWN !!!!
+INF:cbase:DmaOpen: TxChNum -1
+INF:cbase:DmaOpen: Rx startIdx 84 flowId 6
+INF:cbase:LLDEnetFilter:destmac:01:80:C2:00:00:0E, vlanId:0, ethType:0x887
+INF:gptp:dev:tilld2 open success
+INF:gptp:dev:tilld3 open success
 INF:gptp:gptpnet_init:Open lldtsync OK!
-ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=100 macAdd=70:b0:da:eb:8b:27 flowIdx=84,8
+INF:gptp:IEEE1588-2019 performance monitoring disabled.
+INF:gptp:onenet_activate:tilld2 status=0, duplex=1, speed=0Mbps
+INF:gptp:onenet_activCpswMacPort_checkSgmiiStatus: MAC 3: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+te:tilld3 status=0, duplex=1, speed=0Mbps
+INF:ubase:GPTP_MEDIUM_ALLOC: fragsize=16 fragused/fragnum=835/1426 (58
+INF:ubase:GPTP_SMALL_ALLOC: fragsize=4 fragused/fragnum=19/97 (19
+INF:ubase:SM_DATA_INST: fragsize=8 fragused/fragnum=2002/3806 (52
+INF:gptp:gptpman_run:GPTPNET_INTERVAL_TIMEOUT_NSEC=125000000
+INF:gptp:000003-253670:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70:FF:76:FF:FE:1E:AF:DB
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate=2
+INF:gtp:set_phase_offsetGM:domainIndex=0, New adjustment(New GM?)
+INF:cbase:cbl_query_response:tilld3: link UP, speed=1000, duplex=1 !!!!
+INF:gptp:index=2 speed=1000, duplex=full
+ETHFW: ATTACH | C2S | core=4 endpt=101 virtPort=1
+ETHFW: ATTACH | S2C | token=100 rxMtu=1522 features=9
+ETHFW: ALLOC_TX | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_TX | S2C | txPsil=0xca01 status=0
+ETHFW: ALLOC_RX | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_RX | S2C | flow=84,8 rxPsil=0x4a00 status=0
+ETHFW: ALLOC_MAC | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_MAC | S2C | macAddr=70:c2:00:fa:0f:52 status=0
+ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=100 macAdd=70:c2:00:fa:0f:52 flowIdx=84,8
 Cpsw_ioctlInternal: Registered MAC address (ALE entry=10, policer entry=2)
 ETHFW: REGISTER_MAC | S2C | status=0
-CpswMacPort_checkSgmiiStatus: MAC 4: SGMII link parter config port: link up: 1-Gbps Full-Duplex
-Cpsw_handleLinkUp: Port 4: Link up: 1-Gbps Full-Duplex
-INF:gptp:000003-000264:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70:FF:76:FF:FE:1D:A0:7E
-INF:gptp:set_phase_offsetGM:domainNumber=0, New adjustment(New GM?)
 ETHFW: REGISTER_REMOTE_TIMER | C2S | core=4 endpt=101 hwPushNum=2 timerId=1
 ETHFW: REGISTER_REMOTE_TIMER | S2C | status=0
-ETHFW: ATTACH_EXT | C2S | core=4 endpt=101 virtPort=7
-ETHFW: ATTACH_EXT | S2C | token=700 rxMtu=1522 features=1 flow=84,9 rxPsil=0x4a00 txPsil=0xca07 macAddr=70:ed:04:ef:ea:4b
-CpswMacPort_checkSgmiiStatus: MAC 3: SGMII link parter config port: link up: 1-Gbps Full-Duplex
-Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
-ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=700 macAdd=70:ed:04:ef:ea:4b flowIdx=84,9
+ETHFW: ATTACH | C2S | core=4 endpt=101 virtPort=7
+ETHFW: ATTACH | S2C | token=700 rxMtu=1522 features=1
+ETHFW: ALLOC_TX | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_TX | S2C | txPsil=0xca02 status=0
+ETHFW: ALLOC_RX | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_RX | S2C | flow=84,9 rxPsil=0x4a00 status=0
+ETHFW: ALLOC_MAC | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_MAC | S2C | macAddr=70:d8:26:2e:80:ca status=0
+ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=700 macAdd=70:d8:26:2e:80:ca flowIdx=84,9
 ETHFW: REGISTER_MAC | S2C | status=0
-INF:gptp:index=2 speed=1000, duplex=full, ptpdev=tilld3
-Added interface 'br3', IP is 172.24.227.77
+Added interface 'br3', IP is 10.24.68.84
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -1619,13 +1711,16 @@ Added interface 'br3', IP is 172.24.227.77
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 [MAIN_Cortex_R5_0_1] CpswProxy: Local cmd endpt 101, notify endpt 30
-CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
-CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
-CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
 CpswProxy: ETHFW services found at core 3 endpts 101 (ti.ethfw.ethdevice) and 102 (ti.ethfw.notifyservice)
 RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
-CpswProxy: ATTACH_EXT | C2S | virtPort=1
-CpswProxy: ATTACH_EXT | S2C | token=100 rxMtu=1522 features=9 flow=84,8 rxPsil=0x4a00 txPsil=0xca06 macAddr=70:b0:da:eb:8b:27
+CpswProxy: ATTACH | C2S | virtPort=1
+CpswProxy: ATTACH | S2C | token=100 rxMtu=1522 features=9 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=100 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=100 txPsil=0xca01 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=100
+CpswProxy: ALLOC_RX | S2C | token=100 flow=84,8 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=100
+CpswProxy: ALLOC_MAC | S2C | token=100 macAddr=70:c2:00:fa:0f:52 status=0
 CpswProxy: REGISTER_MAC | C2S | token=100 flowIdx=84,8
 CpswProxy: REGISTER_MAC | S2C | token=100 status=0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
@@ -1636,16 +1731,23 @@ CpswProxy: REGISTER_REMOTE_TIMER | C2S | token=100 timerId=1 hwPushNum=2
 CpswProxy: REGISTER_REMOTE_TIMER | S2C | token=100 status=0
 RTOS-App: Added interface 'br2', IP is 0.0.0.0
 RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
-CpswProxy: ATTACH_EXT | C2S | virtPort=7
-CpswProxy: ATTACH_EXT | S2C | token=700 rxMtu=1522 features=1 flow=84,9 rxPsil=0x4a00 txPsil=0xca07 macAddr=70:ed:04:ef:ea:4b
+CpswProxy: ATTACH | C2S | virtPort=7
+CpswProxy: ATTACH | S2C | token=700 rxMtu=1522 features=1 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=700 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=700 txPsil=0xca02 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=700
+CpswProxy: ALLOC_RX | S2C | token=700 flow=84,9 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=700
+CpswProxy: ALLOC_MAC | S2C | token=700 macAddr=70:d8:26:2e:80:ca status=0
 CpswProxy: REGISTER_MAC | C2S | token=700 flowIdx=84,9
 CpswProxy: REGISTER_MAC | S2C | token=700 status=0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 RTOS-App: Added interface 'ti3', IP is 0.0.0.0
-RTOS-App: Added interface 'ti3', IP is 172.24.227.240
-RTOS-App: Added interface 'br2', IP is 172.24.227.41
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 31102555437
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 52577328523
+RTOS-App: Added interface 'br2', IP is 10.24.68.61
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 48601698778
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 70076463468
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 91551303478
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Back To Top](@ref demo_ethfw_combined_top)
@@ -1656,7 +1758,6 @@ RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 52577328523
 #### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart_j784s4}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Detected boards: QSGMII
 ETHFW: Detected boards: QSGMII
 =======================================================
             CPSW Ethernet Firmware                     
@@ -1687,42 +1788,43 @@ ETHFW: VLAN 1024 member=0x29 virtMember=0x7 regMcastFlood=0x29 unregMcastFlood=0
 ETHFW: 1 VLAN entries added in ALE table
 
 ETHFW Version   : 0.04.00
-ETHFW Build Date: Nov 29, 2023
-ETHFW Build Time: 02:50:35
-ETHFW Commit SHA: 4a978a2e
+ETHFW Build Date: Mar 25, 2024
+ETHFW Build Time: 20:03:13
+ETHFW Commit SHA: d05117d8
 
-unibase-1.1.4-jacinto
 Starting lwIP, local interface IP is dhcp-enabled
 ETHFW: Virtual port configuration:
-ETHFW: Host MAC address: 70:ff:76:1e:ae:5f
+ETHFW: Host MAC address: 70:ff:76:1d:89:bf
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 Added interface 'ti0', IP is 0.0.0.0
-ETHFW: Enable gPTP on MAC port 3 (tilld3)
-ETHFW: Enable gPTP on MAC port 5 (tilld5)
-ETHFW: TimeSync PTP enabled
-ETHFW: ATTACH_EXT | C2S | core=4 endpt=101 virtPort=1
-ETHFW: ATTACH_EXT | S2C | token=100 rxMtu=1522 features=8 flow=114,8 rxPsil=0x4a00 txPsil=0xca06 macAddr=70:a0:26:36:1c:3e
-INF:cbase:cb_rawsock_open:dmaTxChId=-1 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
-INF:gptp:gptpnet_init:Open lldtsync OK!
 ETHFW: CpswProxyServer: initialization completed (core: mcu2_0)
-ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=100 macAdd=70:a0:26:36:1c:3e flowIdx=114,8
-Cpsw_ioctlInternal: Registered MAC address (ALE entry=10, policer entry=1)
+ETHFW: ATTACH | C2S | core=4 endpt=101 virtPort=1
+ETHFW: ATTACH | S2C | token=100 rxMtu=1522 features=8
+ETHFW: ALLOC_TX | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_TX | S2C | txPsil=0xca01 status=0
+ETHFW: ALLOC_RX | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_RX | S2C | flow=114,8 rxPsil=0x4a00 status=0
+ETHFW: ALLOC_MAC | C2S | core=4 endpt=101 token=100
+ETHFW: ALLOC_MAC | S2C | macAddr=70:b6:82:95:af:05 status=0
+ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=100 macAdd=70:b6:82:95:af:05 flowIdx=114,8
+Cpsw_ioctlInternal: Registered MAC address (ALE entry=8, policer entry=0)
 ETHFW: REGISTER_MAC | S2C | status=0
 CpswMacPort_checkSgmiiStatus: MAC 3: SGMII link parter config port: link up: 1-Gbps Full-Duplex
 Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
-INF:gptp:000002-875258:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70:FF:76:FF:FE:1E:AE:5F
-INF:gptp:set_phase_offsetGM:domainNumber=0, New adjustment(New GM?)
 ETHFW: REGISTER_REMOTE_TIMER | C2S | core=4 endpt=101 hwPushNum=2 timerId=1
-CpswMacPort_checkSgmiiStatus: MAC 4: SGMII link parter config port: link up: 1-Gbps Full-Duplex
-Cpsw_handleLinkUp: Port 4: Link up: 1-Gbps Full-Duplex
 ETHFW: REGISTER_REMOTE_TIMER | S2C | status=0
-ETHFW: ATTACH_EXT | C2S | core=4 endpt=101 virtPort=7
-ETHFW: ATTACH_EXT | S2C | token=700 rxMtu=1522 features=0 flow=114,9 rxPsil=0x4a00 txPsil=0xca07 macAddr=70:e1:33:99:17:23
-INF:gptp:index=1 speed=1000, duplex=full, ptpdev=tilld3
-ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=700 macAdd=70:e1:33:99:17:23 flowIdx=114,9
+ETHFW: ATTACH | C2S | core=4 endpt=101 virtPort=7
+ETHFW: ATTACH | S2C | token=700 rxMtu=1522 features=0
+ETHFW: ALLOC_TX | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_TX | S2C | txPsil=0xca02 status=0
+ETHFW: ALLOC_RX | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_RX | S2C | flow=114,9 rxPsil=0x4a00 status=0
+ETHFW: ALLOC_MAC | C2S | core=4 endpt=101 token=700
+ETHFW: ALLOC_MAC | S2C | macAddr=70:24:5e:ca:06:2a status=0
+ETHFW: REGISTER_MAC | C2S | core=4 endpt=101 token=700 macAdd=70:24:5e:ca:06:2a flowIdx=114,9
 ETHFW: REGISTER_MAC | S2C | status=0
-Added interface 'ti0', IP is 172.24.227.28
-ETHFW: REGISTER_IPv4 | C2S | core=4 endpt=101 token=100 ipAddr=172.24.227.57 macAdd=70:a0:26:36:1c:3e
+Added interface 'ti0', IP is 10.24.52.208
+ETHFW: REGISTER_IPv4 | C2S | core=4 endpt=101 token=100 ipAddr=10.24.53.142 macAdd=70:b6:82:95:af:05
 ETHFW: REGISTER_IPv4 | S2C | status=0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1730,15 +1832,20 @@ ETHFW: REGISTER_IPv4 | S2C | status=0
 #### CCS Console Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j784s4}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[MAIN_Cortex_R5_0_1] CpswProxy: Local cmd endpt 101, notify endpt 30
 CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
 CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
 CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
 CpswProxy: CpswProxy_connect: Failed to get ETHFW command service endpt: -4
 CpswProxy: ETHFW services found at core 3 endpts 101 (ti.ethfw.ethdevice) and 102 (ti.ethfw.notifyservice)
 RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
-CpswProxy: ATTACH_EXT | C2S | virtPort=1
-CpswProxy: ATTACH_EXT | S2C | token=100 rxMtu=1522 features=8 flow=114,8 rxPsil=0x4a00 txPsil=0xca06 macAddr=70:a0:26:36:1c:3e
+CpswProxy: ATTACH | C2S | virtPort=1
+CpswProxy: ATTACH | S2C | token=100 rxMtu=1522 features=8 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=100 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=100 txPsil=0xca01 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=100
+CpswProxy: ALLOC_RX | S2C | token=100 flow=114,8 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=100
+CpswProxy: ALLOC_MAC | S2C | token=100 macAddr=70:b6:82:95:af:05 status=0
 CpswProxy: REGISTER_MAC | C2S | token=100 flowIdx=114,8
 CpswProxy: REGISTER_MAC | S2C | token=100 status=0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
@@ -1746,19 +1853,30 @@ RTOS-App: Added interface 'ti0', IP is 0.0.0.0
 CpswProxy: REGISTER_REMOTE_TIMER | C2S | token=100 timerId=1 hwPushNum=2
 CpswProxy: REGISTER_REMOTE_TIMER | S2C | token=100 status=0
 RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
-CpswProxy: ATTACH_EXT | C2S | virtPort=7
-CpswProxy: ATTACH_EXT | S2C | token=700 rxMtu=1522 features=0 flow=114,9 rxPsil=0x4a00 txPsil=0xca07 macAddr=70:e1:33:99:17:23
+CpswProxy: ATTACH | C2S | virtPort=7
+CpswProxy: ATTACH | S2C | token=700 rxMtu=1522 features=0 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=700 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=700 txPsil=0xca02 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=700
+CpswProxy: ALLOC_RX | S2C | token=700 flow=114,9 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=700
+CpswProxy: ALLOC_MAC | S2C | token=700 macAddr=70:24:5e:ca:06:2a status=0
 CpswProxy: REGISTER_MAC | C2S | token=700 flowIdx=114,9
 CpswProxy: REGISTER_MAC | S2C | token=700 status=0
 [LWIPIF_LWIP] Enet LLD netif initialized successfully
 RTOS-App: Added interface 'ti1', IP is 0.0.0.0
-RTOS-App: Added interface 'ti1', IP is 172.24.227.153
-RTOS-App: Added interface 'ti0', IP is 172.24.227.57
-CpswProxy: REGISTER_IPv4 | C2S | token=100 ipAddr=172.24.227.57 macAdd=70:a0:26:36:1c:3e
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 21316293509
+RTOS-App: Added interface 'ti0', IP is 10.24.53.142
+CpswProxy: REGISTER_IPv4 | C2S | token=100 ipAddr=10.24.53.142 macAdd=70:b6:82:95:af:05
 CpswProxy: REGISTER_IPv4 | S2C | token=100 status=0
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 25336773966
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 42516532670
-RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 59696401829
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 38283721852
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 55463593393
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 72643457614
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 89823302311
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 107003190376
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 124183104725
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 141362929834
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 158542800123
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ## Enhanced Schedule Traffic {#ethfw_est_demo}
