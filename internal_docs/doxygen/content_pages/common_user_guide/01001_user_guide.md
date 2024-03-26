@@ -95,7 +95,7 @@ The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is 
 | Resource    | Count  | EthFw Usage (mcu2_0)
 |:------------|:------:|:-----------------------------------
 | TX channel  |   2    | <ul><li>lwIP netif (1)</li><li>gPTP (1)
-| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4)</li><li>SW interVLAN (1)</li><li>Enet LLD default flow (1)</li></ul>
+| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4)</li><li>SW interVLAN (1)</li><li>Reserved flow (1)</li></ul>
 | MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
 
 UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
