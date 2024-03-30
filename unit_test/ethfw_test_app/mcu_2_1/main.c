@@ -207,7 +207,11 @@ void appLogPrintf(const char *format, ...);
 /* Trace configuration */
 static EthFwTrace_Cfg gRemoteApp_traceCfg =
 {
+#if defined(ENABLE_UART_LOG)
+    .print        = UART_printf,
+#else
     .print        = appLogPrintf,
+#endif
     .traceTsFunc  = NULL,
     .extTraceFunc = NULL,
 };
@@ -269,7 +273,11 @@ void appLogPrintf(const char *format, ...)
 
 static void CpswRemoteApp_ipcPrint(const char *str)
 {
+#if defined(ENABLE_UART_LOG)
+    UART_printf("%s", str);
+#else
     appLogPrintf("%s", str);
+#endif
     return;
 }
 
@@ -302,10 +310,18 @@ void setUp(void)
 
 void tearDown(void)
 {
+    if (gProxy != NULL)
+    {
+        CpswProxy_close(gProxy);
+        CpswProxy_deinit();
+        gProxy = NULL;
+    }
+}
 
-    CpswProxy_close(gProxy);
-    CpswProxy_deinit();
-    gProxy = NULL;
+void resetTestCfg(void)
+{
+  tearDown();
+  setUp();
 }
 
 static void CpswRemoteTestApp_initTask(void* a0,
@@ -323,7 +339,9 @@ static void CpswRemoteTestApp_initTask(void* a0,
 
     uint32_t i;
 
+#if defined(ENABLE_UART_LOG) || defined(UNITY_INCLUDE_CONFIG_H)
     UART_stdioInit(0U);
+#endif
 
     /* Initialize ETHFW Trace with INFO log level and higher */
     EthFwTrace_init(&gRemoteApp_traceCfg);
@@ -393,6 +411,12 @@ static void CpswRemoteTestApp_initTask(void* a0,
     localAssert(gProxy != NULL);
 
     EthFwUT_testConnection((void *)gProxy);
+
+    /* Reset the test configurations */
+    resetTestCfg();
+
+    EthFwUT_testResources((void *)gProxy); 
+
 
 }
 

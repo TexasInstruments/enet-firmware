@@ -61,9 +61,9 @@
  */
 
 /*!
- * \file ethfw_vepa_utils.c
+ * \file test_connection.c
  *
- * \brief VEPA utils functions for Ethernet Firmware.
+ * \brief EthFw UT functions for testing connection.
  */
 
 /* ========================================================================== */
@@ -104,173 +104,128 @@
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
-
+CpswProxy_Handle gTestProxy;
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-void EthFwUT_attachCmd1(void *args)
+void EthFwUT_attachCmd1(void)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachRes res;
-    CpswProxy_Handle hProxy;
     int32_t status;
-
-    hProxy = (CpswProxy_Handle)args;
-    TEST_ASSERT_NOT_NULL(hProxy);
 
     req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
 
     memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
 
     /* Send request to server and wait for response */
-    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH,
+    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ATTACH,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
-
-    if((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
-    {
+    if ((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
         TEST_PASS();
-    }
     else
-    {
         TEST_FAIL();
-    }
 }
 
-void EthFwUT_attachCmd2(void *args)
+void EthFwUT_attachCmd2(void)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachRes res;
-    CpswProxy_Handle hProxy;
     int32_t status;
-
-    hProxy = (CpswProxy_Handle)args;
-    TEST_ASSERT_NOT_NULL(hProxy);
 
     req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
 
     memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
 
     /* Send request to server and wait for response */
-    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH,
+    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ATTACH,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
-
-    if((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
-    {
+    if ((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
         TEST_PASS();
-    }
     else
-    {
         TEST_FAIL();
-    }
 }
 
-void EthFwUT_attachCmdNegTest(void *args)
+void EthFwUT_attachCmdNegTest(void)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachRes res;
-    CpswProxy_Handle hProxy;
     int32_t status;
-
-    hProxy = (CpswProxy_Handle)args;
-    TEST_ASSERT_NOT_NULL(hProxy);
 
     req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
 
     memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
 
     /* Send incorrect parameters: req size swapped with res */
-    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ATTACH,
+    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ATTACH,
                                &req.hdr, sizeof(res),
                                &res.hdr, sizeof(req));
 
     /* Negative check: above status should fail */
-    if(status != CPSWPROXY_SOK)
-    {
+    if (status != CPSWPROXY_SOK)
         TEST_PASS();
-    }
     else
-    {
         TEST_FAIL();
-    }
 }
 
-void EthFwUT_detachCmd1(void *args)
+void EthFwUT_detachCmd1(void)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
-    CpswProxy_Handle hProxy;
     int32_t status;
-
-    hProxy = (CpswProxy_Handle)args;
-    TEST_ASSERT_NOT_NULL(hProxy);
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
     /* Send incorrect parameters: req size swapped with res */
-    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DETACH,
+    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DETACH,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
-
-    if(status == CPSWPROXY_SOK)
-    {
+    if (status == CPSWPROXY_SOK)
         TEST_PASS();
-    }
     else
-    {
         TEST_FAIL();
-    }
 }
 
-void EthFwUT_detachCmd2(void *args)
+void EthFwUT_detachCmd2(void)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
-    CpswProxy_Handle hProxy;
     int32_t status;
-
-    hProxy = (CpswProxy_Handle)args;
-    TEST_ASSERT_NOT_NULL(hProxy);
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
     /* Send incorrect parameters: req size swapped with res */
-    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_DETACH,
+    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DETACH,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
-
-    if(status == CPSWPROXY_SOK)
-    {
+    if (status == CPSWPROXY_SOK)
         TEST_PASS();
-    }
     else
-    {
         TEST_FAIL();
-    }
 }
 
-void EthFwUT_testConnection(void *args)
+void EthFwUT_testConnection(void* args)
 {
-    CpswProxy_Handle hProxy;
     int32_t status;
 
-    hProxy = (CpswProxy_Handle)args;
-    TEST_ASSERT_NOT_NULL(hProxy);
+    gTestProxy = (CpswProxy_Handle)args;
+    TEST_ASSERT_NOT_NULL(gTestProxy);
 
-    UNITY_BEGIN();
+    UnityBegin("test_connection.c");
 
-    RUN_TEST(EthFwUT_attachCmd1,  0, (void *)hProxy);
+    RUN_TEST(EthFwUT_attachCmd1,  0);
 
-    RUN_TEST(EthFwUT_attachCmd2,  0, (void *)hProxy);
+    RUN_TEST(EthFwUT_attachCmd2,  0);
 
-    RUN_TEST(EthFwUT_detachCmd1,  0, (void *)hProxy);
+    RUN_TEST(EthFwUT_detachCmd1,  0);
 
-    RUN_TEST(EthFwUT_detachCmd2,  0, (void *)hProxy);
+    RUN_TEST(EthFwUT_detachCmd2,  0);
 
-    RUN_TEST(EthFwUT_attachCmdNegTest,  0, (void *)hProxy);
+    RUN_TEST(EthFwUT_attachCmdNegTest,  0);
 
-    UNITY_END();
+    UnityEnd();
 
 }

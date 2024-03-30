@@ -26,6 +26,13 @@ endif
 
 CSOURCES += ../../../unit_test/unity/unity.c
 CSOURCES += ../../../unit_test/test_cases/test_connection.c
+CSOURCES += ../../../unit_test/test_cases/test_resources.c
+
+# Enable routing of Client App logs and traces to UART
+# DEFS += ENABLE_UART_LOG
+
+# Enable routing of Unity prints to UART
+DEFS += UNITY_INCLUDE_CONFIG_H
 
 IDIRS += $(ETHFW_PATH)/unit_test/unity
 IDIRS += $(ETHFW_PATH)/unit_test/test_cases

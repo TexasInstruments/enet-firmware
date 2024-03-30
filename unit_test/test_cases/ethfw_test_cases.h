@@ -94,6 +94,8 @@ extern "C" {
 
 void EthFwUT_testConnection(void *args);
 
+void EthFwUT_testResources(void *args);
+
 #ifdef __cplusplus
 }
 #endif
