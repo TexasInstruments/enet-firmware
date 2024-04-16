@@ -750,33 +750,33 @@ void EthFwUT_testResources(void *args)
 
     UnityBegin("test_resources.c");
 
-    RUN_TEST(EthFwUT_allocTxCmdTest1, 0);
+    RUN_TEST(EthFwUT_allocTxCmdTest1, 2630);
 
-    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  0);
+    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  2631);
 
-    RUN_TEST(EthFwUT_freeTxCmdTest1,  0);
+    RUN_TEST(EthFwUT_freeTxCmdTest1,  2632);
 
-    RUN_TEST(EthFwUT_freeTxCmdNegTest,  0);
+    RUN_TEST(EthFwUT_freeTxCmdNegTest,  2633);
 
-    RUN_TEST(EthFwUT_allocRxCmdTest1,  0);
+    RUN_TEST(EthFwUT_allocRxCmdTest1,  2634);
 
-    RUN_TEST(EthFwUT_freeRxCmdTest1,  0);
+    RUN_TEST(EthFwUT_freeRxCmdTest1,  2635);
 
-    RUN_TEST(EthFwUT_allocRxCmdNegTest,  0);
+    RUN_TEST(EthFwUT_allocRxCmdNegTest,  2636);
 
-    RUN_TEST(EthFwUT_freeRxCmdNegTest,  0);
+    RUN_TEST(EthFwUT_freeRxCmdNegTest,  2637);
 
-    RUN_TEST(EthFwUT_allocMacCmdTest1,  0);
+    RUN_TEST(EthFwUT_allocMacCmdTest1,  2638);
 
-    RUN_TEST(EthFwUT_freeMacCmdTest1,  0);
+    RUN_TEST(EthFwUT_freeMacCmdTest1,  2639);
 
-    RUN_TEST(EthFwUT_registerMacCmdTest,  0);
+    RUN_TEST(EthFwUT_registerMacCmdTest,  2640);
 
-    RUN_TEST(EthFwUT_registerMacCmdNegTest,  0);
+    RUN_TEST(EthFwUT_registerMacCmdNegTest,  2641);
 
-    RUN_TEST(EthFwUT_unregisterMacCmdTest,  0);
+    RUN_TEST(EthFwUT_unregisterMacCmdTest,  2642);
 
-    RUN_TEST(EthFwUT_unregisterMacCmdNegTest,  0);
+    RUN_TEST(EthFwUT_unregisterMacCmdNegTest,  2643);
 
     // RUN_TEST(EthFwUT_registerDefaultRxFlowCmdTest,  0);
 
@@ -786,7 +786,7 @@ void EthFwUT_testResources(void *args)
 
     // RUN_TEST(EthFwUT_unregisterDefaultRxFlowCmdNegTest,  0);
 
-    RUN_TEST(EthFwUT_registerIPV4AddrCmdTest,  0);
+    RUN_TEST(EthFwUT_registerIPV4AddrCmdTest,  2644);
     
     UnityEnd();
 

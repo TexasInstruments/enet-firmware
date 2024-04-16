@@ -216,15 +216,15 @@ void EthFwUT_testConnection(void* args)
 
     UnityBegin("test_connection.c");
 
-    RUN_TEST(EthFwUT_attachCmd1,  0);
+    RUN_TEST(EthFwUT_attachCmd1,  2625);
 
-    RUN_TEST(EthFwUT_attachCmd2,  0);
+    RUN_TEST(EthFwUT_attachCmd2,  2626);
 
-    RUN_TEST(EthFwUT_detachCmd1,  0);
+    RUN_TEST(EthFwUT_detachCmd1,  2627);
 
-    RUN_TEST(EthFwUT_detachCmd2,  0);
+    RUN_TEST(EthFwUT_detachCmd2,  2628);
 
-    RUN_TEST(EthFwUT_attachCmdNegTest,  0);
+    RUN_TEST(EthFwUT_attachCmdNegTest,  2629);
 
     UnityEnd();
 
