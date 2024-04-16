@@ -1507,11 +1507,11 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
 }
 
 int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
-                                 uint32_t reqType,
-                                 EthRemoteCfg_ReqHdr *req,
-                                 uint16_t reqLen,
-                                 EthRemoteCfg_ResHdr *res,
-                                 uint16_t resLen)
+                          uint32_t reqType,
+                          EthRemoteCfg_ReqHdr *req,
+                          uint16_t reqLen,
+                          EthRemoteCfg_ResHdr *res,
+                          uint16_t resLen)
 {
 #ifndef QNX_OS
     MailboxP_Status mbxStatus;

@@ -854,11 +854,11 @@ int32_t CpswProxy_unregisterNotifyCb(CpswProxy_Handle hProxy,
  *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
-                                 uint32_t reqType,
-                                 EthRemoteCfg_ReqHdr *req,
-                                 uint16_t reqLen,
-                                 EthRemoteCfg_ResHdr *res,
-                                 uint16_t resLen);
+                          uint32_t reqType,
+                          EthRemoteCfg_ReqHdr *req,
+                          uint16_t reqLen,
+                          EthRemoteCfg_ResHdr *res,
+                          uint16_t resLen);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

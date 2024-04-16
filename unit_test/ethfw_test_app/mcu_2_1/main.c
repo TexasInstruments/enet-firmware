@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -173,7 +173,13 @@ static uint32_t gRemoteProc[] =
 };
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 
-
+#if defined(SOC_J721E) || defined(SOC_J7200)
+#define BOARD_UART_INSTANCE                   (0U)
+#elif defined(SOC_J784S4)
+#define BOARD_UART_INSTANCE                   (8U)
+#else
+#error "Unsupported device"
+#endif
 
 typedef struct CpswRemoteApp_Obj_s
 {
@@ -335,12 +341,10 @@ static void CpswRemoteTestApp_initTask(void* a0,
     MailboxP_Params mbxParams;
     CpswProxy_Config proxyConfig;
     int32_t status;
-
-
     uint32_t i;
 
 #if defined(ENABLE_UART_LOG) || defined(UNITY_INCLUDE_CONFIG_H)
-    UART_stdioInit(0U);
+    UART_stdioInit(BOARD_UART_INSTANCE);
 #endif
 
     /* Initialize ETHFW Trace with INFO log level and higher */
