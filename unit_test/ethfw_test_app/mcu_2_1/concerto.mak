@@ -32,7 +32,7 @@ CSOURCES += ../../../unit_test/test_cases/test_resources.c
 # DEFS += ENABLE_UART_LOG
 
 # Enable routing of Unity prints to UART
-DEFS += UNITY_INCLUDE_CONFIG_H
+# DEFS += UNITY_INCLUDE_CONFIG_H
 
 IDIRS += $(ETHFW_PATH)/unit_test/unity
 IDIRS += $(ETHFW_PATH)/unit_test/test_cases

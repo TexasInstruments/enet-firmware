@@ -109,8 +109,7 @@ include makerules/makefile_pdk.mak
 .NOTPARALLEL:
 ethfw_server: pdk app_remoteswitchcfg_server
 ethfw_server_qnx: pdk app_remoteswitchcfg_server_qnx
-
-ifneq ($(filter yes,$(BUILD_APP_FREERTOS)),)
+ifneq ($(filter yes,$(BUILD_APP_FREERTOS) $(BUILD_APP_SAFERTOS)),)
 ethfw_client_ut: pdk client_test_app app_remoteswitchcfg_server app_remoteswitchcfg_server_ccs
 endif
 
