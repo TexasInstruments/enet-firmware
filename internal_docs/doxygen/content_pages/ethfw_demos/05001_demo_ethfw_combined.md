@@ -34,6 +34,7 @@ Below are top-level features demonstrated:
  - Multi-core time-synchronization with RTOS client
  - Software based inter-core virtual Ethernet communication
  - Enhance Schedule Traffic support demo
+ - PPS generation
 
 The Ethernet Firmware demo application is in charge of:
 
@@ -844,8 +845,6 @@ IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058
 IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2075ppb, GMdiff=2nsec
 IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058ppb, GMdiff=-2nsec
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-> **Note:** ETHFW doesn't provide support for PPS in this release.
 
 
 ## GUI Configurator Tool {#ethfw_gui_tool_configuration}
@@ -1940,6 +1939,40 @@ RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 141362929834
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 158542800123
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+## PPS signal generation {#pps_sig_gen}
+
+The most common way to analyze time synchronization comes from looking at the pulse per second
+(PPS) signal. It is used for comparison between the TT (Time Transmitter - master) and TR 
+(Time Receiver -slave) nodes when they are time synchronized.
+The GenF generated from CPTS is routed to one of the SYNCn_OUT pins using the Time Synchronization Router
+in Main domain to an external pin.
+GenF can also be routed to one of the CPTS HW push events, which can be extracted later from event FIFO 
+as 64 bit timestamps.The general flow diagram of GenF signal routing from CPSW CPTS is shown below:
+
+\image html GENF_PPS_signal.png width=600px
+
+Out of box configuration for PPS signal output of this example is as follows:
+
+> **Note:** To enable this support `ETHFW_PPS_DEMO_SUPPORT` build flag should be set to yes.
+> **Note:** To enable this support set `enablePPS` flag to true in the main application.
+
+| EVM       | Mapped Signal Name        | SOC Pin Name      | Output Pin        | PPS frequency          |
+|-----------|---------------------------|-------------------|-------------------|-----------------------|
+| J7200     | MCAN3_RX                  | U10               | Pin 23 (SOM)      | 1 KHz                 |
+| J721E     | RGMII5_TD3/C_MCASP10_AXR0 | U44               | Pin 6 (CPB)       | 1 KHz                 |
+| J784S4    | MCASP2_ACLKX              | U50               | Pin 6 (EVM)       | 1 KHz                 |
+
+The time period of the signal is based on CPTS RFT clock frequency which is 500MHz out-of-box.
+To set/modify the frequency of PPS signal, change `ETHAPP_PPS_TIMESYNC_REF_CLK_HZ` to desired frequency.
+The PPS signal frequency is 1kHz out-of-box.
+
+To check the relationship between the master and slave clock outputs look at the two clock
+outputs over time. The following scope plot shows this relationship. The oscilloscope is set to 
+infinite persistence, showing the rising edge jitter of the slave signal. The master clock output 
+(yellow) is shown on the top and the slave clock output (blue) is shown on the bottom.
+
+\image html PPS_signal.png "PPS signal comparison between J721E-master and J7200-slave" width=500px
+
 ## Enhanced Schedule Traffic {#ethfw_est_demo}
 
 This demo application demonstrates how to configure the 802.1 Qbv (EST)
@@ -2013,7 +2046,7 @@ Following build flags are defined in `<ethfw>/ethfw_build_flags.mak` file as:
 - `ETHFW_EST_DEMO_TALKER` : To run EST demo app in talker mode
 - `ETHFW_EST_DEMO_LISTENER` : To run demo app in listener mode
 
->**Note** : This demo is supported only is gPTP is enabled in EthFw, so make sure
+> **Note** : This demo is supported only is gPTP is enabled in EthFw, so make sure
 > ETHFW_GPTP_SUPPORT is `yes`
 
 As mentioned above, this demo is supported only on MAC port 3 for J721E, J7200, J784S4 boards.
@@ -2040,6 +2073,7 @@ In a nutshell to run EST demo app, you need to have the following build flags:
 - Listener starts printing the stats everytime it receives 20000 packets of priority 0 or 2.
 
 #### UART Console Logs (J7200 as Talker)
+
 ```C
     Waiting for PTP clock to be synchronized!
     The following AdminList param will be configured for EST:
@@ -2063,6 +2097,7 @@ In a nutshell to run EST demo app, you need to have the following build flags:
 ```
 
 #### UART Console Logs (J784S4 as Listener)
+
 ```C
     TimeSlots of PacketPriority: 0:   [0, 62000]ns,  [124000, 186000]ns,
     TimeSlots of PacketPriority: 2:   [62000, 124000]ns,  [186000, 248000]ns,
