@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2022
+ *  Copyright (c) Texas Instruments Incorporated 2022-2024
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -277,6 +277,12 @@ static pinmuxPerCfg_t gSystem0PinCfg[] =
         PIN_TIMER_IO0, PIN_MODE(2) | \
         ((PIN_PULL_DISABLE) & (~PIN_PULL_DIRECTION & ~PIN_INPUT_ENABLE))
     },
+#if defined(ETHFW_PPS_DEMO_SUPPORT)
+    {
+        PIN_RGMII5_TD3, PIN_MODE(3) | \
+        ((PIN_PULL_DISABLE) & (~PIN_PULL_DIRECTION & ~PIN_INPUT_ENABLE))
+    },
+#endif
     {PINMUX_END}
 };
 

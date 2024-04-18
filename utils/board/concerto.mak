@@ -15,6 +15,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     CSOURCES    += src/j721e/board_pinmux_data.c
   else ifeq ($(TARGET_PLATFORM),J7200)
     CSOURCES    += src/j7200/board_j7200_evm.c
+    CSOURCES    += src/j7200/board_pinmux_data.c
   else ifeq ($(TARGET_PLATFORM),J784S4)
     CSOURCES    += src/j784s4/board_j784s4_evm.c
     CSOURCES    += src/j784s4/board_pinmux_data.c
@@ -26,6 +27,13 @@ IDIRS += $(ETHFW_PATH)
 
 ifeq ($(ETHFW_RAND_MACADDR_GEN),yes)
   DEFS += ETHFW_RAND_MACADDR_GEN
+endif
+
+# Feature flags: PPS Signal Gen
+ifeq ($(ETHFW_PPS_DEMO_SUPPORT),yes)
+  ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+    DEFS += ETHFW_PPS_DEMO_SUPPORT
+  endif
 endif
 
 include $(FINALE)

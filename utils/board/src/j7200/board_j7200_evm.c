@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2022
+ *  Copyright (c) Texas Instruments Incorporated 2022-2024
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -177,6 +177,10 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
 /* ========================================================================== */
 
 static EthFwBoard_Obj gEthFwBoard;
+
+#if defined(ETHFW_PPS_DEMO_SUPPORT)
+extern pinmuxBoardCfg_t gEthFwPinmuxData[];
+#endif
 
 /* Default port configuration for all ports in EVM:
  *   4 x QSGMII ports in QEnet */
@@ -437,6 +441,11 @@ static void EthFwBoard_configPinmux(void)
 
     /* Configure pinmux settings for Ethernet ports and MDIO */
     Board_pinmuxUpdate(gJ7200_WkupPinmuxDataCpsw, BOARD_SOC_DOMAIN_MAIN);
+
+#if defined(ETHFW_PPS_DEMO_SUPPORT)
+    /* Configure pinmux settings for Ethernet ports and MDIO */
+    Board_pinmuxUpdate(gEthFwPinmuxData, BOARD_SOC_DOMAIN_MAIN);
+#endif
 }
 
 static void EthFwBoard_detectDBs(void)

@@ -108,6 +108,9 @@ ETHFW_DEMO_SUPPORT?=no
 # Support for random MAC Address generation
 ETHFW_RAND_MACADDR_GEN?=yes
 
+# Feature flags: PPS Signal Gen
+ETHFW_PPS_DEMO_SUPPORT?=yes
+
 # EthFw EST demo
 ETHFW_EST_DEMO_SUPPORT?=no
 ETHFW_EST_DEMO_TALKER?=no
