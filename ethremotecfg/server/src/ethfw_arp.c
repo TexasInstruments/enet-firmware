@@ -73,14 +73,10 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x102
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
-#include <ti/osal/MutexP.h>
 
-/* Enet LLD header files */
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
+/* OSAL header files */
+#include <ti/osal/osal.h>
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>

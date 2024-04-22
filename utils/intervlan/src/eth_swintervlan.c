@@ -70,26 +70,12 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-
-#include <ti/drv/uart/UART_stdio.h>
 #include <ti/csl/csl_cpswitch.h>
-
-#include <ti/drv/udma/udma.h>
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/dma/udma/enet_udma.h>
 
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
-
-#include <ti/osal/osal.h>
 
 #include <utils/intervlan/include/eth_swintervlan.h>
 #include <utils/console_io/include/app_log.h>

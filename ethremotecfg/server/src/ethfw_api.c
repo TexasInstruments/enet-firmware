@@ -73,16 +73,11 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x101
 
-#include <stdio.h>
-#include <stdint.h>
-
 /* PDK Driver header files */
 #include <ti/osal/osal.h>
 #include <ti/drv/ipc/ipc.h>
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/udma/udma.h>
-#include <ti/drv/uart/UART_stdio.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
@@ -103,9 +98,6 @@
 #if defined(ETHFW_GPTP_SUPPORT)
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
-
-/* EthFw utils header files */
-#include <utils/console_io/include/app_log.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */

@@ -44,7 +44,6 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <stdint.h>
 #include <ti/drv/enet/enet.h>
 
 #ifdef __cplusplus

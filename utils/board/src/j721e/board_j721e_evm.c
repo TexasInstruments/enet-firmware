@@ -44,9 +44,6 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x401
 
-#include <stdint.h>
-#include <stdarg.h>
-
 #include <ti/drv/gpio/GPIO.h>
 #include <ti/drv/gpio/soc/GPIO_soc.h>
 

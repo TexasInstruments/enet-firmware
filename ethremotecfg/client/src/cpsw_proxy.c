@@ -67,9 +67,6 @@
 #define ETHFWTRACE_MOD_ID 0x201
 #define ETHFWTRACE_MOD_NAME "CpswProxy"
 
-#include <stdio.h>
-#include <stdint.h>
-
 #ifdef QNX_OS
 #include <stdlib.h>
 #include <errno.h>
@@ -86,16 +83,9 @@
 
 /* OSAL */
 #include <ti/osal/osal.h>
-#include <ti/osal/MutexP.h>
-#include <ti/osal/SemaphoreP.h>
-#include <ti/osal/TaskP.h>
-#include <ti/osal/MailboxP.h>
-
 #include <ti/drv/ipc/ipc.h>
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
-#include <ethremotecfg/protocol/ethremotecfg.h>
-#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
 

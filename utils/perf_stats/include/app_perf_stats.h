@@ -65,7 +65,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <utils/mem/include/app_mem.h>
 
 /**
  * \defgroup apps_utils_perf_stats Performance statistics reporting APIs

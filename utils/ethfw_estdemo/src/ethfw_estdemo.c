@@ -70,19 +70,17 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
+#include <ti/drv/enet/include/per/cpsw.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #include <utils/ethfw_estdemo/include/ethfw_estdemo.h>
-#include <tsn_uniconf/yangs/yang_db_runtime.h>
-#include <tsn_unibase/unibase.h>
-#include <tsn_unibase/unibase_binding.h>
-#include <tsn_uniconf/yangs/yang_modules.h>
-#include <ti/drv/enet/include/core/enet_mod_tas.h>
-#include <utils/console_io/include/app_log.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_common/include/ethfw_types.h>
+
+#include <tsn_uniconf/yangs/yang_db_runtime.h>
+#include <tsn_uniconf/ucman.h>
 #include <tsn_gptp/gptpmasterclock.h>
 
 /* ========================================================================== */

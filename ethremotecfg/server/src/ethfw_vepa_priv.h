@@ -75,8 +75,7 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include "lwip/prot/ethernet.h"
-#include "netif/ethernet.h"
+#include <ti/drv/enet/enet.h>
 #include <ethremotecfg/server/include/ethfw_vepa.h>
 
 #ifdef __cplusplus

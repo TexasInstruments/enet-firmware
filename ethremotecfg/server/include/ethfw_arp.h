@@ -78,7 +78,6 @@
 #include "lwip/prot/etharp.h"
 #include "lwip/prot/ethernet.h"
 #include "netif/ethernet.h"
-#include <utils/ethfw_common/include/ethfw_types.h>
 
 #ifdef __cplusplus
 extern "C" {

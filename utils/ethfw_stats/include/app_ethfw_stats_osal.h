@@ -64,14 +64,10 @@
 #define __APP_ETHFW_STATS_OSAL_H__
 
 #include <stdint.h>
-#include <stdio.h>
 
 #include <ti/osal/osal.h>
-#include <ti/osal/TaskP.h>
-#include <ti/osal/SemaphoreP.h>
 
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
 #include "app_ethfw_stats.h"

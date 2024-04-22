@@ -74,7 +74,7 @@
 /* ========================================================================== */
 
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
+#include <utils/ethfw_common/include/ethfw_types.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 #include <ethremotecfg/server/include/ethfw_mcast.h>
 #include <ethremotecfg/server/include/ethfw_vlan.h>

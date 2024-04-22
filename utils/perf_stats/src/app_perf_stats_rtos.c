@@ -60,14 +60,10 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
-
 #include <ti/osal/LoadP.h>
-#include <ti/osal/TaskP.h>
-#include <ti/osal/HwiP.h>
+#include <ti/osal/osal.h>
 
-#include <ti/osal/SemaphoreP.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/perf_stats/src/app_perf_stats_priv.h>

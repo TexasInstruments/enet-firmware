@@ -64,35 +64,26 @@
 #define ETHFWTRACE_MOD_ID 0x701
 #define ETHFWTRACE_MOD_NAME "RTOS-App"
 
-#include <stdio.h>
-#include <stdint.h>
-
 #if defined(__KLOCWORK__)
 #include <stdlib.h>
 #endif
 
-/* OSAL */
-#include <ti/osal/osal.h>
-#include <ti/osal/SemaphoreP.h>
-#include <ti/osal/TaskP.h>
-#include <ti/osal/MailboxP.h>
-
 #include <ti/csl/cslr_gtc.h>
+#include <ti/osal/osal.h>
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 
-#include <apps/ipc_cfg/app_ipc_rsctable.h>
 #include <ti/drv/ipc/ipc.h>
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/include/dma/udma/enet_udma.h>
-#include <ti/drv/enet/include/core/enet_dma.h>
+#include <apps/ipc_cfg/app_ipc_rsctable.h>
 
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
 #include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
 
-#include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
+#include <ti/drv/udma/udma.h>
+#include <ti/drv/enet/enet.h>
+#include <ti/drv/enet/include/per/cpsw.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 
@@ -116,10 +107,6 @@
 #if defined(ETHAPP_ENABLE_IPERF_SERVER)
 #include "examples/lwiperf/lwiperf_example.h"
 #endif
-
-#include <ti/drv/enet/lwipif/inc/default_netif.h>
-#include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 #include <ti/drv/enet/lwipific/inc/netif_ic.h>

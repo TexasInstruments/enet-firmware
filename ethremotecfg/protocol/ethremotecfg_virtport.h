@@ -75,7 +75,6 @@
 /* ========================================================================== */
 
 #include <ti/drv/enet/enet.h>
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

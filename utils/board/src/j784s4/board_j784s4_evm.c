@@ -44,9 +44,6 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x404
 
-#include <stdint.h>
-#include <stdarg.h>
-
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
@@ -55,7 +52,6 @@
 #include <ti/board/src/j784s4_evm/include/board_pinmux.h>
 #include <ti/board/src/j784s4_evm/include/board_utils.h>
 #include <ti/board/src/j784s4_evm/include/board_control.h>
-#include <ti/board/src/j784s4_evm/include/board_cfg.h>
 #include <ti/board/src/j784s4_evm/include/board_ethernet_config.h>
 #include <ti/board/src/j784s4_evm/include/board_serdes_cfg.h>
 

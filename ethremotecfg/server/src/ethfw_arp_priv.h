@@ -74,10 +74,6 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include "lwip/ip4_addr.h"
-#include "lwip/prot/etharp.h"
-#include "lwip/prot/ethernet.h"
-#include "netif/ethernet.h"
 #include <ethremotecfg/server/include/ethfw_arp.h>
 
 #ifdef __cplusplus

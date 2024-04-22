@@ -77,7 +77,6 @@
 
 #include "lwip/prot/ethernet.h"
 #include "netif/ethernet.h"
-#include <utils/ethfw_common/include/ethfw_types.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #ifdef __cplusplus

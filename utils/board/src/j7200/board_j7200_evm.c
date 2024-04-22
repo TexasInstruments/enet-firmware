@@ -44,9 +44,6 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x403
 
-#include <stdint.h>
-#include <stdarg.h>
-
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 

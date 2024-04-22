@@ -73,16 +73,10 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x108
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-
 /* TSN header files */
 #include <tsn_buildconf/jacinto_buildconf.h>
 #include <tsn_gptp/tilld/lld_gptp_private.h>
 #include <tsn_uniconf/yangs/yang_db_runtime.h>
-#include <tsn_uniconf/yangs/yang_modules.h>
-#include <tsn_uniconf/uc_dbal.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
 #include <tsn_uniconf/yangs/ieee1588-ptp-tt_access.h>
 #include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
@@ -92,18 +86,13 @@
 #include <tsn_unibase/unibase_binding.h>
 
 /* PDK driver header files */
-#include <ti/osal/MutexP.h>
 #include <ti/osal/osal.h>
-#include <ti/osal/SemaphoreP.h>
-#include <ti/osal/TaskP.h>
 
 /* Enet LLD header files */
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 /* EthFw header files */
-#include <utils/ethfw_common/include/ethfw_utils.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 

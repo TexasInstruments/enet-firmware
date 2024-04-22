@@ -74,13 +74,8 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <utils/ethfw_common/include/ethfw_types.h>
 #include <tsn_buildconf/jacinto_buildconf.h>
-#include <tsn_uniconf/uc_dbal.h>
-#include <tsn_uniconf/ucman.h>
 #include <tsn_combase/combase.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/osal/TaskP.h>
 
 #ifdef __cplusplus
 extern "C" {

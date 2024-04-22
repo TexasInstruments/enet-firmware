@@ -74,13 +74,9 @@
 #define ETHFWTRACE_MOD_ID 0x107
 
 #include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <ti/osal/MutexP.h>
+#include <ti/osal/osal.h>
 
 /* Enet LLD header files */
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
 
@@ -98,7 +94,6 @@
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
-#include <tsn_combase/tilld/lldenet.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
 

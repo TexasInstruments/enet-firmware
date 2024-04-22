@@ -63,10 +63,10 @@
 #ifndef __CPSWPROXYSERVER_H__
 #define __CPSWPROXYSERVER_H__
 
+
 #include <stdint.h>
-#include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ti/drv/enet/enet.h>
-#include <utils/ethfw_common/include/ethfw_types.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #ifdef __cplusplus

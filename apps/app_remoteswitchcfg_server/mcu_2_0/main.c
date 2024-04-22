@@ -73,23 +73,10 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x601
 
-#include <stdio.h>
-#include <stdint.h>
-
-/* OSAL */
-#include <ti/osal/osal.h>
-#include <ti/osal/SemaphoreP.h>
-#include <ti/osal/TaskP.h>
-#include <ti/osal/MailboxP.h>
-
 /* PDK Driver Header files */
+#include <ti/osal/osal.h>
 #include <ti/drv/ipc/ipc.h>
-#include <ti/drv/udma/udma.h>
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/core/enet_mod_hostport.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/include/dma/udma/enet_udma.h>
-#include <ti/drv/enet/include/core/enet_dma.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 /* EthFw header files */

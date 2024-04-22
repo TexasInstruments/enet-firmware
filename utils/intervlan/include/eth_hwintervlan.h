@@ -77,6 +77,7 @@
 extern "C" {
 #endif
 
+#include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
 
 /* ========================================================================== */

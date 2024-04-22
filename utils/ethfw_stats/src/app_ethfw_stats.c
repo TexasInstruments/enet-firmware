@@ -60,11 +60,9 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
-
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
+#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <utils/console_io/include/app_log.h>
 
 #define APP_ETHFW_STATS_POLL_PERIOD_MS           (500U)

@@ -66,20 +66,12 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x106
 
-#include <stdio.h>
-#include <stdint.h>
-
 /* PDK header files */
 #include <ti/osal/osal.h>
-#include <ti/osal/SemaphoreP.h>
-#include <ti/osal/TaskP.h>
-#include <ti/osal/EventP.h>
 #include <ti/drv/ipc/ipc.h>
 
 /* EthFw utils header files */
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/core/enet_dma.h>
-#include <ti/drv/enet/include/core/enet_mod_hostport.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>

@@ -73,18 +73,11 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x501
 
-#include <stdio.h>
-#include <stdint.h>
-
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/dma/udma/enet_udma.h>
-#include <ti/drv/udma/udma.h>
-#include <ti/drv/uart/UART_stdio.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
 
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>

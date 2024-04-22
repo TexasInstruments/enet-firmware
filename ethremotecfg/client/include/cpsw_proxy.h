@@ -67,7 +67,6 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <stdint.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 

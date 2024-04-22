@@ -73,6 +73,8 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
+#include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

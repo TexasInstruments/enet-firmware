@@ -70,22 +70,8 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-
-#include <ti/osal/osal.h>
-#include <ti/drv/uart/UART_stdio.h>
-
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/dma/udma/enet_udma.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_ethutils.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
+#include <ti/drv/enet/include/per/cpsw.h>
 
 #include <ti/board/board.h>
 

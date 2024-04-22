@@ -43,11 +43,8 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x103
 
-#include <stdint.h>
-#include <stdarg.h>
-
 /* PDK header files */
-#include <ti/osal/MutexP.h>
+#include <ti/osal/osal.h>
 
 /* Enet LLD header files */
 #include <ti/drv/enet/enet.h>
