@@ -80,6 +80,7 @@
 #include <ethremotecfg/server/include/ethfw_vlan.h>
 #include <ethremotecfg/server/include/ethfw_vepa.h>
 #include <ethremotecfg/server/include/ethfw_monitor.h>
+#include <ethremotecfg/server/include/ethfw_qos.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 
 #ifdef __cplusplus
@@ -202,7 +203,7 @@ typedef struct EthFw_VirtPortCfg_s
     uint32_t numRxFlow;
 
     /*! Array of rx flow information for a given virtual port */
-    EthFw_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
+    EthFwQos_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
 
     /*! Number of mac address allocated allocated for a given virtual port */
     uint32_t numMacAddress;

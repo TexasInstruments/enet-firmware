@@ -44,7 +44,8 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/enet/include/mod/cpsw_ale.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -144,30 +145,11 @@ extern "C" {
 /*! \brief Macro to check if value is not zero. */
 #define ETHFW_NOT_ZERO(val)                    ((uint32_t)0U != (uint32_t)(val))
 
-/*!
- * \brief Maximum number of custom policers per flow
- */
-#define ETHFW_POLICER_PERFLOW                  (10U)
-
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
 
-/*!
- * \brief Flow information for primary and extended flows
- */
-typedef struct EthFw_RxFlowInfo_s
-{
-    /*! Allocated flow index offset. */
-    uint32_t rxFlowIdxOffset;
-
-    /*! Number of custom policers for this flow */
-    uint32_t numCustomPolicers;
-
-    /*! Address of custom policers (which application wants to generate) input arguments
-     * 1 rx flow can have multiple custom policers for it */
-    CpswAle_SetPolicerEntryInPartitionInArgs *customPolicersInArgs[ETHFW_POLICER_PERFLOW];
-} EthFw_RxFlowInfo;
+/* None */
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
