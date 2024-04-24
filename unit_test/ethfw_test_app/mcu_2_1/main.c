@@ -563,7 +563,3 @@ static int32_t CpswRemoteApp_openEnet(void)
 
     return status;
 }
-
-
-
-

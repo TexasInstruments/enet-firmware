@@ -837,11 +837,11 @@ int32_t CpswProxy_unregisterNotifyCb(CpswProxy_Handle hProxy,
                                      uint32_t notifyType);
 
 /*!
- * \brief Send an ethremoteCfg command.
+ * \brief Send an remote command.
  *
- * Send an ethremoteCfg command.This api is intended to be used
- * for testing only, application should call Cpsw Proxy api's
- * to send any ethremoteCfg commands.
+ * Send an command to ETHFW.This function can be used to send any supported 
+ * remote commands to ETHFW.Note that it's recommended to use the dedicated
+ * CPSW Proxy Client API if one exists for the desired functionality.
  *
  * \param hProxy      Handle to Cpsw Proxy.
  * \param reqType     Request type.

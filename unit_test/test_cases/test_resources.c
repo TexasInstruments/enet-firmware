@@ -76,7 +76,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <ti/osal/MutexP.h>
 
 /* Enet LLD header files */
 #include <ti/drv/enet/enet.h>
@@ -659,66 +658,23 @@ void EthFwUT_registerIPV4AddrCmdTest(void)
 {
     EthRemoteCfg_IPv4AddrRegisterReq req;
     EthRemoteCfg_StatusRes res;
-    uint32_t rxStartFlowId;
-    uint32_t rxFlowIdOffset;
-    uint32_t flowIdx = 0U;
-    uint8_t macAddr[ETHREMOTECFG_MACADDRLEN];
     uint8_t ipv4Addr[ETHREMOTECFG_IPV4ADDRLEN] = {192, 168, 0, 10};
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
-
-    /* Alloc a RX flow */
-    status = CpswProxy_allocRxFlow(gTestProxy,
-                                   &rxStartFlowId,
-                                   &rxFlowIdOffset,
-                                   flowIdx);
-    if (status != CPSWPROXY_SOK)
-        goto end;
-
-    /* Alloc a MAC */
-    status = CpswProxy_allocMac(gTestProxy,
-                                macAddr);
-    if (status != CPSWPROXY_SOK)
-        goto err_alloc;
-
-    /* Register the MAC */
-    status = CpswProxy_registerDstMacRxFlow(gTestProxy,
-                                            rxStartFlowId,
-                                            rxFlowIdOffset,
-                                            macAddr);
-    if (status != CPSWPROXY_SOK)
-        goto err_regmac;
-
     memcpy(req.ipAddr, ipv4Addr, ETHREMOTECFG_IPV4ADDRLEN);
-    memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_REGISTER_IPv4,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
     if (status != CPSWPROXY_SOK)
-        goto err_ipv4;
+        goto end;
 
     /* unregister the ipv4 address */
     status = CpswProxy_unregisterIPV4Addr(gTestProxy,
-                                            ipv4Addr);
+                                          ipv4Addr);
 
-err_ipv4:
-    /* Unregister the MAC */
-    status = CpswProxy_unregisterDstMacRxFlow(gTestProxy,
-                                              rxStartFlowId,
-                                              rxFlowIdOffset,
-                                              macAddr);
-err_regmac:
-    /* Free the MAC */
-    status = CpswProxy_freeMac(gTestProxy,
-                               macAddr);
-err_alloc:
-    /* Free the allocated RX flow */
-    status = CpswProxy_freeRxFlow(gTestProxy,
-                                  rxStartFlowId,
-                                  rxFlowIdOffset);
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -744,9 +700,7 @@ void EthFwUT_testResources(void *args)
                               txMtu,
                               &numTxCh,
                               &numRxFlow);
-
-    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to attach to Ethernet device.");
-    TEST_ASSERT_FALSE(status != CPSWPROXY_SOK);
+    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to attach to Ethernet device.");
 
     UnityBegin("test_resources.c");
 
@@ -791,6 +745,5 @@ void EthFwUT_testResources(void *args)
     UnityEnd();
 
     status = CpswProxy_detach(gTestProxy);
-    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to detach from Ethernet device.");
-    TEST_ASSERT_FALSE(status != CPSWPROXY_SOK);
+    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to detach from Ethernet device.");
 }

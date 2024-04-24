@@ -76,7 +76,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <ti/osal/MutexP.h>
 
 /* Enet LLD header files */
 #include <ti/drv/enet/enet.h>
