@@ -28,6 +28,9 @@
 #include <stdarg.h>
 #endif
 
+/* Prefix to append to integer testcase ID, passed as argument to RUN_TEST() */
+#define  UNITY_TESTCASE_ID_PREFIX   "ETHFW-"
+
 /* Unity Attempts to Auto-Detect Integer Types
  * Attempt 1: UINT_MAX, ULONG_MAX in <limits.h>, or default to 32 bits
  * Attempt 2: UINTPTR_MAX in <stdint.h>, or default to same size as long

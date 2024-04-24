@@ -40,9 +40,6 @@
 #include <ti/drv/uart/UART.h>
 #include <ti/drv/uart/UART_stdio.h>
 
-/* Prefix to append to integer testcase ID, passed as argument to RUN_TEST() */
-#define  UNITY_TESTCASE_ID_PREFIX   "ETHFW-"
-
 /* ************************* AUTOMATIC INTEGER TYPES ***************************
  * C's concept of an integer varies from target to target. The C Standard has
  * rules about the `int` matching the register size of the target

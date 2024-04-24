@@ -525,9 +525,10 @@ static void UnityTestResultsBegin(const char* file, const UNITY_LINE_TYPE line)
 #else
     UnityPrint(file);
     UNITY_OUTPUT_CHAR(':');
-    UnityPrintNumber((UNITY_INT)line);
-    UNITY_OUTPUT_CHAR(':');
     UnityPrint(Unity.CurrentTestName);
+    UNITY_OUTPUT_CHAR(':');
+    UnityPrint(UNITY_TESTCASE_ID_PREFIX);
+    UnityPrintNumber((UNITY_INT)line);
     UNITY_OUTPUT_CHAR(':');
 #endif
 #endif
