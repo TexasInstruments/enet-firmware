@@ -61,19 +61,18 @@
  */
 
 /*!
- * \file ethfw_test_cases.h
+ * \file ethfw_test_id.h
  *
- * \brief This file contains the type definitions, helper macros and functions
+ * \brief This file contains the jira id details for test cases
  *        required for Ethernet Firmware test automation.
  */
 
-#ifndef ETHFW_TEST_CASES_H_
-#define ETHFW_TEST_CASES_H_
+#ifndef ETHFW_TEST_ID_H_
+#define ETHFW_TEST_ID_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
 /* ========================================================================== */
-#include "ethfw_test_id.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,7 +81,49 @@ extern "C" {
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
-
+#if defined(SAFERTOS)
+#define ETHFW_UT_ATTACH_TEST1_ID                          (2645U)
+#define ETHFW_UT_ATTACH_TEST2_ID                          (2666U)
+#define ETHFW_UT_DETACH_TEST1_ID                          (2665U)
+#define ETHFW_UT_DETACH_TEST2_ID                          (2664U)
+#define ETHFW_UT_ATTACH_NEGTEST_ID                        (2663U)
+#define ETHFW_UT_ALLOC_TX_TEST1_ID                        (2662U)
+#define ETHFW_UT_ALLOC_TX_NEGTEST_ID                      (2661U)
+#define ETHFW_UT_FREE_TX_TEST1_ID                         (2660U)
+#define ETHFW_UT_FREE_TX_NEGTEST_ID                       (2659U)
+#define ETHFW_UT_ALLOC_RX_TEST1_ID                        (2658U)
+#define ETHFW_UT_FREE_RX_TEST1_ID                         (2657U)
+#define ETHFW_UT_ALLOC_RX_NEGTEST_ID                      (2656U)
+#define ETHFW_UT_FREE_RX_NEGTEST_ID                       (2655U)
+#define ETHFW_UT_ALLOC_MAC_TEST1_ID                       (2654U)
+#define ETHFW_UT_FREE_MAC_TEST1_ID                        (2653U)
+#define ETHFW_UT_REGISTER_MAC_TEST_ID                     (2652U)
+#define ETHFW_UT_REGISTER_MAC_NEGTEST_ID                  (2651U)
+#define ETHFW_UT_UNREGISTER_MAC_TEST_ID                   (2650U)
+#define ETHFW_UT_UNREGISTER_MAC_NEGTEST_ID                (2649U)
+#define ETHFW_UT_REGISTER_IPV4_TEST_ID                    (2648U)
+#else
+#define ETHFW_UT_ATTACH_TEST1_ID                          (2625U)
+#define ETHFW_UT_ATTACH_TEST2_ID                          (2626U)
+#define ETHFW_UT_DETACH_TEST1_ID                          (2627U)
+#define ETHFW_UT_DETACH_TEST2_ID                          (2628U)
+#define ETHFW_UT_ATTACH_NEGTEST_ID                        (2629U)
+#define ETHFW_UT_ALLOC_TX_TEST1_ID                        (2630U)
+#define ETHFW_UT_ALLOC_TX_NEGTEST_ID                      (2631U)
+#define ETHFW_UT_FREE_TX_TEST1_ID                         (2632U)
+#define ETHFW_UT_FREE_TX_NEGTEST_ID                       (2633U)
+#define ETHFW_UT_ALLOC_RX_TEST1_ID                        (2634U)
+#define ETHFW_UT_FREE_RX_TEST1_ID                         (2635U)
+#define ETHFW_UT_ALLOC_RX_NEGTEST_ID                      (2636U)
+#define ETHFW_UT_FREE_RX_NEGTEST_ID                       (2637U)
+#define ETHFW_UT_ALLOC_MAC_TEST1_ID                       (2638U)
+#define ETHFW_UT_FREE_MAC_TEST1_ID                        (2639U)
+#define ETHFW_UT_REGISTER_MAC_TEST_ID                     (2640U)
+#define ETHFW_UT_REGISTER_MAC_NEGTEST_ID                  (2641U)
+#define ETHFW_UT_UNREGISTER_MAC_TEST_ID                   (2642U)
+#define ETHFW_UT_UNREGISTER_MAC_NEGTEST_ID                (2643U)
+#define ETHFW_UT_REGISTER_IPV4_TEST_ID                    (2644U)
+#endif
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
@@ -92,9 +133,6 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void EthFwUT_testConnection(void *args);
-
-void EthFwUT_testResources(void *args);
 
 #ifdef __cplusplus
 }
@@ -102,4 +140,4 @@ void EthFwUT_testResources(void *args);
 
 /*! @} */
 
-#endif /* ETHFW_TEST_CASES_H_ */
+#endif /* ETHFW_TEST_ID_H_ */

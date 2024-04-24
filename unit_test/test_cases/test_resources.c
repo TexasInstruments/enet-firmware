@@ -704,33 +704,47 @@ void EthFwUT_testResources(void *args)
 
     UnityBegin("test_resources.c");
 
-    RUN_TEST(EthFwUT_allocTxCmdTest1, 2630);
+    /* ETHFW-ETHFW_UT_ALLOC_TX_TEST1_ID: Test ALLOC_TX with valid parameters. */
+    RUN_TEST(EthFwUT_allocTxCmdTest1, ETHFW_UT_ALLOC_TX_TEST1_ID);
 
-    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  2631);
+    /* ETHFW-ETHFW_UT_ALLOC_TX_NEGTEST_ID: Test ALLOC_TX with invalid priority. */
+    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_ALLOC_TX_NEGTEST_ID);
 
-    RUN_TEST(EthFwUT_freeTxCmdTest1,  2632);
+    /* ETHFW-ETHFW_UT_FREE_TX_TEST1_ID: Test FREE_TX with valid parameters. */
+    RUN_TEST(EthFwUT_freeTxCmdTest1,  ETHFW_UT_FREE_TX_TEST1_ID);
 
-    RUN_TEST(EthFwUT_freeTxCmdNegTest,  2633);
+    /* ETHFW-ETHFW_UT_FREE_TX_NEGTEST_ID: Test FREE_TX with invalid txPsilDstId. */
+    RUN_TEST(EthFwUT_freeTxCmdNegTest,  ETHFW_UT_FREE_TX_NEGTEST_ID);
 
-    RUN_TEST(EthFwUT_allocRxCmdTest1,  2634);
+    /* ETHFW-ETHFW_UT_ALLOC_RX_TEST1_ID: Test ALLOC_RX with valid parameters. */
+    RUN_TEST(EthFwUT_allocRxCmdTest1,  ETHFW_UT_ALLOC_RX_TEST1_ID);
 
-    RUN_TEST(EthFwUT_freeRxCmdTest1,  2635);
+    /* ETHFW-ETHFW_UT_FREE_RX_TEST1_ID: Test FREE_RX with valid parameters. */
+    RUN_TEST(EthFwUT_freeRxCmdTest1,  ETHFW_UT_FREE_RX_TEST1_ID);
 
-    RUN_TEST(EthFwUT_allocRxCmdNegTest,  2636);
+    /* ETHFW-ETHFW_UT_ALLOC_RX_NEGTEST_ID: Test ALLOC_RX with invalid priority. */
+    RUN_TEST(EthFwUT_allocRxCmdNegTest,  ETHFW_UT_ALLOC_RX_NEGTEST_ID);
 
-    RUN_TEST(EthFwUT_freeRxCmdNegTest,  2637);
+    /* ETHFW-ETHFW_UT_FREE_RX_NEGTEST_ID: Test FREE_RX with invalid priority. */
+    RUN_TEST(EthFwUT_freeRxCmdNegTest,  ETHFW_UT_FREE_RX_NEGTEST_ID);
 
-    RUN_TEST(EthFwUT_allocMacCmdTest1,  2638);
+    /* ETHFW-ETHFW_UT_ALLOC_MAC_TEST1_ID: Test ALLOC_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_allocMacCmdTest1,  ETHFW_UT_ALLOC_MAC_TEST1_ID);
 
-    RUN_TEST(EthFwUT_freeMacCmdTest1,  2639);
+    /* ETHFW-ETHFW_UT_FREE_MAC_TEST1_ID: Test FREE_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_freeMacCmdTest1,  ETHFW_UT_FREE_MAC_TEST1_ID);
 
-    RUN_TEST(EthFwUT_registerMacCmdTest,  2640);
+    /* ETHFW-ETHFW_UT_REGISTER_MAC_TEST_ID: Test REGISTER_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_registerMacCmdTest,  ETHFW_UT_REGISTER_MAC_TEST_ID);
 
-    RUN_TEST(EthFwUT_registerMacCmdNegTest,  2641);
+    /* ETHFW-ETHFW_UT_REGISTER_MAC_NEGTEST_ID: Test REGISTER_MAC with invalid RX flow params. */
+    RUN_TEST(EthFwUT_registerMacCmdNegTest,  ETHFW_UT_REGISTER_MAC_NEGTEST_ID);
 
-    RUN_TEST(EthFwUT_unregisterMacCmdTest,  2642);
+    /* ETHFW-ETHFW_UT_UNREGISTER_MAC_TEST_ID: Test UNREGISTER_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_unregisterMacCmdTest,  ETHFW_UT_UNREGISTER_MAC_TEST_ID);
 
-    RUN_TEST(EthFwUT_unregisterMacCmdNegTest,  2643);
+    /* ETHFW-ETHFW_UT_UNREGISTER_MAC_NEGTEST_ID: Test UNREGISTER_MAC with invalid RX flow params.. */
+    RUN_TEST(EthFwUT_unregisterMacCmdNegTest,  ETHFW_UT_UNREGISTER_MAC_NEGTEST_ID);
 
     // RUN_TEST(EthFwUT_registerDefaultRxFlowCmdTest,  0);
 
@@ -740,7 +754,8 @@ void EthFwUT_testResources(void *args)
 
     // RUN_TEST(EthFwUT_unregisterDefaultRxFlowCmdNegTest,  0);
 
-    RUN_TEST(EthFwUT_registerIPV4AddrCmdTest,  2644);
+    /* ETHFW-ETHFW_UT_REGISTER_IPV4_TEST_ID: Test REGISTER_IPV4 with valid parameters. */
+    RUN_TEST(EthFwUT_registerIPV4AddrCmdTest,  ETHFW_UT_REGISTER_IPV4_TEST_ID);
     
     UnityEnd();
 

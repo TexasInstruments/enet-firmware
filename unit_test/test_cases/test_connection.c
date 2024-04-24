@@ -215,15 +215,20 @@ void EthFwUT_testConnection(void* args)
 
     UnityBegin("test_connection.c");
 
-    RUN_TEST(EthFwUT_attachCmd1,  2625);
+    /* ETHFW-ETHFW_UT_ATTACH_TEST1_ID: Test ATTACH with valid parameters. */
+    RUN_TEST(EthFwUT_attachCmd1,  ETHFW_UT_ATTACH_TEST1_ID);
 
-    RUN_TEST(EthFwUT_attachCmd2,  2626);
+    /* ETHFW-ETHFW_UT_ATTACH_TEST2_ID: Test ATTACH twice with valid parameters. */
+    RUN_TEST(EthFwUT_attachCmd2,  ETHFW_UT_ATTACH_TEST2_ID);
 
-    RUN_TEST(EthFwUT_detachCmd1,  2627);
+    /* ETHFW-ETHFW_UT_DETACH_TEST1_ID: Test DETACH with valid parameters. */
+    RUN_TEST(EthFwUT_detachCmd1,  ETHFW_UT_DETACH_TEST1_ID);
 
-    RUN_TEST(EthFwUT_detachCmd2,  2628);
+    /* ETHFW-ETHFW_UT_DETACH_TEST2_ID: Test DETACH with valid parameters. */
+    RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_DETACH_TEST2_ID);
 
-    RUN_TEST(EthFwUT_attachCmdNegTest,  2629);
+    /* ETHFW-ETHFW_UT_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
+    RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_ATTACH_NEGTEST_ID);
 
     UnityEnd();
 
