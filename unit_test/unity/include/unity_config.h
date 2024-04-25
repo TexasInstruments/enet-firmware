@@ -37,7 +37,6 @@
 #ifndef UNITY_CONFIG_H
 #define UNITY_CONFIG_H
 
-#include <ti/drv/uart/UART.h>
 #include <ti/drv/uart/UART_stdio.h>
 
 /* ************************* AUTOMATIC INTEGER TYPES ***************************

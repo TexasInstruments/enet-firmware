@@ -84,7 +84,6 @@
 /* EthFw header files */
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
-#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
 
