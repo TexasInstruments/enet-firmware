@@ -104,16 +104,6 @@
 #define System_printf printf
 #define System_vprintf vprintf
 
-#if defined(ENABLE_MAC_ONLY_PORTS)
-#define CPSW_REMOTE_APP_REMOTE_NETIF_MAX      (2U)
-#else
-#define CPSW_REMOTE_APP_REMOTE_NETIF_MAX      (1U)
-#endif
-
-#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
-#define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL   (30U)
-#define CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM      (2U)
-
 #define VQ_TIMEOUT              (100)
 #define VQ_BUF_SIZE             (2048)
 
@@ -134,14 +124,13 @@
                                                CPSW_REMOTE_APP_IPC_NUM_RPMSG_BUFS + \
                                                CPSW_REMOTE_APP_IPC_RPMSG_OBJ_SIZE)
 
+#if defined(SAFERTOS)
+#define ETHAPP_IPC_TASK_STACKALIGN              IPC_TASK_STACKSIZE 
+#else
 #define ETHAPP_IPC_TASK_STACKALIGN              (8192U)
+#endif
 
 static uint8_t g_initTaskStackBuf[IPC_TASK_STACKSIZE]
-__attribute__ ((section(".bss:taskStackSection")))
-__attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
-;
-
-static uint8_t g_vdevMonStackBuf[IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
@@ -244,6 +233,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
 };
 
 CpswProxy_Handle gProxy;
+CpswProxy_Config gProxyConfig;
 
 static void EthApp_waitForDebugger(void);
 
@@ -293,7 +283,6 @@ void setUp(void)
     /* Do the setup when gProxy is Null*/
     if (gProxy == NULL)
     {
-        CpswProxy_Config proxyConfig;
         int32_t status;
 
         /* Start Cpsw Proxy */
@@ -305,10 +294,8 @@ void setUp(void)
             status = CpswProxy_connect();
         }
         while (status != IPC_SOK);
-        
-        proxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
 
-        gProxy = CpswProxy_open(&proxyConfig);
+        gProxy = CpswProxy_open(&gProxyConfig);
         localAssert(gProxy != NULL);
     }
 
@@ -339,7 +326,7 @@ static void CpswRemoteTestApp_initTask(void* a0,
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
     MailboxP_Params mbxParams;
-    CpswProxy_Config proxyConfig;
+
     int32_t status;
     uint32_t i;
 
@@ -409,19 +396,32 @@ static void CpswRemoteTestApp_initTask(void* a0,
     }
     while (status != IPC_SOK);
     
-    proxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+    gProxyConfig.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
 
-    gProxy = CpswProxy_open(&proxyConfig);
+    gProxy = CpswProxy_open(&gProxyConfig);
     localAssert(gProxy != NULL);
 
-    EthFwUT_testConnection((void *)gProxy);
+    EthFwUT_testSwitchConnection((void *)gProxy, (void *)&gProxyConfig);
 
     /* Reset the test configurations */
     resetTestCfg();
 
-    EthFwUT_testResources((void *)gProxy); 
+    EthFwUT_testSwitchResources((void *)gProxy, (void *)&gProxyConfig);
 
+#if !defined(SAFERTOS)
+    /* Update proxyConfig to MAC only configuration */
+    gProxyConfig.virtPort = ETHREMOTECFG_MAC_PORT_4;
 
+    /* Reset the test configurations */
+    resetTestCfg();
+
+    EthFwUT_testMacConnection((void *)gProxy, (void *)&gProxyConfig);
+
+    /* Reset the test configurations */
+    resetTestCfg();
+
+    EthFwUT_testMacResources((void *)gProxy, (void *)&gProxyConfig);
+#endif
 }
 
 int main(void)

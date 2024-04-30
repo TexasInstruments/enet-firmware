@@ -92,9 +92,13 @@ extern "C" {
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-void EthFwUT_testConnection(void *args);
+void EthFwUT_testSwitchConnection(void *arg1, void *arg2);
 
-void EthFwUT_testResources(void *args);
+void EthFwUT_testSwitchResources(void *arg1, void *arg2);
+
+void EthFwUT_testMacConnection(void *arg1, void *arg2);
+
+void EthFwUT_testMacResources(void *arg1, void *arg2);
 
 #ifdef __cplusplus
 }

@@ -104,6 +104,7 @@
 /*                            Global Variables                                */
 /* ========================================================================== */
 CpswProxy_Handle gTestProxy;
+CpswProxy_Config *gTestProxyConfig;
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -114,7 +115,7 @@ void EthFwUT_attachCmd1(void)
     EthRemoteCfg_AttachRes res;
     int32_t status;
 
-    req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+    req.virtPort = gTestProxyConfig->virtPort;
 
     memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
 
@@ -134,7 +135,7 @@ void EthFwUT_attachCmd2(void)
     EthRemoteCfg_AttachRes res;
     int32_t status;
 
-    req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+    req.virtPort = gTestProxyConfig->virtPort;
 
     memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
 
@@ -154,7 +155,7 @@ void EthFwUT_attachCmdNegTest(void)
     EthRemoteCfg_AttachRes res;
     int32_t status;
 
-    req.virtPort = ETHREMOTECFG_SWITCH_PORT_1;
+    req.virtPort = gTestProxyConfig->virtPort;
 
     memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
 
@@ -206,30 +207,62 @@ void EthFwUT_detachCmd2(void)
         TEST_FAIL();
 }
 
-void EthFwUT_testConnection(void* args)
+void EthFwUT_testSwitchConnection(void *arg1, void * arg2)
 {
     int32_t status;
 
-    gTestProxy = (CpswProxy_Handle)args;
+    gTestProxy = (CpswProxy_Handle)arg1;
     TEST_ASSERT_NOT_NULL(gTestProxy);
+
+    gTestProxyConfig = (CpswProxy_Config *)arg2;
+    TEST_ASSERT_FALSE_MESSAGE((gTestProxyConfig->virtPort != ETHREMOTECFG_SWITCH_PORT_1), "Invalid virtual port.");
 
     UnityBegin("test_connection.c");
 
-    /* ETHFW-ETHFW_UT_ATTACH_TEST1_ID: Test ATTACH with valid parameters. */
-    RUN_TEST(EthFwUT_attachCmd1,  ETHFW_UT_ATTACH_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ATTACH_TEST1_ID: Test ATTACH with valid parameters. */
+    RUN_TEST(EthFwUT_attachCmd1,  ETHFW_UT_SWITCH_ATTACH_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_ATTACH_TEST2_ID: Test ATTACH twice with valid parameters. */
-    RUN_TEST(EthFwUT_attachCmd2,  ETHFW_UT_ATTACH_TEST2_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ATTACH_TEST2_ID: Test ATTACH twice with valid parameters. */
+    RUN_TEST(EthFwUT_attachCmd2,  ETHFW_UT_SWITCH_ATTACH_TEST2_ID);
 
-    /* ETHFW-ETHFW_UT_DETACH_TEST1_ID: Test DETACH with valid parameters. */
-    RUN_TEST(EthFwUT_detachCmd1,  ETHFW_UT_DETACH_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_DETACH_TEST1_ID: Test DETACH with valid parameters. */
+    RUN_TEST(EthFwUT_detachCmd1,  ETHFW_UT_SWITCH_DETACH_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_DETACH_TEST2_ID: Test DETACH with valid parameters. */
-    RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_DETACH_TEST2_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_DETACH_TEST2_ID: Test DETACH with valid parameters. */
+    RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_SWITCH_DETACH_TEST2_ID);
 
-    /* ETHFW-ETHFW_UT_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
-    RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_ATTACH_NEGTEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
+    RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID);
 
     UnityEnd();
+}
 
+void EthFwUT_testMacConnection(void *arg1, void * arg2)
+{
+    int32_t status;
+
+    gTestProxy = (CpswProxy_Handle)arg1;
+    TEST_ASSERT_NOT_NULL(gTestProxy);
+
+    gTestProxyConfig = (CpswProxy_Config *)arg2;
+    TEST_ASSERT_FALSE_MESSAGE((gTestProxyConfig->virtPort != ETHREMOTECFG_MAC_PORT_4), "Invalid virtual port.");
+
+    UnityBegin("test_connection.c");
+
+    /* ETHFW-ETHFW_UT_MAC_ATTACH_TEST1_ID: Test ATTACH with valid parameters. */
+    RUN_TEST(EthFwUT_attachCmd1,  ETHFW_UT_MAC_ATTACH_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_ATTACH_TEST2_ID: Test ATTACH twice with valid parameters. */
+    RUN_TEST(EthFwUT_attachCmd2,  ETHFW_UT_MAC_ATTACH_TEST2_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_DETACH_TEST1_ID: Test DETACH with valid parameters. */
+    RUN_TEST(EthFwUT_detachCmd1,  ETHFW_UT_MAC_DETACH_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_DETACH_TEST2_ID: Test DETACH with valid parameters. */
+    RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_MAC_DETACH_TEST2_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
+    RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_MAC_ATTACH_NEGTEST_ID);
+
+    UnityEnd();
 }

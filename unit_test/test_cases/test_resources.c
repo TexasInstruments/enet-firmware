@@ -104,6 +104,7 @@
 /*                            Global Variables                                */
 /* ========================================================================== */
 CpswProxy_Handle gTestProxy;
+CpswProxy_Config *gTestProxyConfig;
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -684,8 +685,7 @@ end:
         TEST_FAIL();
 }
 
-
-void EthFwUT_testResources(void *args)
+void EthFwUT_testSwitchResources(void *arg1, void *arg2)
 {
     uint32_t txMtu[ENET_PRI_NUM];
     uint32_t hostPortRxMtu;
@@ -693,11 +693,14 @@ void EthFwUT_testResources(void *args)
     uint32_t numRxFlow;
     int32_t status;
 
-    gTestProxy = (CpswProxy_Handle)args;
+    gTestProxy = (CpswProxy_Handle)arg1;
     TEST_ASSERT_NOT_NULL(gTestProxy);
 
+    gTestProxyConfig = (CpswProxy_Config *)arg2;
+    TEST_ASSERT_FALSE_MESSAGE((gTestProxyConfig->virtPort != ETHREMOTECFG_SWITCH_PORT_1), "Invalid virtual port.");
+
     status = CpswProxy_attach(gTestProxy,
-                              ETHREMOTECFG_SWITCH_PORT_1,
+                              gTestProxyConfig->virtPort,
                               &hostPortRxMtu,
                               txMtu,
                               &numTxCh,
@@ -706,47 +709,47 @@ void EthFwUT_testResources(void *args)
 
     UnityBegin("test_resources.c");
 
-    /* ETHFW-ETHFW_UT_ALLOC_TX_TEST1_ID: Test ALLOC_TX with valid parameters. */
-    RUN_TEST(EthFwUT_allocTxCmdTest1, ETHFW_UT_ALLOC_TX_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ALLOC_TX_TEST1_ID: Test ALLOC_TX with valid parameters. */
+    RUN_TEST(EthFwUT_allocTxCmdTest1, ETHFW_UT_SWITCH_ALLOC_TX_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_ALLOC_TX_NEGTEST_ID: Test ALLOC_TX with invalid priority. */
-    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_ALLOC_TX_NEGTEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ALLOC_TX_NEGTEST_ID: Test ALLOC_TX with invalid priority. */
+    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_SWITCH_ALLOC_TX_NEGTEST_ID);
 
-    /* ETHFW-ETHFW_UT_FREE_TX_TEST1_ID: Test FREE_TX with valid parameters. */
-    RUN_TEST(EthFwUT_freeTxCmdTest1,  ETHFW_UT_FREE_TX_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_FREE_TX_TEST1_ID: Test FREE_TX with valid parameters. */
+    RUN_TEST(EthFwUT_freeTxCmdTest1,  ETHFW_UT_SWITCH_FREE_TX_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_FREE_TX_NEGTEST_ID: Test FREE_TX with invalid txPsilDstId. */
-    RUN_TEST(EthFwUT_freeTxCmdNegTest,  ETHFW_UT_FREE_TX_NEGTEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_FREE_TX_NEGTEST_ID: Test FREE_TX with invalid txPsilDstId. */
+    RUN_TEST(EthFwUT_freeTxCmdNegTest,  ETHFW_UT_SWITCH_FREE_TX_NEGTEST_ID);
 
-    /* ETHFW-ETHFW_UT_ALLOC_RX_TEST1_ID: Test ALLOC_RX with valid parameters. */
-    RUN_TEST(EthFwUT_allocRxCmdTest1,  ETHFW_UT_ALLOC_RX_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ALLOC_RX_TEST1_ID: Test ALLOC_RX with valid parameters. */
+    RUN_TEST(EthFwUT_allocRxCmdTest1,  ETHFW_UT_SWITCH_ALLOC_RX_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_FREE_RX_TEST1_ID: Test FREE_RX with valid parameters. */
-    RUN_TEST(EthFwUT_freeRxCmdTest1,  ETHFW_UT_FREE_RX_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_FREE_RX_TEST1_ID: Test FREE_RX with valid parameters. */
+    RUN_TEST(EthFwUT_freeRxCmdTest1,  ETHFW_UT_SWITCH_FREE_RX_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_ALLOC_RX_NEGTEST_ID: Test ALLOC_RX with invalid priority. */
-    RUN_TEST(EthFwUT_allocRxCmdNegTest,  ETHFW_UT_ALLOC_RX_NEGTEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ALLOC_RX_NEGTEST_ID: Test ALLOC_RX with invalid priority. */
+    RUN_TEST(EthFwUT_allocRxCmdNegTest,  ETHFW_UT_SWITCH_ALLOC_RX_NEGTEST_ID);
 
-    /* ETHFW-ETHFW_UT_FREE_RX_NEGTEST_ID: Test FREE_RX with invalid priority. */
-    RUN_TEST(EthFwUT_freeRxCmdNegTest,  ETHFW_UT_FREE_RX_NEGTEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_FREE_RX_NEGTEST_ID: Test FREE_RX with invalid priority. */
+    RUN_TEST(EthFwUT_freeRxCmdNegTest,  ETHFW_UT_SWITCH_FREE_RX_NEGTEST_ID);
 
-    /* ETHFW-ETHFW_UT_ALLOC_MAC_TEST1_ID: Test ALLOC_MAC with valid parameters. */
-    RUN_TEST(EthFwUT_allocMacCmdTest1,  ETHFW_UT_ALLOC_MAC_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_ALLOC_MAC_TEST1_ID: Test ALLOC_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_allocMacCmdTest1,  ETHFW_UT_SWITCH_ALLOC_MAC_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_FREE_MAC_TEST1_ID: Test FREE_MAC with valid parameters. */
-    RUN_TEST(EthFwUT_freeMacCmdTest1,  ETHFW_UT_FREE_MAC_TEST1_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_FREE_MAC_TEST1_ID: Test FREE_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_freeMacCmdTest1,  ETHFW_UT_SWITCH_FREE_MAC_TEST1_ID);
 
-    /* ETHFW-ETHFW_UT_REGISTER_MAC_TEST_ID: Test REGISTER_MAC with valid parameters. */
-    RUN_TEST(EthFwUT_registerMacCmdTest,  ETHFW_UT_REGISTER_MAC_TEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_REGISTER_MAC_TEST_ID: Test REGISTER_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_registerMacCmdTest,  ETHFW_UT_SWITCH_REGISTER_MAC_TEST_ID);
 
-    /* ETHFW-ETHFW_UT_REGISTER_MAC_NEGTEST_ID: Test REGISTER_MAC with invalid RX flow params. */
-    RUN_TEST(EthFwUT_registerMacCmdNegTest,  ETHFW_UT_REGISTER_MAC_NEGTEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_REGISTER_MAC_NEGTEST_ID: Test REGISTER_MAC with invalid RX flow params. */
+    RUN_TEST(EthFwUT_registerMacCmdNegTest,  ETHFW_UT_SWITCH_REGISTER_MAC_NEGTEST_ID);
 
-    /* ETHFW-ETHFW_UT_UNREGISTER_MAC_TEST_ID: Test UNREGISTER_MAC with valid parameters. */
-    RUN_TEST(EthFwUT_unregisterMacCmdTest,  ETHFW_UT_UNREGISTER_MAC_TEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_UNREGISTER_MAC_TEST_ID: Test UNREGISTER_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_unregisterMacCmdTest,  ETHFW_UT_SWITCH_UNREGISTER_MAC_TEST_ID);
 
-    /* ETHFW-ETHFW_UT_UNREGISTER_MAC_NEGTEST_ID: Test UNREGISTER_MAC with invalid RX flow params.. */
-    RUN_TEST(EthFwUT_unregisterMacCmdNegTest,  ETHFW_UT_UNREGISTER_MAC_NEGTEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_UNREGISTER_MAC_NEGTEST_ID: Test UNREGISTER_MAC with invalid RX flow params.. */
+    RUN_TEST(EthFwUT_unregisterMacCmdNegTest,  ETHFW_UT_SWITCH_UNREGISTER_MAC_NEGTEST_ID);
 
     // RUN_TEST(EthFwUT_registerDefaultRxFlowCmdTest,  0);
 
@@ -756,11 +759,77 @@ void EthFwUT_testResources(void *args)
 
     // RUN_TEST(EthFwUT_unregisterDefaultRxFlowCmdNegTest,  0);
 
-    /* ETHFW-ETHFW_UT_REGISTER_IPV4_TEST_ID: Test REGISTER_IPV4 with valid parameters. */
-    RUN_TEST(EthFwUT_registerIPV4AddrCmdTest,  ETHFW_UT_REGISTER_IPV4_TEST_ID);
+    /* ETHFW-ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID: Test REGISTER_IPV4 with valid parameters. */
+    RUN_TEST(EthFwUT_registerIPV4AddrCmdTest,  ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID);
     
     UnityEnd();
+}
 
-    status = CpswProxy_detach(gTestProxy);
-    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to detach from Ethernet device.");
+void EthFwUT_testMacResources(void *arg1, void *arg2)
+{
+    uint32_t txMtu[ENET_PRI_NUM];
+    uint32_t hostPortRxMtu;
+    uint32_t numTxCh;
+    uint32_t numRxFlow;
+    int32_t status;
+
+    gTestProxy = (CpswProxy_Handle)arg1;
+    TEST_ASSERT_NOT_NULL(gTestProxy);
+
+    gTestProxyConfig = (CpswProxy_Config *)arg2;
+    TEST_ASSERT_FALSE_MESSAGE((gTestProxyConfig->virtPort != ETHREMOTECFG_MAC_PORT_4), "Invalid virtual port.");
+
+    status = CpswProxy_attach(gTestProxy,
+                              gTestProxyConfig->virtPort,
+                              &hostPortRxMtu,
+                              txMtu,
+                              &numTxCh,
+                              &numRxFlow);
+    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to attach to Ethernet device.");
+
+    UnityBegin("test_resources.c");
+
+    /* ETHFW-ETHFW_UT_MAC_ALLOC_TX_TEST1_ID: Test ALLOC_TX with valid parameters. */
+    RUN_TEST(EthFwUT_allocTxCmdTest1, ETHFW_UT_MAC_ALLOC_TX_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_FREE_TX_TEST1_ID: Test FREE_TX with valid parameters. */
+    RUN_TEST(EthFwUT_freeTxCmdTest1,  ETHFW_UT_MAC_FREE_TX_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_ALLOC_RX_TEST1_ID: Test ALLOC_RX with valid parameters. */
+    RUN_TEST(EthFwUT_allocRxCmdTest1,  ETHFW_UT_MAC_ALLOC_RX_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_FREE_RX_TEST1_ID: Test FREE_RX with valid parameters. */
+    RUN_TEST(EthFwUT_freeRxCmdTest1,  ETHFW_UT_MAC_FREE_RX_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_ALLOC_MAC_TEST1_ID: Test ALLOC_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_allocMacCmdTest1,  ETHFW_UT_MAC_ALLOC_MAC_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_FREE_MAC_TEST1_ID: Test FREE_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_freeMacCmdTest1,  ETHFW_UT_MAC_FREE_MAC_TEST1_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_REGISTER_MAC_TEST_ID: Test REGISTER_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_registerMacCmdTest,  ETHFW_UT_MAC_REGISTER_MAC_TEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_UNREGISTER_MAC_TEST_ID: Test UNREGISTER_MAC with valid parameters. */
+    RUN_TEST(EthFwUT_unregisterMacCmdTest,  ETHFW_UT_MAC_UNREGISTER_MAC_TEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_ALLOC_TX_NEGTEST_ID: Test ALLOC_TX with invalid priority. */
+    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_MAC_ALLOC_TX_NEGTEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_FREE_TX_NEGTEST_ID: Test FREE_TX with invalid txPsilDstId. */
+    RUN_TEST(EthFwUT_freeTxCmdNegTest,  ETHFW_UT_MAC_FREE_TX_NEGTEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_ALLOC_RX_NEGTEST_ID: Test ALLOC_RX with invalid priority. */
+    RUN_TEST(EthFwUT_allocRxCmdNegTest,  ETHFW_UT_MAC_ALLOC_RX_NEGTEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_FREE_RX_NEGTEST_ID: Test FREE_RX with invalid priority. */
+    RUN_TEST(EthFwUT_freeRxCmdNegTest,  ETHFW_UT_MAC_FREE_RX_NEGTEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_REGISTER_MAC_NEGTEST_ID: Test REGISTER_MAC with invalid RX flow params. */
+    RUN_TEST(EthFwUT_registerMacCmdNegTest,  ETHFW_UT_MAC_REGISTER_MAC_NEGTEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_UNREGISTER_MAC_NEGTEST_ID: Test UNREGISTER_MAC with invalid RX flow params.. */
+    RUN_TEST(EthFwUT_unregisterMacCmdNegTest,  ETHFW_UT_MAC_UNREGISTER_MAC_NEGTEST_ID);
+    
+    UnityEnd();
 }
