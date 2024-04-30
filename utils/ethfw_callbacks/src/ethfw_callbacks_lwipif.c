@@ -94,24 +94,6 @@
 /*! Remote app packet poll period in milliseconds */
 #define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US         (1000U)
 
-/*! Number of entries in the address table */
-#define CPSW_REMOTE_CORE_TABLE_SIZE                   (4U)
-
-/*!
- * \brief Table entry with IP address and MAC address for remote cores.
- */
-typedef struct EthFwCallbacks_RemoteCoreAddrTable_s
-{
-    /*! Remote core's IP address */
-    ip4_addr_t ipAddr;
-
-    /*! Remote core's MAC address */
-    struct eth_addr hwAddr;
-
-    /*! Whether this entry is free or not */
-    bool isFree;
-} EthFwCallbacks_RemoteCoreAddrTable;
-
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */

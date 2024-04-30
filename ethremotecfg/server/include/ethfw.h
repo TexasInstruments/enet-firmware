@@ -133,9 +133,6 @@ extern "C" {
 /*! Max number of remote clients sharing resources with ETHFW(Linux, QNX, RTOS, AUTOSAR) */
 #define ETHFW_REMOTE_CLIENT_MAX           (6U)
 
-/* Number of custom policers */
-#define ETHFW_UTILS_NUM_CUSTOM_POLICERS   (20U)
-
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
@@ -211,14 +208,14 @@ typedef struct EthFw_Config_s
      *  A72 QNX, RTOS cores) */
     EthFwVirtPort_VirtPortCfg *virtPortCfg;
 
+    /*! Number of virtual ports accessed via remote_device framework */
+    uint32_t numVirtPorts;
+
     /*! VLAN configuration */
     EthFwVlan_VlanCfg *vlanCfg;
 
-    /*! VLAN configuration */
+    /*! Number of VLANs supported for virtual ports */
     uint32_t numVlans;
-
-    /*! Number of virtual ports accessed via remote_device framework */
-    uint32_t numVirtPorts;
 
     /*! Multicast configuration. */
     EthFwMcast_Cfg mcastCfg;
@@ -249,13 +246,6 @@ typedef struct EthFw_Config_s
     bool isStaticTxChanAllocated;
 } EthFw_Config;
 
-/*!
- * \brief Ethernet Firmware handle
- *
- * Ethernet Firmware opaque handle.
- */
-typedef struct EthFw_Obj_s *EthFw_Handle;
-
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
 /* ========================================================================== */
@@ -277,9 +267,11 @@ typedef struct EthFw_Obj_s *EthFw_Handle;
  *    EthFw_Config::cpswCfg.
  *
  * \param enetType    Enet instance type
+ * \param instId      Enet instance ID
  * \param config      Pointer to the EthFw config to be initialized
  */
 void EthFw_initConfigParams(Enet_Type enetType,
+                            uint32_t instId,
                             EthFw_Config *config);
 
 /*!
@@ -290,22 +282,22 @@ void EthFw_initConfigParams(Enet_Type enetType,
  * It must be called from task context, cannot be called from main().
  *
  * \param enetType    Enet instance type
+ * \param instId      Enet instance ID
  * \param config      EthFw configuration
  *
- * \retval EthFw handle if initialization was successful
- * \retval NULL if initialization failed
+ * \retval ENET_SOK if initialization was successful
+ * \retval Negative error code if initialization failed
  */
-EthFw_Handle EthFw_init(Enet_Type enetType,
-                        const EthFw_Config *config);
+int32_t EthFw_init(Enet_Type enetType,
+                   uint32_t instId,
+                   const EthFw_Config *config);
 
 /*!
  * \brief De-initialize EthFw
  *
  * De-initialize the EthFw.
- *
- * \param hEthFw      EthFw handle
  */
-void EthFw_deinit(EthFw_Handle hEthFw);
+void EthFw_deinit(void);
 
 /*!
  * \brief Initialize remote configuration server.
@@ -313,12 +305,11 @@ void EthFw_deinit(EthFw_Handle hEthFw);
  * Initializes the firmware's remote configuration server which is in charge
  * of servicing commands sent by remote cores.
  *
- * \param hEthFw      EthFw handle
  *
  * \retval ENET_SOK if remote config initialization was successful
  * \retval Negative error code if initialization failed
  */
-int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw);
+int32_t EthFw_initRemoteConfig(void);
 
 /*!
  * \brief Late announce to remote processor
@@ -329,14 +320,12 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw);
  * This function is typically used to late attach to MPU1_0 core running Linux
  * after Ethernet Firmware had been loaded by u-boot.
  *
- * \param hEthFw      EthFw handle
  * \param procId      IPC processor id, refer to IPC driver definitions.
  *
  * \retval ENET_SOK if remote services initialization was successful
  * \retval Negative error code if announcement failed
  */
-int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
-                           uint32_t procId);
+int32_t EthFw_lateAnnounce(uint32_t procId);
 
 /*!
  * \brief Get EthFw version
@@ -344,11 +333,9 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
  * Gets the EthFw version which includes firmware version, build date and time,
  * and commit hash.
  *
- * \param hEthFw      EthFw handle
  * \param version     Pointer to EthFw version to be populated
  */
-void EthFw_getVersion(EthFw_Handle hEthFw,
-                      EthFw_Version *version);
+void EthFw_getVersion(EthFw_Version *version);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

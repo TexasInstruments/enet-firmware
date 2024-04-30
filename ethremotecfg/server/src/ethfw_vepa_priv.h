@@ -91,7 +91,8 @@ extern "C" {
 /*                                 Macros                                     */
 /* ========================================================================== */
 
-/* None */
+/*! \brief Flow index used to received packets for duplication is not defined */
+#define ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED      (0xFFFFU)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */

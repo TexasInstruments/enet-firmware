@@ -174,6 +174,9 @@ typedef struct EthFw_Obj_s
     /* Enet instance id */
     uint32_t instId;
 
+    /* Enet handle */
+    Enet_Handle hEnet;
+
     /* CPSW configuration */
     Cpsw_Cfg cpswCfg;
 
@@ -423,7 +426,6 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
 
 static int32_t EthFw_setDscpPriorityMapRegisters(void)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
     EnetPort_DscpPriorityMap setHostInArgs;
     Enet_IoctlPrms prms;
     uint32_t i;
@@ -439,7 +441,7 @@ static int32_t EthFw_setDscpPriorityMapRegisters(void)
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &setHostInArgs);
 
-    status = Enet_ioctl(hEnet,
+    status = Enet_ioctl(gEthFwObj.hEnet,
                         gEthFwObj.coreId,
                         ENET_HOSTPORT_IOCTL_SET_INGRESS_DSCP_PRI_MAP,
                         &prms);
@@ -617,7 +619,6 @@ static void EthFw_setPortVlan(void)
 
 static int32_t EthFw_setupVlan(const EthFw_Config *config)
 {
-    Enet_Handle hEnet;
     EthFwVlan_Cfg vlanCfg;
     int32_t status = ENET_SOK;
 
@@ -628,10 +629,9 @@ static int32_t EthFw_setupVlan(const EthFw_Config *config)
     vlanCfg.switchPortMask  = gEthFwObj.switchPortMask;
     vlanCfg.macOnlyPortMask = gEthFwObj.macOnlyPortMask;
 
-    hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
-    if (hEnet != NULL)
+    if (gEthFwObj.hEnet != NULL)
     {
-        status = EthFwVlan_init(hEnet, &vlanCfg);
+        status = EthFwVlan_init(gEthFwObj.hEnet, &vlanCfg);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Incorrect VLAN configuration");
     }
     else
@@ -843,6 +843,7 @@ static void EthFw_updateEnetRm(void)
 }
 
 void EthFw_initConfigParams(Enet_Type enetType,
+                            uint32_t instId,
                             EthFw_Config *config)
 {
     Cpsw_Cfg *cpswCfg = &config->cpswCfg;
@@ -851,7 +852,6 @@ void EthFw_initConfigParams(Enet_Type enetType,
     CpswHostPort_Cfg *hostPortCfg = &cpswCfg->hostPortCfg;
     CpswCpts_Cfg *cptsCfg = &cpswCfg->cptsCfg;
     EnetRm_ResCfg *resCfg = &cpswCfg->resCfg;
-    uint32_t instId = 0U;
 
     memset(config, 0, sizeof(*config));
 
@@ -935,11 +935,11 @@ void EthFw_initConfigParams(Enet_Type enetType,
 #endif
 
     EthFw_initAleCfg(aleCfg);
-
 }
 
-EthFw_Handle EthFw_init(Enet_Type enetType,
-                        const EthFw_Config *config)
+int32_t EthFw_init(Enet_Type enetType,
+                   uint32_t instId,
+                   const EthFw_Config *config)
 {
     EnetUdma_Cfg *udmaCfg;
     char *date = __DATE__;
@@ -995,7 +995,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     {
         gEthFwObj.coreId = EnetSoc_getCoreId();
         gEthFwObj.enetType = enetType;
-        gEthFwObj.instId = 0U;
+        gEthFwObj.instId = instId;
 
         /* Populate EthFw version */
         gEthFwObj.version.major = ETHREMOTECFG_FW_ETHSWITCH_VERSION_MAJOR;
@@ -1125,15 +1125,13 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     }
 #endif
 
-    return (status == ENET_SOK) ? &gEthFwObj : NULL;
+    return status;
 }
 
-void EthFw_deinit(EthFw_Handle hEthFw)
+void EthFw_deinit(void)
 {
     uint32_t coreIdx;
     uint32_t i;
-
-    EnetAppUtils_assert(hEthFw != NULL);
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
@@ -1191,7 +1189,7 @@ uint32_t EthFw_getRemoteEndptId(uint32_t coreId)
     return remoteEndptId;
 }
 
-int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
+int32_t EthFw_initRemoteConfig(void)
 {
     CpswProxyServer_Config_t cfg;
     int32_t status;
@@ -1200,14 +1198,14 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     uint32_t j;
     uint32_t k;
 
-    EnetAppUtils_assert(hEthFw != NULL);
-
     /* Initialize Proxy Server */
     memset(&cfg, 0, sizeof(cfg));
     cfg.instId = gEthFwObj.instId;
     cfg.getMcmCmdIfCb = &EthFw_getMcmCmdIfCb;
     cfg.initEthfwDeviceDataCb = &EthFw_getDeviceData;
     cfg.notifyCb = &EthFw_handleProfileInfoNotify;
+
+    ETHFW_UTILS_COMPILETIME_ASSERT(CPSWPROXYSERVER_MAC_PORT_MAX == ETHFW_MAC_PORT_MAX);
 
     /* Remote cores which use remote_device framework */
     for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
@@ -1257,12 +1255,9 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     return status;
 }
 
-int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
-                           uint32_t procId)
+int32_t EthFw_lateAnnounce(uint32_t procId)
 {
     int32_t status;
-
-    EnetAppUtils_assert(hEthFw != NULL);
 
     /* Late announcement of server's endpoint to remote processor */
     status = CpswProxyServer_lateAnnounce(procId);
@@ -1271,11 +1266,8 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
     return status;
 }
 
-void EthFw_getVersion(EthFw_Handle hEthFw,
-                      EthFw_Version *version)
+void EthFw_getVersion(EthFw_Version *version)
 {
-    EnetAppUtils_assert(hEthFw != NULL);
-
     *version = gEthFwObj.version;
 }
 
@@ -1326,6 +1318,7 @@ static int32_t EthFw_initMcm(void)
     if (status == ENET_SOK)
     {
         EnetMcm_acquireHandleInfo(&gEthFwObj.mcmCmdIf, &handleInfo);
+        gEthFwObj.hEnet = handleInfo.hEnet;
     }
 
     return status;
@@ -1370,7 +1363,6 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
 
 static int32_t EthFw_setAleBcastEntry(void)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwObj.enetType, 0U /* instId */);
     Enet_IoctlPrms prms;
     uint32_t setMcastOutArgs;
     CpswAle_SetMcastEntryInArgs setMcastInArgs;
@@ -1386,7 +1378,7 @@ static int32_t EthFw_setAleBcastEntry(void)
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setMcastInArgs, &setMcastOutArgs);
 
-    status = Enet_ioctl(hEnet,
+    status = Enet_ioctl(gEthFwObj.hEnet,
                         gEthFwObj.coreId,
                         CPSW_ALE_IOCTL_ADD_MCAST,
                         &prms);
@@ -1395,7 +1387,7 @@ static int32_t EthFw_setAleBcastEntry(void)
     return status;
 }
 
-/* Proxy Server callbacks */
+/* Application callback to get MCM command interface */
 
 static void EthFw_getMcmCmdIfCb(Enet_Type enetType,
                                 EnetMcm_CmdIf **pMcmCmdIfHandle)

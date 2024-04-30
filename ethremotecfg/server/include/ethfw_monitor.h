@@ -95,7 +95,7 @@ extern "C" {
  * \anchor EthFw_StatsMonEvt
  * \name Statistics Monitor Events
  *
- * Event flags reported by Ethernet Firmware when specific statistics being montired
+ * Event flags reported by Ethernet Firmware when specific statistics being monitored
  * had increased.
  *
  * @{

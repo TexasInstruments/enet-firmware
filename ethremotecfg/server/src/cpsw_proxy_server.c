@@ -4353,7 +4353,7 @@ int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
     SemaphoreP_pend(hServer->clientServiceObj.rpmsgStartSem, SemaphoreP_WAIT_FOREVER);
 
     retVal = RPMessage_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
-    ETHFWTRACE_INFO_IF((retVal == IPC_SOK), "Announce Endpoint Service to Linux");
+    ETHFWTRACE_INFO_IF((retVal == IPC_SOK), "Announce Endpoint Service to HLOS");
 
     return retVal;
 }

@@ -81,18 +81,8 @@ extern "C" {
 #endif
 
 /*!
- * \defgroup ETHFW_QOS Ethernet Firmware QoS helper file
- *
- * \brief This section contains APIs for common definitions, helper macros
- *        and other utilities used by ETHFW server.
- *
- * @{
- */
-/*! @} */
-
-/*!
- * \ingroup  ETHFW_QOS
- * \defgroup ETHFW_QOS_TYPES Common Types
+ * \ingroup  ETHFW_SERVER
+ * \defgroup ETHFW_QOS_TYPES QoS Support
  * @{
  */
 
@@ -104,7 +94,12 @@ extern "C" {
 /*!
  * \brief Maximum number of custom policers per flow
  */
-#define ETHFW_POLICER_PERFLOW                  (10U)
+#define ETHFW_POLICER_PERFLOW                   (10U)
+
+/*!
+ * \brief Number of custom policers
+ */
+#define ETHFW_UTILS_NUM_CUSTOM_POLICERS         (20U)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */

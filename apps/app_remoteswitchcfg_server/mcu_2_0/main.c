@@ -304,12 +304,6 @@ typedef struct
     /* Enet instance id */
     uint32_t instId;
 
-    /* Ethernet Firmware handle */
-    EthFw_Handle hEthFw;
-
-    /* UDMA driver handle */
-    Udma_DrvHandle hUdmaDrv;
-
     /* Host MAC address */
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
@@ -513,8 +507,6 @@ static EthAppObj gEthAppObj =
     .enetType = ENET_CPSW_5G,
     .instId   = 0U,
 #endif
-    .hEthFw = NULL,
-    .hUdmaDrv = NULL,
 };
 
 static Enet_MacPort gEthAppPorts[] =
@@ -936,14 +928,6 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
         appLogPrintf("=======================================================\n");
         appLogPrintf("            CPSW Ethernet Firmware                     \n");
         appLogPrintf("=======================================================\n");
-
-        /* Open UDMA driver */
-        gEthAppObj.hUdmaDrv = EnetAppUtils_udmaOpen(gEthAppObj.enetType, NULL);
-        if (gEthAppObj.hUdmaDrv == NULL)
-        {
-            appLogPrintf("ETHFW: failed to open UDMA driver\n");
-            status = ETHAPP_ERROR;
-        }
     }
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1076,7 +1060,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     }
 
     /* Initialize the Remote Config server (CPSW Proxy Server) */
-    status = EthFw_initRemoteConfig(gEthAppObj.hEthFw);
+    status = EthFw_initRemoteConfig();
     if (status != ENET_SOK)
     {
         appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote config: %d\n", status);
@@ -1122,7 +1106,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     /* Late announcement of server's endpoint to MPU */
     if (status == IPC_SOK)
     {
-        status = EthFw_lateAnnounce(gEthAppObj.hEthFw, IPC_MPU1_0);
+        status = EthFw_lateAnnounce(IPC_MPU1_0);
         if (status != ENET_SOK)
         {
             appLogPrintf("EthApp_initIpcTask: late announcement failed: %d\n", status);
@@ -1163,10 +1147,16 @@ static int32_t EthApp_initEthFw(void)
     uint32_t i;
 
     /* Init EthFw config params */
-    EthFw_initConfigParams(gEthAppObj.enetType, &ethFwCfg);
+    EthFw_initConfigParams(gEthAppObj.enetType, gEthAppObj.instId, &ethFwCfg);
 
-    /* Set UDMA handle to Enet LLD config */
-    dmaCfg.hUdmaDrv = gEthAppObj.hUdmaDrv;
+    /* Open UDMA driver */
+    dmaCfg.hUdmaDrv = EnetAppUtils_udmaOpen(gEthAppObj.enetType, NULL);
+    if (dmaCfg.hUdmaDrv == NULL)
+    {
+        appLogPrintf("ETHFW: failed to open UDMA driver\n");
+        status = ETHAPP_ERROR;
+    }
+
     dmaCfg.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
     cpswCfg->dmaCfg = (void *)&dmaCfg;
 
@@ -1258,17 +1248,19 @@ static int32_t EthApp_initEthFw(void)
     /* Initialize the EthFw */
     if (status == ETHAPP_OK)
     {
-        gEthAppObj.hEthFw = EthFw_init(gEthAppObj.enetType, &ethFwCfg);
-        if (gEthAppObj.hEthFw == NULL)
+        status = EthFw_init(gEthAppObj.enetType, gEthAppObj.instId,
+                            &ethFwCfg);
+        if (ETHAPP_OK != status)
         {
             appLogPrintf("ETHFW: failed to initialize the firmware\n");
             status = ETHAPP_ERROR;
         }
+
     }
     /* Get and print EthFw version */
     if (status == ETHAPP_OK)
     {
-        EthFw_getVersion(gEthAppObj.hEthFw, &ver);
+        EthFw_getVersion(&ver);
         appLogPrintf("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
         appLogPrintf("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
         appLogPrintf("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);

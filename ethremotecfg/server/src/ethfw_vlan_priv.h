@@ -55,7 +55,8 @@ extern "C" {
 /*                                 Macros                                     */
 /* ========================================================================== */
 
-/* None */
+/*! Maximum number of VLANs that can be setup statically */
+#define ETHFWVLAN_VLANS_MAX                            (10U)
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
