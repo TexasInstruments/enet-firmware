@@ -276,8 +276,6 @@ typedef struct CpswProxyServer_Obj_s
     uint32_t instId;
     /* set to true when proxy server has been initialized */
     bool initDone;
-    /* Alloc Object holds the data allocated to a given client by the server */
-    CpswProxyServer_AllocObj allocObj[CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX];
     /* callback which populates Ethernet Firmware device data */
     CpswProxyServer_InitEthfwDeviceDataCb initEthfwDeviceDataCb;
     /* Callback to retrieve Mcm cmd handle of ETHFW */
@@ -339,8 +337,6 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
                                                   EthRemoteCfg_NotifyType notifyid,
                                                   uint8_t *notify_info,
                                                   uint32_t notify_info_len);
-
-static void CpswProxyServer_initClientHandle(CpswProxyServer_Config_t *cfg);
 
 static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
                                               uint32_t coreKey,
@@ -649,27 +645,36 @@ static int32_t CpswProxyServer_getPortMask(uint32_t clientId,
 {
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    bool isSwitchPort = BFALSE;
+    bool isFound = BFALSE;
     uint32_t i;
 
     hServer = CpswProxyServer_getHandle();
     EnetAppUtils_assert((hServer != NULL) && hServer->initDone == BTRUE);
 
-    for (i = 0U; i < CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX; i++)
+    for (i = 0U; i < hServer->numVirtPorts; i++)
     {
-        if ((hServer->allocObj[i].clientId == clientId) && (hServer->allocObj[i].remoteProcId == hostId))
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hServer->virtPortCfg[i].portId);
+        if ((hServer->virtPortCfg[i].remoteCoreId == hostId) &&
+            ETHFW_IS_BIT_SET(hServer->virtPortCfg[i].clientIdMask, clientId))
         {
-            *switchPortMask = hServer->allocObj[i].virtSwitchPortMask;
-            *macPortMask = hServer->allocObj[i].virtMacPortMask;
-            break;
+            if (isSwitchPort)
+            {
+                *switchPortMask = *switchPortMask | ENET_MACPORT_MASK(hServer->virtPortCfg[i].portId);
+            }
+            else
+            {
+                *macPortMask = *macPortMask | ENET_MACPORT_MASK(hServer->virtPortCfg[i].portId);
+            }
+            isFound = BTRUE;
         }
     }
-    if (i >= CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX)
+    if (!isFound)
     {
         status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
         ETHFWTRACE_ERR(status, "No port mask found for clientId: %u and coreId: %u",
                        clientId, hostId);
     }
-
     return status;
 }
 
@@ -680,9 +685,13 @@ static int32_t CpswProxyServer_VirtPortAllocCb(uint32_t clientId,
 {
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    if (clientId < CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX)
+    if (clientId <= ETHREMOTECFG_CLIENTID_LAST)
     {
+        *switchPortMask = 0U;
+        *macPortMask = 0U;
         status = CpswProxyServer_getPortMask(clientId, hostId, switchPortMask, macPortMask);
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, 
+                           "Failed to get port mask for clientId: %u", clientId);
     }
     else
     {
@@ -2840,8 +2849,6 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         ETHFWTRACE_ERR(status, "ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED IOCTL failed");
     }
 
-    memcpy(&hServer->allocObj, &cfg->allocObj, sizeof(cfg->allocObj));
-
     if (status == ETHFW_SOK)
     {
         hServer->hMutex = MutexP_create(&hServer->mutexObj);
@@ -2857,8 +2864,6 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         {
             hServer->virtPortCfg[i] = cfg->virtPortCfg[i];
         }
-
-        CpswProxyServer_initClientHandle(cfg);
 
         ETHFWTRACE_INFO("Virtual port configuration:");
 
@@ -4333,26 +4338,6 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
             ETHFWTRACE_ERR(ETHFW_EINVALIDPARAMS, "Invalid notify id %d", notifyid);
             break;
         }
-    }
-}
-
-static void CpswProxyServer_initClientHandle(CpswProxyServer_Config_t *cfg)
-{
-    CpswProxyServer_Obj *hServer = NULL;
-    uint32_t i,j;
-
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert(hServer != NULL);
-
-    if (CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX < cfg->numAllocObj)
-    {
-        ETHFWTRACE_ERR(ETHFW_EINVALIDPARAMS, "Invalid number of alloc objects %u, max %u",
-                       cfg->numAllocObj, CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX);
-    }
-
-    for (i = 0U; i < cfg->numAllocObj; i++)
-    {
-        hServer->allocObj[i] = cfg->allocObj[i];
     }
 }
 

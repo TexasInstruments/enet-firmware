@@ -163,9 +163,6 @@ extern "C" {
 /*! Max number of Remote clients supported on a remote core (VirtPort Clients) */
 #define CPSWPROXYSERVER_REMOTE_CLIENT_MAX             (2U)
 
-/*! Max number of Remote clients requesting resource allocation data */
-#define CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX       (5U)
-
 /*! Max number of remote client virtual ports */
 #define CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX    (6U)
 
@@ -249,26 +246,6 @@ int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
                                          uint32_t *idleClients);
 
 /*!
- * \brief Remote client alloc object
- *
- * Alloc object per remote client holding the resources allocated for a given remote client.
- */
-typedef struct CpswProxyServer_AllocObj_s
-{
-    /* Remote core id */
-    uint32_t remoteProcId;
-
-    /* Client Id */
-    uint32_t clientId;
-
-    /* Virtual Switch Port Mask */
-    uint32_t virtSwitchPortMask;
-
-    /* virtual Mac Port MAsk */
-    uint32_t virtMacPortMask;
-}CpswProxyServer_AllocObj;
-
-/*!
  * \brief Cpsw Proxy Server Remote Configuration structure
  *
  * Structure passed by application to configure the CPSW Proxy server.
@@ -314,11 +291,6 @@ typedef struct CpswProxyServer_Config_s
     /*! Port mask of all MAC-only ports */
     uint32_t macOnlyPortMask;
 
-    /*! Remote client alloc object */
-    CpswProxyServer_AllocObj allocObj[CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX];
-
-    /*! Number of remote client alloc objects */
-    uint32_t numAllocObj;
 } CpswProxyServer_Config_t;
 
 /*!

@@ -212,12 +212,6 @@ typedef struct EthFw_Obj_s
 
     /* Callback function for application to set port link parameters */
     EthFw_setPortCfg setPortCfg;
-
-    /* Remote client alloc object */
-    EthFw_AllocCfg clientAllocCfg[ETHFW_REMOTE_CLIENT_ALLOC_MAX];
-
-    /* Number of remote clients with resource allocation */
-    uint32_t numClients;
 } EthFw_Obj;
 
 typedef struct EthFw_Autosar_EpId_s
@@ -970,13 +964,6 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
     memset(&gEthFwObj, 0, sizeof(gEthFwObj));
 
-    /* Get the allocated resources for all remote clients */
-    gEthFwObj.numClients = config->numAlloc;
-    for (i = 0U; i < gEthFwObj.numClients; i++)
-    {
-        gEthFwObj.clientAllocCfg[i] = config->allocCfg[i];
-    }
-
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
 
@@ -1267,18 +1254,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         }
     }
     cfg.numVirtPorts = gEthFwObj.numVirtPorts;
-
-    /* Alloc resources for the remote clients */
-    EnetAppUtils_assert(gEthFwObj.numClients <= CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX);
-
-    cfg.numAllocObj = gEthFwObj.numClients;
-    for (i = 0U; i < cfg.numAllocObj; i++)
-    {
-        cfg.allocObj[i].clientId = gEthFwObj.clientAllocCfg[i].clientId;
-        cfg.allocObj[i].remoteProcId = gEthFwObj.clientAllocCfg[i].remoteProcId;
-        cfg.allocObj[i].virtMacPortMask = gEthFwObj.clientAllocCfg[i].virtMacPortMask;
-        cfg.allocObj[i].virtSwitchPortMask = gEthFwObj.clientAllocCfg[i].virtSwitchPortMask;
-    }
 
     cfg.dfltVlanIdMacOnlyPorts = gEthFwObj.dfltVlanIdMacOnlyPorts;
     cfg.dfltVlanIdSwitchPorts  = gEthFwObj.dfltVlanIdSwitchPorts;

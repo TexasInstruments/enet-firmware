@@ -133,9 +133,6 @@ extern "C" {
 /*! Max number of remote clients sharing resources with ETHFW(Linux, QNX, RTOS, AUTOSAR) */
 #define ETHFW_REMOTE_CLIENT_MAX           (6U)
 
-/*! Max number of Remote clients requesting resource allocation data */
-#define ETHFW_REMOTE_CLIENT_ALLOC_MAX     (5U)
-
 /* Number of custom policers */
 #define ETHFW_UTILS_NUM_CUSTOM_POLICERS   (20U)
 
@@ -180,26 +177,6 @@ typedef struct EthFw_Version_s
     /*! GIT commit SHA of the firmware: char string in the form fd52c34f */
     int8_t commitHash[ETHFW_VERSION_COMMITSHALEN + 1U];
 } EthFw_Version;
-
-/*!
- * \brief Remote client alloc object
- *
- * Alloc object per remote client holding the resources allocated for a given remote client.
- */
-typedef struct EthFw_AllocCfg_s
-{
-    /* Remote core id */
-    uint32_t remoteProcId;
-
-    /* Client Id */
-    uint32_t clientId;
-
-    /* Virtual Switch Port Mask */
-    uint32_t virtSwitchPortMask;
-
-    /* virtual Mac Port MAsk */
-    uint32_t virtMacPortMask;
-}EthFw_AllocCfg;
 
 /*! Callback function for application to set port link parameters
  *  (MII, PHY, speed, duplexity, etc) */
@@ -264,15 +241,6 @@ typedef struct EthFw_Config_s
 
     /*! VEPA configuration passed from application */
     EthFwVepa_Cfg vepaCfg;
-
-    /*! Remote client alloc object */
-    EthFw_AllocCfg *allocCfg;
-
-    /*! Number of remote clients with resource allocation */
-    uint32_t numAlloc;
-
-    /*! Number of remote client alloc objects */
-    uint32_t numAllocObj;
 
     /*! CPSW monitor and recovery configuration */
     EthFwMon_Cfg monitorCfg;
