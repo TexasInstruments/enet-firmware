@@ -122,9 +122,6 @@
 /*! Year substring offset in data string */
 #define ETHFWVERSION_OFFSET_SEC                      (6)
 
-/*! Remote device endpoint number */
-#define REMOTE_DEVICE_ENDPT                           (26U)
-
 /*! AUTOSAR Eth driver endpoint number */
 #define AUTOSAR_ETHDRIVER_DEVICE_ENDPT                (28U)
 
@@ -1215,7 +1212,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     int32_t status;
     uint32_t i;
     uint32_t numAutosarVirtPorts = 0U;
-    uint32_t clientIdMask;
     uint32_t j;
     uint32_t k;
 
@@ -1227,7 +1223,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.getMcmCmdIfCb = &EthFw_getMcmCmdIfCb;
     cfg.initEthfwDeviceDataCb = &EthFw_getDeviceData;
     cfg.notifyCb = &EthFw_handleProfileInfoNotify;
-    cfg.rpmsgEndPointId = REMOTE_DEVICE_ENDPT;
 
     /* Enable MAC ports */
     cfg.numMacPorts = gEthFwObj.numPorts;
@@ -1239,13 +1234,11 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     /* Remote cores which use remote_device framework */
     for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
     {
-        clientIdMask = gEthFwObj.virtPortCfg[i].clientIdMask;
+        cfg.virtPortCfg[i].clientIdMask = gEthFwObj.virtPortCfg[i].clientIdMask;
         /* If this virtual port is used by Autosar */
-        if (ETHFW_IS_BIT_SET(clientIdMask, ETHREMOTECFG_CLIENTID_AUTOSAR))
+        if (ETHFW_IS_BIT_SET(cfg.virtPortCfg[i].clientIdMask, ETHREMOTECFG_CLIENTID_AUTOSAR))
         {
-            cfg.autosarPortCfg[numAutosarVirtPorts].remoteCoreId = gEthFwObj.virtPortCfg[i].remoteCoreId;
-            cfg.autosarPortCfg[numAutosarVirtPorts].portId    = gEthFwObj.virtPortCfg[i].portId;
-            cfg.autosarEthDeviceEndPointId[numAutosarVirtPorts]   = EthFw_getRemoteEndptId(cfg.autosarPortCfg[numAutosarVirtPorts].remoteCoreId);
+            cfg.virtPortCfg[i].endPointId = EthFw_getRemoteEndptId(gEthFwObj.virtPortCfg[i].remoteCoreId);
             numAutosarVirtPorts++;
         }
         
@@ -1254,6 +1247,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         cfg.notifyServiceRemoteCoreId[i] = gEthFwObj.virtPortCfg[i].remoteCoreId;
         cfg.virtPortCfg[i].numTxCh       = gEthFwObj.virtPortCfg[i].numTxCh;
         cfg.virtPortCfg[i].numRxFlow     = gEthFwObj.virtPortCfg[i].numRxFlow;
+        cfg.virtPortCfg[i].numMacAddress = gEthFwObj.virtPortCfg[i].numMacAddress;
         for (j = 0U; j < cfg.virtPortCfg[i].numTxCh; j++)
         {
             cfg.virtPortCfg[i].txCh[j]   = gEthFwObj.virtPortCfg[i].txCh[j];
@@ -1273,10 +1267,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         }
     }
     cfg.numVirtPorts = gEthFwObj.numVirtPorts;
-
-    /* AUTOSAR virtual clients */
-    EnetAppUtils_assert(numAutosarVirtPorts <= CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX);
-    cfg.autosarEthVirtPortNum = numAutosarVirtPorts;
 
     /* Alloc resources for the remote clients */
     EnetAppUtils_assert(gEthFwObj.numClients <= CPSWPROXYSERVER_REMOTE_CLIENT_ALLOC_MAX);

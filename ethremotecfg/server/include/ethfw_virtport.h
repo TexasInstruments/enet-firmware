@@ -129,6 +129,9 @@ typedef struct EthFwVirtPort_VirtPortCfg_s
 
     /*! Mask of client id's using this virtual port */
     uint32_t clientIdMask;
+
+    /*! Local rpmsg endpoint for the virtual port */
+    uint32_t endPointId;
 } EthFwVirtPort_VirtPortCfg;
 
 /* ========================================================================== */

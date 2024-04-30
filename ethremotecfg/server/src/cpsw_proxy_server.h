@@ -67,7 +67,7 @@
 #include <stdint.h>
 #include <ti/drv/enet/enet.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
-#include <ethremotecfg/server/include/ethfw_qos.h>
+#include <ethremotecfg/server/include/ethfw_virtport.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -156,12 +156,6 @@ extern "C" {
 
 /*! Maximum number of MAC ports */
 #define CPSWPROXYSERVER_MAC_PORT_MAX                  (8U)
-
-/*! Size of shared multicast address table */
-#define CPSWPROXYSERVER_SHARED_MCAST_LIST_LEN         (8U)
-
-/*! Size of reserved multicast address table */
-#define CPSWPROXYSERVER_RSVD_MCAST_LIST_LEN           (4U)
 
 /*! Max number of AUTOSAR client cores */
 #define CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX     (2U)
@@ -253,41 +247,6 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId);
  */
 int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
                                          uint32_t *idleClients);
-/*!
- * \brief Cpsw Proxy Server Virtual Port Configuration structure for AUTOSAR
- */
-typedef struct CpswProxyServer_AutosarVirtPortCfg_s
-{
-    /*! Remote Core Id that can attach */
-    uint32_t remoteCoreId;
-
-    /*! Virtual port id */
-    EthRemoteCfg_VirtPort portId;
-} CpswProxyServer_AutosarVirtPortCfg;
-
-/*!
- * \brief Cpsw Proxy Server Virtual Port Configuration structure
- */
-typedef struct CpswProxyServer_VirtPortCfg_s
-{
-    /*! Remote Core Id that can attach */
-    uint32_t remoteCoreId;
-
-    /*! Virtual port id */
-    EthRemoteCfg_VirtPort portId;
-
-    /*! Number of tx channels allocated for a given virtual port */
-    uint32_t numTxCh;
-
-    /*! Array of tx channels allocated for a given virtual port */
-    EnetRm_TxCh txCh[ENET_CFG_TX_CHANNELS_NUM];
-
-    /*! Number of rx channels allocated for a given virtual port */
-    uint32_t numRxFlow;
-
-    /*! Array of rx flow information for a given virtual port */
-    EthFwQos_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
-} CpswProxyServer_VirtPortCfg;
 
 /*!
  * \brief Remote client alloc object
@@ -328,24 +287,11 @@ typedef struct CpswProxyServer_Config_s
     /*! Application callback to handle custom notify from client */
     CpswProxyServer_NotifyCb              notifyCb;
 
-    /*! IPC RpMsg endpoint id. This is the local endpoint at which proxy
-     *  server will listen for msgs */
-    uint32_t rpmsgEndPointId;
-
-    /*! AUTOSAR Ethernet Device RpMsg endpoint id */
-    uint32_t autosarEthDeviceEndPointId[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
-
-    /*! Virtual port configuration */
-    CpswProxyServer_AutosarVirtPortCfg autosarPortCfg[CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX];
-
-    /*! Number of AUTOSAR virtual ports that remotes cores can attach to */
-    uint32_t autosarEthVirtPortNum;
-
     /*! Remote Core Id for Notification service */
     uint32_t notifyServiceRemoteCoreId[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
 
     /*! Virtual port configuration */
-    CpswProxyServer_VirtPortCfg virtPortCfg[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
+    EthFwVirtPort_VirtPortCfg virtPortCfg[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
 
     /*! Number of remote virtual ports that remotes cores can attach to */
     uint32_t numVirtPorts;

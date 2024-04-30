@@ -78,7 +78,6 @@
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 /* EthFw utils header files */
-#include <ethremotecfg/server/include/ethfw_virtport.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include "cpsw_proxy_server.h"
 #include "ethfw_mcast_priv.h"
@@ -234,7 +233,7 @@ typedef struct CpswProxyServer_AsrServiceObj_s
     /* RPMessage handle for AUTOSAR IPC communication */
     RPMessage_Handle             hAutosarEthRpMsgEp;
     /* Processor Id of AUTOSAR client */
-    uint32_t                     dstProc;
+    uint32_t                     coreId;
     /* Local endpoint for the AUTOSAR client */
     uint32_t                     localEp;
     /* virtual port allocated for the AUTOSAR client, cuurently supports one virtPort */
@@ -310,9 +309,11 @@ typedef struct CpswProxyServer_Obj_s
     /* set to true when checksum offload is enabled */
     bool csumOffloadEn;
     /* Virtual port configurations */
-    CpswProxyServer_VirtPortCfg virtPortCfg[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
-    /* Number of remote virtual ports that remotes cores can attach to */
+    EthFwVirtPort_VirtPortCfg virtPortCfg[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
+    /* Number of remote virtual ports that remotes cores can attach */
     uint32_t numVirtPorts;
+    /* Number of remote virtual ports that AUTOSAR can attach */
+    uint32_t numAsrVirtPorts;
 } CpswProxyServer_Obj;
 
 /* ========================================================================== */
@@ -563,7 +564,7 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
     {
         for (clientInst = 0U; clientInst < CPSWPROXYSERVER_AUTOSAR_REMOTE_CLIENT_MAX; clientInst++)
         {
-            if( hServer->ethDrvObj[clientInst].dstProc == hClient->coreId)
+            if( hServer->ethDrvObj[clientInst].coreId == hClient->coreId)
             {
                 handle = hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp;
                 srcEndPt = hServer->ethDrvObj[clientInst].localEp;
@@ -2851,6 +2852,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         EnetAppUtils_assert(hServer->clientServiceObj.rpmsgStartSem != NULL);
 
         hServer->numVirtPorts = cfg->numVirtPorts;
+        hServer->numAsrVirtPorts = 0U;
         for (i = 0U; i < hServer->numVirtPorts; i++)
         {
             hServer->virtPortCfg[i] = cfg->virtPortCfg[i];
@@ -2860,16 +2862,24 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
         ETHFWTRACE_INFO("Virtual port configuration:");
 
-        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(cfg->autosarPortCfg));
-        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(g_CpswProxyServerAutosarRpmsgBuf));
-        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(hServer->ethDrvObj));
-        EnetAppUtils_assert(cfg->autosarEthVirtPortNum <= ENET_ARRAYSIZE(gCpswProxyServer_autosarEthDriverTaskStackBuf));
+        EnetAppUtils_assert(cfg->numVirtPorts <= ENET_ARRAYSIZE(cfg->virtPortCfg));
 
-        for (i = 0U; i < cfg->autosarEthVirtPortNum; i++)
+        for (i = 0U; i < cfg->numVirtPorts; i++)
         {
-            status = CpswProxyServer_initAutosarEthDeviceEp(hServer, cfg, i);
-            EnetAppUtils_assert(status == ETHFW_SOK);
+            if (ETHFW_IS_BIT_SET(hServer->virtPortCfg[i].clientIdMask, ETHREMOTECFG_CLIENTID_AUTOSAR))
+            {
+                hServer->ethDrvObj[hServer->numAsrVirtPorts].localEp = hServer->virtPortCfg[i].endPointId;
+                hServer->ethDrvObj[hServer->numAsrVirtPorts].coreId = hServer->virtPortCfg[i].remoteCoreId;
+                hServer->ethDrvObj[hServer->numAsrVirtPorts].virtPort = hServer->virtPortCfg[i].portId;
+                status = CpswProxyServer_initAutosarEthDeviceEp(hServer, cfg, hServer->numAsrVirtPorts);
+                EnetAppUtils_assert(status == ETHFW_SOK);
+                hServer->numAsrVirtPorts++;
+            }
         }
+
+        EnetAppUtils_assert(hServer->numAsrVirtPorts <= ENET_ARRAYSIZE(hServer->ethDrvObj));
+        EnetAppUtils_assert(hServer->numAsrVirtPorts <= ENET_ARRAYSIZE(g_CpswProxyServerAutosarRpmsgBuf));
+        EnetAppUtils_assert(hServer->numAsrVirtPorts <= ENET_ARRAYSIZE(gCpswProxyServer_autosarEthDriverTaskStackBuf));
 
         status = CpswProxyServer_initRemoteClientEthDeviceEp(hServer, cfg);
         EnetAppUtils_assert(status == ETHFW_SOK);
@@ -3947,14 +3957,11 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
     RPMessage_Params comChParam;
     uint32_t  localEp;
 
-    hServer->ethDrvObj[clientInst].dstProc = cfg->autosarPortCfg[clientInst].remoteCoreId;
-    hServer->ethDrvObj[clientInst].virtPort = cfg->autosarPortCfg[clientInst].portId;
-
     RPMessageParams_init(&comChParam);
     comChParam.numBufs = CPSWPROXY_AUTOSAR_ETHDRIVER_NUM_RPMSG_BUFS;
     comChParam.buf = g_CpswProxyServerAutosarRpmsgBuf[clientInst];
     comChParam.bufSize = sizeof(g_CpswProxyServerAutosarRpmsgBuf[clientInst]);
-    comChParam.requestedEndpt = cfg->autosarEthDeviceEndPointId[clientInst];
+    comChParam.requestedEndpt = hServer->ethDrvObj[clientInst].localEp;
 
     hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp = RPMessage_create(&comChParam, &localEp);
     if (NULL == hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp)
@@ -4198,7 +4205,7 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
     uint32_t remoteProc, remoteEp;
     uint16_t len;
     uint64_t msgBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE / sizeof(uint64_t)];
-    uint32_t localdstProc = hServer->ethDrvObj[clientNum].dstProc;
+    uint32_t localdstProc = hServer->ethDrvObj[clientNum].coreId;
     uint32_t localEp = hServer->ethDrvObj[clientNum].localEp;
     RPMessage_Handle hAutosarEthRpMsgEp = hServer->ethDrvObj[clientNum].hAutosarEthRpMsgEp;
     EthRemoteCfg_DeviceData deviceData;
