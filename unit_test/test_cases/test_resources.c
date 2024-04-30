@@ -658,11 +658,13 @@ void EthFwUT_registerIPV4AddrCmdTest(void)
 {
     EthRemoteCfg_IPv4AddrRegisterReq req;
     EthRemoteCfg_StatusRes res;
+    uint8_t macAddr[ETHREMOTECFG_MACADDRLEN] = {0x70, 0xFF, 0x1D, 0x00, 0x40, 0x1E};
     uint8_t ipv4Addr[ETHREMOTECFG_IPV4ADDRLEN] = {192, 168, 0, 10};
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
     memcpy(req.ipAddr, ipv4Addr, ETHREMOTECFG_IPV4ADDRLEN);
+    memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_REGISTER_IPv4,
