@@ -92,11 +92,9 @@
 /* ========================================================================== */
 
 #define CPSWPROXY_CPSW9G_HWPUSH_BASE                     (26U)
-
 #define CPSWPROXY_CPTS_HWPUSH_EVENTS_OR_MASK             (0xFFU)
 
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_NAME            ("ASRETHDEVICE")
-
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_PRIORITY        (2U)
 
 #if defined(SAFERTOS)
@@ -108,11 +106,8 @@
 #endif
 
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE             (496U + 32U)
-
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_NUM_RPMSG_BUFS       (256U)
-
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_RPMSG_OBJ_SIZE       (256U)
-
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_DATA_SIZE            (CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE * \
                                                           CPSWPROXY_AUTOSAR_ETHDRIVER_NUM_RPMSG_BUFS + \
                                                           CPSWPROXY_AUTOSAR_ETHDRIVER_RPMSG_OBJ_SIZE)
@@ -122,7 +117,6 @@
                                                           ETHREMOTECFG_CMDSTATUS_EFAIL)
 
 #define CPSWPROXY_ETH_CLIENT_TASK_NAME                   ("ETHREMOTEDEVICE")
-
 #define CPSWPROXY_ETH_CLIENT_TASK_PRIORITY               (2U)
 
 #if defined(SAFERTOS)
@@ -135,7 +129,7 @@
 
 #define CPSWPROXY_IPC_TASK_STACKALIGN                    (8192U)
 
-#define ENET_COREKEY_CONVERT_MAGIC_NUM                   0U
+#define ENET_COREKEY_CONVERT_MAGIC_NUM                   (0U)
 #define CPSWPROXY_VIRTPORT_2_TOKEN(virtPort)             (((virtPort) * 100U) + ENET_COREKEY_CONVERT_MAGIC_NUM)
 #define CPSWPROXY_TOKEN_2_VIRTPORT(token)                (((token) - ENET_COREKEY_CONVERT_MAGIC_NUM) / 100U)
 
@@ -144,16 +138,15 @@
 
 /*! Remote notify service task stack size */
 #define CPSWPROXY_NOTIFY_SERVICE_SERVER_TASK_STACKSIZE   (16U * 1024U)
-
 #define CPSWPROXY_NOTIFY_SERVICE_SERVER_TASK_STACKALIGN  CPSWPROXY_NOTIFY_SERVICE_SERVER_TASK_STACKSIZE
 
 /*! Remote notify service task name */
 #define CPSWPROXY_NOTIFY_SERVICE_TASK_NAME               ("NOTIFY_SERVICE_TASK")
-
 #define CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY           (2U)
 
 #define CPSWPROXY_PRINT_STATS_NONZERO(str, val)          ETHFWTRACE_INFO_IF(((val) != 0ULL), str, val)
 #define CPSWPROXY_PRINT_STATS_IDX_NONZERO(str, idx, val) ETHFWTRACE_INFO_IF(((val) != 0ULL), str, idx, val)
+
 #define CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX            (0U)
 #define CPSWPROXY_CLIENT_INVALID_FLOW_IDX_OFFSET         (0xFFU)
 
@@ -218,7 +211,7 @@ typedef struct CpswProxyServer_RemoteCoreObj_s
     /* Enet LLD attachInfo, unique per coreId */
     EnetPer_AttachCoreOutArgs attachInfo;
     /* Client object for storing all the data associated with the client */
-    CpswProxyServer_ClientObj clientObj[CPSWPROXYSERVER_REMOTE_CLIENT_MAX];
+    CpswProxyServer_ClientObj clientObj[CPSWPROXYSERVER_VIRTPORT_PER_CLIENT_MAX];
 } CpswProxyServer_RemoteCoreObj;
 
 /*
@@ -367,9 +360,9 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
 static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
                                                  EthRemoteCfg_VirtPort virtPort);
 
-static uint32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virtPort,
-                                                       uint32_t *pNumTxCh,
-                                                       uint32_t *pNumRxFlow);
+static int32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virtPort,
+                                                      uint32_t *pNumTxCh,
+                                                      uint32_t *pNumRxFlow);
 
 static int32_t CpswProxyServer_createCustomPolicer(Enet_Handle hEnet,
                                                    uint32_t coreId,
@@ -418,7 +411,7 @@ static uint8_t gCpswProxyServer_notifyServiceTaskStackBuf[CPSWPROXY_NOTIFY_SERVI
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-static CpswProxyServer_Obj *CpswProxyServer_getHandle(void)
+static CpswProxyServer_Obj *CpswProxyServer_initHandle(void)
 {
     static CpswProxyServer_Obj gProxyServerObj =
     {
@@ -430,19 +423,37 @@ static CpswProxyServer_Obj *CpswProxyServer_getHandle(void)
         .initEthfwDeviceDataCb = NULL,
         .getMcmCmdIfCb         = NULL,
         .initDone              = BFALSE,
-        .masterCoreId          = IPC_MCU2_0,
     };
 
     return (&gProxyServerObj);
+}
+
+static int32_t CpswProxyServer_getHandle(CpswProxyServer_Obj **hServer)
+{
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+
+    /* Check that server itself is ready */
+    *hServer = CpswProxyServer_initHandle();
+    if ((*hServer == NULL) || ((*hServer)->initDone != BTRUE))
+    {
+        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+    }
+
+    return status;
 }
 
 static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteProcId,
                                                                 uint32_t remoteEndPt,
                                                                 uint32_t virtPort)
 {
-    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t i;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
 
@@ -475,22 +486,33 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
 
 static void CpswProxyServer_freeClient(CpswProxyServer_ClientHandle hClient)
 {
-    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
-    memset(hClient, 0, sizeof(*hClient));
-    hClient->inUse = BFALSE;
-    hClient->token = ETHREMOTECFG_TOKEN_NONE;
-    MutexP_unlock(hServer->hMutex);
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+
+    if (ETHREMOTECFG_SOK == status)
+    {
+        MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
+        memset(hClient, 0, sizeof(*hClient));
+        hClient->inUse = BFALSE;
+        hClient->token = ETHREMOTECFG_TOKEN_NONE;
+        MutexP_unlock(hServer->hMutex);
+    }
 }
 
 static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remoteProcId,
                                                               uint32_t token)
 {
-    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
     EnetMcm_CmdIf *hMcmCmdIf = NULL;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t i;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
 
@@ -513,13 +535,16 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remotePro
 int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
                                          uint32_t *idleClients)
 {
-    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
     int32_t status = ETHFW_SOK;
     *attachedClients = 0U;
     *idleClients = 0U;
     uint32_t i;
     uint32_t j;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
@@ -544,12 +569,15 @@ int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
 static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
                                           uint32_t notifyId)
 {
-    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
     EthRemoteCfg_CommonNotify notifyMsg;
     RPMessage_Handle handle = NULL;
     uint32_t srcEndPt = 0U;
     uint32_t clientInst;
     int32_t status = ETHFW_SOK;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     notifyMsg.hdr.common.msgType = ETHREMOTECFG_MSGTYPE_NOTIFY;
     notifyMsg.hdr.common.clientId = hClient->clientId;
@@ -611,11 +639,14 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
 
 int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
 {
-    CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t i;
     uint32_t j;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
@@ -649,8 +680,8 @@ static int32_t CpswProxyServer_getPortMask(uint32_t clientId,
     bool isFound = BFALSE;
     uint32_t i;
 
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && hServer->initDone == BTRUE);
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -721,14 +752,8 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
     bool csumEnable;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -801,23 +826,15 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        /* Check that server itself is ready */
-        hServer = CpswProxyServer_getHandle();
-        if ((hServer != NULL) && (hServer->initDone == BTRUE))
-        {
-            coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-        }
-        else
-        {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-            EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-        }
+        status = CpswProxyServer_getHandle(&hServer);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
     }
 
     /* Allocate RX flow */
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
         status = EnetAppUtils_allocRxFlow(hServer->hEnet,
                                           coreKey,
                                           hostId,
@@ -875,21 +892,12 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
     uint32_t coreKey;
     uint32_t txChNum;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         /* Get absolute tx channel number from relative tx channel */
         txChNum = CpswProxyServer_getAbsTxChNumber(chRelPriority, hClient->virtPort);
         EnetAppUtils_assert(txChNum != ENET_RM_TXCHNUM_INVALID);
@@ -925,21 +933,12 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
     EthFwQos_RxFlowInfo *rxFlowInfo;
     uint32_t i;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
 
         status = EnetAppUtils_allocRxFlow(hServer->hEnet,
@@ -995,21 +994,13 @@ static int32_t CpswProxyServer_allocMacHandlerCb(CpswProxyServer_ClientHandle hC
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
         status = EnetAppUtils_allocMac(hServer->hEnet,
                                        coreKey,
                                        hostId,
@@ -1034,21 +1025,13 @@ static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hCli
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t coreKey;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
         /* Detach from MCM */
         EnetAppUtils_assert(hServer->hMcmCmdIf != NULL);
         hServer->coreObj[hostId].rmRefCnt--;
@@ -1075,21 +1058,13 @@ static int32_t CpswProxyServer_freeTxHandlerCb(CpswProxyServer_ClientHandle hCli
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
         status = EnetAppUtils_freeTxCh(hServer->hEnet,
                                        coreKey,
                                        hostId,
@@ -1120,21 +1095,13 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
     EthFwQos_RxFlowInfo *rxFlowInfo;
     uint32_t i;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
         status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, rxFlowIdxOffset);
         ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
                            "Failed to get relative flow index for virtual port %u flow %u",
@@ -1192,21 +1159,13 @@ static int32_t CpswProxyServer_freeMacHandlerCb(CpswProxyServer_ClientHandle hCl
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
         status = EnetAppUtils_freeMac(hServer->hEnet,
                                       coreKey,
                                       hostId,
@@ -1243,31 +1202,25 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
     struct eth_addr hwAddr;
 #endif
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
-    /* Make sure that CpswProxyServer_registerMacHandlerCb is requested on primary flow */
-    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
-                       "Failed to get relative flow index for virtual port %u flow %u",
-                       hClient->virtPort,
-                       flowIdxOffset);
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+        /* Make sure that CpswProxyServer_registerMacHandlerCb is requested on primary flow */
+        status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                           "Failed to get relative flow index for virtual port %u flow %u",
+                           hClient->virtPort,
+                           flowIdxOffset);
+        if (ETHREMOTECFG_CMDSTATUS_OK == status)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to register MAC addr on extended flow, must be on primary flow");
+            if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+            {
+                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to register MAC addr on extended flow, must be on primary flow");
+            }
         }
     }
 
@@ -1346,31 +1299,25 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
     uint32_t coreKey;
     uint32_t relFlowIdx;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
-    /* Make sure that CpswProxyServer_unregisterMacHandlerCb is requested on primary flow */
-    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
-                       "Failed to get relative flow index for virtual port %u flow %u",
-                       hClient->virtPort,
-                       flowIdxOffset);
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+        /* Make sure that CpswProxyServer_unregisterMacHandlerCb is requested on primary flow */
+        status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                           "Failed to get relative flow index for virtual port %u flow %u",
+                           hClient->virtPort,
+                           flowIdxOffset);
+        if (ETHREMOTECFG_CMDSTATUS_OK == status)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to unregister MAC addr on extended flow, must be on primary flow");
+            if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+            {
+                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to unregister MAC addr on extended flow, must be on primary flow");
+            }
         }
     }
 
@@ -1448,14 +1395,8 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
     uint16_t vlanId = 0U;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -1509,14 +1450,8 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
     uint16_t vlanId = 0U;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -1565,14 +1500,8 @@ static int32_t CpswProxyServer_vlanJoinHandlerCb(CpswProxyServer_ClientHandle hC
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -1602,14 +1531,8 @@ static int32_t CpswProxyServer_vlanLeaveHandlerCb(CpswProxyServer_ClientHandle h
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -1640,14 +1563,8 @@ int32_t CpswProxyServer_promiscModeHandlerCb(CpswProxyServer_ClientHandle hClien
     uint32_t cmd;
     int32_t status = ENET_SOK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -1844,31 +1761,25 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
     uint32_t coreKey;
     uint32_t relFlowIdx;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
-    /* Make sure that CpswProxyServer_registerRxDefaultHandlerCb is requested on primary flow */
-    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
-                       "Failed to get relative flow index for virtual port %u flow %u",
-                       hClient->virtPort,
-                       flowIdxOffset);
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+        /* Make sure that CpswProxyServer_registerRxDefaultHandlerCb is requested on primary flow */
+        status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                           "Failed to get relative flow index for virtual port %u flow %u",
+                           hClient->virtPort,
+                           flowIdxOffset);
+        if (ETHREMOTECFG_CMDSTATUS_OK == status)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to register rx default flow on extended flow, must be on primary flow");
+            if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+            {
+                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to register rx default flow on extended flow, must be on primary flow");
+            }
         }
     }
 
@@ -1914,31 +1825,25 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
     uint32_t coreKey;
     uint32_t relFlowIdx;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer != NULL) && (hServer->initDone == BTRUE))
-    {
-        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    }
-    else
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
-    /* Make sure that CpswProxyServer_deregisterRxDefaultHandlerCb is requested on primary flow */
-    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
-                       "Failed to get relative flow index for virtual port %u flow %u",
-                       hClient->virtPort,
-                       flowIdxOffset);
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+        /* Make sure that CpswProxyServer_deregisterRxDefaultHandlerCb is requested on primary flow */
+        status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                           "Failed to get relative flow index for virtual port %u flow %u",
+                           hClient->virtPort,
+                           flowIdxOffset);
+        if (ETHREMOTECFG_CMDSTATUS_OK == status)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to deregister rx default flow on extended flow, must be on primary flow");
+            if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+            {
+                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to deregister rx default flow on extended flow, must be on primary flow");
+            }
         }
     }
 
@@ -2253,14 +2158,8 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
     bool isMacPort;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -2341,14 +2240,8 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_Client
     bool isSwitchPort;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -2394,14 +2287,8 @@ static int32_t CpswProxyServer_deregisterEthertypeHandlerCb(CpswProxyServer_Clie
     bool isSwitchPort;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -2441,19 +2328,13 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
 {
     Enet_IoctlPrms prms;
     CpswCpts_RegisterHwPushCbInArgs hwPushCbInArgs;
-    CpswProxyServer_Obj *hServer;
+    CpswProxyServer_Obj *hServer = NULL;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
     uint32_t instId = 0U;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
@@ -2507,18 +2388,12 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
 {
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     Enet_IoctlPrms prms;
-    CpswProxyServer_Obj *hServer;
+    CpswProxyServer_Obj *hServer = NULL;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
     uint32_t instId = 0U;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
@@ -2573,19 +2448,13 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
                                               uint32_t outargsLen)
 {
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
-    CpswProxyServer_Obj *hServer;
+    CpswProxyServer_Obj *hServer = NULL;
     Enet_IoctlPrms prms;
     uint64_t inArgsBuf[(ETHREMOTECFG_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
     uint64_t outArgsBuf[(ETHREMOTECFG_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -2648,27 +2517,24 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     uint32_t relFlowIdx;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
-    /* Make sure that CpswProxyServer_filterAddMacHandlerCb is requested on primary flow */
-    status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
-                       "Failed to get relative flow index for virtual port %u flow %u",
-                       hClient->virtPort,
-                       flowIdxOffset);
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (status == ETHREMOTECFG_CMDSTATUS_OK)
     {
-        if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+        /* Make sure that CpswProxyServer_filterAddMacHandlerCb is requested on primary flow */
+        status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+                           "Failed to get relative flow index for virtual port %u flow %u",
+                           hClient->virtPort,
+                           flowIdxOffset);
+        if (ETHREMOTECFG_CMDSTATUS_OK == status)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to add filter MAC on extended flow, must be on primary flow");
+            if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
+            {
+                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to add filter MAC on extended flow, must be on primary flow");
+            }
         }
     }
 
@@ -2725,18 +2591,12 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
                                                      uint8_t *macAddr,
                                                      uint16_t vlanId)
 {
-    CpswProxyServer_Obj *hServer;
+    CpswProxyServer_Obj *hServer = NULL;
     uint16_t hwVlanId = vlanId;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (!EnetUtils_isMcastAddr(macAddr))
     {
@@ -2799,10 +2659,11 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     int32_t i;
     int32_t status = ETHFW_SOK;
 
-    hServer = CpswProxyServer_getHandle();
+    hServer = CpswProxyServer_initHandle();
     EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BFALSE));
 
     hServer->instId = cfg->instId;
+    hServer->masterCoreId = EnetSoc_getCoreId();
     memset(&hServer->coreObj, 0, sizeof(hServer->coreObj));
 
     hServer->dfltVlanIdMacOnlyPorts = cfg->dfltVlanIdMacOnlyPorts;
@@ -2904,18 +2765,12 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
                                            uint32_t hostId)
 {
-    CpswProxyServer_Obj *hServer;
+    CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     Enet_IoctlPrms prms;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    if ((hServer == NULL) || (hServer->initDone != BTRUE))
-    {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW server is not ready");
-        EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
-    }
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
@@ -4106,10 +3961,6 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
     uint32_t remoteCoreId;
     uint32_t token;
 
-    /* Check that server itself is ready */
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert(hServer != NULL);
-
     /* Get MCM cmd handle */
     EnetAppUtils_assert(hServer->getMcmCmdIfCb != NULL);
     hServer->getMcmCmdIfCb(hServer->enetType, &hMcmCmdIf);
@@ -4306,16 +4157,16 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
     CpswProxyServer_ClientHandle hClient;
     Enet_Handle hEnet;
     uint32_t coreKey;
-    CpswProxyServer_Obj *hServer;
-    int32_t status = ENET_SOK;
+    CpswProxyServer_Obj *hServer = NULL;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
     Enet_IoctlPrms prms;
     Enet_Type enetType;
 
     hClient = CpswProxyServer_getClient(hostId, token);
     EnetAppUtils_assert(hClient != NULL);
 
-    hServer = CpswProxyServer_getHandle();
-    EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BTRUE));
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     hEnet = hServer->hEnet;
     EnetAppUtils_assert(hEnet != NULL);
@@ -4344,9 +4195,11 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
 int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
 {
     int32_t retVal;
-    CpswProxyServer_Obj *hServer;
+    CpswProxyServer_Obj *hServer = NULL;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
-    hServer = CpswProxyServer_getHandle();
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
     SemaphoreP_pend(hServer->clientServiceObj.rpmsgStartSem, SemaphoreP_WAIT_FOREVER);
 
     retVal = RPMessage_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
@@ -4360,8 +4213,11 @@ static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
 {
     uint32_t i;
     uint32_t txChNum = ENET_RM_TXCHNUM_INVALID;
-    CpswProxyServer_Obj *hServer;
-    hServer = CpswProxyServer_getHandle();
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    CpswProxyServer_Obj *hServer = NULL;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4383,14 +4239,16 @@ static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
     return txChNum;
 }
 
-static uint32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virtPort,
+static int32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virtPort,
                                                        uint32_t *pNumTxCh,
                                                        uint32_t *pNumRxFlow)
 {
     uint32_t i;
-    uint32_t status = ETHFW_EFAIL;
-    CpswProxyServer_Obj *hServer;
-    hServer = CpswProxyServer_getHandle();
+    int32_t status = ETHFW_EFAIL;
+    CpswProxyServer_Obj *hServer = NULL;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4451,8 +4309,10 @@ static int32_t CpswProxyServer_getRxFlowInfo(EthRemoteCfg_VirtPort virtPort,
 {
     uint32_t i;
     int32_t status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-    CpswProxyServer_Obj *hServer;
-    hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer =  NULL;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4484,8 +4344,10 @@ static int32_t CpswProxyServer_getRelFlowIdx(EthRemoteCfg_VirtPort virtPort,
     uint32_t i;
     uint32_t j;
     int32_t status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-    CpswProxyServer_Obj *hServer;
-    hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4512,8 +4374,11 @@ static void CpswProxyServer_saveRxFlowOffset(EthRemoteCfg_VirtPort virtPort,
                                              uint32_t rxFlowIdxOffset)
 {
     uint32_t i;
-    CpswProxyServer_Obj *hServer;
-    hServer = CpswProxyServer_getHandle();
+    CpswProxyServer_Obj *hServer = NULL;
+    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
