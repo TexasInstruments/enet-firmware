@@ -149,6 +149,13 @@
 
 /* Compile time check for error value consistency with ETHFW (and Enet LLD) */
 #define CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(x)      ETHFW_UTILS_COMPILETIME_ASSERT(ETHFW_##x == ETHREMOTECFG_##x)
+#define CPSWPROXY_ERR_CHECK(cond, err, val)              \
+    do {                                                 \
+        if (cond)                                        \
+        {                                                \
+          err = val;                                     \
+        }                                                \
+    } while (0)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -325,12 +332,6 @@ static void CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
 static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj * hServer,
                                                            CpswProxyServer_Config_t * cfg);
 
-static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
-                                                  uint32_t hostId,
-                                                  EthRemoteCfg_NotifyType notifyid,
-                                                  uint8_t *notify_info,
-                                                  uint32_t notify_info_len);
-
 static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
                                               uint32_t coreKey,
                                               uint32_t remoteCoreId,
@@ -477,6 +478,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
     CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
     int32_t status = ETHREMOTECFG_SOK;
+    bool isAvailable = BFALSE;
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
@@ -489,11 +491,13 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
         hClient = &hServer->coreObj[remoteProcId].clientObj[i];
         if ((hClient->inUse) && (hClient->virtPort == virtPort))
         {
+            isAvailable = BTRUE;
             ETHFWTRACE_WARN("client has already been allocated");
             break;
         }
         else if (!hClient->inUse)
         {
+            isAvailable = BTRUE;
             hClient->inUse = BTRUE;
             hClient->virtPort  = virtPort;
             hClient->token = ETHREMOTECFG_TOKEN_NONE;
@@ -507,6 +511,12 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
     }
 
     MutexP_unlock(hServer->hMutex);
+
+    if(!isAvailable)
+    {
+        hClient = NULL;
+        ETHFWTRACE_ERR(ETHREMOTECFG_EALLOC, "Failed to allocate client");
+    }
 
     return hClient;
 }
@@ -536,6 +546,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remotePro
     CpswProxyServer_ClientHandle hClient = NULL;
     EnetMcm_CmdIf *hMcmCmdIf = NULL;
     int32_t status = ETHREMOTECFG_SOK;
+    bool isFound = BFALSE;
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
@@ -549,12 +560,18 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remotePro
 
         if (hClient->inUse && (hClient->token == token))
         {
-            /* Found */
+            isFound = BTRUE;
             break;
         }
     }
 
     MutexP_unlock(hServer->hMutex);
+
+    if(!isFound)
+    {
+        hClient = NULL;
+        ETHFWTRACE_ERR(ETHREMOTECFG_EBADARGS, "Failed to get a client handle");
+    }
 
     return hClient;
 }
@@ -2858,27 +2875,31 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Allocate a client object */
             hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt, req->virtPort);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EALLOC);
 
-            status = CpswProxyServer_attachHandlerCb(hClient,
-                                                     remoteProcId,
-                                                     req->virtPort,
-                                                     &res->rxMtu,
-                                                     &res->txMtu[0U],
-                                                     ENET_ARRAYSIZE(res->txMtu),
-                                                     &res->features,
-                                                     &res->numTxCh,
-                                                     &res->numRxFlow);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_attachHandlerCb(hClient,
+                                                         remoteProcId,
+                                                         req->virtPort,
+                                                         &res->rxMtu,
+                                                         &res->txMtu[0U],
+                                                         ENET_ARRAYSIZE(res->txMtu),
+                                                         &res->features,
+                                                         &res->numTxCh,
+                                                         &res->numRxFlow);
+                token = hClient->token;
+                hClient->clientId = clientId;
+
+                ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x",
+                                 (int32_t)token, res->rxMtu, res->features);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to attach virtual port %u core %u",
                               req->virtPort, remoteProcId);
 
-            token = hClient->token;
-            hClient->clientId = clientId;
             resLen = sizeof(EthRemoteCfg_AttachRes);
-
-            ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x",
-                            (int32_t)token, res->rxMtu, res->features);
             break;
         }
         case ETHREMOTECFG_CMD_ATTACH_EXT:
@@ -2891,35 +2912,38 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Allocate a client object */
             hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt, req->virtPort);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EALLOC);
 
-            status = CpswProxyServer_attachExtHandlerCb(hClient,
-                                                        remoteProcId,
-                                                        req->virtPort,
-                                                        &res->rxMtu,
-                                                        res->txMtu,
-                                                        ENET_ARRAYSIZE(res->txMtu),
-                                                        &res->features,
-                                                        &res->rxFlowIdxBase,
-                                                        &res->rxFlowIdxOffset,
-                                                        &res->txPsilDstId,
-                                                        &res->rxPsilSrcId,
-                                                        &res->macAddr[0U]);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_attachExtHandlerCb(hClient,
+                                                            remoteProcId,
+                                                            req->virtPort,
+                                                            &res->rxMtu,
+                                                            res->txMtu,
+                                                            ENET_ARRAYSIZE(res->txMtu),
+                                                            &res->features,
+                                                            &res->rxFlowIdxBase,
+                                                            &res->rxFlowIdxOffset,
+                                                            &res->txPsilDstId,
+                                                            &res->rxPsilSrcId,
+                                                            &res->macAddr[0U]);
+                token = hClient->token;
+                hClient->clientId = clientId;
+
+                ETHFWTRACE_INFO("ATTACH_EXT | S2C | token=%d rxMtu=%u features=%x flow=%u,%u "
+                                "rxPsil=0x%x txPsil=0x%x macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
+                                (int32_t)token, res->rxMtu, res->features,
+                                res->rxFlowIdxBase, res->rxFlowIdxOffset,
+                                res->rxPsilSrcId, res->txPsilDstId,
+                                res->macAddr[0U], res->macAddr[1U], res->macAddr[2U],
+                                res->macAddr[3U], res->macAddr[4U], res->macAddr[5U]);
+            }
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to attach (ext) virtual port %u core %u",
                               req->virtPort, remoteProcId);
 
-            token = hClient->token;
-            hClient->clientId = clientId;
             resLen = sizeof(EthRemoteCfg_AttachExtRes);
-
-            ETHFWTRACE_INFO("ATTACH_EXT | S2C | token=%d rxMtu=%u features=%x flow=%u,%u "
-                            "rxPsil=0x%x txPsil=0x%x macAddr=%02x:%02x:%02x:%02x:%02x:%02x",
-                            (int32_t)token, res->rxMtu, res->features,
-                            res->rxFlowIdxBase, res->rxFlowIdxOffset,
-                            res->rxPsilSrcId, res->txPsilDstId,
-                            res->macAddr[0U], res->macAddr[1U], res->macAddr[2U],
-                            res->macAddr[3U], res->macAddr[4U], res->macAddr[5U]);
             break;
         }
         case ETHREMOTECFG_CMD_DETACH:
@@ -2931,15 +2955,19 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_detachHandlerCb(hClient,
-                                                     remoteProcId);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_detachHandlerCb(hClient,
+                                                         remoteProcId);
+                CpswProxyServer_freeClient(hClient);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to detach virtual port %u core %u",
                               hClient->virtPort, remoteProcId);
 
-            CpswProxyServer_freeClient(hClient);
             resLen = sizeof(*res);
 
             ETHFWTRACE_INFO("DETACH | S2C | status=%d", status);
@@ -2955,18 +2983,22 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_allocTxHandlerCb(hClient,
-                                                      remoteProcId,
-                                                      &res->txPsilDstId,
-                                                      req->chRelPriority);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_allocTxHandlerCb(hClient,
+                                                          remoteProcId,
+                                                          &res->txPsilDstId,
+                                                          req->chRelPriority);
+
+                ETHFWTRACE_INFO("ALLOC_TX | S2C | txPsil=0x%x status=%d",
+                                res->txPsilDstId, status);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc TX channel");
 
             resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("ALLOC_TX | S2C | txPsil=0x%x status=%d",
-                            res->txPsilDstId, status);
             break;
         }
         case ETHREMOTECFG_CMD_ALLOC_RX:
@@ -2979,20 +3011,24 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_allocRxHandlerCb(hClient,
-                                                      remoteProcId,
-                                                      &res->rxFlowIdxBase,
-                                                      &res->rxFlowIdxOffset,
-                                                      &res->rxPsilSrcId,
-                                                      req->flowIdx);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_allocRxHandlerCb(hClient,
+                                                          remoteProcId,
+                                                          &res->rxFlowIdxBase,
+                                                          &res->rxFlowIdxOffset,
+                                                          &res->rxPsilSrcId,
+                                                          req->flowIdx);
+
+                ETHFWTRACE_INFO("ALLOC_RX | S2C | flow=%u,%u rxPsil=0x%x status=%d",
+                                res->rxFlowIdxBase, res->rxFlowIdxOffset, res->rxPsilSrcId, status);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc RX flow");
 
             resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("ALLOC_RX | S2C | flow=%u,%u rxPsil=0x%x status=%d",
-                            res->rxFlowIdxBase, res->rxFlowIdxOffset, res->rxPsilSrcId, status);
             break;
         }
         case ETHREMOTECFG_CMD_ALLOC_MAC:
@@ -3004,19 +3040,23 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_allocMacHandlerCb(hClient,
-                                                      remoteProcId,
-                                                      &res->macAddr[0U]);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_allocMacHandlerCb(hClient,
+                                                          remoteProcId,
+                                                          &res->macAddr[0U]);
+
+                ETHFWTRACE_INFO("ALLOC_MAC | S2C | macAddr=%02x:%02x:%02x:%02x:%02x:%02x status=%d",
+                                res->macAddr[0U], res->macAddr[1U], res->macAddr[2U],
+                                res->macAddr[3U], res->macAddr[4U], res->macAddr[5U],
+                                status);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc MAC addr");
 
             resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("ALLOC_MAC | S2C | macAddr=%02x:%02x:%02x:%02x:%02x:%02x status=%d",
-                            res->macAddr[0U], res->macAddr[1U], res->macAddr[2U],
-                            res->macAddr[3U], res->macAddr[4U], res->macAddr[5U],
-                            status);
             break;
         }
         case ETHREMOTECFG_CMD_FREE_TX:
@@ -3029,11 +3069,15 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_freeTxHandlerCb(hClient,
-                                                     remoteProcId,
-                                                     req->txPsilDstId);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_freeTxHandlerCb(hClient,
+                                                         remoteProcId,
+                                                         req->txPsilDstId);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to free TX channel");
 
             resLen = sizeof(*res);
@@ -3052,12 +3096,16 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_freeRxHandlerCb(hClient,
-                                                     remoteProcId,
-                                                     req->rxFlowIdxBase,
-                                                     req->rxFlowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_freeRxHandlerCb(hClient,
+                                                         remoteProcId,
+                                                         req->rxFlowIdxBase,
+                                                         req->rxFlowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to free RX flow");
 
             resLen = sizeof(*res);
@@ -3078,11 +3126,15 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_freeMacHandlerCb(hClient,
-                                                     remoteProcId,
-                                                     req->macAddr);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_freeMacHandlerCb(hClient,
+                                                         remoteProcId,
+                                                         req->macAddr);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to free MAC addr");
 
             resLen = sizeof(*res);
@@ -3104,13 +3156,17 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_registerMacHandlerCb(hClient,
-                                                          remoteProcId,
-                                                          req->macAddr,
-                                                          req->flowIdxBase,
-                                                          req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_registerMacHandlerCb(hClient,
+                                                              remoteProcId,
+                                                              req->macAddr,
+                                                              req->flowIdxBase,
+                                                              req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to register MAC addr");
 
             resLen = sizeof(*res);
@@ -3132,13 +3188,17 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_unregisterMacHandlerCb(hClient,
-                                                            remoteProcId,
-                                                            req->macAddr,
-                                                            req->flowIdxBase,
-                                                            req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_unregisterMacHandlerCb(hClient,
+                                                                remoteProcId,
+                                                                req->macAddr,
+                                                                req->flowIdxBase,
+                                                                req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to unregister MAC addr");
 
             resLen = sizeof(*res);
@@ -3160,12 +3220,16 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_registerIPv4MacHandlerCb(hClient,
-                                                              remoteProcId,
-                                                              req->macAddr,
-                                                              req->ipAddr);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_registerIPv4MacHandlerCb(hClient,
+                                                                  remoteProcId,
+                                                                  req->macAddr,
+                                                                  req->ipAddr);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to register IPv4 addr");
 
             resLen = sizeof(*res);
@@ -3184,11 +3248,15 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_deregisterIPv4MacHandlerCb(hClient,
-                                                                remoteProcId,
-                                                                req->ipAddr);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_deregisterIPv4MacHandlerCb(hClient,
+                                                                    remoteProcId,
+                                                                    req->ipAddr);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to deregister IPv4 addr");
 
             resLen = sizeof(*res);
@@ -3210,14 +3278,18 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_vlanJoinHandlerCb(hClient,
-                                                       remoteProcId,
-                                                       req->vlanId,
-                                                       req->macAddr,
-                                                       req->flowIdxBase,
-                                                       req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_vlanJoinHandlerCb(hClient,
+                                                           remoteProcId,
+                                                           req->vlanId,
+                                                           req->macAddr,
+                                                           req->flowIdxBase,
+                                                           req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to join VLAN %u", req->vlanId);
 
             resLen = sizeof(*res);
@@ -3239,14 +3311,18 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_vlanLeaveHandlerCb(hClient,
-                                                        remoteProcId,
-                                                        req->vlanId,
-                                                        req->macAddr,
-                                                        req->flowIdxBase,
-                                                        req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_vlanLeaveHandlerCb(hClient,
+                                                            remoteProcId,
+                                                            req->vlanId,
+                                                            req->macAddr,
+                                                            req->flowIdxBase,
+                                                            req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to leave VLAN %u", req->vlanId);
 
             resLen = sizeof(*res);
@@ -3263,11 +3339,15 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_promiscModeHandlerCb(hClient,
-                                                          remoteProcId,
-                                                          BTRUE);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_promiscModeHandlerCb(hClient,
+                                                              remoteProcId,
+                                                              BTRUE);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to enable promisc mode");
 
             resLen = sizeof(*res);
@@ -3284,11 +3364,14 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_promiscModeHandlerCb(hClient,
-                                                          remoteProcId,
-                                                          BFALSE);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_promiscModeHandlerCb(hClient,
+                                                              remoteProcId,
+                                                              BFALSE);
+            }
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to disable promisc mode");
 
             resLen = sizeof(*res);
@@ -3307,12 +3390,16 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_registerRxDefaultHandlerCb(hClient,
-                                                                remoteProcId,
-                                                                req->flowIdxBase,
-                                                                req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_registerRxDefaultHandlerCb(hClient,
+                                                                    remoteProcId,
+                                                                    req->flowIdxBase,
+                                                                    req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to register RX default flow");
 
             resLen = sizeof(*res);
@@ -3331,12 +3418,16 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_deregisterRxDefaultHandlerCb(hClient,
-                                                                  remoteProcId,
-                                                                  req->flowIdxBase,
-                                                                  req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_deregisterRxDefaultHandlerCb(hClient,
+                                                                      remoteProcId,
+                                                                      req->flowIdxBase,
+                                                                      req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to deregister RX default flow");
 
             resLen = sizeof(*res);
@@ -3356,13 +3447,17 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_registerEthertypeHandlerCb(hClient,
-                                                                remoteProcId,
-                                                                req->ethertype,
-                                                                req->flowIdxBase,
-                                                                req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_registerEthertypeHandlerCb(hClient,
+                                                                    remoteProcId,
+                                                                    req->ethertype,
+                                                                    req->flowIdxBase,
+                                                                    req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to register EthType flow");
 
             resLen = sizeof(*res);
@@ -3380,11 +3475,15 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_deregisterEthertypeHandlerCb(hClient,
-                                                                  remoteProcId,
-                                                                  req->ethertype);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_deregisterEthertypeHandlerCb(hClient,
+                                                                      remoteProcId,
+                                                                      req->ethertype);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to deregister EthType flow");
 
             resLen = sizeof(*res);
@@ -3406,14 +3505,18 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_filterAddMacHandlerCb(hClient,
-                                                           remoteProcId,
-                                                           req->macAddr,
-                                                           req->vlanId,
-                                                           req->flowIdxBase,
-                                                           req->flowIdxOffset);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_filterAddMacHandlerCb(hClient,
+                                                               remoteProcId,
+                                                               req->macAddr,
+                                                               req->vlanId,
+                                                               req->flowIdxBase,
+                                                               req->flowIdxOffset);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to add mcast to filter");
 
             resLen = sizeof(*res);
@@ -3435,12 +3538,16 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_filterDelMacHandlerCb(hClient,
-                                                           remoteProcId,
-                                                           req->macAddr,
-                                                           req->vlanId);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_filterDelMacHandlerCb(hClient,
+                                                               remoteProcId,
+                                                               req->macAddr,
+                                                               req->vlanId);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to delete mcast from filter");
 
             resLen = sizeof(*res);
@@ -3457,13 +3564,17 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_isLinkUpCb(hClient,
-                                                remoteProcId,
-                                                &res->isLinked,
-                                                &res->speed,
-                                                &res->duplexity);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_isLinkUpCb(hClient,
+                                                    remoteProcId,
+                                                    &res->isLinked,
+                                                    &res->speed,
+                                                    &res->duplexity);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get port link params");
 
             resLen = sizeof(*res);
@@ -3482,10 +3593,14 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_regReadHandlerCb(req->addr,
-                                                      &res->val);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_regReadHandlerCb(req->addr,
+                                                          &res->val);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to read register");
 
             resLen = sizeof(*res);
@@ -3503,10 +3618,14 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_regWriteHandlerCb(req->addr,
-                                                       req->val);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_regWriteHandlerCb(req->addr,
+                                                           req->val);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to write register");
 
             resLen = sizeof(*res);
@@ -3524,12 +3643,16 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_registerRemoteTimerHandlerCb(hClient,
-                                                                  remoteProcId,
-                                                                  req->timerId,
-                                                                  req->hwPushNum);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_registerRemoteTimerHandlerCb(hClient,
+                                                                      remoteProcId,
+                                                                      req->timerId,
+                                                                      req->hwPushNum);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to register remote timer");
 
             resLen = sizeof(*res);
@@ -3547,11 +3670,15 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_unregisterRemoteTimerHandlerCb(hClient,
-                                                                    remoteProcId,
-                                                                    req->hwPushNum);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_unregisterRemoteTimerHandlerCb(hClient,
+                                                                        remoteProcId,
+                                                                        req->hwPushNum);
+            }
+
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to unregister remote timer");
 
             resLen = sizeof(*res);
@@ -3578,17 +3705,17 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_CommonReq *req = (EthRemoteCfg_CommonReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
+            status = ETHREMOTECFG_SOK;
 
             ETHFWTRACE_INFO("TEARDOWN_COMPLETION | C2S | core=%u endpt=%u token=%d",
                             remoteProcId, remoteEndPt, (int32_t)token);
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
             hClient->isIdle = BTRUE;
             resLen = sizeof(*res);
-            status = ETHREMOTECFG_SOK;
 
             ETHFWTRACE_INFO("TEARDOWN_COMPLETION | S2C | status=%d", status);
             break;
@@ -3604,15 +3731,18 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status =  CpswProxyServer_ioctlHandlerCb(hClient,
-                                                     remoteProcId,
-                                                     req->cmd,
-                                                     (const uint8_t *)req->inArgs,
-                                                     req->inArgsLen,
-                                                     (uint8_t *)res->outArgs,
-                                                     req->outArgsLen);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status =  CpswProxyServer_ioctlHandlerCb(hClient,
+                                                         remoteProcId,
+                                                         req->cmd,
+                                                         (const uint8_t *)req->inArgs,
+                                                         req->inArgsLen,
+                                                         (uint8_t *)res->outArgs,
+                                                         req->outArgsLen);
+            }
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to run IOCTL cmd %x", req->cmd);
 
             /* Set IOCTL cmd and outArgs len in response so that it can be processed on client
@@ -3634,9 +3764,12 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            EnetAppUtils_assert(hClient != NULL);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            status = CpswProxyServer_dumpStatsCb(hClient, remoteProcId);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_dumpStatsCb(hClient, remoteProcId);
+            }
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to dump stats");
 
             resLen = sizeof(*res);
@@ -3791,17 +3924,11 @@ static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0, void* arg1)
                 }
                 else if (hdr->msgType == ETHREMOTECFG_MSGTYPE_NOTIFY)
                 {
-                    EthRemoteCfg_NotifyHdr *notifyHdr = (EthRemoteCfg_NotifyHdr *)msgBuf;
-
-                    CpswProxyServer_clientNotifyHandlerCb(notifyHdr->common.token,
-                                                          remoteProcId,
-                                                          notifyHdr->notifyType,
-                                                          (uint8_t*)NULL,
-                                                          (uint32_t)NULL);
+                    ETHFWTRACE_ERR(ETHREMOTECFG_EFAIL, "Received NOTIFY message: Client-Server communication supports only requests");
                 }
                 else
                 {
-                    /* to-do: handle response data */
+                    ETHFWTRACE_ERR(ETHREMOTECFG_EFAIL, "Received RESPONSE message: Client-Server communication supports only requests");
                 }
             }
             else
@@ -4143,67 +4270,17 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
 
                 else if ( hdr->msgType == ETHREMOTECFG_MSGTYPE_NOTIFY)
                 {
-                    EthRemoteCfg_NotifyHdr *notifyHdr = (EthRemoteCfg_NotifyHdr *)msgBuf;
-
-                    CpswProxyServer_clientNotifyHandlerCb(notifyHdr->common.token,
-                                                          remoteProcId,
-                                                          notifyHdr->notifyType,
-                                                          (uint8_t *)NULL,
-                                                          (uint32_t)NULL);
+                    ETHFWTRACE_ERR(ETHREMOTECFG_EFAIL, "Received NOTIFY message: Client-Server communication supports only requests");
                 }
                 else
                 {
-                    /* to-do: handle response data */
+                    ETHFWTRACE_ERR(ETHREMOTECFG_EFAIL, "Received RESPONSE message: Client-Server communication supports only requests");
                 }
             }
             else
             {
                 ETHFWTRACE_ERR(rtnVal, "Failed to receive msg via IPC");
             }
-        }
-    }
-}
-
-static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
-                                                  uint32_t hostId,
-                                                  EthRemoteCfg_NotifyType notifyid,
-                                                  uint8_t *notifyInfo,
-                                                  uint32_t notifyInfoLen)
-{
-    CpswProxyServer_ClientHandle hClient;
-    Enet_Handle hEnet;
-    uint32_t coreKey;
-    CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_SOK;
-    Enet_IoctlPrms prms;
-    Enet_Type enetType;
-
-    hClient = CpswProxyServer_getClient(hostId, token);
-    EnetAppUtils_assert(hClient != NULL);
-
-    status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
-
-    hEnet = hServer->hEnet;
-    EnetAppUtils_assert(hEnet != NULL);
-
-    coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-    enetType = hServer->enetType;
-
-    switch (notifyid)
-    {
-        case ETHREMOTECFG_NOTIFY_CUSTOM:
-        {
-            if (hServer->notifyCb != NULL)
-            {
-                hServer->notifyCb(hostId, hEnet, enetType, coreKey, notifyid, notifyInfo, notifyInfoLen);
-            }
-            break;
-        }
-        default:
-        {
-            ETHFWTRACE_ERR(ETHFW_EINVALIDPARAMS, "Invalid notify id %d", notifyid);
-            break;
         }
     }
 }
