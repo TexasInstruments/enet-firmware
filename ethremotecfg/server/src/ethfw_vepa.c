@@ -226,6 +226,10 @@ void EthFwVepa_deinit(void)
         MutexP_delete(gEthFwVepaObj.hMutex);
         gEthFwVepaObj.hMutex = NULL;
     }
+    else
+    {
+        ETHFWTRACE_ERR(ETHFW_EFAIL, "Failed to de-init Vepa");
+    }
 }
 
 uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx)
@@ -318,7 +322,7 @@ static int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
     CpswAle_SetPolicerEntryInPartitionInArgs polInArgs;
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
     Enet_IoctlPrms prms;
-    int32_t status;
+    int32_t status = ETHFW_EFAIL;
 
     polInArgs.policerMatch.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
     polInArgs.policerMatch.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
@@ -349,7 +353,7 @@ static int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
 {
     CpswAle_DelPolicerEntryInArgs polInArgs;
     Enet_IoctlPrms prms;
-    int32_t status;
+    int32_t status = ETHFW_EFAIL;
 
     polInArgs.policerMatch.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
     polInArgs.policerMatch.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
@@ -376,23 +380,17 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
 {
     EthFwVepa_AddrEntry *entry;
     CpswAle_PolicerPartLevel policerPartLevel = CPSW_ALE_POLICER_PARTITION_DEFAULT;
-    uint32_t flowIdx = ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED;
-    int32_t status = ETHFW_EFAIL;
+    int32_t status = ETHFW_SOK;
     uint32_t i;
     bool done = BFALSE;
 
     MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
 
-    if (gEthFwVepaObj.packetDuplicationFlowIdx != ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
+    if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
     {
-        flowIdx = gEthFwVepaObj.packetDuplicationFlowIdx;
-        status = ETHFW_SOK;
-    }
-    else
-    {
+        status = ETHFW_EFAIL;
         ETHFWTRACE_ERR(status, "Failed to get flow index of packet duplication flow");
     }
-
 
     if (status == ETHFW_SOK)
     {
@@ -428,7 +426,7 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
             {
                 status = EthFwVepa_addMcastPolicer(hEnet, hostId,
                                                    hwVlanId, hwAddr->addr,
-                                                   flowIdx,
+                                                   gEthFwVepaObj.packetDuplicationFlowIdx,
                                                    policerPartLevel);
                 if (status == ETHFW_SOK)
                 {
@@ -516,8 +514,8 @@ void EthFwVepa_printTable(void)
     uint32_t i;
 
     ETHFWTRACE_INFO("");
-    ETHFWTRACE_INFO(" SNo.   Host Id    Private VLAN       MAC Address    ");
-    ETHFWTRACE_INFO("------  -------    ------------    ------------------");
+    ETHFWTRACE_INFO(" SNo.   Virtport Id    Private VLAN       MAC Address    ");
+    ETHFWTRACE_INFO("------  -----------    ------------    ------------------");
     for (i = 0U; i <= ETHREMOTECFG_SWITCH_PORT_LAST; i++)
     {
         if (gEthFwVepaObj.privVlanCfg[i] != 0U)
@@ -588,7 +586,7 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
     uint32_t entryIdx;
     uint32_t privVlanId;
-    int32_t status;
+    int32_t status = ETHFW_EFAIL;
 
     privVlanId = gEthFwVepaObj.privVlanCfg[virtPort];
 
@@ -654,7 +652,7 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
     CpswAle_DelPolicerEntryInArgs polInArgs;
     uint32_t privVlanId;
     uint32_t i;
-    int32_t status;
+    int32_t status = ETHFW_EFAIL;
 
     privVlanId = gEthFwVepaObj.privVlanCfg[virtPort];
 

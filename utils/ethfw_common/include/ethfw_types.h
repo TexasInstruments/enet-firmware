@@ -122,12 +122,6 @@ extern "C" {
 /*! \brief Resource not found. */
 #define ETHFW_ENOTFOUND                        (-14)
 
-/*! \brief Unknown IOCTL. */
-#define ETHFW_EUNKNOWNIOCTL                    (-15)
-
-/*! \brief Malformed IOCTL (args pointer or size not as expected). */
-#define ETHFW_EMALFORMEDIOCTL                  (-16)
-
 /*! @} */
 
 /*! \brief Macro to get the size of an array. */

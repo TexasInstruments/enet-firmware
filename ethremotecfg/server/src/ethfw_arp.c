@@ -175,6 +175,10 @@ void EthFwArp_deinit(void)
     {
         MutexP_delete(gEthFwArpObj.hMutex);
     }
+    else
+    {
+        ETHFWTRACE_WARN("ETHFW ARP module is not initialized");
+    }
 }
 
 int32_t EthFwArp_getHwAddr(const ip4_addr_t *ipAddr,
@@ -212,7 +216,7 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
                          uint16_t vlanId)
 {
     EthFwArp_AddrEntry *entry;
-    int32_t status = ETHFW_SOK;
+    int32_t status = ETHFW_EALLOC;
     uint32_t i;
     bool done = BFALSE;
 
@@ -284,7 +288,8 @@ int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
                          uint16_t vlanId)
 {
     EthFwArp_AddrEntry *entry;
-    int32_t status = ETHFW_SOK;
+    int32_t status = ETHFW_EFAIL;
+    bool done = BFALSE;
     uint32_t i;
 
     MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
@@ -301,20 +306,14 @@ int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
             ip4_addr_set_zero(&entry->ipAddr);
             memset(&entry->hwAddr, 0, sizeof(struct eth_addr));
             entry->isFree = BTRUE;
+            done = BTRUE;
             break;
         }
     }
 
     MutexP_unlock(gEthFwArpObj.hMutex);
 
-    if (i == ETHFW_ARP_TABLE_SIZE)
-    {
-        status = ETHFW_EALLOC;
-    }
-    else
-    {
-        status = ETHFW_SOK;
-    }
+    status = done ? ETHFW_SOK : ETHFW_EFAIL;
 
     return status;
 }

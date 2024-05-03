@@ -1691,7 +1691,7 @@ static void EthApp_filterAddMacSharedCb(const uint8_t *mac_address,
 
             /* There will be a delay between removing existing FDB entry
              * and adding the updated one. During this time, multicast
-             * packets will be flodded to all the bridge ports
+             * packets will be flooded to all the bridge ports
              */
             bridgeif_fdb_remove(&netif_bridge, &ethaddr);
 

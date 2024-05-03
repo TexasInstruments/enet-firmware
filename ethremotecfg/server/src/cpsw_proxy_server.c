@@ -79,6 +79,7 @@
 
 /* EthFw utils header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_common/include/ethfw_utils.h>
 #include "cpsw_proxy_server.h"
 #include "ethfw_mcast_priv.h"
 #include "ethfw_arp_priv.h"
@@ -111,10 +112,6 @@
 #define CPSWPROXY_AUTOSAR_ETHDRIVER_DATA_SIZE            (CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE * \
                                                           CPSWPROXY_AUTOSAR_ETHDRIVER_NUM_RPMSG_BUFS + \
                                                           CPSWPROXY_AUTOSAR_ETHDRIVER_RPMSG_OBJ_SIZE)
-
-#define CPSWPROXY_ENET2RPMSG_ERR(x)                      (((x) == ENET_SOK) ? \
-                                                          ETHREMOTECFG_CMDSTATUS_OK : \
-                                                          ETHREMOTECFG_CMDSTATUS_EFAIL)
 
 #define CPSWPROXY_ETH_CLIENT_TASK_NAME                   ("ETHREMOTEDEVICE")
 #define CPSWPROXY_ETH_CLIENT_TASK_PRIORITY               (2U)
@@ -149,6 +146,9 @@
 
 #define CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX            (0U)
 #define CPSWPROXY_CLIENT_INVALID_FLOW_IDX_OFFSET         (0xFFU)
+
+/* Compile time check for error value consistency with ETHFW (and Enet LLD) */
+#define CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(x)      ETHFW_UTILS_COMPILETIME_ASSERT(ETHFW_##x == ETHREMOTECFG_##x)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -411,6 +411,24 @@ static uint8_t gCpswProxyServer_notifyServiceTaskStackBuf[CPSWPROXY_NOTIFY_SERVI
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
+static void CpswProxyServer_compileTimeChecks(void)
+{
+    /* Verify that ETHREMOTECFG error types are consistent with ETHFW error types */
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(SOK);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(SINPROGRESS);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EFAIL);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EBADARGS);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EINVALIDPARAMS);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(ETIMEOUT);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EALLOC);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EUNEXPECTED);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EBUSY);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EALREADYOPEN);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(EPERM);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(ENOTSUPPORTED);
+    CPSWPROXY_COMPILETIME_ETHREMOTECFG_CHECK(ENOTFOUND);
+}
+
 static CpswProxyServer_Obj *CpswProxyServer_initHandle(void)
 {
     static CpswProxyServer_Obj gProxyServerObj =
@@ -430,14 +448,23 @@ static CpswProxyServer_Obj *CpswProxyServer_initHandle(void)
 
 static int32_t CpswProxyServer_getHandle(CpswProxyServer_Obj **hServer)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     /* Check that server itself is ready */
     *hServer = CpswProxyServer_initHandle();
-    if ((*hServer == NULL) || ((*hServer)->initDone != BTRUE))
+    if (*hServer == NULL)
     {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+        status = ETHREMOTECFG_EFAIL;
+        ETHFWTRACE_ERR(status, "ETHFW server has not been created");
+    }
+    else if ((*hServer)->initDone != BTRUE)
+    {
+        status = ETHREMOTECFG_EBUSY;
         ETHFWTRACE_ERR(status, "ETHFW server is not ready");
+    }
+    else
+    {
+        status = ETHREMOTECFG_SOK;
     }
 
     return status;
@@ -449,11 +476,11 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
 {
     CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
 
@@ -487,10 +514,10 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
 static void CpswProxyServer_freeClient(CpswProxyServer_ClientHandle hClient)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     if (ETHREMOTECFG_SOK == status)
     {
@@ -508,11 +535,11 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remotePro
     CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
     EnetMcm_CmdIf *hMcmCmdIf = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
 
@@ -544,7 +571,7 @@ int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
     uint32_t j;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
@@ -577,7 +604,7 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
     int32_t status = ETHFW_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     notifyMsg.hdr.common.msgType = ETHREMOTECFG_MSGTYPE_NOTIFY;
     notifyMsg.hdr.common.clientId = hClient->clientId;
@@ -641,12 +668,12 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
 {
     CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t i;
     uint32_t j;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj); i++)
     {
@@ -675,13 +702,13 @@ static int32_t CpswProxyServer_getPortMask(uint32_t clientId,
                                            uint32_t *macPortMask)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     bool isSwitchPort = BFALSE;
     bool isFound = BFALSE;
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -702,7 +729,7 @@ static int32_t CpswProxyServer_getPortMask(uint32_t clientId,
     }
     if (!isFound)
     {
-        status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+        status = ETHREMOTECFG_EBADARGS;
         ETHFWTRACE_ERR(status, "No port mask found for clientId: %u and coreId: %u",
                        clientId, hostId);
     }
@@ -714,7 +741,7 @@ static int32_t CpswProxyServer_VirtPortAllocCb(uint32_t clientId,
                                                uint32_t *switchPortMask,
                                                uint32_t *macPortMask)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     if (clientId <= ETHREMOTECFG_CLIENTID_LAST)
     {
@@ -726,7 +753,7 @@ static int32_t CpswProxyServer_VirtPortAllocCb(uint32_t clientId,
     }
     else
     {
-        status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+        status = ETHREMOTECFG_EBADARGS;
         ETHFWTRACE_ERR(status, "Invalid client id %u", clientId);
     }
 
@@ -750,12 +777,12 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
     EthRemoteCfg_VirtPort virtPort = ETHREMOTECFG_VIRTPORT_DENORM(portId);
     bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
     bool csumEnable;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         if (hServer->coreObj[hostId].rmRefCnt == 0U)
         {
@@ -817,21 +844,21 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
                                                   uint8_t *macAddr)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t coreKey;
 
     /* Actual attach operation */
     status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, txMtuArraySize, pFeatures, NULL, NULL);
-    EnetAppUtils_assert(ETHREMOTECFG_CMDSTATUS_OK == status);
+    EnetAppUtils_assert(ETHREMOTECFG_SOK == status);
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         status = CpswProxyServer_getHandle(&hServer);
-        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
     }
 
     /* Allocate RX flow */
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
 
@@ -879,7 +906,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
 
     ETHFWTRACE_ERR_IF((ENET_SOK != status), status, "Attach Ext failed for coreId: %u", hostId);
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -887,15 +914,15 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
                                                 uint32_t *pTxPsilDstId,
                                                 uint32_t chRelPriority)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
     uint32_t txChNum;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         /* Get absolute tx channel number from relative tx channel */
@@ -917,7 +944,7 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -928,15 +955,15 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
                                                 uint32_t relFlowIdx)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t coreKey;
     EthFwQos_RxFlowInfo *rxFlowInfo;
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
@@ -963,11 +990,11 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
         {
             CpswProxyServer_saveRxFlowOffset(hClient->virtPort, relFlowIdx, *pRxFlowIdxOffset);
             status = CpswProxyServer_getRxFlowInfo(hClient->virtPort, relFlowIdx, &rxFlowInfo);
-            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                                "Failed to get virtual port %u rx flow %u info",
                                hClient->virtPort,
                                pRxFlowIdxOffset);
-            if (status == ETHREMOTECFG_CMDSTATUS_OK)
+            if (status == ETHREMOTECFG_SOK)
             {
                 /* Flow has been allocated, create custom policer for it (if any) */
                 for (i = 0U; i < rxFlowInfo->numCustomPolicers; i++)
@@ -983,21 +1010,21 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_allocMacHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                  uint32_t hostId,
                                                  uint8_t *macAddr)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
 
@@ -1015,20 +1042,20 @@ static int32_t CpswProxyServer_allocMacHandlerCb(CpswProxyServer_ClientHandle hC
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                uint32_t hostId)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t coreKey;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
 
@@ -1054,14 +1081,14 @@ static int32_t CpswProxyServer_freeTxHandlerCb(CpswProxyServer_ClientHandle hCli
                                                uint32_t hostId,
                                                uint32_t pTxPsilDstId)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
 
@@ -1080,7 +1107,7 @@ static int32_t CpswProxyServer_freeTxHandlerCb(CpswProxyServer_ClientHandle hCli
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -1088,7 +1115,7 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
                                                uint32_t rxFlowIdxBase,
                                                uint32_t rxFlowIdxOffset)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
     uint32_t relFlowIdx = 0U;
@@ -1096,21 +1123,21 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
 
         status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, rxFlowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                            "Failed to get relative flow index for virtual port %u flow %u",
                             hClient->virtPort,
                             rxFlowIdxOffset);
-        if (ETHREMOTECFG_CMDSTATUS_OK == status)
+        if (ETHREMOTECFG_SOK == status)
         {
             status = CpswProxyServer_getRxFlowInfo(hClient->virtPort, relFlowIdx, &rxFlowInfo);
-            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                                "Failed to get virtual port %u rx flow %u info",
                                 hClient->virtPort,
                                 rxFlowIdxOffset);
@@ -1128,7 +1155,7 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
         }
     }
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, rxFlowIdxBase);
         status = EnetAppUtils_freeRxFlow(hServer->hEnet,
@@ -1148,21 +1175,21 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_freeMacHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                 uint32_t hostId,
                                                 uint8_t *macAddr)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t coreKey;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
 
@@ -1183,7 +1210,7 @@ static int32_t CpswProxyServer_freeMacHandlerCb(CpswProxyServer_ClientHandle hCl
         }
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -1195,7 +1222,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
     CpswProxyServer_Obj *hServer = NULL;
     Enet_MacPort macPort;
     bool isSwitchPort;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t coreKey;
     uint32_t relFlowIdx;
 #if defined(ETHFW_VEPA_SUPPORT)
@@ -1203,28 +1230,28 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
 #endif
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         /* Make sure that CpswProxyServer_registerMacHandlerCb is requested on primary flow */
         status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                            "Failed to get relative flow index for virtual port %u flow %u",
                            hClient->virtPort,
                            flowIdxOffset);
-        if (ETHREMOTECFG_CMDSTATUS_OK == status)
+        if (ETHREMOTECFG_SOK == status)
         {
             if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
             {
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-                ETHFWTRACE_ERR(status, "Failed to register MAC addr on extended flow, must be on primary flow");
+                status = ETHREMOTECFG_ENOTSUPPORTED;
+                ETHFWTRACE_ERR(status, "Failed to register MAC addr on extended flow, supported on primary flow only");
             }
         }
     }
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -1283,7 +1310,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
                         macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -1295,33 +1322,33 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
     CpswProxyServer_Obj *hServer = NULL;
     Enet_MacPort macPort;
     bool isSwitchPort;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t coreKey;
     uint32_t relFlowIdx;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         /* Make sure that CpswProxyServer_unregisterMacHandlerCb is requested on primary flow */
         status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                            "Failed to get relative flow index for virtual port %u flow %u",
                            hClient->virtPort,
                            flowIdxOffset);
-        if (ETHREMOTECFG_CMDSTATUS_OK == status)
+        if (ETHREMOTECFG_SOK == status)
         {
             if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
             {
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-                ETHFWTRACE_ERR(status, "Failed to unregister MAC addr on extended flow, must be on primary flow");
+                status = ETHREMOTECFG_ENOTSUPPORTED;
+                ETHFWTRACE_ERR(status, "Failed to unregister MAC addr on extended flow, supported on primary flow only");
             }
         }
     }
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -1378,7 +1405,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
                         macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -1393,12 +1420,12 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
 #endif
     bool isSwitchPort;
     uint16_t vlanId = 0U;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
@@ -1411,7 +1438,7 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
             status = EthFwArp_addAddr(&ip4Addr, &hwAddr, vlanId);
             if (status != ETHFW_SOK)
             {
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                status = ETHREMOTECFG_EFAIL;
                 ETHFWTRACE_ERR(status, "Failed to add ARP entry");
             }
             else
@@ -1425,7 +1452,7 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
             /* ETHFW ARP table is supported only on virtual switch ports.
             * Virtual MAC ports don't needed proxy ARP because all traffic is already
             * forwarded to the remote client */
-            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            status = ETHREMOTECFG_ENOTSUPPORTED;
             ETHFWTRACE_ERR(status, "IPv4:MAC registration is not supported on virtual MAC ports");
         }
     }
@@ -1448,12 +1475,12 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
 #endif
     bool isSwitchPort;
     uint16_t vlanId = 0U;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
@@ -1465,7 +1492,7 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
             status = EthFwArp_delAddr(&ip4Addr, vlanId);
             if (status != ETHFW_SOK)
             {
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+                status = ETHREMOTECFG_EFAIL;
                 ETHFWTRACE_ERR(status, "Failed to remove ARP entry");
             }
             else
@@ -1477,7 +1504,7 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
         else
         {
             /* ETHFW ARP table is supported only on virtual switch ports */
-            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            status = ETHREMOTECFG_ENOTSUPPORTED;
             ETHFWTRACE_ERR(status, "IPv4:MAC deregistration is not supported on virtual MAC ports");
         }
     }
@@ -1498,12 +1525,12 @@ static int32_t CpswProxyServer_vlanJoinHandlerCb(CpswProxyServer_ClientHandle hC
                                                  uint32_t flowIdxOffset)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         status = EthFwVlan_join(hServer->hEnet,
                             hClient->virtPort,
@@ -1529,12 +1556,12 @@ static int32_t CpswProxyServer_vlanLeaveHandlerCb(CpswProxyServer_ClientHandle h
                                                   uint32_t flowIdxOffset)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         status = EthFwVlan_leave(hServer->hEnet,
                              hClient->virtPort,
@@ -1564,9 +1591,9 @@ int32_t CpswProxyServer_promiscModeHandlerCb(CpswProxyServer_ClientHandle hClien
     int32_t status = ENET_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         isMacPort = EthFwVirtPort_isMacPort(hClient->virtPort);
         if (isMacPort)
@@ -1581,13 +1608,11 @@ int32_t CpswProxyServer_promiscModeHandlerCb(CpswProxyServer_ClientHandle hClien
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to %s promiscuous mode on MAC port %u",
                             enable ? "enable" : "disable", ENET_MACPORT_ID(macPort));
-
-            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
         else
         {
             /* Promiscuous mode is not supported on virtual switch ports */
-            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            status = ETHREMOTECFG_ENOTSUPPORTED;
             ETHFWTRACE_ERR(status, "Promiscuous mode is not supported on virtual switch ports");
         }
     }
@@ -1622,16 +1647,16 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
     Enet_IoctlPrms prms;
     uint32_t entryIdx;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     if (EnetUtils_isMcastAddr(macAddr))
     {
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+        status = ETHREMOTECFG_ENOTSUPPORTED;
         ETHFWTRACE_ERR(status, "Port %u: mcast not supported", ENET_MACPORT_ID(macPort));
     }
 
     /* Add unicast address */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         ucastInArgs.addr.vlanId  = 0U;
         ucastInArgs.info.portNum = CPSW_ALE_HOST_PORT_NUM;
@@ -1668,7 +1693,7 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
                           "Failed to set port %u policer", ENET_MACPORT_ID(macPort));
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
@@ -1684,16 +1709,16 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
     CpswAle_PolicerEntryOutArgs polOutArgs;
     CpswAle_MacAddrInfo macAddrInfo;
     Enet_IoctlPrms prms;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     if (EnetUtils_isMcastAddr(macAddr))
     {
-        status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+        status = ETHREMOTECFG_ENOTSUPPORTED;
         ETHFWTRACE_ERR(status, "Port %u: mcast not supported", ENET_MACPORT_ID(macPort));
     }
 
     /* Remove policer with "port" match criteria */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         memset(&polMatch, 0, sizeof(polMatch));
         polMatch.policerMatchEnMask = CPSW_ALE_POLICER_MATCH_PORT;
@@ -1728,12 +1753,10 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                               "Invalid port %u policer flow %d", ENET_MACPORT_ID(macPort), flowIdx);
         }
-
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
 
     /* Remove unicast address */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         macAddrInfo.vlanId = 0U;
         EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], macAddr);
@@ -1743,8 +1766,6 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
         status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Port %u: failed to remove ucast entry", ENET_MACPORT_ID(macPort));
-
-        status = CPSWPROXY_ENET2RPMSG_ERR(status);
     }
 
     return status;
@@ -1757,33 +1778,33 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
 {
     CpswProxyServer_Obj *hServer = NULL;
     bool isSwitchPort;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t coreKey;
     uint32_t relFlowIdx;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         /* Make sure that CpswProxyServer_registerRxDefaultHandlerCb is requested on primary flow */
         status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                            "Failed to get relative flow index for virtual port %u flow %u",
                            hClient->virtPort,
                            flowIdxOffset);
-        if (ETHREMOTECFG_CMDSTATUS_OK == status)
+        if (ETHREMOTECFG_SOK == status)
         {
             if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
             {
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-                ETHFWTRACE_ERR(status, "Failed to register rx default flow on extended flow, must be on primary flow");
+                status = ETHREMOTECFG_ENOTSUPPORTED;
+                ETHFWTRACE_ERR(status, "Failed to register rx default flow on extended flow, supported on primary flow only");
             }
         }
     }
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -1796,12 +1817,11 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
                                                 flowIdxBase, 
                                                 flowIdxOffset);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
-            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
         else
         {
             /* RX default flow is supported only on virtual switch ports */
-            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            status = ETHREMOTECFG_ENOTSUPPORTED;
             ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
         }
     }
@@ -1821,33 +1841,33 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
 {
     CpswProxyServer_Obj *hServer = NULL;
     bool isSwitchPort;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t coreKey;
     uint32_t relFlowIdx;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         /* Make sure that CpswProxyServer_deregisterRxDefaultHandlerCb is requested on primary flow */
         status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                            "Failed to get relative flow index for virtual port %u flow %u",
                            hClient->virtPort,
                            flowIdxOffset);
-        if (ETHREMOTECFG_CMDSTATUS_OK == status)
+        if (ETHREMOTECFG_SOK == status)
         {
             if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
             {
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-                ETHFWTRACE_ERR(status, "Failed to deregister rx default flow on extended flow, must be on primary flow");
+                status = ETHREMOTECFG_ENOTSUPPORTED;
+                ETHFWTRACE_ERR(status, "Failed to deregister rx default flow on extended flow, supported on primary flow only");
             }
         }
     }
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
@@ -1860,12 +1880,11 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
                                                   flowIdxBase, 
                                                   flowIdxOffset);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
-            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
         else
         {
             /* RX default flow is supported only on virtual switch ports */
-            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            status = ETHREMOTECFG_ENOTSUPPORTED;
             ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
         }
     }
@@ -2156,12 +2175,12 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
     EnetPhy_GenericInArgs phyInArgs;
     EnetMacPort_LinkCfg phyOutArgs;
     bool isMacPort;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         *speed  = ENET_SPEED_10MBIT;
         *duplex = ENET_DUPLEX_HALF;
@@ -2194,8 +2213,6 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
                     *duplex = phyOutArgs.duplexity;
                 }
             }
-
-            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
         else
         {
@@ -2216,7 +2233,7 @@ static int32_t CpswProxyServer_regReadHandlerCb(uint32_t addr,
 {
     *val = CSL_REG32_RD(addr);
 
-    return ETHREMOTECFG_CMDSTATUS_OK;
+    return ETHREMOTECFG_SOK;
 }
 
 static int32_t CpswProxyServer_regWriteHandlerCb(uint32_t reg,
@@ -2224,7 +2241,7 @@ static int32_t CpswProxyServer_regWriteHandlerCb(uint32_t reg,
 {
     CSL_REG32_WR(reg, val);
 
-    return ETHREMOTECFG_CMDSTATUS_OK;
+    return ETHREMOTECFG_SOK;
 }
 
 static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -2238,12 +2255,12 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_Client
     CpswAle_SetPolicerEntryInArgs setPolicerInArgs;
     CpswAle_SetPolicerEntryOutArgs setPolicerOutArgs;
     bool isSwitchPort;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
@@ -2261,11 +2278,10 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_Client
             status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to setup EtherType based route");
-            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
         else
         {
-            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            status = ETHREMOTECFG_ENOTSUPPORTED;
             ETHFWTRACE_ERR(status, "EtherType route is not supported on virtual MAC ports");
         }
     }
@@ -2285,12 +2301,12 @@ static int32_t CpswProxyServer_deregisterEthertypeHandlerCb(CpswProxyServer_Clie
     Enet_IoctlPrms prms;
     CpswAle_DelPolicerEntryInArgs delPolicerInArgs;
     bool isSwitchPort;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (!isSwitchPort)
@@ -2305,11 +2321,10 @@ static int32_t CpswProxyServer_deregisterEthertypeHandlerCb(CpswProxyServer_Clie
             status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to teardown EtherType based route");
-            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
         else
         {
-            status = ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED;
+            status = ETHREMOTECFG_ENOTSUPPORTED;
             ETHFWTRACE_ERR(status, "EtherType route is not supported on virtual MAC ports");
         }
     }
@@ -2331,10 +2346,10 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
     uint32_t instId = 0U;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
@@ -2342,10 +2357,10 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
         ETHFWTRACE_ERR(status, "Invalid HW push num %u", hwPushNum);
     }
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         /* Register hardware push callback */
-        if (status == ETHREMOTECFG_CMDSTATUS_OK)
+        if (status == ETHREMOTECFG_SOK)
         {
             hwPushCbInArgs.hwPushNum = (CpswCpts_HwPush)hwPushNum;
             hwPushCbInArgs.hwPushNotifyCb = CpswProxyServer_hwPushNotifyFxn;
@@ -2379,21 +2394,21 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
         ETHFWTRACE_ERR(status, "Failed to register remote timer");
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                               uint32_t hostId,
                                                               uint8_t hwPushNum)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     Enet_IoctlPrms prms;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
     uint32_t instId = 0U;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
@@ -2401,7 +2416,7 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
         ETHFWTRACE_ERR(status, "Invalid HW push num %u", hwPushNum);
     }
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         /* Unregister hardware push callback */
         if (status == ENET_SOK)
@@ -2436,7 +2451,7 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
         ETHFWTRACE_ERR(status, " Failed to de-register remote timer");
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClient,
@@ -2447,16 +2462,16 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
                                               uint8_t *outargs,
                                               uint32_t outargsLen)
 {
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     CpswProxyServer_Obj *hServer = NULL;
     Enet_IoctlPrms prms;
     uint64_t inArgsBuf[(ETHREMOTECFG_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
     uint64_t outArgsBuf[(ETHREMOTECFG_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         /* Skip PHY link status check prints as they happen too often */
         if (cmd != ENET_PER_IOCTL_IS_PORT_LINK_UP)
@@ -2488,11 +2503,10 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
                 /* Copy the outArgs from temporary aligned buffer back to msg buffer */
                 memcpy(outargs, outArgsBuf, outargsLen);
             }
-            status = CPSWPROXY_ENET2RPMSG_ERR(status);
         }
         else
         {
-            status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+            status = ETHREMOTECFG_EBADARGS;
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Unsupported IOCTL cmd 0x%x", cmd);
         }
     }
@@ -2514,38 +2528,38 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
 {
     CpswProxyServer_Obj *hServer = NULL;
     uint16_t hwVlanId = vlanId;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     uint32_t relFlowIdx;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         /* Make sure that CpswProxyServer_filterAddMacHandlerCb is requested on primary flow */
         status = CpswProxyServer_getRelFlowIdx(hClient->virtPort, &relFlowIdx, flowIdxOffset);
-        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status,
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
                            "Failed to get relative flow index for virtual port %u flow %u",
                            hClient->virtPort,
                            flowIdxOffset);
-        if (ETHREMOTECFG_CMDSTATUS_OK == status)
+        if (ETHREMOTECFG_SOK == status)
         {
             if(relFlowIdx != CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX)
             {
-                status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-                ETHFWTRACE_ERR(status, "Failed to add filter MAC on extended flow, must be on primary flow");
+                status = ETHREMOTECFG_ENOTSUPPORTED;
+                ETHFWTRACE_ERR(status, "Failed to add filter MAC on extended flow, supported on primary flow only");
             }
         }
     }
 
     if (!EnetUtils_isMcastAddr(macAddr))
     {
-        status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+        status = ETHREMOTECFG_EBADARGS;
         ETHFWTRACE_ERR(status, "Addr is not multicast, cannot add/delete to filter");
     }
 
     /* Check if client is part of the VLAN */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         /* If client is not in a VLAN, it will pass VLAN id 0 or VLAN_USE_DFLT,
          * but we need to use the actual default VLAN id */
@@ -2559,20 +2573,20 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
             /* Check if the client has joined the VLAN */
             if (!EthFwVlan_isInVlan(hClient->virtPort, vlanId))
             {
-                status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+                status = ETHREMOTECFG_EBADARGS;
                 ETHFWTRACE_ERR(status, "Virtual port %u is not part of VLAN %u", hClient->virtPort, vlanId);
             }
         }
     }
 
     /* Add multicast (shared or exclusive), reject reserved ones */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         status = EthFwMcast_filterAddMac(hClient->virtPort, hServer->hEnet,
                                          macAddr, vlanId, hwVlanId, flowIdxOffset, hostId);
         if (status != ETHFW_SOK)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            status = ETHREMOTECFG_EFAIL;
             ETHFWTRACE_ERR(status, "Failed to add multicast");
         }
     }
@@ -2593,19 +2607,19 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
 {
     CpswProxyServer_Obj *hServer = NULL;
     uint16_t hwVlanId = vlanId;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     if (!EnetUtils_isMcastAddr(macAddr))
     {
-        status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+        status = ETHREMOTECFG_EBADARGS;
         ETHFWTRACE_ERR(status, "Addr is not multicast, cannot add/delete to filter");
     }
 
     /* Check if client is part of the VLAN */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         /* If client is not in a VLAN, it will pass VLAN id 0 or VLAN_USE_DFLT,
          * but we need to use the actual default VLAN id */
@@ -2619,7 +2633,7 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
             /* Check if the client has joined the VLAN */
             if (!EthFwVlan_isInVlan(hClient->virtPort, vlanId))
             {
-                status = ETHREMOTECFG_CMDSTATUS_EBADARGS;
+                status = ETHREMOTECFG_EBADARGS;
                 ETHFWTRACE_ERR(status, "Virtual port %u is not part of VLAN %u",
                                hClient->virtPort, vlanId);
             }
@@ -2627,13 +2641,13 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
     }
 
     /* Delete multicast (shared or exclusive), reject reserved ones */
-    if (status == ETHREMOTECFG_CMDSTATUS_OK)
+    if (status == ETHREMOTECFG_SOK)
     {
         status = EthFwMcast_filterDelMac(hClient->virtPort, hServer->hEnet,
                                          macAddr, vlanId, hwVlanId, hostId);
         if (status != ETHFW_SOK)
         {
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            status = ETHREMOTECFG_EFAIL;
             ETHFWTRACE_ERR(status, "Failed to remove multicast");
         }
     }
@@ -2658,6 +2672,8 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     bool csumEnable;
     int32_t i;
     int32_t status = ETHFW_SOK;
+
+    CpswProxyServer_compileTimeChecks();
 
     hServer = CpswProxyServer_initHandle();
     EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BFALSE));
@@ -2706,8 +2722,8 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     }
     else
     {
-        status = ETHREMOTECFG_CMDSTATUS_EFAIL;
-        ETHFWTRACE_ERR(status, "ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED IOCTL failed");
+        status = ETHREMOTECFG_EFAIL;
+        ETHFWTRACE_ERR(status, "IOCTL: Failed to get checksum offload enable");
     }
 
     if (status == ETHFW_SOK)
@@ -2766,13 +2782,13 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
                                            uint32_t hostId)
 {
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     Enet_IoctlPrms prms;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    if (ETHREMOTECFG_CMDSTATUS_OK == status)
+    if (ETHREMOTECFG_SOK == status)
     {
         ENET_IOCTL_SET_NO_ARGS(&prms);
         status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
@@ -2789,7 +2805,7 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
         ETHFWTRACE_ERR(status, "Failed to dump stats for coreId:%u", hostId);
     }
 
-    return CPSWPROXY_ENET2RPMSG_ERR(status);
+    return status;
 }
 
 static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
@@ -3551,7 +3567,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt);
 
             res->status = ETHREMOTECFG_SERVERSTATUS_INIT;
-            status = ETHREMOTECFG_CMDSTATUS_OK;
+            status = ETHREMOTECFG_SOK;
 
             resLen = sizeof(*res);
 
@@ -3572,7 +3588,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
             hClient->isIdle = BTRUE;
             resLen = sizeof(*res);
-            status = ETHREMOTECFG_CMDSTATUS_OK;
+            status = ETHREMOTECFG_SOK;
 
             ETHFWTRACE_INFO("TEARDOWN_COMPLETION | S2C | status=%d", status);
             break;
@@ -3632,7 +3648,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         {
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
 
-            status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+            status = ETHREMOTECFG_EFAIL;
             resLen = sizeof(*res);
             ETHFWTRACE_ERR(status, "Unknown cmd %u", reqHdr->reqType);
             break;
@@ -4158,7 +4174,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
     Enet_Handle hEnet;
     uint32_t coreKey;
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     Enet_IoctlPrms prms;
     Enet_Type enetType;
 
@@ -4166,7 +4182,7 @@ static void CpswProxyServer_clientNotifyHandlerCb(uint32_t token,
     EnetAppUtils_assert(hClient != NULL);
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     hEnet = hServer->hEnet;
     EnetAppUtils_assert(hEnet != NULL);
@@ -4196,10 +4212,10 @@ int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
 {
     int32_t retVal;
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
     SemaphoreP_pend(hServer->clientServiceObj.rpmsgStartSem, SemaphoreP_WAIT_FOREVER);
 
     retVal = RPMessage_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
@@ -4213,11 +4229,11 @@ static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
 {
     uint32_t i;
     uint32_t txChNum = ENET_RM_TXCHNUM_INVALID;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
     CpswProxyServer_Obj *hServer = NULL;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4248,7 +4264,7 @@ static int32_t CpswProxyServer_getClientTxChRxFlowNum(EthRemoteCfg_VirtPort virt
     CpswProxyServer_Obj *hServer = NULL;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4308,11 +4324,11 @@ static int32_t CpswProxyServer_getRxFlowInfo(EthRemoteCfg_VirtPort virtPort,
                                              EthFwQos_RxFlowInfo **rxFlowInfo)
 {
     uint32_t i;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+    int32_t status = ETHREMOTECFG_EFAIL;
     CpswProxyServer_Obj *hServer =  NULL;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4321,10 +4337,11 @@ static int32_t CpswProxyServer_getRxFlowInfo(EthRemoteCfg_VirtPort virtPort,
             if (relFlowIdx < hServer->virtPortCfg[i].numRxFlow)
             {
                 *rxFlowInfo = &hServer->virtPortCfg[i].rxFlowsInfo[relFlowIdx];
-                status = ETHREMOTECFG_CMDSTATUS_OK;
+                status = ETHREMOTECFG_SOK;
             }
             else
             {
+                status = ETHREMOTECFG_EBADARGS;
                 ETHFWTRACE_ERR(status,
                                "Invalid rel flow index %u passed to virtual port %u",
                                relFlowIdx,
@@ -4343,11 +4360,11 @@ static int32_t CpswProxyServer_getRelFlowIdx(EthRemoteCfg_VirtPort virtPort,
 {
     uint32_t i;
     uint32_t j;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_EFAIL;
+    int32_t status = ETHREMOTECFG_EFAIL;
     CpswProxyServer_Obj *hServer = NULL;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {
@@ -4358,7 +4375,7 @@ static int32_t CpswProxyServer_getRelFlowIdx(EthRemoteCfg_VirtPort virtPort,
                 if (hServer->virtPortCfg[i].rxFlowsInfo[j].rxFlowIdxOffset == rxFlowIdxOffset)
                 {
                     *relFlowIdx = j;
-                    status = ETHREMOTECFG_CMDSTATUS_OK;
+                    status = ETHREMOTECFG_SOK;
                     break;
                 }
             }
@@ -4375,10 +4392,10 @@ static void CpswProxyServer_saveRxFlowOffset(EthRemoteCfg_VirtPort virtPort,
 {
     uint32_t i;
     CpswProxyServer_Obj *hServer = NULL;
-    int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
+    int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_CMDSTATUS_OK), status, "Failed to get server handle");
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
     for (i = 0U; i < hServer->numVirtPorts; i++)
     {

@@ -123,22 +123,43 @@ extern "C" {
  * @{
  */
 /*! \brief Success. */
-#define ETHREMOTECFG_CMDSTATUS_OK                         (0)
+#define ETHREMOTECFG_SOK                                  (0)
 
-/*! \brief Try again. Temporary failure of command, client can retry again. */
-#define ETHREMOTECFG_CMDSTATUS_EAGAIN                     (-1)
+/*! \brief Operation in progress. */
+#define ETHREMOTECFG_SINPROGRESS                          (1)
 
 /*! \brief Failure. */
-#define ETHREMOTECFG_CMDSTATUS_EFAIL                      (-2)
+#define ETHREMOTECFG_EFAIL                                (-1)
 
 /*! \brief Bad arguments (i.e. NULL pointer). */
-#define ETHREMOTECFG_CMDSTATUS_EBADARGS                   (-3)
+#define ETHREMOTECFG_EBADARGS                             (-2)
 
-/*! \brief Insufficient permission. */
-#define ETHREMOTECFG_CMDSTATUS_EACCESS                    (-4)
+/*! \brief Invalid parameters (i.e. value out-of-range). */
+#define ETHREMOTECFG_EINVALIDPARAMS                       (-3)
+
+/*! \brief Time out while waiting for a given condition to happen. */
+#define ETHREMOTECFG_ETIMEOUT                             (-4)
+
+/*! \brief Allocation failure. */
+#define ETHREMOTECFG_EALLOC                               (-8)
+
+/*! \brief Unexpected condition occurred (sometimes unrecoverable). */
+#define ETHREMOTECFG_EUNEXPECTED                          (-9)
+
+/*! \brief The resource is currently busy performing an operation. */
+#define ETHREMOTECFG_EBUSY                                (-10)
+
+/*! \brief Already open error. */
+#define ETHREMOTECFG_EALREADYOPEN                         (-11)
+
+/*! \brief Operation not permitted. */
+#define ETHREMOTECFG_EPERM                                (-12)
 
 /*! \brief Operation not supported. */
-#define ETHREMOTECFG_CMDSTATUS_ENOTSUPPORTED              (-5)
+#define ETHREMOTECFG_ENOTSUPPORTED                        (-13)
+
+/*! \brief Resource not found. */
+#define ETHREMOTECFG_ENOTFOUND                            (-14)
 /*! @} */
 
 /*! \brief Maximum length of Ethernet device message data in a ping message. */

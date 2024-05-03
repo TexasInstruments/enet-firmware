@@ -142,6 +142,9 @@ typedef struct EthFwMon_Obj_s
      /* Core Id */
      uint32_t coreId;
 
+     /* Enet Handle */
+     Enet_Handle hEnet;
+
      /* Enet instance type */
      Enet_Type enetType;
 
@@ -246,7 +249,7 @@ int32_t EthFwMon_startTask(void)
     SemaphoreP_Params semParams;
     ClockP_Params clkParams;
     TaskP_Params params;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
 
     SemaphoreP_Params_init(&semParams);
     semParams.mode = SemaphoreP_Mode_BINARY;
@@ -259,7 +262,7 @@ int32_t EthFwMon_startTask(void)
         EnetAppUtils_assert(BFALSE);
     }
 
-    if (status == ENET_SOK)
+    if (status == ETHFW_SOK)
     {
         /* Create Monitor Task to monitor and detect EthFw's failure. */
         TaskP_Params_init(&params);
@@ -279,7 +282,7 @@ int32_t EthFwMon_startTask(void)
         }
     }
 
-    if (status == ENET_SOK)
+    if (status == ETHFW_SOK)
     {
         ClockP_Params_init(&clkParams);
         clkParams.startMode = ClockP_StartMode_AUTO;
@@ -318,7 +321,6 @@ void EthFwMon_stopTask(void)
 
 static void EthFwMon_saveStats(void)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
     const CpswStats_HostPort_Ng *hostStats = (const CpswStats_HostPort_Ng *)&gEthFwMonObj.cpswStats;
     const CpswStats_MacPort_Ng *macStats = (const CpswStats_MacPort_Ng *)&gEthFwMonObj.cpswStats;
     EthFwMon_Stats *monStats;
@@ -327,12 +329,12 @@ static void EthFwMon_saveStats(void)
     uint32_t portNum;
     uint32_t i;
     uint32_t j;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
 
     /* Get host port stats counters */
     monStats = &gEthFwMonObj.monStats[0U];
     ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwMonObj.cpswStats);
-    status = Enet_ioctl(hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+    status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
 
     if (status == ENET_SOK)
@@ -353,7 +355,7 @@ static void EthFwMon_saveStats(void)
         monStats = &gEthFwMonObj.monStats[portNum + 1U];
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwMonObj.cpswStats);
-        status = Enet_ioctl(hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+        status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
 
@@ -371,7 +373,6 @@ static void EthFwMon_saveStats(void)
 
 static bool EthFwMon_analyzeHostStats(void)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
     const CpswStats_HostPort_Ng *stats = (const CpswStats_HostPort_Ng *)&gEthFwMonObj.cpswStats;
     EthFwMon_Stats *monStats;
     EthFwMon_Stats diffStats;
@@ -379,13 +380,13 @@ static bool EthFwMon_analyzeHostStats(void)
     bool needsRecovery = BFALSE;
     uint32_t evt = 0U;
     uint32_t i;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
 
     monStats = &gEthFwMonObj.monStats[0U];
 
     /* Get host port stats counters */
     ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwMonObj.cpswStats);
-    status = Enet_ioctl(hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+    status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
 
     /* Check stats counters we are monitoring */
@@ -441,7 +442,6 @@ static bool EthFwMon_analyzeHostStats(void)
 
 static bool EthFwMon_analyzePortStats(Enet_MacPort macPort)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
     const CpswStats_MacPort_Ng *stats = (const CpswStats_MacPort_Ng *)&gEthFwMonObj.cpswStats;
     EthFwMon_Stats *monStats;
     EthFwMon_Stats diffStats;
@@ -450,13 +450,13 @@ static bool EthFwMon_analyzePortStats(Enet_MacPort macPort)
     uint32_t evt = 0U;
     uint32_t portNum = ENET_MACPORT_NORM(macPort);
     uint32_t i;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
 
     monStats = &gEthFwMonObj.monStats[portNum + 1U];
 
     /* Get MAC port stats counters */
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwMonObj.cpswStats);
-    status = Enet_ioctl(hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+    status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                       "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
 
@@ -514,12 +514,11 @@ static bool EthFwMon_analyzePortStats(Enet_MacPort macPort)
 static void EthFwMon_Task(void *a0,
                               void *a1)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
     Enet_MacPort macPort;
     Enet_MacPort recoveryMacPort = ENET_MAC_PORT_INV;
     bool needsRecovery = BFALSE;
     uint32_t i;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
     bool isTeardownComplete = BFALSE;
     bool isrecoveryPortLinked = BFALSE;
     bool noPendingReq = BFALSE;
@@ -533,6 +532,8 @@ static void EthFwMon_Task(void *a0,
     EnetAppUtils_assert(gEthFwMonObj.mcmCmdIf.hMboxCmd != NULL);
     EnetAppUtils_assert(gEthFwMonObj.mcmCmdIf.hMboxResponse != NULL);
 
+    gEthFwMonObj.hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
+
     while (gEthFwMonObj.monitorTaskRun)
     {
         SemaphoreP_pend(gEthFwMonObj.hMonitorSem, SemaphoreP_WAIT_FOREVER);
@@ -542,7 +543,7 @@ static void EthFwMon_Task(void *a0,
         for (i = 0U; (i < gEthFwMonObj.numPorts) && !needsRecovery; i++)
         {
             macPort = ENET_MACPORT_DENORM(i);
-            if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwMonObj.coreId, macPort) == BTRUE)
+            if (EnetAppUtils_isPortLinkUp(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, macPort) == BTRUE)
             {
                 needsRecovery = EthFwMon_analyzePortStats(macPort);
                 if (needsRecovery)
@@ -616,17 +617,17 @@ static void EthFwMon_Task(void *a0,
             ETHFWTRACE_INFO("CPSW recovery is about to take place");
             status = EthFwMon_resetHandler();
 
-            if (status != ENET_SOK)
+            if (status != ETHFW_SOK)
             {
                 ETHFWTRACE_ERR(status, "Failed to recover CPSW");
-                EnetAppUtils_assert(status == ENET_SOK);
+                EnetAppUtils_assert(status == ETHFW_SOK);
             }
             else
             {
                 /* Send a notification to clients for HW recovery completion only when Port link is up*/
                 while(!isrecoveryPortLinked)
                 {
-                    if (EnetAppUtils_isPortLinkUp(hEnet, gEthFwMonObj.coreId, recoveryMacPort) == BTRUE)
+                    if (EnetAppUtils_isPortLinkUp(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, recoveryMacPort) == BTRUE)
                     {
                         isrecoveryPortLinked = BTRUE;
                     }
@@ -655,14 +656,13 @@ static void EthFwMon_Task(void *a0,
 uint64_t EthFwMon_getCurrentTime(uint32_t *nanoSeconds,
                                  uint64_t *seconds)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
     int32_t status = ENET_SOK;
     Enet_IoctlPrms prms;
     uint64_t tsVal = 0U;
 
     /* Software Time stamp Push event */
     ENET_IOCTL_SET_OUT_ARGS(&prms, &tsVal);
-    status = Enet_ioctl(hEnet,
+    status = Enet_ioctl(gEthFwMonObj.hEnet,
                         gEthFwMonObj.coreId,
                         ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP,
                         &prms);
@@ -678,14 +678,13 @@ uint64_t EthFwMon_getCurrentTime(uint32_t *nanoSeconds,
 
 void EthFwMon_setCurrentTime(uint64_t *time)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
     Enet_IoctlPrms prms;
 
     /* Update the CPTS time */
     ENET_IOCTL_SET_IN_ARGS(&prms, time);
 
-    status = Enet_ioctl(hEnet,
+    status = Enet_ioctl(gEthFwMonObj.hEnet,
                         gEthFwMonObj.coreId,
                         ENET_TIMESYNC_IOCTL_SET_TIMESTAMP,
                         &prms);
@@ -694,14 +693,13 @@ void EthFwMon_setCurrentTime(uint64_t *time)
 
 static int32_t EthFwMon_resetHandler(void)
 {
-    Enet_Handle hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
     uint32_t nanoSeconds = 0U;
     uint64_t seconds = 0LLU;
     uint64_t preResetTime;
     uint64_t postResetTime;
     uint64_t currentTime;
     uint64_t updatedTime;
-    int32_t status = ENET_SOK;
+    int32_t status = ETHFW_SOK;
     uint32_t i;
 
     /* Get current CPTS time */
