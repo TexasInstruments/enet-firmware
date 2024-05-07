@@ -167,6 +167,13 @@ extern "C" {
 #define ETHFW_UT_MAC_REGISTER_MAC_NEGTEST_ID                     (2687U)
 #define ETHFW_UT_MAC_UNREGISTER_MAC_TEST_ID                      (2688U)
 #define ETHFW_UT_MAC_UNREGISTER_MAC_NEGTEST_ID                   (2689U)
+
+/* Server test case id*/
+#define ETHFW_UT_SERVER_INIT_TEST_ID                             (2725U)
+#define ETHFW_UT_SERVER_INIT2_TEST_ID                            (2726U)
+#define ETHFW_UT_SERVER_MONITOR_TEST_ID                          (2727U)
+#define ETHFW_UT_SERVER_GPTP_TEST_ID                             (2729U)
+#define ETHFW_UT_SERVER_VERSION_TEST_ID                          (2730U)
 #endif
 
 /* ========================================================================== */

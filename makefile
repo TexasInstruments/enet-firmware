@@ -110,6 +110,7 @@ include makerules/makefile_pdk.mak
 ethfw_server: pdk app_remoteswitchcfg_server
 ethfw_server_qnx: pdk app_remoteswitchcfg_server_qnx
 ethfw_client_ut: pdk client_test_app app_remoteswitchcfg_server app_remoteswitchcfg_server_ccs
+ethfw_server_ut: pdk server_test_app server_test_app_ccs
 
 ethfw_all: pdk all
 ifneq ($(filter yes,$(BUILD_APP_FREERTOS) $(BUILD_APP_SAFERTOS)),)
@@ -117,4 +118,4 @@ remoteswitchcfg_all: | pdk app_remoteswitchcfg_client app_remoteswitchcfg_server
 endif
 ethfw_all_clean: pdk_clean clean scrub
 
-.PHONY: ethfw_all ethfw_all_clean ethfw_client_ut
+.PHONY: ethfw_all ethfw_all_clean ethfw_client_ut ethfw_server_ut
