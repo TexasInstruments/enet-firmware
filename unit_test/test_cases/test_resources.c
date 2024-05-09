@@ -108,6 +108,31 @@ CpswProxy_Config *gTestProxyConfig;
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
+static void EthFwUT_testAttach(void)
+{
+    uint32_t txMtu[ENET_PRI_NUM];
+    uint32_t hostPortRxMtu;
+    uint32_t numTxCh;
+    uint32_t numRxFlow;
+    int32_t status;
+
+    status = CpswProxy_attach(gTestProxy,
+                              gTestProxyConfig->virtPort,
+                              &hostPortRxMtu,
+                              txMtu,
+                              &numTxCh,
+                              &numRxFlow);
+    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to attach to Ethernet device.");
+}
+
+static void EthFwUT_TestDetach(void)
+{
+    int32_t status;
+
+    status = CpswProxy_detach(gTestProxy);
+    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to detach from Ethernet device.");
+}
+
 void EthFwUT_allocTxCmdTest1(void)
 {
     EthRemoteCfg_AllocTxReq req;
@@ -117,6 +142,9 @@ void EthFwUT_allocTxCmdTest1(void)
 
     req.chRelPriority = relChPriority;
     memset(&res, 0, sizeof(EthRemoteCfg_AllocTxRes));
+
+    /* Attach the client. */
+    EthFwUT_testAttach();
 
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ALLOC_TX,
@@ -128,6 +156,10 @@ void EthFwUT_allocTxCmdTest1(void)
     /* Free the allocated channel */
     status = CpswProxy_freeTxCh(gTestProxy,
                                 res.txPsilDstId);
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -145,10 +177,17 @@ void EthFwUT_allocTxCmdNegTest(void)
     req.chRelPriority = 0xFFU;
     memset(&res, 0, sizeof(EthRemoteCfg_AllocTxRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ALLOC_TX,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -165,6 +204,9 @@ void EthFwUT_freeTxCmdTest1(void)
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* For freeing a TX channel, we need to allocate one first */
     status = CpswProxy_allocTxCh(gTestProxy,
                                  &txPSILId,
@@ -178,6 +220,10 @@ void EthFwUT_freeTxCmdTest1(void)
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_FREE_TX,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -195,10 +241,17 @@ void EthFwUT_freeTxCmdNegTest(void)
     req.txPsilDstId = 0xFFU;
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_FREE_TX,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -214,6 +267,9 @@ void EthFwUT_allocRxCmdTest1(void)
     req.flowIdx = 0U;
     memset(&res, 0, sizeof(EthRemoteCfg_AllocRxRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ALLOC_RX,
                                &req.hdr, sizeof(req),
@@ -225,6 +281,10 @@ void EthFwUT_allocRxCmdTest1(void)
     status = CpswProxy_freeRxFlow(gTestProxy,
                                   res.rxFlowIdxBase,
                                   res.rxFlowIdxOffset);
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -243,6 +303,9 @@ void EthFwUT_freeRxCmdTest1(void)
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* For freeing a RX flow, we need to allocate one RX flow first */
     status = CpswProxy_allocRxFlow(gTestProxy,
                                    &rxStartFlowId,
@@ -258,6 +321,10 @@ void EthFwUT_freeRxCmdTest1(void)
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_FREE_RX,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -276,10 +343,17 @@ void EthFwUT_allocRxCmdNegTest(void)
     /* Send invalid priority */
     req.flowIdx = 0xFFU;
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ALLOC_RX,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -298,10 +372,17 @@ void EthFwUT_freeRxCmdNegTest(void)
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_FREE_RX,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -316,6 +397,9 @@ void EthFwUT_allocMacCmdTest1(void)
 
     memset(&res, 0, sizeof(EthRemoteCfg_AllocMacRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ALLOC_MAC,
                                &req.hdr, sizeof(req),
@@ -326,6 +410,10 @@ void EthFwUT_allocMacCmdTest1(void)
     /* Free the allocated MAC */
     status = CpswProxy_freeMac(gTestProxy,
                                res.macAddr);
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -342,6 +430,9 @@ void EthFwUT_freeMacCmdTest1(void)
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* To free a MAC, we need to allocate one first */
     status = CpswProxy_allocMac(gTestProxy,
                                 macAddr);
@@ -353,6 +444,10 @@ void EthFwUT_freeMacCmdTest1(void)
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_FREE_MAC,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -371,6 +466,9 @@ void EthFwUT_registerMacCmdTest(void)
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    /* Attach the client. */
+    EthFwUT_testAttach();
 
     status = CpswProxy_allocRxFlow(gTestProxy,
                                    &rxStartFlowId,
@@ -410,6 +508,10 @@ err_alloc:
     status = CpswProxy_freeRxFlow(gTestProxy,
                                   rxStartFlowId,
                                   rxFlowIdOffset);
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -427,6 +529,9 @@ void EthFwUT_registerMacCmdNegTest(void)
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
     memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send invalid values */
     req.flowIdxBase   = 0xFF;
     req.flowIdxOffset = 0xFFF;
@@ -435,6 +540,10 @@ void EthFwUT_registerMacCmdNegTest(void)
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_REGISTER_MAC,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -452,6 +561,9 @@ void EthFwUT_unregisterMacCmdTest(void)
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    /* Attach the client. */
+    EthFwUT_testAttach();
 
     status = CpswProxy_allocRxFlow(gTestProxy,
                                    &rxStartFlowId,
@@ -490,6 +602,10 @@ err_alloc:
     status = CpswProxy_freeRxFlow(gTestProxy,
                                   rxStartFlowId,
                                   rxFlowIdOffset);
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -507,6 +623,9 @@ void EthFwUT_unregisterMacCmdNegTest(void)
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
     memcpy(&req.macAddr[0U], macAddr, ETHREMOTECFG_MACADDRLEN);
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send invalid values */
     req.flowIdxBase   = 0xFF;
     req.flowIdxOffset = 0xFFF;
@@ -515,6 +634,10 @@ void EthFwUT_unregisterMacCmdNegTest(void)
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DEREGISTER_MAC,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -531,6 +654,9 @@ void EthFwUT_registerDefaultRxFlowCmdTest(void)
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    /* Attach the client. */
+    EthFwUT_testAttach();
 
     status = CpswProxy_allocRxFlow(gTestProxy,
                                    &rxStartFlowId,
@@ -559,6 +685,10 @@ err_setdef:
     status = CpswProxy_freeRxFlow(gTestProxy,
                                   rxStartFlowId,
                                   rxFlowIdOffset);
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -574,6 +704,9 @@ void EthFwUT_registerDefaultRxFlowCmdNegTest(void)
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send invalid values */
     req.flowIdxBase   = 0xFF;
     req.flowIdxOffset = 0xFFF;
@@ -582,6 +715,10 @@ void EthFwUT_registerDefaultRxFlowCmdNegTest(void)
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_SET_RX_DEFAULTFLOW,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -598,6 +735,9 @@ void EthFwUT_unregisterDefaultRxFlowCmdTest(void)
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    /* Attach the client. */
+    EthFwUT_testAttach();
 
     status = CpswProxy_allocRxFlow(gTestProxy,
                                    &rxStartFlowId,
@@ -625,6 +765,10 @@ err_setdef:
     status = CpswProxy_freeRxFlow(gTestProxy,
                                   rxStartFlowId,
                                   rxFlowIdOffset);
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -640,6 +784,9 @@ void EthFwUT_unregisterDefaultRxFlowCmdNegTest(void)
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send invalid values */
     req.flowIdxBase   = 0xFF;
     req.flowIdxOffset = 0xFFF;
@@ -648,6 +795,10 @@ void EthFwUT_unregisterDefaultRxFlowCmdNegTest(void)
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DEL_RX_DEFAULTFLOW,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+    /* Detach the client. */
+    //EthFwUT_TestDetach();
+
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -666,6 +817,9 @@ void EthFwUT_registerIPV4AddrCmdTest(void)
     memcpy(req.ipAddr, ipv4Addr, ETHREMOTECFG_IPV4ADDRLEN);
     memcpy(req.macAddr, macAddr, ETHREMOTECFG_MACADDRLEN);
 
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
     /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_REGISTER_IPv4,
                                &req.hdr, sizeof(req),
@@ -677,6 +831,9 @@ void EthFwUT_registerIPV4AddrCmdTest(void)
     status = CpswProxy_unregisterIPV4Addr(gTestProxy,
                                           ipv4Addr);
 
+    /* Detach the client. */
+    EthFwUT_TestDetach();
+
 end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
@@ -686,25 +843,11 @@ end:
 
 void EthFwUT_testSwitchResources(void *arg1, void *arg2)
 {
-    uint32_t txMtu[ENET_PRI_NUM];
-    uint32_t hostPortRxMtu;
-    uint32_t numTxCh;
-    uint32_t numRxFlow;
-    int32_t status;
-
     gTestProxy = (CpswProxy_Handle)arg1;
     TEST_ASSERT_NOT_NULL(gTestProxy);
 
     gTestProxyConfig = (CpswProxy_Config *)arg2;
     TEST_ASSERT_FALSE_MESSAGE((gTestProxyConfig->virtPort != ETHREMOTECFG_SWITCH_PORT_1), "Invalid virtual port.");
-
-    status = CpswProxy_attach(gTestProxy,
-                              gTestProxyConfig->virtPort,
-                              &hostPortRxMtu,
-                              txMtu,
-                              &numTxCh,
-                              &numRxFlow);
-    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to attach to Ethernet device.");
 
     UnityBegin("test_resources.c");
 
@@ -712,7 +855,7 @@ void EthFwUT_testSwitchResources(void *arg1, void *arg2)
     RUN_TEST(EthFwUT_allocTxCmdTest1, ETHFW_UT_SWITCH_ALLOC_TX_TEST1_ID);
 
     /* ETHFW-ETHFW_UT_SWITCH_ALLOC_TX_NEGTEST_ID: Test ALLOC_TX with invalid priority. */
-    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_SWITCH_ALLOC_TX_NEGTEST_ID);
+    RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_SWITCH_ALLOC_TX_NEGTEST_ID);
 
     /* ETHFW-ETHFW_UT_SWITCH_FREE_TX_TEST1_ID: Test FREE_TX with valid parameters. */
     RUN_TEST(EthFwUT_freeTxCmdTest1,  ETHFW_UT_SWITCH_FREE_TX_TEST1_ID);
@@ -766,25 +909,11 @@ void EthFwUT_testSwitchResources(void *arg1, void *arg2)
 
 void EthFwUT_testMacResources(void *arg1, void *arg2)
 {
-    uint32_t txMtu[ENET_PRI_NUM];
-    uint32_t hostPortRxMtu;
-    uint32_t numTxCh;
-    uint32_t numRxFlow;
-    int32_t status;
-
     gTestProxy = (CpswProxy_Handle)arg1;
     TEST_ASSERT_NOT_NULL(gTestProxy);
 
     gTestProxyConfig = (CpswProxy_Config *)arg2;
     TEST_ASSERT_FALSE_MESSAGE((gTestProxyConfig->virtPort != ETHREMOTECFG_MAC_PORT_4), "Invalid virtual port.");
-
-    status = CpswProxy_attach(gTestProxy,
-                              gTestProxyConfig->virtPort,
-                              &hostPortRxMtu,
-                              txMtu,
-                              &numTxCh,
-                              &numRxFlow);
-    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to attach to Ethernet device.");
 
     UnityBegin("test_resources.c");
 
@@ -813,7 +942,7 @@ void EthFwUT_testMacResources(void *arg1, void *arg2)
     RUN_TEST(EthFwUT_unregisterMacCmdTest,  ETHFW_UT_MAC_UNREGISTER_MAC_TEST_ID);
 
     /* ETHFW-ETHFW_UT_MAC_ALLOC_TX_NEGTEST_ID: Test ALLOC_TX with invalid priority. */
-    // RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_MAC_ALLOC_TX_NEGTEST_ID);
+    RUN_TEST(EthFwUT_allocTxCmdNegTest,  ETHFW_UT_MAC_ALLOC_TX_NEGTEST_ID);
 
     /* ETHFW-ETHFW_UT_MAC_FREE_TX_NEGTEST_ID: Test FREE_TX with invalid txPsilDstId. */
     RUN_TEST(EthFwUT_freeTxCmdNegTest,  ETHFW_UT_MAC_FREE_TX_NEGTEST_ID);

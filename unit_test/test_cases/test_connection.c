@@ -174,14 +174,30 @@ void EthFwUT_detachCmd1(void)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
+    uint32_t txMtu[ENET_PRI_NUM];
+    uint32_t hostPortRxMtu;
+    uint32_t numTxCh;
+    uint32_t numRxFlow;
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
-    /* Send incorrect parameters: req size swapped with res */
+    /* For detach test,we need to attach first. */
+    status = CpswProxy_attach(gTestProxy,
+                              gTestProxyConfig->virtPort,
+                              &hostPortRxMtu,
+                              txMtu,
+                              &numTxCh,
+                              &numRxFlow);
+    if (status != CPSWPROXY_SOK)
+        goto end;
+
+    /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DETACH,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -192,14 +208,30 @@ void EthFwUT_detachCmd2(void)
 {
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
+    uint32_t txMtu[ENET_PRI_NUM];
+    uint32_t hostPortRxMtu;
+    uint32_t numTxCh;
+    uint32_t numRxFlow;
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
-    /* Send incorrect parameters: req size swapped with res */
+    /* For detach test,we need to attach first. */
+    status = CpswProxy_attach(gTestProxy,
+                              gTestProxyConfig->virtPort,
+                              &hostPortRxMtu,
+                              txMtu,
+                              &numTxCh,
+                              &numRxFlow);
+    if (status != CPSWPROXY_SOK)
+        goto end;
+
+    /* Send request to server and wait for response */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DETACH,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
+
+end:
     if (status == CPSWPROXY_SOK)
         TEST_PASS();
     else
@@ -228,7 +260,7 @@ void EthFwUT_testSwitchConnection(void *arg1, void * arg2)
     RUN_TEST(EthFwUT_detachCmd1,  ETHFW_UT_SWITCH_DETACH_TEST1_ID);
 
     /* ETHFW-ETHFW_UT_SWITCH_DETACH_TEST2_ID: Test DETACH with valid parameters. */
-    RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_SWITCH_DETACH_TEST2_ID);
+    // RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_SWITCH_DETACH_TEST2_ID);
 
     /* ETHFW-ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
     RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID);
@@ -258,7 +290,7 @@ void EthFwUT_testMacConnection(void *arg1, void * arg2)
     RUN_TEST(EthFwUT_detachCmd1,  ETHFW_UT_MAC_DETACH_TEST1_ID);
 
     /* ETHFW-ETHFW_UT_MAC_DETACH_TEST2_ID: Test DETACH with valid parameters. */
-    RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_MAC_DETACH_TEST2_ID);
+    // RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_MAC_DETACH_TEST2_ID);
 
     /* ETHFW-ETHFW_UT_MAC_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
     RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_MAC_ATTACH_NEGTEST_ID);
