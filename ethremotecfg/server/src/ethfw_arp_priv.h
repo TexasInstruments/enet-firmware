@@ -74,6 +74,7 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
+#include <ti/drv/enet/enet.h>
 #include <ethremotecfg/server/include/ethfw_arp.h>
 
 #ifdef __cplusplus

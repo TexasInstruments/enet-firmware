@@ -68,7 +68,6 @@
 /* ========================================================================== */
 
 #include <ethremotecfg/protocol/ethremotecfg.h>
-#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -860,10 +859,58 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                           uint16_t resLen);
 
 /* ========================================================================== */
-/*                        Deprecated Function Declarations                    */
+/*                       Static Function Definitions                          */
 /* ========================================================================== */
+/*!
+ * \brief Check whether port is a virtual switch port or not.
+ *
+ * \param portId [in]   Virtual port id.
+ *
+ * \return true if virtual switch port, false otherwise.
+ */
+static inline bool CpswProxy_isSwitchPort(EthRemoteCfg_VirtPort portId)
+{
+    return ((portId >= ETHREMOTECFG_SWITCH_PORT_0) && (portId <= ETHREMOTECFG_SWITCH_PORT_LAST));
+}
 
-/* None */
+/*!
+ * \brief Check whether port is a virtual MAC port or not.
+ *
+ * \param portId [in]   Virtual port id.
+ *
+ * \return true if virtual MAC port, false otherwise.
+ */
+static inline bool CpswProxy_isMacPort(EthRemoteCfg_VirtPort portId)
+{
+    return ((portId >= ETHREMOTECFG_MAC_PORT_1) && (portId <= ETHREMOTECFG_MAC_PORT_LAST));
+}
+
+/*!
+ * \brief Get virtual port number.
+ *
+ * Gets the port number of a virtual port. Virtual switch ports numbers are
+ * 0-relative and virtual MAC ports are 1-relative.
+ *
+ * \param portId [in]   Virtual port id.
+ *
+ * \return Port number.
+ */
+static inline uint32_t CpswProxy_getPortNum(EthRemoteCfg_VirtPort portId)
+{
+    uint32_t portNum;
+
+    if (CpswProxy_isSwitchPort(portId))
+    {
+        portNum = (uint32_t)portId;
+    }
+    else
+    {
+        portNum = (uint32_t)(portId - ETHREMOTECFG_MAC_PORT_1) + 1U;
+    }
+
+    return portNum;
+}
+
 /*! @} */
 
 #ifdef __cplusplus

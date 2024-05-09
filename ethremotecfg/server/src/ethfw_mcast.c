@@ -52,6 +52,7 @@
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <ethremotecfg/server/include/ethfw_virtport.h>
 #include "ethfw_mcast_priv.h"
 #if defined(ETHFW_VEPA_SUPPORT)
 #include "ethfw_vepa_priv.h"
@@ -612,8 +613,8 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
     CpswAle_SetMcastEntryInArgs mcastInArgs;
     CpswAle_SetPolicerEntryInArgs polInArgs;
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
-    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
-    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
+    Enet_MacPort macPort = EthFwVirtPort_getMacPort(virtPort);
+    bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
     uint8_t coreId = EnetSoc_getCoreId();
     uint32_t aleSwitchPortMask = gEthFwMcastObj.switchPortMask << 1U;
     uint32_t aleEntry;
@@ -735,8 +736,8 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
 {
     Enet_IoctlPrms prms;
     CpswAle_DelPolicerEntryInArgs polInArgs;
-    Enet_MacPort macPort = EthRemoteCfg_getMacPort(virtPort);
-    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
+    Enet_MacPort macPort = EthFwVirtPort_getMacPort(virtPort);
+    bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
     uint8_t coreId = EnetSoc_getCoreId();
     int32_t status = ETHFW_SOK;
     CpswAle_MacAddrInfo macAddrInfo;

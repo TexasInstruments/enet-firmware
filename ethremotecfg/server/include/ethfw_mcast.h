@@ -45,6 +45,7 @@
 /* ========================================================================== */
 
 #include <stdint.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -85,6 +85,7 @@
 #include <utils/ethfw_common/include/ethfw_utils.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw.h>
+#include <ethremotecfg/server/include/ethfw_virtport.h>
 #include "cpsw_proxy_server.h"
 #include "ethfw_mcast_priv.h"
 #include "ethfw_vlan_priv.h"
@@ -198,7 +199,7 @@ typedef struct EthFw_Obj_s
     uint32_t numPorts;
 
     /* Virtual port configuration */
-    EthFw_VirtPortCfg virtPortCfg[ETHFW_REMOTE_CLIENT_MAX];
+    EthFwVirtPort_VirtPortCfg virtPortCfg[ETHFW_REMOTE_CLIENT_MAX];
 
     /* Number of valid virtual port configuration entries */
     uint32_t numVirtPorts;
@@ -562,9 +563,9 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
             gEthFwObj.virtPortCfg[i] = config->virtPortCfg[i];
             virtPort = gEthFwObj.virtPortCfg[i].portId;
 
-            if (EthRemoteCfg_isMacPort(virtPort))
+            if (EthFwVirtPort_isMacPort(virtPort))
             {
-                macPort = EthRemoteCfg_getMacPort(virtPort);
+                macPort = EthFwVirtPort_getMacPort(virtPort);
 
                 gEthFwObj.macOnlyPortMask |= ENET_MACPORT_MASK(macPort);
             }

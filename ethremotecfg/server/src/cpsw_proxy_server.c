@@ -78,8 +78,7 @@
 #include <ti/drv/enet/examples/utils/include/enet_apprm.h>
 
 /* EthFw utils header files */
-#include <ethremotecfg/protocol/ethremotecfg.h>
-#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <ethremotecfg/server/include/ethfw_virtport.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include "cpsw_proxy_server.h"
 #include "ethfw_mcast_priv.h"
@@ -708,7 +707,7 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
     EnetPer_AttachCoreOutArgs attachInfo;
     Enet_IoctlPrms prms;
     EthRemoteCfg_VirtPort virtPort = ETHREMOTECFG_VIRTPORT_DENORM(portId);
-    bool isMacPort = EthRemoteCfg_isMacPort(virtPort);
+    bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
     bool csumEnable;
     int32_t status = ETHREMOTECFG_CMDSTATUS_OK;
 
@@ -1266,7 +1265,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
         {
             /* Setup MAC address based classifier to the requested RX flow */
@@ -1301,7 +1300,7 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
         }
         else
         {
-            macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+            macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
 
             /* Setup MAC port based classifier to the requested RX flow */
             status = CpswProxyServer_regMacPortFlow(hServer->hEnet,
@@ -1369,7 +1368,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
         {
             /* Teardown MAC address based classifier */
@@ -1402,7 +1401,7 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
         }
         else
         {
-            macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+            macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
 
             /* Teardown MAC port based classifier */
             status = CpswProxyServer_unregMacPortFlow(hServer->hEnet,
@@ -1450,7 +1449,7 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
         {
             /* Add IPv4:MAC address to ETHFW ARP table */
@@ -1511,7 +1510,7 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
         {
             /* Remove IP address from ETHFW proxy ARP table */
@@ -1642,11 +1641,11 @@ int32_t CpswProxyServer_promiscModeHandlerCb(CpswProxyServer_ClientHandle hClien
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        isMacPort = EthRemoteCfg_isMacPort(hClient->virtPort);
+        isMacPort = EthFwVirtPort_isMacPort(hClient->virtPort);
         if (isMacPort)
         {
             /* Enable promiscuous mode on virtual MAC ports (MAC-only CAF) */
-            macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+            macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
             ENET_IOCTL_SET_IN_ARGS(&prms, &macPort);
 
             cmd = enable ? CPSW_ALE_IOCTL_ENABLE_PROMISC_MODE : CPSW_ALE_IOCTL_DISABLE_PROMISC_MODE;
@@ -1867,7 +1866,7 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
         {
             status = EnetAppUtils_regDfltRxFlow(hServer->hEnet,
@@ -1937,7 +1936,7 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
     {
         CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
 
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
         {
             status = EnetAppUtils_unregDfltRxFlow(hServer->hEnet,
@@ -2258,10 +2257,10 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
         *speed  = ENET_SPEED_10MBIT;
         *duplex = ENET_DUPLEX_HALF;
 
-        isMacPort = EthRemoteCfg_isMacPort(hClient->virtPort);
+        isMacPort = EthFwVirtPort_isMacPort(hClient->virtPort);
         if (isMacPort)
         {
-            phyInArgs.macPort = EthRemoteCfg_getMacPort(hClient->virtPort);
+            phyInArgs.macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
 
             ENET_IOCTL_SET_INOUT_ARGS(&prms, &phyInArgs, isLinked);
 
@@ -2343,7 +2342,7 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_Client
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (isSwitchPort)
         {
             memset(&setPolicerInArgs, 0, sizeof(setPolicerInArgs));
@@ -2396,7 +2395,7 @@ static int32_t CpswProxyServer_deregisterEthertypeHandlerCb(CpswProxyServer_Clie
 
     if (ETHREMOTECFG_CMDSTATUS_OK == status)
     {
-        isSwitchPort = EthRemoteCfg_isSwitchPort(hClient->virtPort);
+        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
         if (!isSwitchPort)
         {
             memset(&delPolicerInArgs, 0, sizeof(delPolicerInArgs));

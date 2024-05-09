@@ -74,9 +74,6 @@
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 
-#include <ti/drv/ipc/ipc.h>
-#include <apps/ipc_cfg/app_ipc_rsctable.h>
-
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
 #include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
 
@@ -86,6 +83,9 @@
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
 #include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
+
+#include <ti/drv/ipc/ipc.h>
+#include <apps/ipc_cfg/app_ipc_rsctable.h>
 
 /* lwIP core includes */
 #include "lwip/opt.h"
@@ -491,6 +491,18 @@ static void CpswRemoteApp_ipcPrint(const char *str)
 {
     appLogPrintf("%s", str);
     return;
+}
+
+static inline Enet_MacPort CpswRemoteApp_getMacPort(EthRemoteCfg_VirtPort portId)
+{
+    Enet_MacPort macPort = ENET_MAC_PORT_INV;
+
+    if (CpswProxy_isMacPort(portId))
+    {
+        macPort = ENET_MACPORT_DENORM(portId - ETHREMOTECFG_MAC_PORT_1);
+    }
+
+    return macPort;
 }
 
 static void CpswRemoteApp_initSyncTimer(CpswRemoteApp_VirtNetif *virtNetif)
@@ -1104,7 +1116,7 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     ip4_addr_set_zero(&ipaddr);
     ip4_addr_set_zero(&netmask);
 
-    if(EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
+    if(CpswProxy_isSwitchPort(virtNetif->virtPort))
     {
 #if ETHAPP_LWIP_USE_DHCP
         ETHFWTRACE_INFO("Starting lwIP, local interface IP is dhcp-enabled");
@@ -1224,7 +1236,7 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
 
             localAssert(virtNetif->hCpswProxy != NULL);
 
-            if (EthRemoteCfg_isSwitchPort(virtNetif->virtPort))
+            if (CpswProxy_isSwitchPort(virtNetif->virtPort))
             {
                 CpswProxy_registerIPV4Addr(virtNetif->hCpswProxy,
                                            virtNetif->macAddr,
@@ -1427,7 +1439,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     virtNetif = container_of(inArgs->netif, CpswRemoteApp_VirtNetif, netif);
     localAssert(virtNetif->hCpswProxy != NULL);
 
-    isSwitchPort = EthRemoteCfg_isSwitchPort(virtNetif->virtPort);
+    isSwitchPort = CpswProxy_isSwitchPort(virtNetif->virtPort);
 
     outArgs->handleArg = (void *)(virtNetif->hCpswProxy);
     outArgs->coreId = gRemoteAppObj.coreId;
@@ -1439,7 +1451,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     outArgs->rxInfo[0U].disableEvent = BTRUE;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
     outArgs->txInfo.disableEvent = BTRUE;
-    outArgs->txInfo.txPortNum = EthRemoteCfg_getMacPort(virtNetif->virtPort);
+    outArgs->txInfo.txPortNum = CpswRemoteApp_getMacPort(virtNetif->virtPort);
 
     if (gRemoteAppObj.useExtAttach)
     {
@@ -1510,7 +1522,7 @@ void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInf
     virtNetif = container_of(releaseInfo->netif, CpswRemoteApp_VirtNetif, netif);
     localAssert(virtNetif->hCpswProxy != NULL);
 
-    isSwitchPort = EthRemoteCfg_isSwitchPort(virtNetif->virtPort);
+    isSwitchPort = CpswProxy_isSwitchPort(virtNetif->virtPort);
 
     CpswRemoteApp_closeLwipTxCh(virtNetif->hCpswProxy,
                                 releaseInfo->hUdmaDrv,
@@ -1658,8 +1670,8 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
 
     if (virtNetif != NULL)
     {
-        isMacPort = EthRemoteCfg_isMacPort(virtNetif->virtPort);
-        portNum = EthRemoteCfg_getPortNum(virtNetif->virtPort);
+        isMacPort = CpswProxy_isMacPort(virtNetif->virtPort);
+        portNum = CpswProxy_getPortNum(virtNetif->virtPort);
 
         if (notifyType == ETHREMOTECFG_NOTIFY_HWERROR)
         {
@@ -1700,8 +1712,8 @@ static void CpswRemoteApp_hwRecoveryTask(void *a0,
     {
         MailboxP_pend(gRemoteAppObj.hMbx,  (void *)&msgMbx, MailboxP_WAIT_FOREVER);
 
-        isMacPort = EthRemoteCfg_isMacPort(msgMbx.virtNetif->virtPort);
-        portNum = EthRemoteCfg_getPortNum(msgMbx.virtNetif->virtPort);
+        isMacPort = CpswProxy_isMacPort(msgMbx.virtNetif->virtPort);
+        portNum = CpswProxy_getPortNum(msgMbx.virtNetif->virtPort);
 
         if (msgMbx.notifyType == ETHREMOTECFG_NOTIFY_HWERROR)
         {

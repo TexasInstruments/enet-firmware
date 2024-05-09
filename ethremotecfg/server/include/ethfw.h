@@ -74,13 +74,14 @@
 /* ========================================================================== */
 
 #include <ti/drv/enet/enet.h>
-#include <utils/ethfw_common/include/ethfw_types.h>
-#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
+#include <ethremotecfg/server/include/ethfw_virtport.h>
 #include <ethremotecfg/server/include/ethfw_mcast.h>
 #include <ethremotecfg/server/include/ethfw_vlan.h>
 #include <ethremotecfg/server/include/ethfw_vepa.h>
 #include <ethremotecfg/server/include/ethfw_monitor.h>
 #include <ethremotecfg/server/include/ethfw_qos.h>
+#include <utils/ethfw_common/include/ethfw_types.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 
 #ifdef __cplusplus
@@ -181,38 +182,6 @@ typedef struct EthFw_Version_s
 } EthFw_Version;
 
 /*!
- * \brief Ethernet Firmware virtual port configuration.
- *
- * Ethernet Firmware configuration parameters for virtual ports on remote cores.
- */
-typedef struct EthFw_VirtPortCfg_s
-{
-    /*! Virtual port id */
-    EthRemoteCfg_VirtPort portId;
-
-    /*! Remote core id */
-    uint32_t remoteCoreId;
-
-    /*! Number of tx channels allocated for a given virtual port */
-    uint32_t numTxCh;
-
-    /*! Array of tx channels allocated for a given virtual port */
-    EnetRm_TxCh txCh[ENET_CFG_TX_CHANNELS_NUM];
-
-    /*! Number of rx channels allocated for a given virtual port */
-    uint32_t numRxFlow;
-
-    /*! Array of rx flow information for a given virtual port */
-    EthFwQos_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
-
-    /*! Number of mac address allocated allocated for a given virtual port */
-    uint32_t numMacAddress;
-
-    /*! Mask of client id's using this virtual port */
-    uint32_t clientIdMask;
-} EthFw_VirtPortCfg;
-
-/*!
  * \brief Remote client alloc object
  *
  * Alloc object per remote client holding the resources allocated for a given remote client.
@@ -263,7 +232,7 @@ typedef struct EthFw_Config_s
 
     /*! Virtual ports accessed via remote_device framework (A72 Linux,
      *  A72 QNX, RTOS cores) */
-    EthFw_VirtPortCfg *virtPortCfg;
+    EthFwVirtPort_VirtPortCfg *virtPortCfg;
 
     /*! VLAN configuration */
     EthFwVlan_VlanCfg *vlanCfg;

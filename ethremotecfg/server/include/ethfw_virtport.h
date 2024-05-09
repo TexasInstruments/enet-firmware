@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021 Texas Instruments Incorporated
+ * Copyright (c) 2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -61,107 +61,75 @@
  */
 
 /*!
- * \file  ethremotecfg_virtport.h
+ * \file ethfw_virtport.h
  *
- * \brief This file contains the type definitions and helper macros for
- *        Ethernet Firmware's Virtual Port.
+ * \brief This file contains the type definitions, helper macros and functions
+ *        required for Ethernet Firmware proxy server virtport support.
  */
 
-#ifndef ETHREMOTECFG_VIRTPORT_H_
-#define ETHREMOTECFG_VIRTPORT_H_
+#ifndef ETHFW_VIRTPORT_H_
+#define ETHFW_VIRTPORT_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
 /* ========================================================================== */
 
 #include <ti/drv/enet/enet.h>
+#include <ethremotecfg/protocol/ethremotecfg.h>
+#include <ethremotecfg/server/include/ethfw_qos.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*!
+ * \ingroup  ETHFW_SERVER
+ * \defgroup ETHFW_SERVER_VIRTPORT Virtport Support
+ * @{
+ */
+
+
 /* ========================================================================== */
 /*                                 Macros                                     */
 /* ========================================================================== */
 
-/*!
- * \brief De-normalize #EthRemoteCfg_VirtPort.
- *
- * Macro to denormalize VirtPort number. It takes a zero-based
- * virtport number and converts it to a #EthRemoteCfg_VirtPort enum.
- */
-#define ETHREMOTECFG_VIRTPORT_DENORM(n)                ((EthRemoteCfg_VirtPort)((n) + ETHREMOTECFG_SWITCH_PORT_0))
+/* None */
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
 
 /*!
- * \brief Virtual port id.
+ * \brief Ethernet Firmware virtual port configuration.
+ *
+ * Ethernet Firmware configuration parameters for virtual ports on remote cores.
  */
-typedef enum EthRemoteCfg_VirtPort_e
+typedef struct EthFwVirtPort_VirtPortCfg_s
 {
-    /*! Virtual switch port 0. */
-    ETHREMOTECFG_SWITCH_PORT_0,
+    /*! Virtual port id */
+    EthRemoteCfg_VirtPort portId;
 
-    /*! Virtual switch port 1. */
-    ETHREMOTECFG_SWITCH_PORT_1,
+    /*! Remote core id */
+    uint32_t remoteCoreId;
 
-    /*! Virtual switch port 2. */
-    ETHREMOTECFG_SWITCH_PORT_2,
+    /*! Number of tx channels allocated for a given virtual port */
+    uint32_t numTxCh;
 
-    /*! Virtual switch port 3. */
-    ETHREMOTECFG_SWITCH_PORT_3,
+    /*! Array of tx channels allocated for a given virtual port */
+    EnetRm_TxCh txCh[ENET_CFG_TX_CHANNELS_NUM];
 
-    /*! Last virtual switch port id. */
-    ETHREMOTECFG_SWITCH_PORT_LAST = ETHREMOTECFG_SWITCH_PORT_3,
+    /*! Number of rx channels allocated for a given virtual port */
+    uint32_t numRxFlow;
 
-    /*! Virtual MAC port 1. */
-    ETHREMOTECFG_MAC_PORT_1,
+    /*! Array of rx flow information for a given virtual port */
+    EthFwQos_RxFlowInfo rxFlowsInfo[ENET_CFG_RX_FLOWS_NUM];
 
-    /*! Virtual MAC port 2. */
-    ETHREMOTECFG_MAC_PORT_2,
+    /*! Number of mac address allocated allocated for a given virtual port */
+    uint32_t numMacAddress;
 
-    /*! Virtual MAC port 3. */
-    ETHREMOTECFG_MAC_PORT_3,
-
-    /*! Virtual MAC port 4. */
-    ETHREMOTECFG_MAC_PORT_4,
-
-    /*! Virtual MAC port 5. */
-    ETHREMOTECFG_MAC_PORT_5,
-
-    /*! Virtual MAC port 6. */
-    ETHREMOTECFG_MAC_PORT_6,
-
-    /*! Virtual MAC port 7. */
-    ETHREMOTECFG_MAC_PORT_7,
-
-    /*! Virtual MAC port 8. */
-    ETHREMOTECFG_MAC_PORT_8,
-
-    /*! Last virtual MAC port id. */
-    ETHREMOTECFG_MAC_PORT_LAST = ETHREMOTECFG_MAC_PORT_8,
-} EthRemoteCfg_VirtPort;
-
-
-/* ========================================================================== */
-/*                         Global Variables Declarations                      */
-/* ========================================================================== */
-
-/* None */
-
-/* ========================================================================== */
-/*                          Function Declarations                             */
-/* ========================================================================== */
-
-/* None */
-
-/* ========================================================================== */
-/*                        Deprecated Function Declarations                    */
-/* ========================================================================== */
-
-/* None */
+    /*! Mask of client id's using this virtual port */
+    uint32_t clientIdMask;
+} EthFwVirtPort_VirtPortCfg;
 
 /* ========================================================================== */
 /*                       Static Function Definitions                          */
@@ -174,7 +142,7 @@ typedef enum EthRemoteCfg_VirtPort_e
  *
  * \return true if virtual switch port, false otherwise.
  */
-static bool EthRemoteCfg_isSwitchPort(EthRemoteCfg_VirtPort portId)
+static inline bool EthFwVirtPort_isSwitchPort(EthRemoteCfg_VirtPort portId)
 {
     return ((portId >= ETHREMOTECFG_SWITCH_PORT_0) && (portId <= ETHREMOTECFG_SWITCH_PORT_LAST));
 }
@@ -186,22 +154,9 @@ static bool EthRemoteCfg_isSwitchPort(EthRemoteCfg_VirtPort portId)
  *
  * \return true if virtual MAC port, false otherwise.
  */
-static bool EthRemoteCfg_isMacPort(EthRemoteCfg_VirtPort portId)
+static inline bool EthFwVirtPort_isMacPort(EthRemoteCfg_VirtPort portId)
 {
     return ((portId >= ETHREMOTECFG_MAC_PORT_1) && (portId <= ETHREMOTECFG_MAC_PORT_LAST));
-}
-
-/*!
- * \brief Check whether port is a valid virtual port or not.
- *
- * \param portId [in]   Virtual port id.
- *
- * \return true if virtual port, false otherwise.
- *
- */
-static bool EthRemoteCfg_isVirtPort(EthRemoteCfg_VirtPort portId)
-{
-    return ((portId <= ETHREMOTECFG_MAC_PORT_LAST) && (portId >= ETHREMOTECFG_SWITCH_PORT_0));
 }
 
 /*!
@@ -214,11 +169,11 @@ static bool EthRemoteCfg_isVirtPort(EthRemoteCfg_VirtPort portId)
  *
  * \return Port number.
  */
-static uint32_t EthRemoteCfg_getPortNum(EthRemoteCfg_VirtPort portId)
+static inline uint32_t EthFwVirtPort_getPortNum(EthRemoteCfg_VirtPort portId)
 {
     uint32_t portNum;
 
-    if (EthRemoteCfg_isSwitchPort(portId))
+    if (EthFwVirtPort_isSwitchPort(portId))
     {
         portNum = (uint32_t)portId;
     }
@@ -244,11 +199,11 @@ static uint32_t EthRemoteCfg_getPortNum(EthRemoteCfg_VirtPort portId)
  * \return Enet MAC port number for virtual MAC ports, `ENET_MAC_PORT_INV` for
  *         virtual switch ports.
  */
-static Enet_MacPort EthRemoteCfg_getMacPort(EthRemoteCfg_VirtPort portId)
+static inline Enet_MacPort EthFwVirtPort_getMacPort(EthRemoteCfg_VirtPort portId)
 {
     Enet_MacPort macPort = ENET_MAC_PORT_INV;
 
-    if (EthRemoteCfg_isMacPort(portId))
+    if (EthFwVirtPort_isMacPort(portId))
     {
         macPort = ENET_MACPORT_DENORM(portId - ETHREMOTECFG_MAC_PORT_1);
     }
@@ -260,4 +215,6 @@ static Enet_MacPort EthRemoteCfg_getMacPort(EthRemoteCfg_VirtPort portId)
 }
 #endif
 
-#endif /* ETHREMOTECFG_VIRTPORT_H_ */
+/*! @} */
+
+#endif /* ETHFW_VIRTPORT_H_ */

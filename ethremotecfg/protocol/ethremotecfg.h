@@ -236,6 +236,14 @@ extern "C" {
 /*! \brief Maximum length of output arguments for \ref ETHREMOTECFG_CMD_IOCTL. */
 #define ETHREMOTECFG_IOCTL_OUTARGS_LEN                    (480U)
 
+/*!
+ * \brief De-normalize #EthRemoteCfg_VirtPort.
+ *
+ * Macro to denormalize VirtPort number. It takes a zero-based
+ * virtport number and converts it to a #EthRemoteCfg_VirtPort enum.
+ */
+#define ETHREMOTECFG_VIRTPORT_DENORM(n)                ((EthRemoteCfg_VirtPort)((n) + ETHREMOTECFG_SWITCH_PORT_0))
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
@@ -778,6 +786,54 @@ typedef enum EthRemoteCfg_ServerStatus_e
     /*! Ethernet Firmware server is de-initialized and inactive. */
     ETHREMOTECFG_SERVERSTATUS_DEINIT
 } EthRemoteCfg_ServerStatus;
+
+/*!
+ * \brief Virtual port id.
+ */
+typedef enum EthRemoteCfg_VirtPort_e
+{
+    /*! Virtual switch port 0. */
+    ETHREMOTECFG_SWITCH_PORT_0,
+
+    /*! Virtual switch port 1. */
+    ETHREMOTECFG_SWITCH_PORT_1,
+
+    /*! Virtual switch port 2. */
+    ETHREMOTECFG_SWITCH_PORT_2,
+
+    /*! Virtual switch port 3. */
+    ETHREMOTECFG_SWITCH_PORT_3,
+
+    /*! Last virtual switch port id. */
+    ETHREMOTECFG_SWITCH_PORT_LAST = ETHREMOTECFG_SWITCH_PORT_3,
+
+    /*! Virtual MAC port 1. */
+    ETHREMOTECFG_MAC_PORT_1,
+
+    /*! Virtual MAC port 2. */
+    ETHREMOTECFG_MAC_PORT_2,
+
+    /*! Virtual MAC port 3. */
+    ETHREMOTECFG_MAC_PORT_3,
+
+    /*! Virtual MAC port 4. */
+    ETHREMOTECFG_MAC_PORT_4,
+
+    /*! Virtual MAC port 5. */
+    ETHREMOTECFG_MAC_PORT_5,
+
+    /*! Virtual MAC port 6. */
+    ETHREMOTECFG_MAC_PORT_6,
+
+    /*! Virtual MAC port 7. */
+    ETHREMOTECFG_MAC_PORT_7,
+
+    /*! Virtual MAC port 8. */
+    ETHREMOTECFG_MAC_PORT_8,
+
+    /*! Last virtual MAC port id. */
+    ETHREMOTECFG_MAC_PORT_LAST = ETHREMOTECFG_MAC_PORT_8,
+} EthRemoteCfg_VirtPort;
 
 /*! @} */
 
