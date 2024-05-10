@@ -449,7 +449,8 @@ static CpswProxyServer_Obj *CpswProxyServer_getHandle(void)
 }
 
 static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteProcId,
-                                                                uint32_t remoteEndPt)
+                                                                uint32_t remoteEndPt,
+                                                                uint32_t virtPort)
 {
     CpswProxyServer_Obj *hServer = CpswProxyServer_getHandle();
     CpswProxyServer_ClientHandle hClient = NULL;
@@ -460,9 +461,15 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj[remoteProcId].clientObj); i++)
     {
         hClient = &hServer->coreObj[remoteProcId].clientObj[i];
-        if (!hClient->inUse)
+        if ((hClient->inUse) && (hClient->virtPort == virtPort))
+        {
+            ETHFWTRACE_WARN("client has already been allocated");
+            break;
+        }
+        else if (!hClient->inUse)
         {
             hClient->inUse = BTRUE;
+            hClient->virtPort  = virtPort;
             hClient->token = ETHREMOTECFG_TOKEN_NONE;
             hClient->remoteEp = remoteEndPt;
             hClient->isIdle = BFALSE;
@@ -758,7 +765,6 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
 
         /* Save parameters in client object */
         hClient->token     = CPSWPROXY_VIRTPORT_2_TOKEN(virtPort);
-        hClient->virtPort  = virtPort;
         hClient->coreId    = hostId;
         hClient->features  = *pFeatures;
     }
@@ -2974,7 +2980,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->virtPort);
 
             /* Allocate a client object */
-            hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt);
+            hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt, req->virtPort);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_attachHandlerCb(hClient,
@@ -3007,7 +3013,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                             remoteProcId, remoteEndPt, req->virtPort);
 
             /* Allocate a client object */
-            hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt);
+            hClient = CpswProxyServer_allocClient(remoteProcId, remoteEndPt, req->virtPort);
             EnetAppUtils_assert(hClient != NULL);
 
             status = CpswProxyServer_attachExtHandlerCb(hClient,
