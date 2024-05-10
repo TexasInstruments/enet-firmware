@@ -325,9 +325,9 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1);
 
 static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0, void* arg1);
 
-static void CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
-                                             uint32_t hostId,
-                                             uint32_t rxFlowStartId);
+static int32_t CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
+                                                uint32_t hostId,
+                                                uint32_t rxFlowStartId);
 
 static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj * hServer,
                                                            CpswProxyServer_Config_t * cfg);
@@ -811,7 +811,6 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
 
         attachInfo = hServer->coreObj[hostId].attachInfo;
         *pRxMtu = attachInfo.rxMtu;
-        EnetAppUtils_assert(txMtuArraySize == ENET_ARRAYSIZE(attachInfo.txMtu));
         memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
 
         *pFeatures = 0U;
@@ -866,7 +865,6 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
 
     /* Actual attach operation */
     status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, txMtuArraySize, pFeatures, NULL, NULL);
-    EnetAppUtils_assert(ETHREMOTECFG_SOK == status);
 
     if (ETHREMOTECFG_SOK == status)
     {
@@ -886,8 +884,14 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
                                           pRxFlowIdxOffset);
         if (ENET_SOK == status)
         {
-            CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
-            CpswProxyServer_saveRxFlowOffset(hClient->virtPort, CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX, *pRxFlowIdxOffset);
+            status = CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
+            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
+                               "RX flow start index validation failed");
+
+            if(ETHREMOTECFG_SOK == status)
+            {
+                CpswProxyServer_saveRxFlowOffset(hClient->virtPort, CPSWPROXY_CLIENT_PRIMARY_REL_FLOW_IDX, *pRxFlowIdxOffset);
+            }
         }
     }
 
@@ -944,12 +948,20 @@ static int32_t CpswProxyServer_allocTxHandlerCb(CpswProxyServer_ClientHandle hCl
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
         /* Get absolute tx channel number from relative tx channel */
         txChNum = CpswProxyServer_getAbsTxChNumber(chRelPriority, hClient->virtPort);
-        EnetAppUtils_assert(txChNum != ENET_RM_TXCHNUM_INVALID);
-        status = EnetAppUtils_allocAbsTxCh(hServer->hEnet,
-                                          coreKey,
-                                          hostId,
-                                          pTxPsilDstId,
-                                          txChNum);
+        if (txChNum == ENET_RM_TXCHNUM_INVALID)
+        {
+            status = ETHREMOTECFG_EBADARGS;
+            ETHFWTRACE_ERR(status, "Absolute TX channel number: %d is invalid",
+                           ENET_RM_TXCHNUM_INVALID);
+        }
+        else
+        {
+            status = EnetAppUtils_allocAbsTxCh(hServer->hEnet,
+                                              coreKey,
+                                              hostId,
+                                              pTxPsilDstId,
+                                              txChNum);
+        }
 
         if (ENET_SOK == status)
         {
@@ -993,10 +1005,9 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
 
         if (ENET_SOK == status)
         {
-            CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
-
-            hClient->flowIdxBase   = *pRxFlowIdxBase;
-            hClient->flowIdxOffset = *pRxFlowIdxOffset;
+            status = CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, *pRxFlowIdxBase);
+            ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
+                               "RX flow start index validation failed");
         }
         else
         {
@@ -1005,6 +1016,9 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
 
         if (status == ENET_SOK)
         {
+            hClient->flowIdxBase   = *pRxFlowIdxBase;
+            hClient->flowIdxOffset = *pRxFlowIdxOffset;
+
             CpswProxyServer_saveRxFlowOffset(hClient->virtPort, relFlowIdx, *pRxFlowIdxOffset);
             status = CpswProxyServer_getRxFlowInfo(hClient->virtPort, relFlowIdx, &rxFlowInfo);
             ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
@@ -1077,14 +1091,21 @@ static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hCli
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
 
         /* Detach from MCM */
-        EnetAppUtils_assert(hServer->hMcmCmdIf != NULL);
-        hServer->coreObj[hostId].rmRefCnt--;
-        if (hServer->coreObj[hostId].rmRefCnt == 0U)
+        if (hServer->hMcmCmdIf != NULL)
         {
-            EnetMcm_coreDetach(hServer->hMcmCmdIf, hostId, coreKey);
-        }
+            hServer->coreObj[hostId].rmRefCnt--;
+            if (hServer->coreObj[hostId].rmRefCnt == 0U)
+            {
+                EnetMcm_coreDetach(hServer->hMcmCmdIf, hostId, coreKey);
+            }
 
-        EnetMcm_releaseHandleInfo(hServer->hMcmCmdIf);
+            EnetMcm_releaseHandleInfo(hServer->hMcmCmdIf);
+        }
+        else
+        {
+            status = ETHREMOTECFG_EINVALIDPARAMS;
+            ETHFWTRACE_ERR(status, "Cannot detach as MCM handle is NULL");
+        }
     }
     else
     {
@@ -1174,11 +1195,17 @@ static int32_t CpswProxyServer_freeRxHandlerCb(CpswProxyServer_ClientHandle hCli
 
     if (ETHREMOTECFG_SOK == status)
     {
-        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, rxFlowIdxBase);
-        status = EnetAppUtils_freeRxFlow(hServer->hEnet,
-                                         coreKey,
-                                         hostId,
-                                         rxFlowIdxOffset);
+        status = CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, rxFlowIdxBase);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
+                           "RX flow start index validation failed");
+
+        if(ETHREMOTECFG_SOK == status)
+        {
+            status = EnetAppUtils_freeRxFlow(hServer->hEnet,
+                                             coreKey,
+                                             hostId,
+                                             rxFlowIdxOffset);
+        }
 
         if (ENET_SOK == status)
         {
@@ -1270,54 +1297,59 @@ static int32_t CpswProxyServer_registerMacHandlerCb(CpswProxyServer_ClientHandle
 
     if (ETHREMOTECFG_SOK == status)
     {
-        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        status = CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
+                           "RX flow start index validation failed");
 
-        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
-        if (isSwitchPort)
+        if (ETHREMOTECFG_SOK == status)
         {
-            /* Setup MAC address based classifier to the requested RX flow */
-            status = EnetAppUtils_regDstMacRxFlow(hServer->hEnet,
-                                                    coreKey,
-                                                    hostId,
-                                                    flowIdxBase,
-                                                    flowIdxOffset,
-                                                    macAddr);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC addr based route");
-
-#if defined(ETHFW_VEPA_SUPPORT)
-            if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
+            isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
+            if (isSwitchPort)
             {
-                SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
-                status = EthFwVepa_registerClient(hServer->hEnet, hostId, flowIdxOffset,
-                                                    hServer->dfltVlanIdSwitchPorts,
-                                                    hClient->virtPort,
-                                                    &hwAddr);
-                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                                    "Failed to register client core %u "
-                                    "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
-                                    hostId,
-                                    macAddr[0], macAddr[1], macAddr[2],
-                                    macAddr[3], macAddr[4], macAddr[5]);
-            }
-            if (status == ETHFW_SOK)
-            {
-                hClient->vlanRefCnt++;
-            }
-#endif
-        }
-        else
-        {
-            macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
+                /* Setup MAC address based classifier to the requested RX flow */
+                status = EnetAppUtils_regDstMacRxFlow(hServer->hEnet,
+                                                        coreKey,
+                                                        hostId,
+                                                        flowIdxBase,
+                                                        flowIdxOffset,
+                                                        macAddr);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC addr based route");
 
-            /* Setup MAC port based classifier to the requested RX flow */
-            status = CpswProxyServer_regMacPortFlow(hServer->hEnet,
-                                                    coreKey,
-                                                    hostId,
-                                                    macPort,
-                                                    macAddr,
-                                                    flowIdxBase,
-                                                    flowIdxOffset);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC port based route");
+    #if defined(ETHFW_VEPA_SUPPORT)
+                if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
+                {
+                    SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
+                    status = EthFwVepa_registerClient(hServer->hEnet, hostId, flowIdxOffset,
+                                                        hServer->dfltVlanIdSwitchPorts,
+                                                        hClient->virtPort,
+                                                        &hwAddr);
+                    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                        "Failed to register client core %u "
+                                        "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
+                                        hostId,
+                                        macAddr[0], macAddr[1], macAddr[2],
+                                        macAddr[3], macAddr[4], macAddr[5]);
+                }
+                if (status == ETHFW_SOK)
+                {
+                    hClient->vlanRefCnt++;
+                }
+    #endif
+            }
+            else
+            {
+                macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
+
+                /* Setup MAC port based classifier to the requested RX flow */
+                status = CpswProxyServer_regMacPortFlow(hServer->hEnet,
+                                                        coreKey,
+                                                        hostId,
+                                                        macPort,
+                                                        macAddr,
+                                                        flowIdxBase,
+                                                        flowIdxOffset);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup MAC port based route");
+            }
         }
     }
     else
@@ -1367,52 +1399,57 @@ static int32_t CpswProxyServer_unregisterMacHandlerCb(CpswProxyServer_ClientHand
 
     if (ETHREMOTECFG_SOK == status)
     {
-        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        status = CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
+                           "RX flow start index validation failed");
 
-        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
-        if (isSwitchPort)
+        if(ETHREMOTECFG_SOK == status)
         {
-            /* Teardown MAC address based classifier */
-            status = EnetAppUtils_unregDstMacRxFlow(hServer->hEnet,
-                                                    coreKey,
-                                                    hostId,
-                                                    flowIdxBase,
-                                                    flowIdxOffset,
-                                                    macAddr);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC addr based route");
-
-#if defined(ETHFW_VEPA_SUPPORT)
-            if (status == ENET_SOK)
+            isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
+            if (isSwitchPort)
             {
-                hClient->vlanRefCnt--;
-            }
-            if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
-            {
-                status = EthFwVepa_unregisterClient(hServer->hEnet, hostId, flowIdxOffset,
-                                                    hServer->dfltVlanIdSwitchPorts,
-                                                    hClient->virtPort);
-                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                                "Failed to unregister client core %u "
-                                "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
-                                hostId,
-                                macAddr[0], macAddr[1], macAddr[2],
-                                macAddr[3], macAddr[4], macAddr[5]);
-            }
-#endif
-        }
-        else
-        {
-            macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
+                /* Teardown MAC address based classifier */
+                status = EnetAppUtils_unregDstMacRxFlow(hServer->hEnet,
+                                                        coreKey,
+                                                        hostId,
+                                                        flowIdxBase,
+                                                        flowIdxOffset,
+                                                        macAddr);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC addr based route");
 
-            /* Teardown MAC port based classifier */
-            status = CpswProxyServer_unregMacPortFlow(hServer->hEnet,
-                                                    coreKey,
-                                                    hostId,
-                                                    macPort,
-                                                    macAddr,
-                                                    flowIdxBase,
-                                                    flowIdxOffset);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC port based route");
+    #if defined(ETHFW_VEPA_SUPPORT)
+                if (status == ENET_SOK)
+                {
+                    hClient->vlanRefCnt--;
+                }
+                if ((hClient->vlanRefCnt == 0U) && (status == ENET_SOK))
+                {
+                    status = EthFwVepa_unregisterClient(hServer->hEnet, hostId, flowIdxOffset,
+                                                        hServer->dfltVlanIdSwitchPorts,
+                                                        hClient->virtPort);
+                    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                    "Failed to unregister client core %u "
+                                    "macAddr %02x:%02x:%02x:%02x:%02x:%02x into VEPA table",
+                                    hostId,
+                                    macAddr[0], macAddr[1], macAddr[2],
+                                    macAddr[3], macAddr[4], macAddr[5]);
+                }
+    #endif
+            }
+            else
+            {
+                macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
+
+                /* Teardown MAC port based classifier */
+                status = CpswProxyServer_unregMacPortFlow(hServer->hEnet,
+                                                        coreKey,
+                                                        hostId,
+                                                        macPort,
+                                                        macAddr,
+                                                        flowIdxBase,
+                                                        flowIdxOffset);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to teardown MAC port based route");
+            }
         }
     }
     else
@@ -1641,14 +1678,22 @@ int32_t CpswProxyServer_promiscModeHandlerCb(CpswProxyServer_ClientHandle hClien
     return status;
 }
 
-static void CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
-                                             uint32_t hostId,
-                                             uint32_t rxFlowStartId)
+static int32_t CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
+                                                uint32_t hostId,
+                                                uint32_t rxFlowStartId)
 {
     uint32_t p0FlowIdOffset;
+    int32_t status = ETHREMOTECFG_SOK;
 
     p0FlowIdOffset = EnetAppUtils_getStartFlowIdx(hEnet, hostId);
-    EnetAppUtils_assert(rxFlowStartId == p0FlowIdOffset);
+
+    if(rxFlowStartId != p0FlowIdOffset)
+    {
+        status = ETHREMOTECFG_EBADARGS;
+        ETHFWTRACE_ERR(status, "Invalid rxStartIdx: %d", rxFlowStartId);
+    }
+
+    return status;
 }
 
 static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
@@ -1823,23 +1868,28 @@ static int32_t CpswProxyServer_registerRxDefaultHandlerCb(CpswProxyServer_Client
 
     if (ETHREMOTECFG_SOK == status)
     {
-        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        status = CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
+                           "RX flow start index validation failed");
 
-        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
-        if (isSwitchPort)
+        if (ETHREMOTECFG_SOK == status)
         {
-            status = EnetAppUtils_regDfltRxFlow(hServer->hEnet,
-                                                coreKey, 
-                                                hostId, 
-                                                flowIdxBase, 
-                                                flowIdxOffset);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
-        }
-        else
-        {
-            /* RX default flow is supported only on virtual switch ports */
-            status = ETHREMOTECFG_ENOTSUPPORTED;
-            ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+            isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
+            if (isSwitchPort)
+            {
+                status = EnetAppUtils_regDfltRxFlow(hServer->hEnet,
+                                                    coreKey,
+                                                    hostId,
+                                                    flowIdxBase,
+                                                    flowIdxOffset);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
+            }
+            else
+            {
+                /* RX default flow is supported only on virtual switch ports */
+                status = ETHREMOTECFG_ENOTSUPPORTED;
+                ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+            }
         }
     }
     else
@@ -1886,23 +1936,28 @@ static int32_t CpswProxyServer_deregisterRxDefaultHandlerCb(CpswProxyServer_Clie
 
     if (ETHREMOTECFG_SOK == status)
     {
-        CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        status = CpswProxyServer_validateStartIdx(hServer->hEnet, hostId, flowIdxBase);
+        ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status,
+                           "RX flow start index validation failed");
 
-        isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
-        if (isSwitchPort)
+        if (ETHREMOTECFG_SOK == status)
         {
-            status = EnetAppUtils_unregDfltRxFlow(hServer->hEnet,
-                                                  coreKey,
-                                                  hostId, 
-                                                  flowIdxBase, 
-                                                  flowIdxOffset);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
-        }
-        else
-        {
-            /* RX default flow is supported only on virtual switch ports */
-            status = ETHREMOTECFG_ENOTSUPPORTED;
-            ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+            isSwitchPort = EthFwVirtPort_isSwitchPort(hClient->virtPort);
+            if (isSwitchPort)
+            {
+                status = EnetAppUtils_unregDfltRxFlow(hServer->hEnet,
+                                                      coreKey,
+                                                      hostId,
+                                                      flowIdxBase,
+                                                      flowIdxOffset);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to register default flow");
+            }
+            else
+            {
+                /* RX default flow is supported only on virtual switch ports */
+                status = ETHREMOTECFG_ENOTSUPPORTED;
+                ETHFWTRACE_ERR(status, "Default flow setting is not supported on virtual MAC ports");
+            }
         }
     }
     else
@@ -2120,7 +2175,8 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
 
             default:
             {
-                EnetAppUtils_assert(BFALSE);
+                status = ETHREMOTECFG_EINVALIDPARAMS;
+                ETHFWTRACE_ERR(status, "Invalid enetType: %d", enetType);
                 break;
             }
         }
@@ -2166,7 +2222,8 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
 
                     default:
                     {
-                        EnetAppUtils_assert(BFALSE);
+                        status = ETHREMOTECFG_EINVALIDPARAMS;
+                        ETHFWTRACE_ERR(status, "Invalid enetType: %d", enetType);
                         break;
                     }
                 }
@@ -2495,12 +2552,10 @@ static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClie
         {
             prms.inArgsSize = inargsLen;
             prms.outArgsSize = outargsLen;
-            EnetAppUtils_assert(inargsLen <= sizeof(inArgsBuf));
             /* To ensure structure are aligned, copy the inArgs to unit64_t aligned buffer */
             memcpy(inArgsBuf, inargs, inargsLen);
             prms.inArgs = inArgsBuf;
             /* To ensure structure are aligned, use unit64_t aligned buffer for outArgs  */
-            EnetAppUtils_assert(outargsLen <= sizeof(outArgsBuf));
             prms.outArgs = outArgsBuf;
             if (prms.inArgsSize == 0)
             {
@@ -2809,12 +2864,14 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     {
         ENET_IOCTL_SET_NO_ARGS(&prms);
         status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
-        EnetAppUtils_assert(status == ENET_SOK);
 
-        ENET_IOCTL_SET_NO_ARGS(&prms);
+    }
+    if (ETHREMOTECFG_SOK == status)
+    {
         status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms);
-        EnetAppUtils_assert(status == ENET_SOK);
-
+    }
+    if (ETHREMOTECFG_SOK == status)
+    {
         CpswProxyServer_printStats(hServer->hEnet, hServer->enetType, hostId);
     }
     else
@@ -3819,7 +3876,6 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 
     rtnVal = RPMessage_send(hMsgHandle, remoteProcId, remoteEndPt, localEp, &resBuf, resLen);
     ETHFWTRACE_ERR_IF((rtnVal != IPC_SOK), rtnVal, "Failed to send msg via IPC");
-    EnetAppUtils_assert(IPC_SOK == rtnVal);
 }
 
 static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *hServer,
@@ -4091,7 +4147,6 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
 {
     int32_t rtnVal = ENET_SOK;
     Enet_Handle hEnet;
-    EnetMcm_CmdIf *hMcmCmdIf;
     EnetMcm_HandleInfo handleInfo;
     CpswProxyServer_Obj * hServer = (CpswProxyServer_Obj *)arg0;
     uint64_t msgBuffer[(ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t))];
@@ -4105,16 +4160,17 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
     uint32_t token;
 
     /* Get MCM cmd handle */
-    EnetAppUtils_assert(hServer->getMcmCmdIfCb != NULL);
-    hServer->getMcmCmdIfCb(hServer->enetType, &hMcmCmdIf);
-    EnetAppUtils_assert(hMcmCmdIf != NULL);
-    EnetAppUtils_assert(hMcmCmdIf->hMboxCmd != NULL);
-    EnetAppUtils_assert(hMcmCmdIf->hMboxResponse != NULL);
-    hServer->hMcmCmdIf = hMcmCmdIf;
-
-    /* Connect to MCM on client's behalf (using its hostId) */
-    EnetMcm_acquireHandleInfo(hMcmCmdIf, &handleInfo);
-    hEnet = handleInfo.hEnet;
+    if (hServer->hMcmCmdIf != NULL)
+    {
+        /* Connect to MCM on client's behalf (using its hostId) */
+        EnetMcm_acquireHandleInfo(hServer->hMcmCmdIf, &handleInfo);
+        hEnet = handleInfo.hEnet;
+    }
+    else
+    {
+        rtnVal = ETHREMOTECFG_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(rtnVal, "Cannot get lookup events as MCM handle is NULL");
+    }
 
     while (!exitTask)
     {
