@@ -209,20 +209,11 @@ typedef struct CpswProxyServer_Config_s
     /*! Application callback to handle custom notify from client */
     CpswProxyServer_NotifyCb              notifyCb;
 
-    /*! Remote Core Id for Notification service */
-    uint32_t notifyServiceRemoteCoreId[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
-
     /*! Virtual port configuration */
     EthFwVirtPort_VirtPortCfg virtPortCfg[CPSWPROXYSERVER_REMOTE_CLIENT_VIRTPORT_MAX];
 
     /*! Number of remote virtual ports that remotes cores can attach to */
     uint32_t numVirtPorts;
-
-    /*! Enabled MAC ports */
-    Enet_MacPort macPort[CPSWPROXYSERVER_MAC_PORT_MAX];
-
-    /*! Number of MAC ports being enabled */
-    uint32_t numMacPorts;
 
     /*! Default VLAN id to be used for MAC ports configured in MAC-only mode */
     uint16_t dfltVlanIdMacOnlyPorts;

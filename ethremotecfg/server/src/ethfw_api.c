@@ -1209,13 +1209,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     cfg.initEthfwDeviceDataCb = &EthFw_getDeviceData;
     cfg.notifyCb = &EthFw_handleProfileInfoNotify;
 
-    /* Enable MAC ports */
-    cfg.numMacPorts = gEthFwObj.numPorts;
-    for (i = 0U; i < cfg.numMacPorts; i++)
-    {
-        cfg.macPort[i] = gEthFwObj.ports[i].macPort;
-    }
-
     /* Remote cores which use remote_device framework */
     for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
     {
@@ -1229,7 +1222,6 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
         
         cfg.virtPortCfg[i].remoteCoreId  = gEthFwObj.virtPortCfg[i].remoteCoreId;
         cfg.virtPortCfg[i].portId        = gEthFwObj.virtPortCfg[i].portId;
-        cfg.notifyServiceRemoteCoreId[i] = gEthFwObj.virtPortCfg[i].remoteCoreId;
         cfg.virtPortCfg[i].numTxCh       = gEthFwObj.virtPortCfg[i].numTxCh;
         cfg.virtPortCfg[i].numRxFlow     = gEthFwObj.virtPortCfg[i].numRxFlow;
         cfg.virtPortCfg[i].numMacAddress = gEthFwObj.virtPortCfg[i].numMacAddress;

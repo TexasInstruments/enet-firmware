@@ -2433,6 +2433,8 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
 
     if (ETHREMOTECFG_SOK == status)
     {
+        hServer->notifyServiceObj.dstProcMask |= ENET_BIT(hostId);
+
         /* Register hardware push callback */
         if (status == ETHREMOTECFG_SOK)
         {
@@ -2492,6 +2494,8 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
 
     if (ETHREMOTECFG_SOK == status)
     {
+        hServer->notifyServiceObj.dstProcMask &= ~ENET_BIT(hostId);
+
         /* Unregister hardware push callback */
         if (status == ENET_SOK)
         {
@@ -4068,10 +4072,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
 
     hServer->notifyServiceObj.notifyServiceCpswType = hServer->enetType;
     hServer->notifyServiceObj.dstProcMask = 0U;
-    for (i = 0U; i < cfg->numVirtPorts; i++)
-    {
-        hServer->notifyServiceObj.dstProcMask |= ENET_BIT(cfg->notifyServiceRemoteCoreId[i]);
-    }
+
     for (i = 0U; i < CPSW_CPTS_HWPUSH_COUNT_MAX; i++)
     {
         hServer->notifyServiceObj.hwPush2CoreIdMap[i] = IPC_MAX_PROCS;
