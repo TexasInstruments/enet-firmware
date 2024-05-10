@@ -589,11 +589,6 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
         status = ETHFW_EFAIL;
         ETHFWTRACE_ERR(status, "Shared multicast address not in use, cannot be deleted");
     }
-    else
-    {
-        status = ETHFW_EUNEXPECTED;
-        ETHFWTRACE_ERR(status, "Unexpected shared multicast ref count %u", mcastInfo->refCnt);
-    }
 
     if (status == ETHFW_SOK)
     {
