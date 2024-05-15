@@ -309,7 +309,7 @@ void EthFwMon_stopTask(void)
 
     if (gEthFwMonObj.hMonitorTask != NULL)
     {
-        TaskP_delete(gEthFwMonObj.hMonitorTask);
+        TaskP_delete(&gEthFwMonObj.hMonitorTask);
         gEthFwMonObj.hMonitorTask = NULL;
     }
 

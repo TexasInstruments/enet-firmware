@@ -1155,11 +1155,10 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 
 void EthFw_deinit(EthFw_Handle hEthFw)
 {
-    EnetAppUtils_assert(hEthFw != NULL);
+    uint32_t coreIdx;
+    uint32_t i;
 
-#if defined(ETHFW_GPTP_SUPPORT)
-    EthFwTsn_deInit();
-#endif
+    EnetAppUtils_assert(hEthFw != NULL);
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
@@ -1181,8 +1180,20 @@ void EthFw_deinit(EthFw_Handle hEthFw)
     /* De-initialize MCM */
     EthFw_deinitMcm();
 
+#if defined(ETHFW_GPTP_SUPPORT)
+    EthFwTsn_deInit();
+#endif
+
     gEthFwObj.numPorts = 0U;
     memset(&gEthFwObj.cpswCfg, 0, sizeof(Cpsw_Cfg));
+
+    for ( i = 0U; i < gEthFwObj.numVirtPorts; i++)
+    {
+        coreIdx = EthFw_getCoreDmaResIndex(gEthFwObj.virtPortCfg[i].remoteCoreId);
+        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numTxCh       = 0U;
+        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numRxFlows    = 0U;
+        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numMacAddress = 0U;
+    }
 }
 
 uint32_t EthFw_getRemoteEndptId(uint32_t coreId)

@@ -634,12 +634,12 @@ void EthFwTsn_deInit(void)
 
     if (gEthFwTsnObj.hLogTask != NULL)
     {
-        TaskP_delete(gEthFwTsnObj.hLogTask);
+        TaskP_delete(&gEthFwTsnObj.hLogTask);
         gEthFwTsnObj.hLogTask = NULL;
     }
     if (gEthFwTsnObj.hLogMutex != NULL)
     {
-        MutexP_delete(&gEthFwTsnObj.hLogMutex);
+        MutexP_delete(gEthFwTsnObj.hLogMutex);
         gEthFwTsnObj.hLogMutex = NULL;
     }
     if (gEthFwTsnObj.ucCfg.ucReadySem != NULL)
