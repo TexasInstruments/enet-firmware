@@ -693,6 +693,7 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         EnetDma_initRxChParams(&rxFlowCfg);
+        EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
         rxFlowCfg.startIdx  = *rxFlowStartIdx;
         rxFlowCfg.flowIdx   = *flowIdx;
         rxFlowCfg.notifyCb  = rxCfg->notifyCb;
@@ -700,7 +701,6 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
         rxFlowCfg.numRxPkts = rxCfg->numPackets;
         rxFlowCfg.hUdmaDrv  = handleInfo->hUdmaDrv;
         rxFlowCfg.useProxy  = BTRUE;
-        EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
 
         *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
@@ -831,6 +831,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         EnetDma_initRxChParams(&rxFlowCfg);
+        EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
         rxFlowCfg.startIdx  = *rxFlowStartIdx;
         rxFlowCfg.flowIdx   = *flowIdx;
         rxFlowCfg.notifyCb  = arpRxCfg->notifyCb;
@@ -838,7 +839,6 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
         rxFlowCfg.numRxPkts = arpRxCfg->numPackets;
         rxFlowCfg.hUdmaDrv  = handleInfo->hUdmaDrv;
         rxFlowCfg.useProxy  = BTRUE;
-        EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
 
         *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
