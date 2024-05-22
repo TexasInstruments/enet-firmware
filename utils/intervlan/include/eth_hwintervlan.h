@@ -97,6 +97,7 @@ extern "C" {
 /* ========================================================================== */
 
 void EthHwInterVlan_setupRouting(Enet_Type enetType,
+                                 uint32_t instId,
                                  EnetCfgServer_InterVlanConfig *pInterVlanCfg);
 
 void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg);

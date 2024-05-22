@@ -178,7 +178,9 @@ static const char *gEthFwCallbacks_errCodeInfo[] =
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
+void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
+                                        uint32_t instId,
+                                        LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                         LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
     LwipifEnetAppIf_RxHandleInfo *rxInfo;
@@ -189,11 +191,6 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetUdma_OpenTxChPrms cpswTxChCfg;
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
     EnetUdma_UdmaRingPrms *pFqRingPrms;
-#if defined(SOC_J721E) || defined(SOC_J784S4)
-    Enet_Type enetType = ENET_CPSW_9G;
-#elif defined(SOC_J7200)
-    Enet_Type enetType = ENET_CPSW_5G;
-#endif
     uint8_t *macAddr;
     uint32_t coreId = EnetSoc_getCoreId();
     bool useDefaultFlow = BTRUE;    /* Must handle the default flow */
@@ -366,7 +363,9 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
 }
 
-void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
+void EthFwCallbacks_lwipifCpswReleaseHandle(Enet_Type enetType,
+                                            uint32_t instId,
+                                            LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
     LwipifEnetAppIf_RxHandleInfo *rxInfo;
     Lwip2EnetAppIf_FreePktInfo *freePktInfo;
@@ -374,11 +373,6 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *r
     EnetDma_PktQ fqPktInfoQ;
     EnetDma_PktQ cqPktInfoQ;
     Enet_Handle hEnet = (Enet_Handle)releaseInfo->handleArg;
-#if defined(SOC_J721E) || defined(SOC_J784S4)
-    Enet_Type enetType = ENET_CPSW_9G;
-#elif defined(SOC_J7200)
-    Enet_Type enetType = ENET_CPSW_5G;
-#endif
     bool useDefaultFlow = BTRUE;    /* Must handle the default flow */
 
     /* Get MCM command interface */
@@ -467,12 +461,6 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     CpswAle_SetPolicerEntryInArgs polInArgs;
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
     Enet_IoctlPrms prms;
-#endif
-
-#if defined(SOC_J721E) || defined(SOC_J784S4)
-    Enet_Type enetType = ENET_CPSW_9G;
-#elif defined(SOC_J7200)
-    Enet_Type enetType = ENET_CPSW_5G;
 #endif
 
     EnetAppUtils_assert(hEnet != ENET_SOK);
@@ -608,13 +596,6 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
     const uint8_t bcastAddr[ENET_MAC_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     CpswAle_DelPolicerEntryInArgs polInArgs;
     Enet_IoctlPrms prms;
-#endif
-
-
-#if defined(SOC_J721E) || defined(SOC_J784S4)
-    Enet_Type enetType = ENET_CPSW_9G;
-#elif defined(SOC_J7200)
-    Enet_Type enetType = ENET_CPSW_5G;
 #endif
 
     EnetAppUtils_assert(hEnet != ENET_SOK);

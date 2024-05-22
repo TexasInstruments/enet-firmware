@@ -104,10 +104,14 @@ extern "C" {
 extern bool EthFwCallbacks_isPortLinked(struct netif *netif,
                                         void *handleArg);
 
-void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
+void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
+                                        uint32_t instId,
+                                        LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                         LwipifEnetAppIf_GetHandleOutArgs *outArgs);
 
-void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo);
+void EthFwCallbacks_lwipifCpswReleaseHandle(Enet_Type enetType,
+                                            uint32_t instId,
+                                            LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo);
 
 /*!
  * \brief Get error packet code string.

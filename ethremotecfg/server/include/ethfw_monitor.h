@@ -215,12 +215,14 @@ void EthFwMon_initCfg(EthFwMon_Cfg *monCfg);
  *
  * \param monCfg    Configuration parameters
  * \param enetType  EnetType
+ * \param instId    instance Id
  * \param numPorts  Number of ports opened by EthFw
  *
  * \returns ETHFW_SOK if EthFw Monitor initialization was successful
  */
 int32_t EthFwMon_init(const EthFwMon_Cfg *monCfg,
                       Enet_Type enetType,
+                      uint32_t instId,
                       uint32_t numPorts);
 
 /* ========================================================================== */

@@ -1083,7 +1083,7 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
 #endif
 
 #if defined(ETHFW_MONITOR_SUPPORT)
-    status = EthFwMon_init(&config->monitorCfg, gEthFwObj.enetType, gEthFwObj.numPorts);
+    status = EthFwMon_init(&config->monitorCfg, gEthFwObj.enetType, gEthFwObj.instId, gEthFwObj.numPorts);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init Monitor");
 #endif
 
@@ -1235,6 +1235,7 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 
     /* Initialize Proxy Server */
     memset(&cfg, 0, sizeof(cfg));
+    cfg.enetType = gEthFwObj.enetType;
     cfg.instId = gEthFwObj.instId;
     cfg.getMcmCmdIfCb = &EthFw_getMcmCmdIfCb;
     cfg.initEthfwDeviceDataCb = &EthFw_getDeviceData;

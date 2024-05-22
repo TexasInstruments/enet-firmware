@@ -659,14 +659,15 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
 /* ========================================================================== */
 
 void EthHwInterVlan_setupRouting(Enet_Type enetType,
-                               EnetCfgServer_InterVlanConfig *pInterVlanCfg)
+                                 uint32_t instId,
+                                 EnetCfgServer_InterVlanConfig *pInterVlanCfg)
 {
     int32_t status = ENET_SOK;
     uint32_t numRoutesAllocated = 0U;
     Enet_Handle hEnet;
 
     /* Get CPSW Handle */
-    hEnet = Enet_getHandle(enetType, 0U);
+    hEnet = Enet_getHandle(enetType, instId);
 
     status = CpswAppInterVlan_setShortIPG(hEnet);
     if (ENET_SOK == status)

@@ -142,11 +142,14 @@ typedef struct EthFwMon_Obj_s
      /* Core Id */
      uint32_t coreId;
 
+     /* Enet instance type */
+     Enet_Type enetType;
+
      /* Enet Handle */
      Enet_Handle hEnet;
 
-     /* Enet instance type */
-     Enet_Type enetType;
+     /* instance Id */
+     uint32_t instId;
 
      /*! Number of MAC ports owned by EthFw, that is, the size of
       *  EthFw_Config::ports array */
@@ -230,12 +233,14 @@ void EthFwMon_initCfg(EthFwMon_Cfg *monCfg)
 
 int32_t EthFwMon_init(const EthFwMon_Cfg *monCfg,
                       Enet_Type enetType,
+                      uint32_t instId,
                       uint32_t numPorts)
 {
     int32_t status = ENET_SOK;
 
     gEthFwMonObj.monitor    = *monCfg;
     gEthFwMonObj.enetType   = enetType;
+    gEthFwMonObj.instId     = instId;
     gEthFwMonObj.coreId     = EnetSoc_getCoreId();
     gEthFwMonObj.numPorts   = numPorts;
     gEthFwMonObj.recoveryEn = ((monCfg->openLwipDmaCb != NULL) &&
@@ -515,6 +520,7 @@ static bool EthFwMon_analyzePortStats(Enet_MacPort macPort)
 static void EthFwMon_Task(void *a0,
                               void *a1)
 {
+    EnetMcm_HandleInfo handleInfo;
     Enet_MacPort macPort;
     Enet_MacPort recoveryMacPort = ENET_MAC_PORT_INV;
     bool needsRecovery = BFALSE;
@@ -533,7 +539,7 @@ static void EthFwMon_Task(void *a0,
     EnetAppUtils_assert(gEthFwMonObj.mcmCmdIf.hMboxCmd != NULL);
     EnetAppUtils_assert(gEthFwMonObj.mcmCmdIf.hMboxResponse != NULL);
 
-    gEthFwMonObj.hEnet = Enet_getHandle(gEthFwMonObj.enetType, 0U /* instId */);
+    gEthFwMonObj.hEnet = Enet_getHandle(gEthFwMonObj.enetType, gEthFwMonObj.instId);
 
     while (gEthFwMonObj.monitorTaskRun)
     {

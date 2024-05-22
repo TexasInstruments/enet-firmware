@@ -283,7 +283,7 @@ typedef struct EthFw_Obj_s *EthFw_Handle;
  *    EthFw_Config::cpswCfg.
  *
  * \param enetType    Enet instance type
- * \param instId      Enet instance ID
+ * \param instId      Enet instance id
  * \param config      Pointer to the EthFw config to be initialized
  */
 void EthFw_initConfigParams(Enet_Type enetType,
@@ -298,7 +298,7 @@ void EthFw_initConfigParams(Enet_Type enetType,
  * It must be called from task context, cannot be called from main().
  *
  * \param enetType    Enet instance type
- * \param instId      Enet instance ID
+ * \param instId      Enet instance id
  * \param config      EthFw configuration
  *
  * \retval EthFw handle if initialization was successful

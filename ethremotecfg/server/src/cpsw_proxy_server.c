@@ -435,11 +435,6 @@ static CpswProxyServer_Obj *CpswProxyServer_initHandle(void)
 {
     static CpswProxyServer_Obj gProxyServerObj =
     {
-#if defined(SOC_J7200)
-        .enetType              = ENET_CPSW_5G,
-#elif defined(SOC_J721E) || defined(SOC_J784S4)
-        .enetType              = ENET_CPSW_9G,
-#endif
         .initEthfwDeviceDataCb = NULL,
         .getMcmCmdIfCb         = NULL,
         .initDone              = BFALSE,
@@ -934,7 +929,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
     if (ENET_SOK == status)
     {
         /* RX PSIL thread id */
-        *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
+        *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, hServer->instId, 0U);
 
         /* Save parameters in client object */
         hClient->flowIdxBase   = *pRxFlowIdxBase;
@@ -1013,7 +1008,7 @@ static int32_t CpswProxyServer_allocRxHandlerCb(CpswProxyServer_ClientHandle hCl
     if (ETHREMOTECFG_SOK == status)
     {
         coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
-        *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, 0U, 0U);
+        *pRxPsilSrcId = EnetSoc_getRxChPeerId(hServer->enetType, hServer->instId, 0U);
 
         status = EnetAppUtils_allocRxFlow(hServer->hEnet,
                                             coreKey,
@@ -2110,6 +2105,7 @@ static void CpswProxyServer_printMacPortStats(CpswStats_MacPort_Ng *st)
 
 static void CpswProxyServer_printStats(Enet_Handle hEnet,
                                        Enet_Type enetType,
+                                       uint32_t instId,
                                        uint32_t coreId)
 {
     Enet_IoctlPrms prms;
@@ -2163,7 +2159,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
 
     if (status == ENET_SOK)
     {
-        for (i = 0, portNum = ENET_MAC_PORT_FIRST; i < Enet_getMacPortMax(enetType, 0u); i++, portNum++)
+        for (i = 0, portNum = ENET_MAC_PORT_FIRST; i < Enet_getMacPortMax(enetType, instId); i++, portNum++)
         {
             ENET_IOCTL_SET_INOUT_ARGS(&prms, &portNum, &portStats);
             status = Enet_ioctl(hEnet, coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
@@ -2377,7 +2373,6 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
     CpswCpts_RegisterHwPushCbInArgs hwPushCbInArgs;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
-    uint32_t instId = 0U;
     int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
@@ -2411,7 +2406,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
         if (status == ENET_SOK)
         {
             status = EnetAppUtils_setTimeSyncRouter(hServer->enetType,
-                                                    instId,
+                                                    hServer->instId,
                                                     timerId,
                                                     hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set TSR");
@@ -2439,7 +2434,6 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
     Enet_IoctlPrms prms;
     CpswProxyServer_Obj *hServer = NULL;
     uint32_t hwPushNorm = CPSW_CPTS_HWPUSH_NORM((CpswCpts_HwPush)hwPushNum);
-    uint32_t instId = 0U;
 
     status = CpswProxyServer_getHandle(&hServer);
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
@@ -2469,7 +2463,7 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
         if (status == ENET_SOK)
         {
             status = EnetAppUtils_setTimeSyncRouter(hServer->enetType,
-                                                    instId,
+                                                    hServer->instId,
                                                     0U,
                                                     hwPushNorm + CPSWPROXY_CPSW9G_HWPUSH_BASE);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set TSR");
@@ -2647,6 +2641,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     hServer = CpswProxyServer_initHandle();
     EnetAppUtils_assert((hServer != NULL) && (hServer->initDone == BFALSE));
 
+    hServer->enetType = cfg->enetType;
     hServer->instId = cfg->instId;
     hServer->masterCoreId = EnetSoc_getCoreId();
     memset(&hServer->coreObj, 0, sizeof(hServer->coreObj));
@@ -2769,7 +2764,7 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     }
     if (ETHREMOTECFG_SOK == status)
     {
-        CpswProxyServer_printStats(hServer->hEnet, hServer->enetType, hostId);
+        CpswProxyServer_printStats(hServer->hEnet, hServer->enetType, hServer->instId, hostId);
     }
     else
     {

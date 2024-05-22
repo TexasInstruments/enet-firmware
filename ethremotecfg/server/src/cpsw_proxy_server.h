@@ -197,6 +197,9 @@ int32_t CpswProxyServer_getIdleClientCnt(uint32_t *attachedClients,
  */
 typedef struct CpswProxyServer_Config_s
 {
+    /*! Enet instance type */
+    Enet_Type enetType;
+
     /*! Enet instance id */
     uint32_t instId;
 
