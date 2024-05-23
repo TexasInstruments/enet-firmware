@@ -109,6 +109,35 @@ extern "C" {
 typedef void (*EthFwTsn_configPtpCb)(void *arg);
 
 /*!
+ * \brief PPS config parameters
+ */
+typedef struct EthFwTsn_PpsConfig_s
+{
+    /*! TSR input interrupt num */
+    uint32_t tsrIn;
+
+    /*! TSR output interrupt num */
+    uint32_t tsrOut;
+
+    /*! Frequency of PPS signal in Hz */
+    uint64_t ppsFreqHz;
+
+    /*! CPTS GenF instance to be used to generate PPS signal */
+    uint32_t genfIdx;
+
+} EthFwTsn_PpsConfig;
+
+/*!
+ * \brief Callback structure for gPTP config
+ */
+typedef struct EthFwTsn_gPTPConfigArg_s
+{
+    /*! gPTP instance number */
+    uint8_t inst;
+
+} EthFwTsn_gPTPConfigArg;
+
+/*!
  * \brief Ethernet Firmware TSN config parameters
 */
 typedef struct EthFwTsn_Config_s
@@ -124,6 +153,9 @@ typedef struct EthFwTsn_Config_s
 
     /*! Argument to be passed to gPTP config callback function */
     void *configPtpCbArg;
+
+    /*! PPS config params when enabled */
+    EthFwTsn_PpsConfig ppsConfig;
 
 } EthFwTsn_Config;
 

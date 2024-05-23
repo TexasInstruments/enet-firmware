@@ -95,7 +95,7 @@
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
-
+#include <ti/drv/enet/include/mod/cpsw_cpts.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -144,6 +144,12 @@
 #define ETHFW_TSN_EST_STACK_SIZE                                    (16U * 1024U)
 #define ETHFW_TSN_EST_STACK_ALIGN                                   (32U)
 #endif
+
+/* Macro to round off time to second boundary */
+#define ETHFW_PPS_TIMESYNC_TIME_SEC_TO_NS                           (1000000000U)
+
+/* Macro to start GenF compare time in future - 1sec */
+#define ETHFW_PPS_TIMESYNC_COMP_TIME_NS                             (1000000000U)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -214,6 +220,12 @@ typedef struct EthFwTsn_ModuleCfg_s
  */
 typedef struct EthFwTsn_Obj_s
 {
+    /* Enet driver handle for this peripheral type/instance */
+    Enet_Handle hEnet;
+
+    /* Processing core Id */
+    uint32_t coreId;
+
     /* Enet instance type */
     uint32_t enetType;
 
@@ -299,6 +311,10 @@ static void EthFwTsn_cfgGptpPortDs(yang_db_runtime_dataq_t *ydrd,
                                    uint32_t domain,
                                    int portIndex,
                                    bool dbInitFlag);
+
+static uint64_t EthFwTsn_getCurrentTime(void);
+
+static void EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig);
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -540,12 +556,6 @@ static void *EthFwTsn_gptpTask(void *args)
     EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_GPTP_TASK_IDX];
     EthFwTsn_UniconfCfg *ucCfg = &gEthFwTsnObj.ucCfg;
 
-    /* Let app overwrite any gPTP configuration parameters */
-    if (gEthFwTsnObj.configPtpCb != NULL)
-    {
-        gEthFwTsnObj.configPtpCb(gEthFwTsnObj.configPtpCbArg);
-    }
-
     for (i = 0U; i < gEthFwTsnObj.netDevInfo.numNetDevs; i++)
     {
         netdevs[i] = gEthFwTsnObj.netDevInfo.netDevs[i];
@@ -590,6 +600,14 @@ void EthFwTsn_init(EthFwTsn_Config *tsnCfg)
 {
     unibase_init_para_t params;
 
+    gEthFwTsnObj.enetType       = tsnCfg->enetType;
+    gEthFwTsnObj.instId         = tsnCfg->instId;
+    gEthFwTsnObj.configPtpCb    = tsnCfg->configPtpCb;
+    gEthFwTsnObj.configPtpCbArg = tsnCfg->configPtpCbArg;
+
+    gEthFwTsnObj.hEnet = Enet_getHandle(gEthFwTsnObj.enetType, gEthFwTsnObj.instId);
+    gEthFwTsnObj.coreId = EnetSoc_getCoreId();
+
     if (!gEthFwTsnObj.tsnInit)
     {
         /*refer to 'ub_logging.h for logging levels*/
@@ -608,10 +626,89 @@ void EthFwTsn_init(EthFwTsn_Config *tsnCfg)
         gEthFwTsnObj.tsnInit = BTRUE;
     }
 
-    gEthFwTsnObj.enetType       = tsnCfg->enetType;
-    gEthFwTsnObj.instId         = tsnCfg->instId;
-    gEthFwTsnObj.configPtpCb    = tsnCfg->configPtpCb;
-    gEthFwTsnObj.configPtpCbArg = tsnCfg->configPtpCbArg;
+    EthFwTsn_genPPS(&tsnCfg->ppsConfig);
+}
+
+static uint64_t EthFwTsn_getCurrentTime(void)
+{
+    Enet_IoctlPrms prms;
+    int32_t status;
+    uint64_t tsVal = 0ULL;
+
+    /* Software push event */
+    ENET_IOCTL_SET_OUT_ARGS(&prms, &tsVal);
+    status = Enet_ioctl(gEthFwTsnObj.hEnet, gEthFwTsnObj.coreId,
+                        ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP, &prms);
+    if (status != ENET_SOK)
+    {
+        tsVal = 0ULL;
+    }
+
+    return tsVal;
+}
+
+void EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig)
+{
+    Enet_IoctlPrms prms;
+    CSL_IntrRouterCfg irRegs;
+    CpswCpts_SetFxnGenInArgs setGenFInArgs;
+    uint32_t tsrIn;
+    uint32_t tsrOut;
+    uint64_t cptsrefClk;
+    int32_t status = ETHFW_SOK;
+
+    irRegs.pIntrRouterRegs = (CSL_intr_router_cfgRegs *) CSL_TIMESYNC_INTRTR0_INTR_ROUTER_CFG_BASE;
+    irRegs.pIntdRegs       = (CSL_intr_router_intd_cfgRegs *) NULL;
+    irRegs.numInputIntrs   = ENET_TIMESYNCRTR_NUM_INPUT;
+    irRegs.numOutputIntrs  = ENET_TIMESYNCRTR_NUM_OUTPUT;
+
+    CSL_intrRouterCfgMux(&irRegs, ppsConfig->tsrIn, ppsConfig->tsrOut);
+    ETHFWTRACE_DBG("TSR in=%d out=%d\n", ppsConfig->tsrIn, ppsConfig->tsrOut);
+
+    if (ETHFW_SOK == status)
+    {
+        ENET_IOCTL_SET_OUT_ARGS(&prms, &cptsrefClk);
+        status = Enet_ioctl(gEthFwTsnObj.hEnet,
+                            gEthFwTsnObj.coreId,
+                            CPSW_CPTS_IOCTL_GET_CPTS_REFCLK,
+                            &prms);
+        ETHFWTRACE_ERR_IF((ENET_SOK != status), status, "Failed to get CPTS RefClk Frequency");
+    }
+    if (ETHFW_SOK == status)
+    {
+        /* Configure GENF to generate pulse signal */
+        /* Length should be same for both master and slave */
+        setGenFInArgs.index  = ppsConfig->genfIdx;
+        if (ppsConfig->ppsFreqHz != 0U)
+        {
+            setGenFInArgs.length = cptsrefClk/ppsConfig->ppsFreqHz;
+        }
+        else
+        {
+            setGenFInArgs.length = 0U;
+        }
+
+        /* GenF gets generated when currentTime is greater than/equal to compare time
+         * compare time will be set to currentTime + 1sec buffer to make compare time
+         * is always in future and follows seconds boundary */
+        setGenFInArgs.compare = (((EthFwTsn_getCurrentTime()/ETHFW_PPS_TIMESYNC_TIME_SEC_TO_NS)+1)
+                                 *ETHFW_PPS_TIMESYNC_TIME_SEC_TO_NS) + ETHFW_PPS_TIMESYNC_COMP_TIME_NS;
+        setGenFInArgs.polarityInv = BTRUE;
+        setGenFInArgs.ppmVal  = 0U;
+        setGenFInArgs.ppmDir  = ENET_TIMESYNC_ADJDIR_INCREASE;
+        setGenFInArgs.ppmMode = ENET_TIMESYNC_ADJMODE_DISABLE;
+
+        ENET_IOCTL_SET_IN_ARGS(&prms, &setGenFInArgs);
+        status = Enet_ioctl(gEthFwTsnObj.hEnet,
+                            gEthFwTsnObj.coreId,
+                            CPSW_CPTS_IOCTL_SET_GENF,
+                            &prms);
+        ETHFWTRACE_ERR_IF((ENET_SOK != status), status, "Failed to set GenF");
+        ETHFWTRACE_ERR_IF((ENET_ENOTSUPPORTED == status), status,
+                           "Failed to reconfigure CPTS GenF due to hardware limitation");
+    }
+
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to generate PPS signal");
 }
 
 void EthFwTsn_deInit(void)
@@ -788,6 +885,16 @@ static int32_t EthFwTsn_gptpNonYangConfig(uint8_t instance)
 {
     uint32_t i;
     int32_t status;
+    EthFwTsn_gPTPConfigArg *cbArgs = NULL;
+
+    gEthFwTsnObj.configPtpCbArg = (void *)cbArgs;
+    cbArgs->inst = instance;
+
+    /* Let app overwrite any gPTP configuration parameters */
+    if (gEthFwTsnObj.configPtpCb != NULL)
+    {
+        gEthFwTsnObj.configPtpCb(gEthFwTsnObj.configPtpCbArg);
+    }
 
     for (i = 0U; i < sizeof(gGptpNonYangDs)/sizeof(gGptpNonYangDs[0]); i++)
     {

@@ -82,6 +82,7 @@
 #include <ethremotecfg/server/include/ethfw_monitor.h>
 #include <ethremotecfg/server/include/ethfw_qos.h>
 #include <utils/ethfw_common/include/ethfw_types.h>
+#include <ethremotecfg/server/include/ethfw_tsn.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 
 #ifdef __cplusplus
@@ -244,6 +245,9 @@ typedef struct EthFw_Config_s
 
     /*! Flag to let application allocate absolute tx channels */
     bool isStaticTxChanAllocated;
+
+    /*! PPS config params */
+    EthFwTsn_PpsConfig ppsConfig;
 } EthFw_Config;
 
 /* ========================================================================== */

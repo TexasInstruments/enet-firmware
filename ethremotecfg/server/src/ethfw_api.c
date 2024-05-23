@@ -888,6 +888,10 @@ void EthFw_initConfigParams(Enet_Type enetType,
     EthFwMon_initCfg(&config->monitorCfg);
 #endif
 
+#if defined(ETHFW_GPTP_SUPPORT)
+    memset(&config->ppsConfig, 0, sizeof(config->ppsConfig));
+#endif
+
     /* Start with CPSW LLD's default configuration */
     Enet_initCfg(enetType, instId, cpswCfg, sizeof (*cpswCfg));
     cpswCfg->dmaCfg = NULL;
@@ -1110,6 +1114,7 @@ int32_t EthFw_init(Enet_Type enetType,
     tsnCfg.instId         = gEthFwObj.instId;
     tsnCfg.configPtpCb    = config->configPtpCb;
     tsnCfg.configPtpCbArg = config->configPtpCbArg;
+    tsnCfg.ppsConfig      = config->ppsConfig;
     if (status == ENET_SOK)
     {
         EthFwTsn_init(&tsnCfg);
