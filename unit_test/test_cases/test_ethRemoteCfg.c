@@ -86,7 +86,6 @@
 /* EthFw header files */
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
-#include <ethremotecfg/protocol/ethremotecfg_virtport.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
 #include <utils/board/include/ethfw_board_utils.h>
@@ -119,14 +118,16 @@
 /* ========================================================================== */
 
 EthFw_Config *gTestEthFwCfg;
-EthFw_Handle gTestEthFw;
 
 #if defined(SOC_J721E) || defined(SOC_J784S4)
 Enet_Type gEnetType = ENET_CPSW_9G;
+uint32_t gInstId = 0U;
 #elif defined(SOC_J7200)
 Enet_Type gEnetType = ENET_CPSW_5G;
+uint32_t gInstId = 0U;
 #else
 Enet_Type gEnetType = ENET_NULL;
+uint32_t gInstId = 0U;
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -154,34 +155,39 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 
 void EthFwUT_testEthFwInit(void)
 {
-    gTestEthFw = EthFw_init(gEnetType, gTestEthFwCfg);
-    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    int32_t status;
 
-    EthFw_deinit(gTestEthFw);
+    status = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_FALSE(status != CPSWPROXY_SOK);
+
+    EthFw_deinit();
 }
 
 void EthFwUT_testEthFwInit2(void)
 {
-    gTestEthFw = EthFw_init(gEnetType, gTestEthFwCfg);
-    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    int32_t status;
 
-    EthFw_deinit(gTestEthFw);
+    status = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_FALSE(status != CPSWPROXY_SOK);
+
+    EthFw_deinit();
 }
 
 void EthFwUT_testEthFwGetVersion(void)
 {
     EthFw_Version ver;
+    int32_t status;
 
-    gTestEthFw = EthFw_init(gEnetType, gTestEthFwCfg);
-    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    status = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_FALSE(status != CPSWPROXY_SOK);
 
-    EthFw_getVersion(gTestEthFw, &ver);
+    EthFw_getVersion(&ver);
     appLogPrintf("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
     appLogPrintf("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
     appLogPrintf("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);
     appLogPrintf("ETHFW Commit SHA: %s\n\n", ver.commitHash);
 
-    EthFw_deinit(gTestEthFw);
+    EthFw_deinit();
 }
 
 void EthFwUT_dummyOpen(void *args)
@@ -197,13 +203,15 @@ void EthFwUT_dummyClose(void *args)
 #if defined(ETHFW_MONITOR_SUPPORT)
 void EthFwUT_testMonitor(void)
 {
+    int32_t status;
+
     gTestEthFwCfg->monitorCfg.openLwipDmaCb = EthFwUT_dummyOpen;
     gTestEthFwCfg->monitorCfg.closeLwipDmaCb = EthFwUT_dummyClose;
 
-    gTestEthFw = EthFw_init(gEnetType, gTestEthFwCfg);
-    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    status = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_FALSE(status != CPSWPROXY_SOK);
 
-    EthFw_deinit(gTestEthFw);
+    EthFw_deinit();
 }
 #endif
 
@@ -236,14 +244,15 @@ static void EthFwUT_initPtp(void)
 
 void EthFwUT_testgPTP(void)
 {
+    int32_t status;
     gTestEthFwCfg->configPtpCb    = EthFwUT_configPtpCb;
 
-    gTestEthFw = EthFw_init(gEnetType, gTestEthFwCfg);
-    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    status = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_FALSE(status != CPSWPROXY_SOK);
 
      EthFwUT_initPtp();
 
-    EthFw_deinit(gTestEthFw);
+    EthFw_deinit();
 }
 #endif
 

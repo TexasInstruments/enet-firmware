@@ -77,20 +77,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/* OSAL */
-#include <ti/osal/osal.h>
-#include <ti/osal/SemaphoreP.h>
-#include <ti/osal/TaskP.h>
-#include <ti/osal/MailboxP.h>
-
 /* PDK Driver Header files */
+#include <ti/osal/osal.h>
 #include <ti/drv/ipc/ipc.h>
-#include <ti/drv/udma/udma.h>
 #include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/core/enet_mod_hostport.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/include/dma/udma/enet_udma.h>
-#include <ti/drv/enet/include/core/enet_dma.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 
 /* EthFw header files */
@@ -154,9 +144,6 @@ typedef struct
     /* Enet instance id */
     uint32_t instId;
 
-    /* Ethernet Firmware handle */
-    EthFw_Handle hEthFw;
-
     /* Ethernet Firmware configuration params */
     EthFw_Config hEthFwCfg;
 
@@ -196,7 +183,6 @@ EthTestAppObj gEthTestAppObj =
     .enetType = ENET_CPSW_5G,
     .instId   = 0U,
 #endif
-    .hEthFw = NULL,
     .hUdmaDrv = NULL,
 };
 
@@ -236,7 +222,7 @@ Enet_MacPort gEthAppPorts[] =
 };
 
 /* NOTE: 2 virtual ports should not have same tx channel allocated to them */
-EthFw_VirtPortCfg gEthApp_virtPortCfg[] =
+EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
 {
     {
         .remoteCoreId  = IPC_MPU1_0,
@@ -373,7 +359,7 @@ void setUp(void)
     uint32_t poolSize;
 
     /* Init EthFw config params */
-    EthFw_initConfigParams(gEthTestAppObj.enetType, &gEthTestAppObj.hEthFwCfg);
+    EthFw_initConfigParams(gEthTestAppObj.enetType, gEthTestAppObj.instId, &gEthTestAppObj.hEthFwCfg);
 
     /* Set UDMA handle to Enet LLD config */
     gEthTestAppObj.dmaCfg.hUdmaDrv = gEthTestAppObj.hUdmaDrv;
