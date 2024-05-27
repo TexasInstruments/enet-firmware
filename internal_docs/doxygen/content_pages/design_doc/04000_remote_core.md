@@ -85,18 +85,12 @@ Following are the defined and supported messages by ETHFW:
 | `ETHREMOTECFG_CMD_LEAVE_VLAN`               |  Command to leave a VLAN                                                       |
 | `ETHREMOTECFG_CMD_ADD_FILTER_MAC`           |  Command to add multicast MAC address to receive filter                        |
 | `ETHREMOTECFG_CMD_DEL_FILTER_MAC`           |  Command to delete multicast MAC address from receive filter                   |
-| `ETHREMOTECFG_CMD_ENABLE_PROMISC`           |  Command to enable promiscuous mode                                            |
-| `ETHREMOTECFG_CMD_DISABLE_PROMISC`          |  Command to disable promiscuous mode                                           |
-| `ETHREMOTECFG_CMD_READ_REGISTER`            |  Command to read from an Ethernet device register                              |
-| `ETHREMOTECFG_CMD_WRITE_REGISTER`           |  Command to write to an Ethernet device register                               |
 | `ETHREMOTECFG_CMD_REGISTER_MATCH_ETHTYPE`   |  Command to setup an EtherType-based packet route                              |
 | `ETHREMOTECFG_CMD_DEREGISTER_MATCH_ETHTYPE` |  Command to tear-down an EtherType-based packet route                          |
 | `ETHREMOTECFG_CMD_REGISTER_REMOTE_TIMER`    |  Command to register a remote timer for multicore time synchronization         |
 | `ETHREMOTECFG_CMD_DEREGISTER_REMOTE_TIMER`  |  Command to de-register a remote timer with EthFw                              |
-| `ETHREMOTECFG_CMD_MESSAGE_PING`             |  Command to ping the ETHFW, generally used for test purposes                   |
 | `ETHREMOTECFG_CMD_GET_SERVER_STATUS`        |  Command to query the remote configuration server status                       |
 | `ETHREMOTECFG_CMD_TEARDOWN_COMPLETION`      |  Command to notify client's DMA teardown completion                            |
-| `ETHREMOTECFG_CMD_IOCTL`                    |  Command to invoke ENET LLD IOCTL from remote client                           |
 | `ETHREMOTECFG_CMD_DUMP`                     |  Command from remote client to Server to dump CPSW stats                       |
 
 <br>

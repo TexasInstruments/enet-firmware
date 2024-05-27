@@ -251,12 +251,6 @@ extern "C" {
 /*! \brief Remote notify service endpoint Id needed by server to send notify messages. */
 #define ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID              (30U)
 
-/*! \brief Maximum length of input arguments for \ref ETHREMOTECFG_CMD_IOCTL. */
-#define ETHREMOTECFG_IOCTL_INARGS_LEN                     (480U)
-
-/*! \brief Maximum length of output arguments for \ref ETHREMOTECFG_CMD_IOCTL. */
-#define ETHREMOTECFG_IOCTL_OUTARGS_LEN                    (480U)
-
 /*!
  * \brief De-normalize #EthRemoteCfg_VirtPort.
  *
@@ -546,52 +540,6 @@ typedef enum EthRemoteCfg_CmdType_e
     ETHREMOTECFG_CMD_DEL_FILTER_MAC,
 
     /*!
-     * \brief Command to enable promiscuous mode.
-     *
-     * Command allows remote core client to set promiscuous mode.
-     * This command is supported only in virtual MAC ports.
-     *
-     * Request (C2S): \ref EthRemoteCfg_CommonReq
-     * Response (S2C): \ref EthRemoteCfg_StatusRes
-     */
-    ETHREMOTECFG_CMD_ENABLE_PROMISC,
-
-    /*!
-     * \brief Command to disable promiscuous mode.
-     *
-     * Command allows remote core client to disable promiscuous mode.
-     * This command is supported only in virtual MAC ports.
-     *
-     * Request (C2S): \ref EthRemoteCfg_CommonReq
-     * Response (S2C): \ref EthRemoteCfg_StatusRes
-     */
-    ETHREMOTECFG_CMD_DISABLE_PROMISC,
-
-    /*!
-     * \brief Command to read from an Ethernet device register.
-     *
-     * Command allows remote core to read a specific register. Server core
-     * will check if remote core is permitted to perform register read and
-     * will allow register read only if permitted.
-     *
-     * Request (C2S): \ref EthRemoteCfg_RegReadReq
-     * Response (S2C): \ref EthRemoteCfg_RegReadRes
-     */
-    ETHREMOTECFG_CMD_READ_REGISTER,
-
-    /*!
-     * \brief Command to write to an Ethernet device register.
-     *
-     * Command allows remote core to write a specific register. Server core
-     * will check if remote core is permitted to perform register write and
-     * will allow register write only if permitted.
-     *
-     * Request (C2S): \ref EthRemoteCfg_RegWriteReq
-     * Response (S2C): \ref EthRemoteCfg_StatusRes
-     */
-    ETHREMOTECFG_CMD_WRITE_REGISTER,
-
-    /*!
      * \brief Command to setup an EtherType-based packet route.
      *
      * Commands allows remote client to register all traffic received on
@@ -644,20 +592,6 @@ typedef enum EthRemoteCfg_CmdType_e
     ETHREMOTECFG_CMD_DEREGISTER_REMOTE_TIMER,
 
     /*!
-     * \brief Command to ping the Ethernet device.
-     *
-     * Command to request the server running on server core to respond to
-     * ping request. The server will copy the ping message sent by client and
-     * send back ping response.
-     *
-     * This command is primarily used for debug/heartbeat check purpose.
-     *
-     * Request (C2S): \ref EthRemoteCfg_PingReq
-     * Response (S2C): \ref EthRemoteCfg_PingRes
-     */
-    ETHREMOTECFG_CMD_MESSAGE_PING,
-
-    /*!
      * \brief Command to query the remote configuration server status.
      *
      * Command allows remote client to query what is the current status
@@ -678,19 +612,6 @@ typedef enum EthRemoteCfg_CmdType_e
      * Response (S2C): \ref EthRemoteCfg_StatusRes
      */
     ETHREMOTECFG_CMD_TEARDOWN_COMPLETION,
-
-    /*!
-     * \brief Command to invoke ENET LLD IOCTL from remote client.
-     *
-     * Command allows invocation of any ENET LLD IOCTL from the remote core
-     * The master core will check if the remote core has permission to invoke
-     * the specific IOCTL CMD and IOCTL CMD may fail if remote core does not
-     * have the required permission.
-     *
-     * Request (C2S): \ref EthRemoteCfg_IoctlReq
-     * Response (S2C): \ref EthRemoteCfg_IoctlRes
-     */
-    ETHREMOTECFG_CMD_IOCTL,
 
     /*!
      * \brief Command from remote client to Server to dump CPSW stats.
@@ -1416,35 +1337,6 @@ typedef struct EthRemoteCfg_FilterMacDelReq_s
 } __attribute__((packed)) EthRemoteCfg_FilterMacDelReq;
 
 /*!
- * \brief Request params for \ref ETHREMOTECFG_CMD_MESSAGE_PING command.
- *
- * This structure holds some ping data which will be sent back to the client.
- */
-typedef struct EthRemoteCfg_PingReq_s
-{
-    /*! Request message common header. */
-    EthRemoteCfg_ReqHdr hdr;
-
-    /*! Data which will be responded back by the server. */
-    uint32_t data[ETHREMOTECFG_MESSAGE_DATA_LEN];
-} __attribute__((packed)) EthRemoteCfg_PingReq;
-
-/*!
- * \brief Response params for \ref ETHREMOTECFG_CMD_MESSAGE_PING command.
- *
- * This structure holds some ping data which will be recieved back to the
- * client by the server.
- */
-typedef struct EthRemoteCfg_PingRes_s
-{
-    /*! Response message common header. */
-    EthRemoteCfg_ResHdr hdr;
-
-    /*! Data which will be responded back by the server. */
-    uint32_t data[ETHREMOTECFG_MESSAGE_DATA_LEN];
-} __attribute__((packed)) EthRemoteCfg_PingRes;
-
-/*!
  * \brief Request params for \ref ETHREMOTECFG_CMD_REGISTER_REMOTE_TIMER command.
  *
  * This request structure contains hardware push number and timerId for
@@ -1476,102 +1368,6 @@ typedef struct EthRemoteCfg_RemoteTimerDeregisterReq_s
     /*! Hardware Push number to be used for timesync router configuration. */
     uint8_t hwPushNum;
 } __attribute__((packed)) EthRemoteCfg_RemoteTimerDeregisterReq;
-
-/*!
- * \brief Request params for \ref ETHREMOTECFG_CMD_IOCTL command.
- *
- * This is request structure holding the CMD, inArgs, inArgsLen, outArgsLen,
- * which is required for calling an IOCTL request. This request returns a
- * response providing the outArgs of the corresponding IOCTL command.
- */
-typedef struct EthRemoteCfg_IoctlReq_s
-{
-    /*! Request message common header. */
-    EthRemoteCfg_ReqHdr hdr;
-
-    /*! Enet LLD IOCTL command id. Refer Enet LLD documentation for list of
-     *  available IOCTLs. */
-    uint32_t cmd;
-
-    /*! Enet LLD IOCTL command input arguments length. */
-    uint32_t inArgsLen;
-
-    /*! Enet LLD IOCTL command input arguments. Byte array is typecast to the
-     *  inArgs structure associated with the IOCTL. */
-    uint64_t inArgs[(ETHREMOTECFG_IOCTL_INARGS_LEN / sizeof(uint64_t))];
-
-    /*! Enet LLD IOCTL command output arguments length. */
-    uint32_t outArgsLen;
-}  __attribute__((packed)) EthRemoteCfg_IoctlReq;
-
-/*!
- * \brief Response params for \ref ETHREMOTECFG_CMD_IOCTL command.
- *
- * This is response structure for \ref EthRemoteCfg_IoctlReq.
- */
-typedef struct EthRemoteCfg_IoctlRes_s
-{
-    /*! Response message common header. */
-    EthRemoteCfg_ResHdr hdr;
-
-    /*! Enet LLD IOCTL command id. Refer Enet LLD documentation for list of
-     *  available IOCTLs. */
-    uint32_t cmd;
-
-    /*! Enet LLD IOCTL command output arguments length. */
-    uint32_t outArgsLen;
-
-    /*! Enet LLD IOCTL command output arguments. Byte array is typecast to the
-     *  outArgs structure associated with the IOCTL. */
-    uint64_t outArgs[(ETHREMOTECFG_IOCTL_OUTARGS_LEN / sizeof(uint64_t))];
-}  __attribute__((packed)) EthRemoteCfg_IoctlRes;
-
-/*!
- * \brief Request params for ETHREMOTECFG_CMD_REGISTER_WRITE command.
- *
- * Request structure holds the address of the register and the value which
- * needs to be written into the register.
- */
-typedef struct EthRemoteCfg_RegWriteReq_s
-{
-    /*! Request message common header. */
-    EthRemoteCfg_ReqHdr hdr;
-
-    /*! Register address. */
-    uint32_t addr;
-
-    /*! Value which needs to be written. */
-    uint32_t val;
-} __attribute__((packed)) EthRemoteCfg_RegWriteReq;
-
-/*!
- * \brief Request params for ETHREMOTECFG_CMD_REGISTER_READ command.
- *
- * Request structure holds the address of the register which needs to be
- * read and returns the value of the register as response.
- */
-typedef struct EthRemoteCfg_RegReadReq_s
-{
-    /*! Request message common header. */
-    EthRemoteCfg_ReqHdr hdr;
-
-    /*! Register address. */
-    uint32_t addr;
-} __attribute__((packed)) EthRemoteCfg_RegReadReq;
-
-/*!
- * \brief Request params for ETHREMOTECFG_CMD_REGISTER_READ command.
- *
- * The response structure for EthRemoteCfg_RegReadReq.
- */
-typedef struct EthRemoteCfg_RegReadRes_s
-{
-    /*! Response message common header. */
-    EthRemoteCfg_ResHdr hdr;
-
-    /*! Value which has been read. */
-    uint32_t val;
-} __attribute__((packed)) EthRemoteCfg_RegReadRes;
 
 /*!
  * \brief Response params for \ref ETHREMOTECFG_CMD_GET_SERVER_STATUS command.

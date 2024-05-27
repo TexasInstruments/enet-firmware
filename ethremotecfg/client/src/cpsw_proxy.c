@@ -1045,32 +1045,6 @@ int32_t CpswProxy_unregisterRemoteTimer(CpswProxy_Handle hProxy,
     return status;
 }
 
-int32_t CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
-                                 bool enable)
-{
-    EthRemoteCfg_CommonReq req;
-    EthRemoteCfg_StatusRes res;
-    uint32_t reqType;
-    int32_t status;
-
-    ETHFWTRACE_INFO("%s | C2S | token=%d",
-                    enable ? "ENABLE_PROMISC" : "DISABLE_PROMISC", (int32_t)hProxy->token);
-
-    reqType = enable ? ETHREMOTECFG_CMD_ENABLE_PROMISC : ETHREMOTECFG_CMD_DISABLE_PROMISC;
-
-    /* Send request to server and wait for response */
-    status = CpswProxy_sendCmd(hProxy, reqType,
-                               &req.hdr, sizeof(req),
-                               &res.hdr, sizeof(res));
-    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send %s cmd",
-                      enable ? "ENABLE_PROMISC" : "DISABLE_PROMISC");
-
-    ETHFWTRACE_INFO("%s | S2C | token=%d status=%d",
-                    enable ? "ENABLE_PROMISC" : "DISABLE_PROMISC", (int32_t)hProxy->token, status);
-
-    return status;
-}
-
 int32_t CpswProxy_joinVlan(CpswProxy_Handle hProxy,
                            uint32_t flowIdxBase,
                            uint32_t flowIdxOffset,

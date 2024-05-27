@@ -1633,51 +1633,6 @@ static int32_t CpswProxyServer_vlanLeaveHandlerCb(CpswProxyServer_ClientHandle h
     return status;
 }
 
-int32_t CpswProxyServer_promiscModeHandlerCb(CpswProxyServer_ClientHandle hClient,
-                                             uint32_t hostId,
-                                             bool enable)
-{
-    CpswProxyServer_Obj *hServer = NULL;
-    Enet_MacPort macPort;
-    Enet_IoctlPrms prms;
-    bool isMacPort;
-    uint32_t cmd;
-    int32_t status = ENET_SOK;
-
-    status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
-
-    if (ETHREMOTECFG_SOK == status)
-    {
-        isMacPort = EthFwVirtPort_isMacPort(hClient->virtPort);
-        if (isMacPort)
-        {
-            /* Enable promiscuous mode on virtual MAC ports (MAC-only CAF) */
-            macPort = EthFwVirtPort_getMacPort(hClient->virtPort);
-            ENET_IOCTL_SET_IN_ARGS(&prms, &macPort);
-
-            cmd = enable ? CPSW_ALE_IOCTL_ENABLE_PROMISC_MODE : CPSW_ALE_IOCTL_DISABLE_PROMISC_MODE;
-
-            status = Enet_ioctl(hServer->hEnet, hostId, cmd, &prms);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                            "Failed to %s promiscuous mode on MAC port %u",
-                            enable ? "enable" : "disable", ENET_MACPORT_ID(macPort));
-        }
-        else
-        {
-            /* Promiscuous mode is not supported on virtual switch ports */
-            status = ETHREMOTECFG_ENOTSUPPORTED;
-            ETHFWTRACE_ERR(status, "Promiscuous mode is not supported on virtual switch ports");
-        }
-    }
-    else
-    {
-        ETHFWTRACE_ERR(status, "Failed to perform promiscous %s", enable ? "enable" : "disable" );
-    }
-
-    return status;
-}
-
 static int32_t CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
                                                 uint32_t hostId,
                                                 uint32_t rxFlowStartId)
@@ -2302,21 +2257,6 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
 
     return status;
 }
-static int32_t CpswProxyServer_regReadHandlerCb(uint32_t addr,
-                                                uint32_t *val)
-{
-    *val = CSL_REG32_RD(addr);
-
-    return ETHREMOTECFG_SOK;
-}
-
-static int32_t CpswProxyServer_regWriteHandlerCb(uint32_t reg,
-                                                 uint32_t val)
-{
-    CSL_REG32_WR(reg, val);
-
-    return ETHREMOTECFG_SOK;
-}
 
 static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                           uint32_t hostId,
@@ -2531,69 +2471,6 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
 
     return status;
 }
-
-static int32_t CpswProxyServer_ioctlHandlerCb(CpswProxyServer_ClientHandle hClient,
-                                              uint32_t hostId,
-                                              uint32_t cmd,
-                                              const uint8_t *inargs,
-                                              uint32_t inargsLen,
-                                              uint8_t *outargs,
-                                              uint32_t outargsLen)
-{
-    int32_t status = ETHREMOTECFG_SOK;
-    CpswProxyServer_Obj *hServer = NULL;
-    Enet_IoctlPrms prms;
-    uint64_t inArgsBuf[(ETHREMOTECFG_IOCTL_INARGS_LEN/sizeof(uint64_t)) + 1];
-    uint64_t outArgsBuf[(ETHREMOTECFG_IOCTL_OUTARGS_LEN/sizeof(uint64_t)) + 1];
-
-    status = CpswProxyServer_getHandle(&hServer);
-    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
-
-    if (ETHREMOTECFG_SOK == status)
-    {
-        /* Skip PHY link status check prints as they happen too often */
-        if (cmd != ENET_PER_IOCTL_IS_PORT_LINK_UP)
-        {
-            prms.inArgsSize = inargsLen;
-            prms.outArgsSize = outargsLen;
-            /* To ensure structure are aligned, copy the inArgs to unit64_t aligned buffer */
-            memcpy(inArgsBuf, inargs, inargsLen);
-            prms.inArgs = inArgsBuf;
-            /* To ensure structure are aligned, use unit64_t aligned buffer for outArgs  */
-            prms.outArgs = outArgsBuf;
-            if (prms.inArgsSize == 0)
-            {
-                prms.inArgs = NULL;
-            }
-
-            if (prms.outArgsSize == 0)
-            {
-                prms.outArgs = NULL;
-            }
-
-            status = Enet_ioctl(hServer->hEnet, hostId, cmd, &prms);
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to run IOCTL 0x%x", cmd);
-
-            if (status == ENET_SOK)
-            {
-                /* Copy the outArgs from temporary aligned buffer back to msg buffer */
-                memcpy(outargs, outArgsBuf, outargsLen);
-            }
-        }
-        else
-        {
-            status = ETHREMOTECFG_EBADARGS;
-            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Unsupported IOCTL cmd 0x%x", cmd);
-        }
-    }
-    else
-    {
-        ETHFWTRACE_ERR(status, "Failed to perform the IOCTL command: %u", cmd);
-    }
-
-    return status;
-}
-
 
 static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandle hClient,
                                                      uint32_t hostId,
@@ -3391,55 +3268,6 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             ETHFWTRACE_INFO("LEAVE_VLAN | S2C | status=%d", status);
             break;
         }
-        case ETHREMOTECFG_CMD_ENABLE_PROMISC:
-        {
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
-
-            ETHFWTRACE_INFO("ENABLE_PROMISC | C2S | core=%u endpt=%u token=%d",
-                            remoteProcId, remoteEndPt, (int32_t)token);
-
-            /* Get client object for token */
-            hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
-
-            if (ETHREMOTECFG_SOK == status)
-            {
-                status = CpswProxyServer_promiscModeHandlerCb(hClient,
-                                                              remoteProcId,
-                                                              BTRUE);
-            }
-
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to enable promisc mode");
-
-            resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("ENABLE_PROMISC | S2C | status=%d", status);
-            break;
-        }
-        case ETHREMOTECFG_CMD_DISABLE_PROMISC:
-        {
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
-
-            ETHFWTRACE_INFO("DISABLE_PROMISC | C2S | core=%u endpt=%u token=%d",
-                            remoteProcId, remoteEndPt, (int32_t)token);
-
-            /* Get client object for token */
-            hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
-
-            if (ETHREMOTECFG_SOK == status)
-            {
-                status = CpswProxyServer_promiscModeHandlerCb(hClient,
-                                                              remoteProcId,
-                                                              BFALSE);
-            }
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to disable promisc mode");
-
-            resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("DISABLE_PROMISC | S2C | status=%d", status);
-            break;
-        }
         case ETHREMOTECFG_CMD_SET_RX_DEFAULTFLOW:
         {
             EthRemoteCfg_RxDefaultFlowRegisterReq *req = (EthRemoteCfg_RxDefaultFlowRegisterReq *)reqBuf;
@@ -3644,56 +3472,6 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                                res->isLinked, res->speed, res->duplexity, status);
             break;
         }
-        case ETHREMOTECFG_CMD_READ_REGISTER:
-        {
-            EthRemoteCfg_RegReadReq *req = (EthRemoteCfg_RegReadReq *)reqBuf;
-            EthRemoteCfg_RegReadRes *res = (EthRemoteCfg_RegReadRes *)resBuf;
-
-            ETHFWTRACE_INFO("READ_REGISTER | C2S | core=%u endpt=%u reg=0x%08x",
-                            remoteProcId, remoteEndPt, req->addr);
-
-            /* Get client object for token */
-            hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
-
-            if (ETHREMOTECFG_SOK == status)
-            {
-                status = CpswProxyServer_regReadHandlerCb(req->addr,
-                                                          &res->val);
-            }
-
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to read register");
-
-            resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("READ_REGISTER | S2C | val=0x%08x", res->val);
-            break;
-        }
-        case ETHREMOTECFG_CMD_WRITE_REGISTER:
-        {
-            EthRemoteCfg_RegWriteReq *req = (EthRemoteCfg_RegWriteReq *)reqBuf;
-            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
-
-            ETHFWTRACE_INFO("WRITE_REGISTER | C2S | core=%u endpt=%u reg=0x%08x val=0x%08x",
-                            remoteProcId, remoteEndPt, req->addr, req->val);
-
-            /* Get client object for token */
-            hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
-
-            if (ETHREMOTECFG_SOK == status)
-            {
-                status = CpswProxyServer_regWriteHandlerCb(req->addr,
-                                                           req->val);
-            }
-
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to write register");
-
-            resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("WRITE_REGISTER | S2C | status=%d", status);
-            break;
-        }
         case ETHREMOTECFG_CMD_REGISTER_REMOTE_TIMER:
         {
             EthRemoteCfg_RemoteTimerRegisterReq *req = (EthRemoteCfg_RemoteTimerRegisterReq *)reqBuf;
@@ -3779,41 +3557,6 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
             resLen = sizeof(*res);
 
             ETHFWTRACE_INFO("TEARDOWN_COMPLETION | S2C | status=%d", status);
-            break;
-        }
-        case ETHREMOTECFG_CMD_IOCTL:
-        {
-            EthRemoteCfg_IoctlReq *req = (EthRemoteCfg_IoctlReq *)reqBuf;
-            EthRemoteCfg_IoctlRes *res = (EthRemoteCfg_IoctlRes *)resBuf;
-
-            ETHFWTRACE_INFO("IOCTL | C2S | core=%u endpt=%u cmd=%x inArgsLen=%u inArgs=%p outArgsLen=%u",
-                            remoteProcId, remoteEndPt, req->cmd,
-                            req->inArgsLen, req->inArgs, req->outArgsLen);
-
-            /* Get client object for token */
-            hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
-
-            if (ETHREMOTECFG_SOK == status)
-            {
-                status =  CpswProxyServer_ioctlHandlerCb(hClient,
-                                                         remoteProcId,
-                                                         req->cmd,
-                                                         (const uint8_t *)req->inArgs,
-                                                         req->inArgsLen,
-                                                         (uint8_t *)res->outArgs,
-                                                         req->outArgsLen);
-            }
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to run IOCTL cmd %x", req->cmd);
-
-            /* Set IOCTL cmd and outArgs len in response so that it can be processed on client
-             * side without keeping track of IOCTL response belongs to which IOCTL request */
-            res->cmd = req->cmd;
-            res->outArgsLen = req->outArgsLen;
-            resLen = sizeof(*res);
-
-            ETHFWTRACE_INFO("IOCTL | S2C | cmd=%x outArgs=%u status=%d",
-                            res->cmd, res->outArgsLen, status);
             break;
         }
         case ETHREMOTECFG_CMD_DUMP:

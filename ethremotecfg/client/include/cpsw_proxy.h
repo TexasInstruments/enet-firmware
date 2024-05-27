@@ -708,21 +708,6 @@ int32_t CpswProxy_filterDelMac(CpswProxy_Handle hProxy,
                                uint16_t vlanId);
 
 /*!
- * \brief Set promiscuous mode.
- *
- * Enables or disables promiscuous mode in virtual MAC ports.  This operation
- * is not supported in virtual switch ports.
- *
- * \param hProxy    Handle to Cpsw Proxy
- * \param enable    Promiscuous mode (enable or disable)
- *
- * \returns \ref CPSWPROXY_SOK if promiscuous mode has been set, or negative
- *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
- */
-int32_t CpswProxy_setPromiscMode(CpswProxy_Handle hProxy,
-                                 bool enable);
-
-/*!
  * \brief Query the link status.
  *
  * Queries the link status of the virtual port which depends on the virtual
