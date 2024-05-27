@@ -162,12 +162,6 @@ extern "C" {
 #define ETHREMOTECFG_ENOTFOUND                            (-14)
 /*! @} */
 
-/*! \brief Maximum length of Ethernet device message data in a ping message. */
-#define ETHREMOTECFG_MESSAGE_DATA_LEN                     (486U)
-
-/*! \brief Packet priority. */
-#define ETHREMOTECFG_PRIORITY_NUM                         (8U)
-
 /*! \brief MAC Address length in octets. */
 #define ETHREMOTECFG_MACADDRLEN                           (6U)
 
@@ -927,8 +921,8 @@ typedef struct EthRemoteCfg_AttachRes_s
     /*! Maximum receive unit. */
     uint32_t rxMtu;
 
-    /*! Maximum transmit unit per priority. */
-    uint32_t txMtu[ETHREMOTECFG_PRIORITY_NUM];
+    /*! Maximum transmit unit. */
+    uint32_t txMtu;
 
     /*! Feature bitmask based on defines \ref EthRemoteCfg_FeatureMask. */
     uint32_t features;
@@ -955,8 +949,8 @@ typedef struct EthRemoteCfg_AttachExtRes_s
     /*! Maximum receive unit. */
     uint32_t rxMtu;
 
-    /*! Maximum transmit unit per priority. */
-    uint32_t txMtu[ETHREMOTECFG_PRIORITY_NUM];
+    /*! Maximum transmit unit. */
+    uint32_t txMtu;
 
     /*! Allocated Rx flow index base. */
     uint32_t rxFlowIdxBase;

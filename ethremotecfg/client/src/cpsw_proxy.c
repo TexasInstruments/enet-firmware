@@ -505,10 +505,7 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
         *pNumRxFlow      = res.numRxFlow;
 
         *rxMtu = res.rxMtu;
-        for (i = 0U; i < ETHFW_ARRAYSIZE(res.txMtu); i++)
-        {
-            txMtu[i] = res.txMtu[i];
-        }
+        *txMtu = res.txMtu;
     }
 
     ETHFWTRACE_INFO("ATTACH | S2C | token=%d rxMtu=%u features=%x numTxCh=%u numRxFlow=%u status=%d",
@@ -549,10 +546,7 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
         hProxy->features = res.features;
 
         *rxMtu = res.rxMtu;
-        for (i = 0U; i < ETHFW_ARRAYSIZE(res.txMtu); i++)
-        {
-            txMtu[i] = res.txMtu[i];
-        }
+        *txMtu = res.txMtu;
 
         *txPSILThreadId  = res.txPsilDstId;
         *rxFlowIdxBase   = res.rxFlowIdxBase;

@@ -1435,6 +1435,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     uint32_t numRxFlow;
     uint32_t relChPriority = 0U;
     uint32_t flowIdx = 0U;
+    uint32_t i = 0U;
 
     virtNetif = container_of(inArgs->netif, CpswRemoteApp_VirtNetif, netif);
     localAssert(virtNetif->hCpswProxy != NULL);
@@ -1458,7 +1459,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         CpswProxy_attachExtended(virtNetif->hCpswProxy,
                                  virtNetif->virtPort,
                                  &outArgs->hostPortRxMtu,
-                                 outArgs->txMtu,
+                                 &outArgs->txMtu[0U],
                                  &txPSILId,
                                  &rxStartFlowId,
                                  &rxFlowIdOffset,
@@ -1469,7 +1470,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         CpswProxy_attach(virtNetif->hCpswProxy,
                          virtNetif->virtPort,
                          &outArgs->hostPortRxMtu,
-                         outArgs->txMtu,
+                         &outArgs->txMtu[0U],
                          &numTxCh,
                          &numRxFlow);
         ETHFWTRACE_ERR_IF((numTxCh == 0U), ETHFW_EFAIL, "Number of tx channel allocated cannot be 0U");
@@ -1495,6 +1496,12 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                               flowIdx);
         CpswProxy_allocMac(virtNetif->hCpswProxy,
                            virtNetif->macAddr);
+    }
+
+    /* Update the outArgs->txMtu[] with the value of outArgs->txMtu[0U] returned by CpswProxy_attach()/CpswProxy_attachExtended() */
+    for (i = 0U; i < ETHFW_ARRAYSIZE(outArgs->txMtu); i++)
+    {
+        outArgs->txMtu[i] = outArgs->txMtu[0U];
     }
 
     CpswRemoteApp_openLwipTxCh(outArgs->hUdmaDrv,

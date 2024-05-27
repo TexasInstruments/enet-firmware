@@ -783,7 +783,6 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
                                                uint32_t portId,
                                                uint32_t *pRxMtu,
                                                uint32_t *pTxMtu,
-                                               uint32_t txMtuArraySize,
                                                uint32_t *pFeatures,
                                                uint32_t *pNumTxCh,
                                                uint32_t *pNumRxFlow)
@@ -795,6 +794,7 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
     bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
     bool csumEnable;
     int32_t status = ETHREMOTECFG_SOK;
+    uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
@@ -811,31 +811,49 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
 
         attachInfo = hServer->coreObj[hostId].attachInfo;
         *pRxMtu = attachInfo.rxMtu;
-        memcpy(pTxMtu, attachInfo.txMtu, sizeof(attachInfo.txMtu));
 
-        *pFeatures = 0U;
-        if (hServer->csumOffloadEn)
+        /* Check if all MTUs in attachInfo.txMtu[] are of same size, then update *pTxMtu with first value
+        attachInfo.txMtu[]. */
+        for (i = 0U; i < ETHFW_ARRAYSIZE(attachInfo.txMtu); i++)
         {
-            *pFeatures |= ETHREMOTECFG_FEATURE_TXCSUM;
-        }
-        if (!isMacPort)
-        {
-            *pFeatures |= ETHREMOTECFG_FEATURE_MC_FILTER;
-        }
-
-        /* If number of tx channels and rx flows allocated are required by the client
-         * i.e. called not called from CpswProxyServer_attachExtHandlerCb attach */
-        if (pNumTxCh != NULL && pNumRxFlow != NULL)
-        {
-            status = CpswProxyServer_getClientTxChRxFlowNum(virtPort, pNumTxCh, pNumRxFlow);
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                               "Failed to get tx and rx channels for virtual port %d", virtPort);
+            if (ETHREMOTECFG_SOK == status)
+            {
+                if (memcmp(&attachInfo.txMtu[i], &attachInfo.txMtu[0U], sizeof(attachInfo.txMtu[0U])) != 0)
+                {
+                    status = ETHREMOTECFG_EFAIL;
+                    ETHFWTRACE_ERR(status, "All MTUs in attachInfo.txMtu[] are not of same size.");
+                }
+            }
         }
 
-        /* Save parameters in client object */
-        hClient->token     = CPSWPROXY_VIRTPORT_2_TOKEN(virtPort);
-        hClient->coreId    = hostId;
-        hClient->features  = *pFeatures;
+        if (ETHREMOTECFG_SOK == status)
+        {
+            *pTxMtu = attachInfo.txMtu[0U];
+
+            *pFeatures = 0U;
+            if (hServer->csumOffloadEn)
+            {
+                *pFeatures |= ETHREMOTECFG_FEATURE_TXCSUM;
+            }
+            if (!isMacPort)
+            {
+                *pFeatures |= ETHREMOTECFG_FEATURE_MC_FILTER;
+            }
+
+            /* If number of tx channels and rx flows allocated are required by the client
+            * i.e. called not called from CpswProxyServer_attachExtHandlerCb attach */
+            if (pNumTxCh != NULL && pNumRxFlow != NULL)
+            {
+                status = CpswProxyServer_getClientTxChRxFlowNum(virtPort, pNumTxCh, pNumRxFlow);
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                "Failed to get tx and rx channels for virtual port %d", virtPort);
+            }
+
+            /* Save parameters in client object */
+            hClient->token     = CPSWPROXY_VIRTPORT_2_TOKEN(virtPort);
+            hClient->coreId    = hostId;
+            hClient->features  = *pFeatures;
+        }
     }
     else
     {
@@ -851,7 +869,6 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
                                                   uint32_t portId,
                                                   uint32_t *pRxMtu,
                                                   uint32_t *pTxMtu,
-                                                  uint32_t txMtuArraySize,
                                                   uint32_t *pFeatures,
                                                   uint32_t *pRxFlowIdxBase,
                                                   uint32_t *pRxFlowIdxOffset,
@@ -864,7 +881,7 @@ static int32_t CpswProxyServer_attachExtHandlerCb(CpswProxyServer_ClientHandle h
     uint32_t coreKey;
 
     /* Actual attach operation */
-    status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, txMtuArraySize, pFeatures, NULL, NULL);
+    status = CpswProxyServer_attachHandlerCb(hClient, hostId, portId, pRxMtu, pTxMtu, pFeatures, NULL, NULL);
 
     if (ETHREMOTECFG_SOK == status)
     {
@@ -2819,8 +2836,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                                                          remoteProcId,
                                                          req->virtPort,
                                                          &res->rxMtu,
-                                                         &res->txMtu[0U],
-                                                         ENET_ARRAYSIZE(res->txMtu),
+                                                         &res->txMtu,
                                                          &res->features,
                                                          &res->numTxCh,
                                                          &res->numRxFlow);
@@ -2856,8 +2872,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                                                             remoteProcId,
                                                             req->virtPort,
                                                             &res->rxMtu,
-                                                            res->txMtu,
-                                                            ENET_ARRAYSIZE(res->txMtu),
+                                                            &res->txMtu,
                                                             &res->features,
                                                             &res->rxFlowIdxBase,
                                                             &res->rxFlowIdxOffset,
