@@ -234,8 +234,6 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
     struct eth_addr hwAddr;
 #endif
     bool isRsvd;
-    /* ToDo: Change this to ETHFW_EFAIL once Linux fixes error codes on its side
-     * Must return ETHFW_EFAIL for reserved multicast address */
     int32_t status = ETHFW_SOK;
 
     isRsvd = EthFwMcast_isRsvdMcast(macAddr);
@@ -265,6 +263,10 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to add exclusive mcast address");
         }
     }
+    else
+    {
+        status = ETHFW_EBADARGS;
+    }
 
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                       "Failed to add %smcast addr on vlan %u and hwVlanId %u %02x:%02x:%02x:%02x:%02x:%02x",
@@ -289,8 +291,6 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
     struct eth_addr hwAddr;
 #endif
     bool isRsvd;
-    /* ToDo: Change this to ETHFW_EFAIL once Linux fixes error codes on its side
-     * Must return ETHFW_EFAIL for reserved multicast address */
     int32_t status = ETHFW_SOK;
 
     isRsvd = EthFwMcast_isRsvdMcast(macAddr);
@@ -321,6 +321,10 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                "Failed to delete exclusive mcast address");
         }
+    }
+    else
+    {
+        status = ETHFW_EBADARGS;
     }
 
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,

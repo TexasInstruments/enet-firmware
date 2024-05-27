@@ -2539,7 +2539,6 @@ static int32_t CpswProxyServer_filterAddMacHandlerCb(CpswProxyServer_ClientHandl
                                          macAddr, vlanId, hwVlanId, flowIdxOffset, hostId);
         if (status != ETHFW_SOK)
         {
-            status = ETHREMOTECFG_EFAIL;
             ETHFWTRACE_ERR(status, "Failed to add multicast");
         }
     }
@@ -2600,7 +2599,6 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
                                          macAddr, vlanId, hwVlanId, hostId);
         if (status != ETHFW_SOK)
         {
-            status = ETHREMOTECFG_EFAIL;
             ETHFWTRACE_ERR(status, "Failed to remove multicast");
         }
     }
