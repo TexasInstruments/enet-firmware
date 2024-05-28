@@ -713,14 +713,17 @@ typedef enum EthRemoteCfg_MsgType_e
  */
 typedef enum EthRemoteCfg_ServerStatus_e
 {
+    /*! Ethernet Firmware server is not initialized. */
+    ETHREMOTECFG_SERVERSTATUS_UNINIT,
+
     /*! Ethernet Firmware server is initialized and active. */
-    ETHREMOTECFG_SERVERSTATUS_INIT,
+    ETHREMOTECFG_SERVERSTATUS_READY,
 
     /*! Underlying Ethernet device in under recovery. */
     ETHREMOTECFG_SERVERSTATUS_RECOVERY,
 
-    /*! Ethernet Firmware server is de-initialized and inactive. */
-    ETHREMOTECFG_SERVERSTATUS_DEINIT
+    /*! Ethernet Firmware server is in bad/crashed state. */
+    ETHREMOTECFG_SERVERSTATUS_BAD
 } EthRemoteCfg_ServerStatus;
 
 /*!
@@ -1375,7 +1378,7 @@ typedef struct EthRemoteCfg_ServerStatusRes_s
     EthRemoteCfg_ResHdr hdr;
 
     /*! Server status. */
-    uint32_t status;
+    EthRemoteCfg_ServerStatus status;
 } __attribute__((packed)) EthRemoteCfg_ServerStatusRes;
 
 /*!

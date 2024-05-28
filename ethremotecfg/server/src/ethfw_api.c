@@ -215,6 +215,9 @@ typedef struct EthFw_Obj_s
 
     /* Callback function for application to set port link parameters */
     EthFw_setPortCfg setPortCfg;
+
+    /* EthFw status */
+    EthRemoteCfg_ServerStatus serverStatus;
 } EthFw_Obj;
 
 typedef struct EthFw_Autosar_EpId_s
@@ -254,6 +257,8 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
                                           uint8_t *notify_info,
                                           uint32_t notify_info_len);
 
+EthRemoteCfg_ServerStatus EthFw_getStatus(void);
+void EthFw_setStatus(EthRemoteCfg_ServerStatus serverStatus);
 /* ========================================================================== */
 /*                          Extern variables                                  */
 /* ========================================================================== */
@@ -969,6 +974,9 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     /* Save config parameters */
     gEthFwObj.cpswCfg = config->cpswCfg;
 
+    /* EthFw status */
+    gEthFwObj.serverStatus = ETHREMOTECFG_SERVERSTATUS_UNINIT;
+
     /* Get default VLAN ids for MAC-only and switch ports */
     status = EthFw_getDfltVlanId(config);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to get default VLAN ids");
@@ -1165,6 +1173,10 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 #endif
 
     gEthFwObj.numPorts = 0U;
+
+    /* Un-initialize EthFw status */
+    EthFw_setStatus(ETHREMOTECFG_SERVERSTATUS_UNINIT);
+
     memset(&gEthFwObj.cpswCfg, 0, sizeof(Cpsw_Cfg));
 
     for ( i = 0U; i < gEthFwObj.numVirtPorts; i++)
@@ -1261,6 +1273,12 @@ int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
     status = CpswProxyServer_init(&cfg);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init CPSW Proxy");
 
+    /* CPSW proxy server is initialized, update the EthFw status. */
+    if (status == ENET_SOK)
+    {
+        EthFw_setStatus(ETHREMOTECFG_SERVERSTATUS_READY);
+    }
+
     return status;
 }
 
@@ -1284,6 +1302,16 @@ void EthFw_getVersion(EthFw_Handle hEthFw,
     EnetAppUtils_assert(hEthFw != NULL);
 
     *version = gEthFwObj.version;
+}
+
+EthRemoteCfg_ServerStatus EthFw_getStatus(void)
+{
+    return gEthFwObj.serverStatus;
+}
+
+void EthFw_setStatus(EthRemoteCfg_ServerStatus serverStatus)
+{
+    gEthFwObj.serverStatus = serverStatus;
 }
 
 static int32_t EthFw_initMcm(void)

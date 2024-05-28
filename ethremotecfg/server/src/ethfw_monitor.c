@@ -198,7 +198,8 @@ static int32_t EthFwMon_resetHandler(void);
 /*                          Extern variables                                  */
 /* ========================================================================== */
 
-/* None */
+//FIXME: Updating the status for EthFw needs to be done in a cleaner way(without extern).
+extern void EthFw_setStatus(EthRemoteCfg_ServerStatus serverStatus);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -549,6 +550,10 @@ static void EthFwMon_Task(void *a0,
                 if (needsRecovery)
                 {
                     recoveryMacPort = macPort;
+
+                    /* CPSW is in an unrecoverable state (MAC port is suspected of being locked up or not responsive),
+                    hence moving ETHFW to BAD state. */
+                    EthFw_setStatus(ETHREMOTECFG_SERVERSTATUS_BAD);
                 }
             }
         }
@@ -613,8 +618,13 @@ static void EthFwMon_Task(void *a0,
                 }
             }
 
-            /* Call the EthFw reset handler */
+            /* Recovery will happen now. */
             ETHFWTRACE_INFO("CPSW recovery is about to take place");
+
+            /* Set the status of EthFw to ETHREMOTECFG_SERVERSTATUS_RECOVERY before calling the EthFw reset handler. */
+            EthFw_setStatus(ETHREMOTECFG_SERVERSTATUS_RECOVERY);
+
+            /* Call the EthFw reset handler */
             status = EthFwMon_resetHandler();
 
             if (status != ETHFW_SOK)
@@ -648,6 +658,8 @@ static void EthFwMon_Task(void *a0,
             isTeardownComplete = BFALSE;
             isrecoveryPortLinked = BFALSE;
             noPendingReq = BFALSE;
+            /* CPSW recovery is complete, ETHFW can be moved back to READY state. */
+            EthFw_setStatus(ETHREMOTECFG_SERVERSTATUS_READY);
             ClockP_start(gEthFwMonObj.hMonitorClock);
         }
     }

@@ -70,7 +70,7 @@
 #include <ti/osal/osal.h>
 #include <ti/drv/ipc/ipc.h>
 
-/* EthFw utils header files */
+/* Enet utils header files */
 #include <ti/drv/enet/enet.h>
 #include <ti/drv/enet/include/per/cpsw.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
@@ -408,6 +408,7 @@ static uint8_t g_CpswProxyServerNotifyServiceRpmsgBuf[CPSWPROXY_NOTIFY_SERVICE_D
 
 static uint8_t gCpswProxyServer_notifyServiceTaskStackBuf[CPSWPROXY_NOTIFY_SERVICE_SERVER_TASK_STACKSIZE] __attribute__ ((aligned(CPSWPROXY_NOTIFY_SERVICE_SERVER_TASK_STACKALIGN)));
 
+extern EthRemoteCfg_ServerStatus EthFw_getStatus(void);
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -3541,16 +3542,18 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
         case ETHREMOTECFG_CMD_GET_SERVER_STATUS:
         {
             EthRemoteCfg_ServerStatusRes *res = (EthRemoteCfg_ServerStatusRes *)resBuf;
+            EthRemoteCfg_ServerStatus serverStatus;
 
-            ETHFWTRACE_INFO("GET_SERVER_STATUS | C2S | core=%u endpt=%u",
+            ETHFWTRACE_VERBOSE("GET_SERVER_STATUS | C2S | core=%u endpt=%u",
                             remoteProcId, remoteEndPt);
 
-            res->status = ETHREMOTECFG_SERVERSTATUS_INIT;
-            status = ETHREMOTECFG_SOK;
+            /* Get the status of EthFw. */
+            serverStatus = EthFw_getStatus();
 
+            res->status = serverStatus;
             resLen = sizeof(*res);
 
-            ETHFWTRACE_INFO("GET_SERVER_STATUS | S2C | status=%d", status);
+            ETHFWTRACE_VERBOSE("GET_SERVER_STATUS | S2C | status=%d", status);
             break;
         }
         case ETHREMOTECFG_CMD_TEARDOWN_COMPLETION:

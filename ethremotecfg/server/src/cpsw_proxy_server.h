@@ -226,7 +226,6 @@ typedef struct CpswProxyServer_Config_s
 
     /*! Port mask of all MAC-only ports */
     uint32_t macOnlyPortMask;
-
 } CpswProxyServer_Config_t;
 
 /*!
