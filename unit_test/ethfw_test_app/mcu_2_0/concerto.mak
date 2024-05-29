@@ -17,20 +17,15 @@ SOC_LC      := $(call lowercase,$(TARGET_PLATFORM))
 
 CSOURCES    := main.c
 ifeq ($(TARGET_OS),FREERTOS)
-  CSOURCES += ../../../apps/ipc_cfg/ipc_trace.c
+  CSOURCES += ../../ipc_cfg/ipc_trace.c
   CSOURCES += r5f_mpu_$(SOC_LC)_default.c
 else ifeq ($(TARGET_OS),SAFERTOS)
-  CSOURCES += ../../../apps/ipc_cfg/ipc_trace.c
+  CSOURCES += ../../ipc_cfg/ipc_trace.c
   CSOURCES += r5f_mpu_$(SOC_LC)_safertos.c
 endif
 
-CSOURCES += ../../../unit_test/unity/unity.c
-CSOURCES += ../../../unit_test/test_cases/test_ethRemoteCfg.c
+CSOURCES += ../../test_cases/test_ethRemoteCfg.c
 
-# Enable routing of Unity prints to UART
-DEFS += UNITY_INCLUDE_CONFIG_H
-
-IDIRS += $(ETHFW_PATH)/unit_test/unity
 IDIRS += $(ETHFW_PATH)/unit_test/test_cases
 
 LINKER_CMD_FILES =  $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
@@ -43,6 +38,7 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += ethfw_remotecfg_server
+STATIC_LIBS += unity_uart
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -82,7 +78,7 @@ ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
 endif
 
-include $(ETHFW_PATH)/apps/concerto_inc.mak
+include $(ETHFW_PATH)/unit_test/concerto_inc.mak
 include $(FINALE)
 
 endif
@@ -110,17 +106,15 @@ DEFS        += ETHFW_CCS
 
 CSOURCES    := main.c
 ifeq ($(TARGET_OS),FREERTOS)
-  CSOURCES += ../../../apps/ipc_cfg/ipc_trace.c
+  CSOURCES += ../../ipc_cfg/ipc_trace.c
   CSOURCES += r5f_mpu_$(SOC_LC)_default.c
 else ifeq ($(TARGET_OS),SAFERTOS)
-  CSOURCES += ../../../apps/ipc_cfg/ipc_trace.c
+  CSOURCES += ../../ipc_cfg/ipc_trace.c
   CSOURCES += r5f_mpu_$(SOC_LC)_safertos.c
 endif
 
-CSOURCES += ../../../unit_test/unity/unity.c
-CSOURCES += ../../../unit_test/test_cases/test_ethRemoteCfg.c
+CSOURCES += ../../test_cases/test_ethRemoteCfg.c
 
-IDIRS += $(ETHFW_PATH)/unit_test/unity
 IDIRS += $(ETHFW_PATH)/unit_test/test_cases
 
 LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
@@ -133,6 +127,7 @@ STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += ethfw_remotecfg_server
+STATIC_LIBS += unity_uart
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -172,7 +167,7 @@ ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
 endif
 
-include $(ETHFW_PATH)/apps/concerto_inc.mak
+include $(ETHFW_PATH)/unit_test/concerto_inc.mak
 
 include $(FINALE)
 

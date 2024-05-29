@@ -96,7 +96,6 @@
 #include <ti/drv/uart/UART.h>
 #include <ti/drv/uart/UART_stdio.h>
 
-#include <unity.h>
 #include <ethfw_test_cases.h>
 
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
@@ -330,7 +329,7 @@ static void CpswRemoteTestApp_initTask(void* a0,
     int32_t status;
     uint32_t i;
 
-#if defined(ENABLE_UART_LOG) || defined(UNITY_INCLUDE_CONFIG_H)
+#if defined(ENABLE_UART_LOG)
     UART_stdioInit(BOARD_UART_INSTANCE);
 #endif
 

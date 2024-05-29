@@ -102,7 +102,7 @@
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
 
-#include <unity.h>
+#include <unit_test/unity/include/unity.h>
 #include "ethfw_test_cases.h"
 
 /* ========================================================================== */

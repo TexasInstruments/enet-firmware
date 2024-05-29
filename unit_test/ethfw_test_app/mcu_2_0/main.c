@@ -113,7 +113,6 @@
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/server/include/ethfw.h>
 
-#include <unity.h>
 #include <ethfw_test_cases.h>
 
 #define System_printf Ipc_Trace_printf

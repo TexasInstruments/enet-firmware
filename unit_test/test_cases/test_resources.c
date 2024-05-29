@@ -88,7 +88,7 @@
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
 
-#include <unity.h>
+#include <unit_test/unity/include/unity.h>
 #include "ethfw_test_cases.h"
 
 /* ========================================================================== */
