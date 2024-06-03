@@ -132,6 +132,18 @@
 
 #define CPSWPROXY_IPC_TASK_STACKALIGN                   (8192U)
 
+/*! Heartbeat Task priority */
+#define CPSWPROXY_HB_TASK_PRI                           (2U)
+
+/*! Heartbeat Task stack size and alignment */
+#if defined(SAFERTOS)
+#define CPSWPROXY_HB_TASK_STACK_SIZE                     (8U * 1024U)
+#define CPSWPROXY_HB_TASK_STACK_ALIGN                    CPSWPROXY_HB_TASK_STACK_SIZE
+#else
+#define CPSWPROXY_HB_TASK_STACK_SIZE                     (8U * 1024U)
+#define CPSWPROXY_HB_TASK_STACK_ALIGN                    (32U)
+#endif
+
 /*! Remote service task stack size */
 #define CPSWPROXY_TASK_STACKSIZE                        (16U * 1024U)
 #define CPSWPROXY_TASK_STACKALIGN                       CPSWPROXY_TASK_STACKSIZE
@@ -301,6 +313,27 @@ typedef struct CpswProxy_Obj_s
     /* Handle to mutexObj */
     MutexP_Handle hMutex;
 
+    /*! CPSW Proxy Heartbeat period in milliseconds */
+    uint32_t hbPeriodInMsecs;
+
+    /*! Clock handle for Heartbeat Task */
+    ClockP_Handle hHeartbeatClock;
+
+    /*! Semaphore handle for Heartbeat Task */
+    SemaphoreP_Handle hHeartbeatSem;
+
+    /*! Task handle for Heartbeat Task */
+    TaskP_Handle hHeartbeatTask;
+
+    /* Enable Heartbeat for CPSW Proxy */
+    bool heartBeatEn;
+
+    /* Heartbeat Task stack buffer */
+    uint8_t hbTaskStackBuf[CPSWPROXY_HB_TASK_STACK_SIZE] __attribute__ ((aligned(CPSWPROXY_HB_TASK_STACK_ALIGN)));
+
+    /* Notify callbacks for CPSW Proxy Heartbeat Events */
+    CpswProxy_HeartbeatCb hbNotifyCb;
+
     /* Array of client objects. Size of this array determines the number of virtual ports
      * that can be used by this core */
     CpswProxy_ClientObj clientObj[CPSWPROXY_CLIENT_MAX];
@@ -357,11 +390,30 @@ static CpswProxy_Obj gCpswProxy;
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-int32_t CpswProxy_init(void)
+void CpswProxy_initConfig(CpswProxy_initParams *params)
+{
+    params->hbPeriodInMsecs   = CPSWPROXY_HB_DEFAULT_POLL_PERIOD_MS;
+    params->hbNotifyCb.cbArg  = NULL;
+    params->hbNotifyCb.cbFxn  = NULL;
+}
+
+int32_t CpswProxy_init(const CpswProxy_initParams *params)
 {
     int32_t status = CPSWPROXY_SOK;
 
     memset(&gCpswProxy, 0, sizeof(gCpswProxy));
+
+    if ((params->hbPeriodInMsecs != 0U) && (params->hbNotifyCb.cbFxn != NULL))
+    {
+        gCpswProxy.heartBeatEn = BTRUE;
+        gCpswProxy.hbPeriodInMsecs = params->hbPeriodInMsecs;
+        gCpswProxy.hbNotifyCb.cbArg = params->hbNotifyCb.cbArg;
+        gCpswProxy.hbNotifyCb.cbFxn = params->hbNotifyCb.cbFxn;
+    }
+    else
+    {
+        gCpswProxy.heartBeatEn = BFALSE;
+    }
 
     gCpswProxy.hMutex = MutexP_create(&gCpswProxy.mutexObj);
     if (gCpswProxy.hMutex == NULL)
@@ -397,6 +449,21 @@ int32_t CpswProxy_init(void)
 
 void CpswProxy_deinit(void)
 {
+    gCpswProxy.heartBeatEn = BFALSE;
+
+    if (gCpswProxy.hHeartbeatTask != NULL)
+    {
+        TaskP_delete(&gCpswProxy.hHeartbeatTask);
+        gCpswProxy.hHeartbeatTask = NULL;
+    }
+
+    /* Stop and delete the clock */
+    ClockP_stop(gCpswProxy.hHeartbeatClock);
+    ClockP_delete(gCpswProxy.hHeartbeatClock);
+
+    /* Delete semaphore */
+    SemaphoreP_delete(gCpswProxy.hHeartbeatSem);
+    
     /* Deinitialize command service */
     CpswProxy_deinitCmdSvc(&gCpswProxy.cmdSvc);
 
@@ -409,10 +476,43 @@ void CpswProxy_deinit(void)
     }
 }
 
+static void CpswProxy_ClockCb(void *arg)
+{
+    /* Post semaphore to Heartbeat Task */
+    SemaphoreP_post(gCpswProxy.hHeartbeatSem);
+}
+
+static void CpswProxy_HeartbeatTask(void *a0,
+                                    void *a1)
+{
+    int32_t status = CPSWPROXY_SOK;
+    CpswProxy_HeartbeatCbFxn cbFxn;
+    void *cbArg = NULL;
+    EthRemoteCfg_ServerStatus serverStatus;
+
+    cbFxn = gCpswProxy.hbNotifyCb.cbFxn;
+    cbArg = gCpswProxy.hbNotifyCb.cbArg;
+
+    while (gCpswProxy.heartBeatEn)
+    {
+        SemaphoreP_pend(gCpswProxy.hHeartbeatSem, SemaphoreP_WAIT_FOREVER);
+
+        if (gCpswProxy.clientObj[0U].inUse == BTRUE)
+        {
+            CpswProxy_getServerStatus(&gCpswProxy.clientObj[0U], &serverStatus);
+            cbFxn(serverStatus, cbArg);
+        }
+    }
+
+}
+
 int32_t CpswProxy_connect(void)
 {
     CpswProxy_CmdService *cmdSvc = &gCpswProxy.cmdSvc;
     CpswProxy_NotifyService *notifySvc = &gCpswProxy.notifySvc;
+    SemaphoreP_Params semParams;
+    ClockP_Params clkParams;
+    TaskP_Params params;
     int32_t status = CPSWPROXY_SOK;
 
     /* Wait for ETHFW's command service to be active */
@@ -441,6 +541,60 @@ int32_t CpswProxy_connect(void)
                        cmdSvc->masterCoreId,
                        cmdSvc->masterEndpt, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME,
                        notifySvc->masterEndpt, ETHREMOTECFG_REMOTE_NOTIFY_SERVICE);
+
+    if (gCpswProxy.heartBeatEn == BTRUE)
+    {
+        /* Start the CPSW Proxy Heartbeat task*/
+        if (status == CPSWPROXY_SOK)
+        {
+            SemaphoreP_Params_init(&semParams);
+            semParams.mode = SemaphoreP_Mode_BINARY;
+            gCpswProxy.hHeartbeatSem = SemaphoreP_create(1U, &semParams);
+
+            if (gCpswProxy.hHeartbeatSem == NULL)
+            {
+                status = CPSWPROXY_EALLOC;
+                ETHFWTRACE_ERR(status, "Unable to create Heartbeat clock semaphore");
+                EthFw_assert(BFALSE);
+            }
+        }
+
+        if (status == CPSWPROXY_SOK)
+        {
+            /* Create Heartbeat Task to detect EthFw's failure. */
+            TaskP_Params_init(&params);
+            params.priority  = CPSWPROXY_HB_TASK_PRI;
+            params.stack     = &gCpswProxy.hbTaskStackBuf[0];
+            params.stacksize = sizeof(gCpswProxy.hbTaskStackBuf);
+            params.name      = "CPSW Proxy Heartbeat Task";
+
+            gCpswProxy.hHeartbeatTask = TaskP_create(&CpswProxy_HeartbeatTask, &params);
+
+            if (gCpswProxy.hHeartbeatTask == NULL)
+            {
+                status = CPSWPROXY_EALLOC;
+                ETHFWTRACE_ERR(status, "Unable to create Heartbeat task");
+                EthFw_assert(BFALSE);
+            }
+        }
+
+        if (status == CPSWPROXY_SOK)
+        {
+            ClockP_Params_init(&clkParams);
+            clkParams.startMode = ClockP_StartMode_AUTO;
+            clkParams.period    = gCpswProxy.hbPeriodInMsecs;
+            clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
+
+            /* Creating clock and setting clock callback function */
+            gCpswProxy.hHeartbeatClock = ClockP_create((void*)&CpswProxy_ClockCb, &clkParams);
+            if (gCpswProxy.hHeartbeatClock == NULL)
+            {
+                status = CPSWPROXY_EALLOC;
+                ETHFWTRACE_ERR(status, "Unable to create Heartbeat clock");
+                EthFw_assert(BFALSE);
+            }
+        }
+    }
 
     return status;
 }
@@ -1197,6 +1351,35 @@ int32_t CpswProxy_dumpStats(CpswProxy_Handle hProxy)
     ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send DUMP cmd");
 
     ETHFWTRACE_INFO("DUMP | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
+}
+
+int32_t CpswProxy_getServerStatus(CpswProxy_Handle hProxy,
+                                  EthRemoteCfg_ServerStatus *serverStatus)
+{
+    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_ServerStatusRes res;
+    int32_t status;
+
+    memset(&res, 0, sizeof(EthRemoteCfg_ServerStatusRes));
+    ETHFWTRACE_VERBOSE("GET_SERVER_STATUS | C2S | token=%d", (int32_t)hProxy->token);
+
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_GET_SERVER_STATUS,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send GET_SERVER_STATUS cmd");
+
+    if (status == CPSWPROXY_ETIMEOUT)
+    {
+        *serverStatus = ETHREMOTECFG_SERVERSTATUS_BAD;
+    }
+    else
+    {
+        *serverStatus = res.status;
+    }
+
+    ETHFWTRACE_VERBOSE("GET_SERVER_STATUS | S2C | token=%d status=%d serverStatus=%d", (int32_t)hProxy->token, status, (int32_t)*serverStatus);
 
     return status;
 }

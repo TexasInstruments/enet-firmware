@@ -159,6 +159,12 @@ extern "C" {
 
 /*! @} */
 
+/*! Heartbeat default period. */
+#define CPSWPROXY_HB_DEFAULT_POLL_PERIOD_MS        (1000U)
+
+/*! Command response default timeout. */
+#define CPSWPROXY_CMD_DEFAULT_TIMEOUT_MS           (1000U)
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
@@ -171,6 +177,42 @@ typedef struct CpswProxy_Config_s
     /*! Virtual port id */
     EthRemoteCfg_VirtPort virtPort;
 } CpswProxy_Config;
+
+/*!
+ * \brief CPSW Proxy Heartbeat notification callback
+ *
+ * Clients can register a callback function of this type to get notified of
+ * status of the Ethernet Firmware remote side.
+ *
+ * \param serverStatus    Status of ETHFW server.
+ * \param cbArg           Callback argument passed at the time of registration.
+ */
+typedef void (*CpswProxy_HeartbeatCbFxn)(EthRemoteCfg_ServerStatus serverStatus,
+                                         void *cbArg);
+
+/*!
+ * \brief Cpsw Proxy Heartbeat Callback info.
+ */
+typedef struct CpswProxy_HeartbeatCb_s
+{
+    /*! Callback function */
+    CpswProxy_HeartbeatCbFxn cbFxn;
+
+    /*! Heartbeat argument */
+    void *cbArg;
+} CpswProxy_HeartbeatCb;
+
+/*!
+ * \brief Cpsw Proxy init params structure
+ */
+typedef struct CpswProxy_initParams_s
+{
+    /*! Heartbeat period in milliseconds */
+    uint32_t hbPeriodInMsecs;
+
+    /* Heartbeat callback function */
+    CpswProxy_HeartbeatCb hbNotifyCb;
+} CpswProxy_initParams;
 
 /*!
  * \brief CPSW Proxy handle
@@ -218,15 +260,28 @@ typedef void (*CpswProxy_NotifyCbFxn)(uint32_t notifyType,
 /* ========================================================================== */
 
 /*!
+ * \brief CPSW Proxy init configuration parameters.
+ *
+ * Sets the CPSW Proxy configuration parameters. It needs to be called
+ * only once per core and it is optional function that app should call, but not mandatory.
+ *
+ * \param params    Init configuration params.
+ * 
+ */
+void CpswProxy_initConfig(CpswProxy_initParams *params);
+
+/*!
  * \brief Initialize CPSW Proxy on a given core
  *
  * Performs one-time initialization of the CPSW Proxy layer. It needs to be called
- * only once per core and it must be the very first CpswProxy API to be called.
- *
+ * only once per core and it is mandatory function that app should call.
+ * 
+ * \param params    Init configuration params.
+ * 
  * \returns \ref CPSWPROXY_SOK if initialization was successful, or negative
  *          error in case of a failure, see \ref CpswProxy_ErrorCodes.
  */
-int32_t CpswProxy_init(void);
+int32_t CpswProxy_init(const CpswProxy_initParams *params);
 
 /*!
  * \brief De-initialize CPSW Proxy on a given core
@@ -750,6 +805,20 @@ int32_t CpswProxy_teardownCompletion(CpswProxy_Handle hProxy);
  *          failure, see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_dumpStats(CpswProxy_Handle hProxy);
+
+/*!
+ * \brief Get Server status.
+ *
+ * Get the status of the Ethernet Firmware.
+ *
+ * \param hProxy        Handle to Cpsw Proxy.
+ * \param serverStatus  Pointer to status of ETHFW server.
+ *
+ * \returns \ref CPSWPROXY_SOK if successful, or negative error in case of a
+ *          failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_getServerStatus(CpswProxy_Handle hProxy,
+                                  EthRemoteCfg_ServerStatus *serverStatus);
 
 /*!
  * \brief Register remote core's timer for synchronization.

@@ -273,9 +273,12 @@ void setUp(void)
     if (gProxy == NULL)
     {
         int32_t status;
+        CpswProxy_initParams initParams;
 
         /* Start Cpsw Proxy */
-        CpswProxy_init();
+        memset(&initParams, 0, sizeof(initParams));
+        CpswProxy_initConfig(&initParams);
+        CpswProxy_init(&initParams);
 
         /* Wait for remote_device to be initialized on the server side */
         do
@@ -315,6 +318,7 @@ static void CpswRemoteTestApp_initTask(void* a0,
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
     MailboxP_Params mbxParams;
+    CpswProxy_initParams initParams;
 
     int32_t status;
     uint32_t i;
@@ -376,7 +380,9 @@ static void CpswRemoteTestApp_initTask(void* a0,
 
 
     /* Step 5: Start Cpsw Proxy */
-    CpswProxy_init();
+    memset(&initParams, 0, sizeof(initParams));
+    CpswProxy_initConfig(&initParams);
+    CpswProxy_init(&initParams);
 
     /* Step 5a. Wait for remote_device to be initialized on the server side */
     do

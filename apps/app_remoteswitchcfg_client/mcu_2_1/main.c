@@ -127,6 +127,9 @@
 #define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL   (30U)
 #define CPSW_REMOTE_APP_CPTS_HW_PUSH_NUM      (2U)
 
+/*! Heartbeat poll period for CPSW proxy. */
+#define CPSW_REMOTE_APP_POLL_PERIOD_MS        (2000U)
+
 #define VQ_TIMEOUT              (100)
 #define VQ_BUF_SIZE             (2048)
 
@@ -347,6 +350,9 @@ typedef struct CpswRemoteApp_Obj_s
 
     /* Whether to use extended attach remote command or not */
     bool useExtAttach;
+
+    /* EthFw server status */
+    EthRemoteCfg_ServerStatus hbStatus;
 
     /* Virtual network interface data */
     CpswRemoteApp_VirtNetif virtNetif[CPSW_REMOTE_APP_REMOTE_NETIF_MAX];
@@ -662,6 +668,29 @@ static void rpmsg_vdevMonitorFxn(void* arg0,
     return;
 }
 
+static void CpswRemoteApp_hbStatus(EthRemoteCfg_ServerStatus serverStatus,
+                                   void *cbArg)
+{
+    switch (serverStatus)
+    {
+        case ETHREMOTECFG_SERVERSTATUS_UNINIT:
+            ETHFWTRACE_INFO("Server status: server has not been initialized");
+            break;
+        case ETHREMOTECFG_SERVERSTATUS_READY:
+            ETHFWTRACE_VERBOSE("Server status: server is running normally");
+            break;
+        case ETHREMOTECFG_SERVERSTATUS_RECOVERY:
+            ETHFWTRACE_INFO("Server status: Ethernet switch is under recovery");
+            break;
+        case ETHREMOTECFG_SERVERSTATUS_BAD:
+            ETHFWTRACE_ERR(serverStatus, "Server status: Not responding, possibly in bad/crashed state");
+            break;
+        default:
+            ETHFWTRACE_ERR(serverStatus, "Server status: Unexpected status: %d", (int32_t)serverStatus);
+            break;
+    }
+}
+
 void printDevInfo(EthRemoteCfg_DeviceData *ethDevData)
 {
     char *tf[] = {"false", "true"};
@@ -707,6 +736,7 @@ static void CpswRemoteApp_initTask(void* a0,
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
     MailboxP_Params mbxParams;
+    CpswProxy_initParams initParams;
     int32_t status;
     uint32_t i;
 
@@ -770,7 +800,14 @@ static void CpswRemoteApp_initTask(void* a0,
     TaskP_create(&rpmsg_vdevMonitorFxn, &params);
 
     /* Step 5: Start Cpsw Proxy */
-    CpswProxy_init();
+    /* Initialize config to default values, this is NOT mandatory */
+    CpswProxy_initConfig(&initParams);
+
+    /* Update App specific params. */
+    initParams.hbPeriodInMsecs = CPSW_REMOTE_APP_POLL_PERIOD_MS;
+    initParams.hbNotifyCb.cbFxn = CpswRemoteApp_hbStatus;
+ 
+    CpswProxy_init(&initParams);
 
     /* Step 5a. Wait for remote_device to be initialized on the server side */
     do
