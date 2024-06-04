@@ -67,7 +67,7 @@
 #if defined(__KLOCWORK__)
 #include <stdlib.h>
 #endif
-
+#include <stdio.h>
 /* OSAL */
 #include <ti/osal/osal.h>
 
