@@ -210,6 +210,12 @@ typedef struct CpswProxy_initParams_s
     /*! Heartbeat period in milliseconds */
     uint32_t hbPeriodInMsecs;
 
+    /*! Command response timeout in milliseconds, applicable to all commands sent by
+     * CPSW Proxy.
+     * Proxy Client API functions will return \ref CPSWPROXY_ETIMEOUT if no response 
+     * was received from server within this period. */
+    uint32_t cmdTimeoutInMsecs;
+
     /* Heartbeat callback function */
     CpswProxy_HeartbeatCb hbNotifyCb;
 } CpswProxy_initParams;

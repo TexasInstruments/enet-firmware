@@ -343,6 +343,9 @@ typedef struct CpswProxy_Obj_s
 
     /* Notify service, currently supports only timestamp reception */
     CpswProxy_NotifyService notifySvc;
+
+    /*! Command service timeout in milliseconds */
+    uint32_t cmdTimeoutInMsecs;
 } CpswProxy_Obj;
 
 /* ========================================================================== */
@@ -393,6 +396,7 @@ static CpswProxy_Obj gCpswProxy;
 void CpswProxy_initConfig(CpswProxy_initParams *params)
 {
     params->hbPeriodInMsecs   = CPSWPROXY_HB_DEFAULT_POLL_PERIOD_MS;
+    params->cmdTimeoutInMsecs = CPSWPROXY_CMD_DEFAULT_TIMEOUT_MS;
     params->hbNotifyCb.cbArg  = NULL;
     params->hbNotifyCb.cbFxn  = NULL;
 }
@@ -413,6 +417,16 @@ int32_t CpswProxy_init(const CpswProxy_initParams *params)
     else
     {
         gCpswProxy.heartBeatEn = BFALSE;
+    }
+
+    /* Passing a value of 0 for cmdTimeoutInMsecs means ProxyClient blocks forever for remote command response */
+    if (params->cmdTimeoutInMsecs == 0U)
+    {
+        gCpswProxy.cmdTimeoutInMsecs = MailboxP_WAIT_FOREVER;
+    }
+    else
+    {
+        gCpswProxy.cmdTimeoutInMsecs = params->cmdTimeoutInMsecs;
     }
 
     gCpswProxy.hMutex = MutexP_create(&gCpswProxy.mutexObj);
@@ -1697,12 +1711,24 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     /* Wait for service's response */
     if (status == CPSWPROXY_SOK)
     {
-        mbxStatus = MailboxP_pend(gCpswProxy.cmdSvc.hMbx, (void *)&msg, MailboxP_WAIT_FOREVER);
-        if (mbxStatus != MailboxP_OK)
-        {
-            status = CPSWPROXY_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed to get cmd %u response from client's queue", reqType);
-        }
+        do {
+            mbxStatus = MailboxP_pend(gCpswProxy.cmdSvc.hMbx, (void *)&msg, gCpswProxy.cmdTimeoutInMsecs);
+            if(mbxStatus == MailboxP_TIMEOUT)
+            {
+                status = CPSWPROXY_ETIMEOUT;
+                ETHFWTRACE_ERR(status, "CMD %u response timed out from client's queue", reqType);
+            }
+            else if (mbxStatus != MailboxP_OK)
+            {
+                status = CPSWPROXY_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to get cmd %u response from client's queue", reqType);
+            }
+            else
+            {
+                ETHFWTRACE_WARN_IF((hdr->resId < reqId),
+                                   "Dropping late response to previous cmd (got %u, exp %u)", hdr->resId, reqId);
+            }
+        } while((hdr->resId < reqId));
     }
 #else
     /* Send message through channel */

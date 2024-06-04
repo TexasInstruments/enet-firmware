@@ -130,6 +130,9 @@
 /*! Heartbeat poll period for CPSW proxy. */
 #define CPSW_REMOTE_APP_POLL_PERIOD_MS        (2000U)
 
+/*! CPSW proxy command response timeout. */
+#define CPSW_REMOTE_APP_CMD_TIMEOUT_MS        (1000U)
+
 #define VQ_TIMEOUT              (100)
 #define VQ_BUF_SIZE             (2048)
 
@@ -805,6 +808,9 @@ static void CpswRemoteApp_initTask(void* a0,
 
     /* Update App specific params. */
     initParams.hbPeriodInMsecs = CPSW_REMOTE_APP_POLL_PERIOD_MS;
+
+    /* Pass 0U for blocking ProxyClient forever for remote command response */
+    initParams.cmdTimeoutInMsecs = CPSW_REMOTE_APP_CMD_TIMEOUT_MS;
     initParams.hbNotifyCb.cbFxn = CpswRemoteApp_hbStatus;
  
     CpswProxy_init(&initParams);
