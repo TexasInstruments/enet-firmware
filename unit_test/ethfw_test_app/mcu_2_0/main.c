@@ -144,6 +144,9 @@ typedef struct
     /* Enet instance id */
     uint32_t instId;
 
+    /* Ethernet Firmware handle */
+    EthFw_Handle hEthFw;
+
     /* Ethernet Firmware configuration params */
     EthFw_Config hEthFwCfg;
 
@@ -183,6 +186,7 @@ EthTestAppObj gEthTestAppObj =
     .enetType = ENET_CPSW_5G,
     .instId   = 0U,
 #endif
+    .hEthFw = NULL,
     .hUdmaDrv = NULL,
 };
 

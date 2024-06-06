@@ -941,9 +941,9 @@ void EthFw_initConfigParams(Enet_Type enetType,
     EthFw_initAleCfg(aleCfg);
 }
 
-int32_t EthFw_init(Enet_Type enetType,
-                   uint32_t instId,
-                   const EthFw_Config *config)
+EthFw_Handle EthFw_init(Enet_Type enetType,
+                        uint32_t instId,
+                        const EthFw_Config *config)
 {
     EnetUdma_Cfg *udmaCfg;
     char *date = __DATE__;
@@ -1130,13 +1130,15 @@ int32_t EthFw_init(Enet_Type enetType,
     }
 #endif
 
-    return status;
+    return (status == ENET_SOK) ? &gEthFwObj : NULL;
 }
 
-void EthFw_deinit(void)
+void EthFw_deinit(EthFw_Handle hEthFw)
 {
     uint32_t coreIdx;
     uint32_t i;
+
+    EnetAppUtils_assert(hEthFw != NULL);
 
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     /* De-initialize lwIP ARP helper */
@@ -1194,7 +1196,7 @@ uint32_t EthFw_getRemoteEndptId(uint32_t coreId)
     return remoteEndptId;
 }
 
-int32_t EthFw_initRemoteConfig(void)
+int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 {
     CpswProxyServer_Config_t cfg;
     int32_t status;
@@ -1202,6 +1204,8 @@ int32_t EthFw_initRemoteConfig(void)
     uint32_t numAutosarVirtPorts = 0U;
     uint32_t j;
     uint32_t k;
+
+    EnetAppUtils_assert(hEthFw != NULL);
 
     /* Initialize Proxy Server */
     memset(&cfg, 0, sizeof(cfg));
@@ -1260,9 +1264,12 @@ int32_t EthFw_initRemoteConfig(void)
     return status;
 }
 
-int32_t EthFw_lateAnnounce(uint32_t procId)
+int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
+                           uint32_t procId)
 {
     int32_t status;
+
+    EnetAppUtils_assert(hEthFw != NULL);
 
     /* Late announcement of server's endpoint to remote processor */
     status = CpswProxyServer_lateAnnounce(procId);
@@ -1271,8 +1278,11 @@ int32_t EthFw_lateAnnounce(uint32_t procId)
     return status;
 }
 
-void EthFw_getVersion(EthFw_Version *version)
+void EthFw_getVersion(EthFw_Handle hEthFw,
+                      EthFw_Version *version)
 {
+    EnetAppUtils_assert(hEthFw != NULL);
+
     *version = gEthFwObj.version;
 }
 

@@ -250,6 +250,13 @@ typedef struct EthFw_Config_s
     EthFwTsn_PpsConfig ppsConfig;
 } EthFw_Config;
 
+/*!
+ * \brief Ethernet Firmware handle
+ *
+ * Ethernet Firmware opaque handle.
+ */
+typedef struct EthFw_Obj_s *EthFw_Handle;
+
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
 /* ========================================================================== */
@@ -289,19 +296,21 @@ void EthFw_initConfigParams(Enet_Type enetType,
  * \param instId      Enet instance ID
  * \param config      EthFw configuration
  *
- * \retval ENET_SOK if initialization was successful
- * \retval Negative error code if initialization failed
+ * \retval EthFw handle if initialization was successful
+ * \retval NULL if initialization failed
  */
-int32_t EthFw_init(Enet_Type enetType,
-                   uint32_t instId,
-                   const EthFw_Config *config);
+EthFw_Handle EthFw_init(Enet_Type enetType,
+                        uint32_t instId,
+                        const EthFw_Config *config);
 
 /*!
  * \brief De-initialize EthFw
  *
  * De-initialize the EthFw.
+ *
+ * \param hEthFw    EthFw handle
  */
-void EthFw_deinit(void);
+void EthFw_deinit(EthFw_Handle hEthFw);
 
 /*!
  * \brief Initialize remote configuration server.
@@ -309,11 +318,12 @@ void EthFw_deinit(void);
  * Initializes the firmware's remote configuration server which is in charge
  * of servicing commands sent by remote cores.
  *
+ * \param hEthFw      EthFw handle
  *
  * \retval ENET_SOK if remote config initialization was successful
  * \retval Negative error code if initialization failed
  */
-int32_t EthFw_initRemoteConfig(void);
+int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw);
 
 /*!
  * \brief Late announce to remote processor
@@ -324,12 +334,14 @@ int32_t EthFw_initRemoteConfig(void);
  * This function is typically used to late attach to MPU1_0 core running Linux
  * after Ethernet Firmware had been loaded by u-boot.
  *
+ * \param hEthFw      EthFw handle
  * \param procId      IPC processor id, refer to IPC driver definitions.
  *
  * \retval ENET_SOK if remote services initialization was successful
  * \retval Negative error code if announcement failed
  */
-int32_t EthFw_lateAnnounce(uint32_t procId);
+int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
+                           uint32_t procId);
 
 /*!
  * \brief Get EthFw version
@@ -337,9 +349,11 @@ int32_t EthFw_lateAnnounce(uint32_t procId);
  * Gets the EthFw version which includes firmware version, build date and time,
  * and commit hash.
  *
+ * \param hEthFw      EthFw handle
  * \param version     Pointer to EthFw version to be populated
  */
-void EthFw_getVersion(EthFw_Version *version);
+void EthFw_getVersion(EthFw_Handle hEthFw,
+                      EthFw_Version *version);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */

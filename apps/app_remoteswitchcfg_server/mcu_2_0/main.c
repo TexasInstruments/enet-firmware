@@ -317,6 +317,9 @@ typedef struct
     /* Enet instance id */
     uint32_t instId;
 
+    /* Ethernet Firmware handle */
+    EthFw_Handle hEthFw;
+
     /* Host MAC address */
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
@@ -523,6 +526,7 @@ static EthAppObj gEthAppObj =
     .enetType = ENET_CPSW_5G,
     .instId   = 0U,
 #endif
+    .hEthFw = NULL,
 };
 
 static Enet_MacPort gEthAppPorts[] =
@@ -1076,7 +1080,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     }
 
     /* Initialize the Remote Config server (CPSW Proxy Server) */
-    status = EthFw_initRemoteConfig();
+    status = EthFw_initRemoteConfig(gEthAppObj.hEthFw);
     if (status != ENET_SOK)
     {
         appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote config: %d\n", status);
@@ -1122,7 +1126,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     /* Late announcement of server's endpoint to MPU */
     if (status == IPC_SOK)
     {
-        status = EthFw_lateAnnounce(IPC_MPU1_0);
+        status = EthFw_lateAnnounce(gEthAppObj.hEthFw, IPC_MPU1_0);
         if (status != ENET_SOK)
         {
             appLogPrintf("EthApp_initIpcTask: late announcement failed: %d\n", status);
@@ -1284,9 +1288,9 @@ static int32_t EthApp_initEthFw(void)
     /* Initialize the EthFw */
     if (status == ETHAPP_OK)
     {
-        status = EthFw_init(gEthAppObj.enetType, gEthAppObj.instId,
-                            &ethFwCfg);
-        if (ETHAPP_OK != status)
+        gEthAppObj.hEthFw = EthFw_init(gEthAppObj.enetType, gEthAppObj.instId,
+                                       &ethFwCfg);
+        if (gEthAppObj.hEthFw == NULL)
         {
             appLogPrintf("ETHFW: failed to initialize the firmware\n");
             status = ETHAPP_ERROR;
@@ -1296,7 +1300,7 @@ static int32_t EthApp_initEthFw(void)
     /* Get and print EthFw version */
     if (status == ETHAPP_OK)
     {
-        EthFw_getVersion(&ver);
+        EthFw_getVersion(gEthAppObj.hEthFw, &ver);
         appLogPrintf("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
         appLogPrintf("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
         appLogPrintf("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);
