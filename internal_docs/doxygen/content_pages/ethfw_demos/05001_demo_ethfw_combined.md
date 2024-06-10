@@ -1137,14 +1137,20 @@ of other protocols in the VLAN network.
 
 ## Inter-core Virtual Ethernet communication with VEPA {#ethfw_intercore_communication_vepa}
 
-**Note:** VEPA is supported on J784S4 only, from SDK 9.1 or later.
-
-### For J784S4 using Virtual Ethernet Port Aggregator (VEPA)
+**Note:** VEPA (Virtual Ethernet Port Aggregator) is supported on J784S4 only, from SDK 9.1 or later.
 
 VEPA or hairpin mode allows the traffic to return to the same port (host port in this case) 
 at which it ingressed on. It enables to forward broadcast and multicast packets directly to
-clients via host port increasing intercore virtual ethernet communication performance. VEPA
-is enabled by default for J784S4 for all clients.
+clients via host port increasing intercore virtual ethernet communication performance.
+
+### Compile time configuration for VEPA
+
+VEPA is enabled by default for J784S4 for all clients. `ETHFW_CPSW_VEPA_SUPPORT` is the build flag defined in
+`<ethfw>/ethfw_build_flags.mak` to enable/disable VEPA support.
+Use the following commands to build EthFw <b>without</b> VEPA support on J784S4:
+```C
+make -s -j ethfw_all BUILD_SOC_LIST=J784S4 PROFILE=<release/debug> ETHFW_CPSW_VEPA_SUPPORT=no
+```
 
 ### RTOS client test {#intercore_rtos_client_test_vepa}
 
