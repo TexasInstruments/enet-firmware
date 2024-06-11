@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021 Texas Instruments Incorporated
+ * Copyright (c) 2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -204,7 +204,10 @@ static void tx_task(void *arguments)
 				/* Request space in shared buffer pool */
 				pDriverBuf = Bufpool_getBuf(txBufpoolHandle);
 				/* Here, we receive a pointer in virtual address space */
-				assert(pDriverBuf != NULL);
+				if (pDriverBuf == NULL)
+				{
+					break;
+				}
 				/* ASSUMPTION: Frame size is less than buffer size */
 				assert(frame_len <= ETH_FRAME_SIZE);
 				/* Copy frame to Virtual Address of Shared Buffer */
