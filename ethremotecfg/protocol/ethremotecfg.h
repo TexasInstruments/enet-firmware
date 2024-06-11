@@ -198,7 +198,7 @@ extern "C" {
 #define ETHREMOTECFG_FW_ETHSWITCH_VERSION_MAJOR           (0U)
 
 /*! \brief Ethernet device API version minor version. */
-#define ETHREMOTECFG_FW_ETHSWITCH_VERSION_MINOR           (4U)
+#define ETHREMOTECFG_FW_ETHSWITCH_VERSION_MINOR           (5U)
 
 /*! \brief Ethernet device API version minor revision. */
 #define ETHREMOTECFG_FW_ETHSWITCH_VERSION_REVISION        (0U)
