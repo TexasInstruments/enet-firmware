@@ -631,9 +631,10 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
         /* Set MAC address for the registered virtual switch port */
         SMEMCPY(&gEthFwVepaObj.virtPortToMacAddr[virtPort], srcAddr, ETH_HWADDR_LEN);
 
-        /* Add broadcast entry in VEPA table for virtual switch port
-         * Add policer: broadcast packet of vlanId should go to packet duplication flow */
-        status = EthFwVepa_addAddr(hEnet, &gEthFwBcastAddr, 0U, vlanId, coreId, virtPort);
+        /* Add broadcast entry in VEPA table (does not add any ALE entry)
+         * Add policer: All broadcast packet (irrespective of vlan) should go to packet duplication flow
+         * at the same time reaches all ports (including host port) */
+        status = EthFwVepa_addAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                           "Failed to add bcast addr for VLAN %u into VEPA table", vlanId);
     }
@@ -673,9 +674,9 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
         /* Remove MAC address for the registered virtual switch port */
         memset(&gEthFwVepaObj.virtPortToMacAddr[virtPort], 0U, sizeof(struct eth_addr));
 
-        /* Remove broadcast entry from VEPA table for the virtual switch port
-         * Remove policer: broadcast packet of vlanId should not go to packet duplication flow */
-        status = EthFwVepa_delAddr(hEnet, &gEthFwBcastAddr, 0U, vlanId, coreId, virtPort);
+        /* Remove broadcast entry from VEPA table for the virtual switch port (does not remove any ALE entry)
+         * Remove policer: broadcast packet of (irrespective of vlan) should not go to packet duplication flow */
+        status = EthFwVepa_delAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                           "Failed to delete bcast addr for VLAN %u from VEPA table", vlanId);
     }
