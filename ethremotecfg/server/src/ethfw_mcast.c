@@ -575,6 +575,21 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
     /* Remove mcast address from ALE table */
     if (mcastInfo->refCnt == 1U)
     {
+        EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], macAddr);
+
+        /* When deleting ALE addresses with VLAN, there can be a corner case with using VLAN entry 0U.
+         * If two vlan entries (0U and 1U) are deleted one after another, the ALE has a special check for vlan 0U 
+         * and may give false positive and delete entry for vlan 1U instead.
+         * When 1U is deleted afterwards, since that entry is deleted above, it returns error saying Entry not found. 
+         * So as a work around delete 0U entry at the last. */
+        /* Removes ALE entry of multicast address with host port vlan id */
+        macAddrInfo.vlanId = gEthFwMcastObj.hostPortVlanId;
+
+        ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
+
+        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
+
         /* Multicast address without VLAN, otherwise as many ALE entries
          * will be needed for each private VLAN when using VEPA mode */
 #if defined(ETHFW_VEPA_SUPPORT)
@@ -582,15 +597,6 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
 #else
         macAddrInfo.vlanId = hwVlanId;
 #endif
-        EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], macAddr);
-
-        ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
-
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
-
-        /* Removes ALE entry of multicast address with host port vlan id */
-        macAddrInfo.vlanId = gEthFwMcastObj.hostPortVlanId;
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
 
