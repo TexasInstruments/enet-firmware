@@ -39,6 +39,9 @@ STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += ethfw_remotecfg_server
 STATIC_LIBS += unity_uart
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+STATIC_LIBS += ethfw_estdemo
+endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
@@ -128,6 +131,9 @@ STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += ethfw_remotecfg_server
 STATIC_LIBS += unity_uart
+ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
+STATIC_LIBS += ethfw_estdemo
+endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
