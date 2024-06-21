@@ -28,7 +28,7 @@ CSOURCES += ../../test_cases/test_ethRemoteCfg.c
 
 IDIRS += $(ETHFW_PATH)/unit_test/test_cases
 
-LINKER_CMD_FILES =  $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
+LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
 endif
@@ -174,7 +174,6 @@ ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
 endif
 
 include $(ETHFW_PATH)/unit_test/concerto_inc.mak
-
 include $(FINALE)
 
 endif

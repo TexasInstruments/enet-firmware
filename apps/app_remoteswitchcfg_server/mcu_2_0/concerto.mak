@@ -82,6 +82,10 @@ ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
 endif
 
+ifeq ($(ETHFW_RTOS_MCU3_0_SUPPORT),yes)
+  DEFS += ETHFW_RTOS_MCU3_0
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)
@@ -165,6 +169,10 @@ endif
 # iperf server support
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
+endif
+
+ifeq ($(ETHFW_RTOS_MCU3_0_SUPPORT),yes)
+  DEFS += ETHFW_RTOS_MCU3_0
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak
@@ -274,6 +282,10 @@ ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
   ifeq ($(ETHFW_GPTP_SUPPORT),yes)
     DEFS += ETHFW_EST_DEMO_SUPPORT
   endif
+endif
+
+ifeq ($(ETHFW_RTOS_MCU3_0_SUPPORT),yes)
+  DEFS += ETHFW_RTOS_MCU3_0
 endif
 
 include $(ETHFW_PATH)/apps/concerto_inc.mak

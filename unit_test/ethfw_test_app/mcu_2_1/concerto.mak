@@ -76,7 +76,7 @@ endif
 
 include $(ETHFW_PATH)/unit_test/concerto_inc.mak
 
-endif
-endif
-
 include $(FINALE)
+
+endif
+endif

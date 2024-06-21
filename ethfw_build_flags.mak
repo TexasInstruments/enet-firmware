@@ -86,7 +86,7 @@ endif
 
 # Inter-core virtual ethernet support
 # Supported Values: yes | no
-ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1)))
+ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0)))
   ETHFW_INTERCORE_ETH_SUPPORT?=yes
 endif
 
@@ -115,5 +115,15 @@ ETHFW_PPS_DEMO_SUPPORT?=yes
 ETHFW_EST_DEMO_SUPPORT?=no
 ETHFW_EST_DEMO_TALKER?=no
 ETHFW_EST_DEMO_LISTENER?=no
+
+# Disable RTOS client build for mcu2_1 core if enabled for mcu3_0 core
+ifneq (,$(filter $(BUILD_SOC_LIST),J784S4 J721E))
+  ETHFW_RTOS_MCU3_0_SUPPORT?=no
+endif
+
+ifeq ($(ETHFW_RTOS_MCU3_0_SUPPORT),yes)
+  BUILD_CPU_MCU2_1=no
+  BUILD_CPU_MCU3_0=yes
+endif
 
 endif # ifndef $(ETHFW_BUILD_FLAGS_MAK)

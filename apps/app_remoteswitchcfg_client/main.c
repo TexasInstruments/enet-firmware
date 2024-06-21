@@ -234,6 +234,21 @@ static uint8_t gCntrlBuf[CPSW_REMOTE_APP_IPC_DATA_SIZE] __attribute__ ((section(
 
 static uint8_t g_vringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
+#if defined (ETHFW_RTOS_MCU3_0)
+static uint32_t selfProcId = IPC_MCU3_0;
+static uint32_t gRemoteProc[] =
+{
+#if defined(SOC_J721E)
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+    IPC_MCU2_1, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2,
+    IPC_C7X_1,
+#elif defined(SOC_J784S4)
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+    IPC_MCU2_1, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
+    IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
+#endif
+};
+#else
 static uint32_t selfProcId = IPC_MCU2_1;
 static uint32_t gRemoteProc[] =
 {
@@ -249,15 +264,20 @@ static uint32_t gRemoteProc[] =
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
 #endif
 };
+#endif
+
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 static struct netif netif_ic;
+
 static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
 {
     IC_ETH_IF_MCU2_0_MCU2_1,
     IC_ETH_IF_MCU2_1_MCU2_0,
-    IC_ETH_IF_MCU2_0_A72
+    IC_ETH_IF_MCU2_0_A72,
+    IC_ETH_IF_MCU2_0_MCU3_0,
+    IC_ETH_IF_MCU3_0_MCU2_0
 };
 
 struct netif netif_bridge;
@@ -1177,10 +1197,17 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         NETIF_SET_CHECKSUM_CTRL(netif, chksumFlags);
 #endif
 
+#if defined (ETHFW_RTOS_MCU3_0)
+        /* Create inter-core virtual ethernet interface: MCU3_0 <-> MCU2_0 */
+        netif_add(&netif_ic, NULL, NULL, NULL,
+                  (void*)&netif_ic_state[IC_ETH_IF_MCU3_0_MCU2_0],
+                  LWIPIF_LWIP_IC_init, tcpip_input);
+#else
         /* Create inter-core virtual ethernet interface: MCU2_1 <-> MCU2_0 */
         netif_add(&netif_ic, NULL, NULL, NULL,
                   (void*)&netif_ic_state[IC_ETH_IF_MCU2_1_MCU2_0],
                   LWIPIF_LWIP_IC_init, tcpip_input);
+#endif
 
         /* Create bridge interface */
         bridge_initdata.max_ports = ETHAPP_LWIP_BRIDGE_MAX_PORTS;

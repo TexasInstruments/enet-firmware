@@ -1,12 +1,7 @@
 ########################################################################
 
-ifeq ($(BUILD_CPU_MCU2_1),yes)
+ifneq (,$(filter yes,$(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0)))
 ifneq (,$(filter $(TARGET_CPU),R5F R5Ft))
-
-# CPU_ID must be set before include $(PRELUDE)
-CPU_ID=mcu2_1
-
-_MODULE=$(CPU_ID)
 
 include $(PRELUDE)
 TARGET      := unity_console
