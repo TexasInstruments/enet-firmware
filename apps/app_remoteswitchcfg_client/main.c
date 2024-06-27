@@ -1224,6 +1224,11 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         /* Set bridge interface as the default */
         netif_set_default(&netif_bridge);
         netif_set_status_callback(&netif_bridge, EthApp_lwipNetifStatusCb);
+
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+        NETIF_SET_CHECKSUM_CTRL(&netif_bridge, chksumFlags);
+        NETIF_SET_CHECKSUM_CTRL(&netif_ic, chksumFlags);
+#endif
 #else
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
 #if LWIP_CHECKSUM_CTRL_PER_NETIF

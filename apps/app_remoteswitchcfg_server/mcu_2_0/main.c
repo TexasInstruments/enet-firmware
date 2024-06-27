@@ -1546,6 +1546,16 @@ static void EthApp_initNetif(void)
 
     /* Set bridge interface as the default */
     netif_set_default(&netif_bridge);
+
+#if LWIP_CHECKSUM_CTRL_PER_NETIF
+    NETIF_SET_CHECKSUM_CTRL(&netif_bridge, chksumFlags);
+#if defined (ETHFW_RTOS_MCU3_0)
+    NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX], chksumFlags);
+#else
+    NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], chksumFlags);
+#endif
+    NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX], chksumFlags);
+#endif
 #else
     netif_add(&netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
     netif_set_default(&netif);
