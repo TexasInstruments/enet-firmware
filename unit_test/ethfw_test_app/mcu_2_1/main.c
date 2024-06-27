@@ -268,7 +268,7 @@ static void CpswRemoteApp_ipcPrint(const char *str)
 
 void setUp(void)
 {
-
+#if !defined(SAFERTOS)
     /* Do the setup when gProxy is Null*/
     if (gProxy == NULL)
     {
@@ -290,23 +290,19 @@ void setUp(void)
         gProxy = CpswProxy_open(&gProxyConfig);
         localAssert(gProxy != NULL);
     }
-
+#endif
 }
 
 void tearDown(void)
 {
+#if !defined(SAFERTOS)
     if (gProxy != NULL)
     {
         CpswProxy_close(gProxy);
         CpswProxy_deinit();
         gProxy = NULL;
     }
-}
-
-void resetTestCfg(void)
-{
-  tearDown();
-  setUp();
+#endif
 }
 
 static void CpswRemoteTestApp_initTask(void* a0,
@@ -378,7 +374,6 @@ static void CpswRemoteTestApp_initTask(void* a0,
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "ETHFW RPMessage_init failed");
     }
 
-
     /* Step 5: Start Cpsw Proxy */
     memset(&initParams, 0, sizeof(initParams));
     CpswProxy_initConfig(&initParams);
@@ -396,26 +391,65 @@ static void CpswRemoteTestApp_initTask(void* a0,
     gProxy = CpswProxy_open(&gProxyConfig);
     localAssert(gProxy != NULL);
 
+    /* SafeRTOS doesn't have support for MailboxP_delete and teardown/setup functions
+     * deletes and creates new mailbox as a result UT fails on SafeRTOS after 20
+     * test cases (OSAL_SAFERTOS_CONFIGNUM_MAILBOX) . As a solution, 
+     * Init and deinit only once for SafeRTOS per client */
+#if !defined(SAFERTOS)
     EthFwUT_testSwitchConnection((void *)gProxy, (void *)&gProxyConfig);
 
-    /* Reset the test configurations */
-    resetTestCfg();
+    /* Do a setup to reset the test configurations before calling another test suite. */
+    setUp();
 
     EthFwUT_testSwitchResources((void *)gProxy, (void *)&gProxyConfig);
 
-#if !defined(SAFERTOS)
     /* Update proxyConfig to MAC only configuration */
     gProxyConfig.virtPort = ETHREMOTECFG_MAC_PORT_4;
 
-    /* Reset the test configurations */
-    resetTestCfg();
+    /* Do a setup to reset the test configurations before calling another test suite. */
+    setUp();
 
     EthFwUT_testMacConnection((void *)gProxy, (void *)&gProxyConfig);
 
-    /* Reset the test configurations */
-    resetTestCfg();
+    /* Do a setup to reset the test configurations before calling another test suite. */
+    setUp();
 
     EthFwUT_testMacResources((void *)gProxy, (void *)&gProxyConfig);
+#else
+
+    EthFwUT_testSwitchConnection((void *)gProxy, (void *)&gProxyConfig);
+
+    EthFwUT_testSwitchResources((void *)gProxy, (void *)&gProxyConfig);
+
+    CpswProxy_close(gProxy);
+    CpswProxy_deinit();
+    gProxy = NULL;
+
+    /* Update proxyConfig to MAC only configuration */
+    gProxyConfig.virtPort = ETHREMOTECFG_MAC_PORT_4;
+
+    /* Start Cpsw Proxy */
+    memset(&initParams, 0, sizeof(initParams));
+    CpswProxy_initConfig(&initParams);
+    CpswProxy_init(&initParams);
+
+    /* Wait for remote_device to be initialized on the server side */
+    do
+    {
+        status = CpswProxy_connect();
+    }
+    while (status != IPC_SOK);
+
+    gProxy = CpswProxy_open(&gProxyConfig);
+    localAssert(gProxy != NULL);
+
+    EthFwUT_testMacConnection((void *)gProxy, (void *)&gProxyConfig);
+
+    EthFwUT_testMacResources((void *)gProxy, (void *)&gProxyConfig);
+
+    CpswProxy_close(gProxy);
+    CpswProxy_deinit();
+    gProxy = NULL;
 #endif
 }
 
