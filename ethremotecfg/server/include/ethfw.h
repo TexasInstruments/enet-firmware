@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020-2023 Texas Instruments Incorporated
+ * Copyright (c) 2020-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -248,6 +248,11 @@ typedef struct EthFw_Config_s
 
     /*! PPS config params */
     EthFwTsn_PpsConfig ppsConfig;
+
+    /*! Pass packets with errors to host port. Error packets will be passed to
+     *  the application through `handleErrPktFxn()` callback of lwIP adaptation
+     *  layer's output args `LwipifEnetAppIf_GetHandleOutArgs`. */
+    bool passErrPkt;
 } EthFw_Config;
 
 /*!

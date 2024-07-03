@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021 Texas Instruments Incorporated
+ * Copyright (c) 2021-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -97,6 +97,7 @@
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
+
 #if defined(ETHFW_VEPA_SUPPORT)
 static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
                                                           uint32_t coreKey,
@@ -137,6 +138,11 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
 static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
                                              struct pbuf *pbuf);
 #endif
+
+static void EthFwCallbacks_handleRxErrPkt(struct netif *netif,
+                                          struct pbuf *pbuf,
+                                          uint32_t errCode);
+
 /* ========================================================================== */
 /*                          Extern variables                                  */
 /* ========================================================================== */
@@ -147,7 +153,26 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
 /*                            Global Variables                                */
 /* ========================================================================== */
 
-/* None */
+/* CPSW error codes. Relevant when MAC port's CEF, CMF and/or CSF are enabled */
+static const char *gEthFwCallbacks_errCodeInfo[] =
+{
+    [ENET_UDMA_CPSW_PKT_ERR_NONE]           = "No error",
+    [ENET_UDMA_CPSW_PKT_ERR_CRC]            = "CRC error",
+    [ENET_UDMA_CPSW_PKT_ERR_CODEALIGN]      = "Code/align error",
+    [ENET_UDMA_CPSW_PKT_ERR_SHORT]          = "Short frame (no code/align/CRC error)",
+    [ENET_UDMA_CPSW_PKT_ERR_FRAG_CRC]       = "Fragment with CRC error",
+    [ENET_UDMA_CPSW_PKT_ERR_FRAG_CODEALIGN] = "Fragment with code/align error",
+    [ENET_UDMA_CPSW_PKT_ERR_LONG]           = "Long frame",
+    [ENET_UDMA_CPSW_PKT_ERR_JABBER_CRC]     = "Long with CRC error",
+    [ENET_UDMA_CPSW_PKT_ERR_JABBER_ALIGN]   = "Long with code/align error",
+    [ENET_UDMA_CPSW_PKT_ERR_MAC_CONTROL]    = "MAC control frame",
+    [ENET_UDMA_CPSW_PKT_ERR_MACCONTROL_CRC] = "MAC control frame with CRC error",
+    [ENET_UDMA_CPSW_PKT_ERR_MACCONTROL_CODEALIGN]   = "MAC control frame with code/align error",
+    [ENET_UDMA_CPSW_PKT_ERR_MACCONTROL_SHORT_FRAG]  = "Short MAC control frame with CRC/code/align error",
+    [ENET_UDMA_CPSW_PKT_ERR_MACCONTROL_LONG_JABBER] = "Long MAC control frame with CRC/code/align error",
+    [ENET_UDMA_CPSW_PKT_ERR_RSV1]           = "Reserved",
+    [ENET_UDMA_CPSW_PKT_ERR_RSV2]           = "Reserved",
+};
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -288,6 +313,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                     macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
 
     rxInfo->handlePktFxn = NULL;
+    rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
 
 #if defined(ETHFW_VEPA_SUPPORT)
     /* Open second RX channel/flow for broadcast/multicast packet duplication */
@@ -336,6 +362,8 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         rxInfo->handlePktFxn = EthFwCallbacks_handleArpRxPktFxn;
     }
 #endif
+
+    rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
 }
 
 void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
@@ -1004,3 +1032,32 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
     return handled;
 }
 #endif
+
+const char *EthFwCallbacks_errPktCodeStr(uint32_t errCode)
+{
+    const char *str = "Unexpected error code";
+
+    if (errCode <= (uint32_t)ENET_UDMA_CPSW_PKT_ERR_RSV2)
+    {
+        str = gEthFwCallbacks_errCodeInfo[errCode];
+    }
+
+    return str;
+}
+
+static void EthFwCallbacks_handleRxErrPkt(struct netif *netif,
+                                          struct pbuf *pbuf,
+                                          uint32_t errCode)
+{
+    if (errCode <= (uint32_t)ENET_UDMA_CPSW_PKT_ERR_RSV2)
+    {
+        ETHFWTRACE_ERR(ETHFW_EFAIL, "netif %c%c%u: %s (%u)",
+                       netif->name[0], netif->name[1], netif->num,
+                       gEthFwCallbacks_errCodeInfo[errCode], errCode);
+    }
+    else
+    {
+        ETHFWTRACE_ERR(ETHFW_EUNEXPECTED, "netif %c%c%u: unexpected error code %u",
+                           netif->name[0], netif->name[1], netif->num, errCode);
+    }
+}

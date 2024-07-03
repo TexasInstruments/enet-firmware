@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020 Texas Instruments Incorporated
+ * Copyright (c) 2020-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -218,6 +218,9 @@ typedef struct EthFw_Obj_s
 
     /* EthFw status */
     EthRemoteCfg_ServerStatus serverStatus;
+
+    /* Pass error packets to host port */
+    bool passErrPkt;
 } EthFw_Obj;
 
 typedef struct EthFw_Autosar_EpId_s
@@ -897,6 +900,8 @@ void EthFw_initConfigParams(Enet_Type enetType,
     memset(&config->ppsConfig, 0, sizeof(config->ppsConfig));
 #endif
 
+    config->passErrPkt = BFALSE;
+
     /* Start with CPSW LLD's default configuration */
     Enet_initCfg(enetType, instId, cpswCfg, sizeof (*cpswCfg));
     cpswCfg->dmaCfg = NULL;
@@ -1114,6 +1119,15 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     {
         status = EthFw_setDscpPriorityMapRegisters();
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to set DSCP priority mapping");
+    }
+
+    /* Passing error packets to host port is currently not supported on
+     * CPSW instances in Main domain, due to potential HW limitation */
+    gEthFwObj.passErrPkt = config->passErrPkt;
+    if (gEthFwObj.passErrPkt == BTRUE)
+    {
+        ETHFWTRACE_WARN("Disabling error packet inspection feature due to HW limitation");
+        gEthFwObj.passErrPkt = BFALSE;
     }
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1401,6 +1415,14 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
         {
             macCfg->vlanCfg = gEthFwObj.ports[i].vlanCfg;
         }
+    }
+
+    /* Pass MAC control, short or error packets to host port */
+    if (gEthFwObj.passErrPkt)
+    {
+        macCfg->rxCmfEn = BTRUE;
+        macCfg->rxCsfEn = BTRUE;
+        macCfg->rxCefEn = BTRUE;
     }
 }
 

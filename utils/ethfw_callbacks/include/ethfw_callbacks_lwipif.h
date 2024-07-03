@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021 Texas Instruments Incorporated
+ * Copyright (c) 2021-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -108,6 +108,18 @@ void EthFwCallbacks_lwipifCpswGetHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                         LwipifEnetAppIf_GetHandleOutArgs *outArgs);
 
 void EthFwCallbacks_lwipifCpswReleaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo);
+
+/*!
+ * \brief Get error packet code string.
+ *
+ * Returns a string describing the error code of a MAC control, short or error
+ * packet.
+ *
+ * \param errCode     Error code (see `EnetUdma_CpswPktErr`).
+ *
+ * \return Pointer to string describing error code.
+ */
+const char *EthFwCallbacks_errPktCodeStr(uint32_t errCode);
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */
