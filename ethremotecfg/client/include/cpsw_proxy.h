@@ -354,6 +354,7 @@ void CpswProxy_close(CpswProxy_Handle hProxy);
  * \param pNumTxCh    Pointer to number of tx channels allocated to the virtual port
  * 
  * \param pNumRxFlow  Pointer to number of rx flows allocated to the virtual port
+ * \param features    Supported features flag (see \ref EthRemoteCfg_FeatureMask)
  *
  * \returns \ref CPSWPROXY_SOK if client has been successfully attached, or
  *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
@@ -363,7 +364,8 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
                          uint32_t *rxMtu,
                          uint32_t *txMtu,
                          uint32_t *pNumTxCh,
-                         uint32_t *pNumRxFlow);
+                         uint32_t *pNumRxFlow,
+                         uint32_t *features);
 
 /*!
  * \brief Attach to Ethernet device with extended response.
@@ -388,6 +390,7 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
  * \param rxFlowIdxOffset Pointer to RX flow offset to be allocated.
  * \param macAddr         Pointer to allocated destination MAC address allocated
  *                        to remote core populated by this function.
+ * \param features        Supported features flag (see \ref EthRemoteCfg_FeatureMask)
  *
  * \returns \ref CPSWPROXY_SOK if client has been successfully attached, or
  *          negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
@@ -399,7 +402,8 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                                  uint32_t *txPSILThreadId,
                                  uint32_t *rxFlowIdxBase,
                                  uint32_t *rxFlowIdxOffset,
-                                 uint8_t *macAddr);
+                                 uint8_t *macAddr,
+                                 uint32_t *features);
 
 /*!
  * \brief Detach from Ethernet device.

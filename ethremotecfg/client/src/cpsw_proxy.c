@@ -646,7 +646,8 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
                          uint32_t *rxMtu,
                          uint32_t *txMtu,
                          uint32_t *pNumTxCh,
-                         uint32_t *pNumRxFlow)
+                         uint32_t *pNumRxFlow,
+                         uint32_t *features)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachRes res;
@@ -669,6 +670,8 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
     {
         hProxy->token    = res.hdr.common.token;
         hProxy->features = res.features;
+
+        *features        = res.features;
         *pNumTxCh        = res.numTxCh;
         *pNumRxFlow      = res.numRxFlow;
 
@@ -689,7 +692,8 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
                                  uint32_t *txPSILThreadId,
                                  uint32_t *rxFlowIdxBase,
                                  uint32_t *rxFlowIdxOffset,
-                                 uint8_t *macAddr)
+                                 uint8_t *macAddr,
+                                 uint32_t *features)
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachExtRes res;
@@ -713,6 +717,7 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
         hProxy->token    = res.hdr.common.token;
         hProxy->features = res.features;
 
+        *features = res.features;
         *rxMtu = res.rxMtu;
         *txMtu = res.txMtu;
 

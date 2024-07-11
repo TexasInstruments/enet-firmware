@@ -306,6 +306,9 @@ typedef struct CpswRemoteApp_VirtNetif_s
     /* Virtual port id */
     EthRemoteCfg_VirtPort virtPort;
 
+    /* Bitmask of supported features */
+    uint32_t features;
+
     /* MAC ports used by this client app */
     Enet_MacPort *macPorts;
 
@@ -1538,7 +1541,8 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                  &txPSILId,
                                  &rxStartFlowId,
                                  &rxFlowIdOffset,
-                                 virtNetif->macAddr);
+                                 virtNetif->macAddr,
+                                 &virtNetif->features);
     }
     else
     {
@@ -1547,7 +1551,8 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                          &outArgs->hostPortRxMtu,
                          &outArgs->txMtu[0U],
                          &numTxCh,
-                         &numRxFlow);
+                         &numRxFlow,
+                         &virtNetif->features);
         ETHFWTRACE_ERR_IF((numTxCh == 0U), ETHFW_EFAIL, "Number of tx channel allocated cannot be 0U");
         ETHFWTRACE_ERR_IF((numRxFlow == 0U), ETHFW_EFAIL, "Number of rx flow allocated cannot be 0U");
         /* To demonstrate the QoS functionality we should allocate multiple channels

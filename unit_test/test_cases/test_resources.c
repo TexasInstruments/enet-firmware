@@ -114,6 +114,7 @@ static void EthFwUT_testAttach(void)
     uint32_t hostPortRxMtu;
     uint32_t numTxCh;
     uint32_t numRxFlow;
+    uint32_t features;
     int32_t status;
 
     status = CpswProxy_attach(gTestProxy,
@@ -121,7 +122,8 @@ static void EthFwUT_testAttach(void)
                               &hostPortRxMtu,
                               txMtu,
                               &numTxCh,
-                              &numRxFlow);
+                              &numRxFlow,
+                              &features);
     TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to attach to Ethernet device.");
 }
 

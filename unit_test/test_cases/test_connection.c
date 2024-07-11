@@ -178,6 +178,7 @@ void EthFwUT_detachCmd1(void)
     uint32_t hostPortRxMtu;
     uint32_t numTxCh;
     uint32_t numRxFlow;
+    uint32_t features;
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
@@ -188,7 +189,8 @@ void EthFwUT_detachCmd1(void)
                               &hostPortRxMtu,
                               txMtu,
                               &numTxCh,
-                              &numRxFlow);
+                              &numRxFlow,
+                              &features);
     if (status != CPSWPROXY_SOK)
         goto end;
 
@@ -212,6 +214,7 @@ void EthFwUT_detachCmd2(void)
     uint32_t hostPortRxMtu;
     uint32_t numTxCh;
     uint32_t numRxFlow;
+    uint32_t features;
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
@@ -222,7 +225,8 @@ void EthFwUT_detachCmd2(void)
                               &hostPortRxMtu,
                               txMtu,
                               &numTxCh,
-                              &numRxFlow);
+                              &numRxFlow,
+                              &features);
     if (status != CPSWPROXY_SOK)
         goto end;
 
