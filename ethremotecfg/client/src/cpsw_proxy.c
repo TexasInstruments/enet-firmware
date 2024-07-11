@@ -477,7 +477,7 @@ void CpswProxy_deinit(void)
 
     /* Delete semaphore */
     SemaphoreP_delete(gCpswProxy.hHeartbeatSem);
-    
+
     /* Deinitialize command service */
     CpswProxy_deinitCmdSvc(&gCpswProxy.cmdSvc);
 
@@ -499,7 +499,6 @@ static void CpswProxy_ClockCb(void *arg)
 static void CpswProxy_HeartbeatTask(void *a0,
                                     void *a1)
 {
-    int32_t status = CPSWPROXY_SOK;
     CpswProxy_HeartbeatCbFxn cbFxn;
     void *cbArg = NULL;
     EthRemoteCfg_ServerStatus serverStatus;
@@ -651,7 +650,6 @@ int32_t CpswProxy_attach(CpswProxy_Handle hProxy,
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachRes res;
-    uint32_t i;
     int32_t status;
 
     ETHFWTRACE_INFO("ATTACH | C2S | virtPort=%u", virtPort);
@@ -697,7 +695,6 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
 {
     EthRemoteCfg_AttachReq req;
     EthRemoteCfg_AttachExtRes res;
-    uint32_t i;
     int32_t status;
 
     ETHFWTRACE_INFO("ATTACH_EXT | C2S | virtPort=%u", virtPort);
