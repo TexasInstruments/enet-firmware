@@ -17,16 +17,16 @@ SOC_LC      := $(call lowercase,$(TARGET_PLATFORM))
 
 CSOURCES    := main.c
 ifeq ($(TARGET_OS),FREERTOS)
-  CSOURCES += ../../ipc_cfg/ipc_trace.c
-  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_default.c
+  CSOURCES += ../ipc_cfg/ipc_trace.c
+  CSOURCES += ../common/r5f_mpu_$(SOC_LC)_default.c
 else ifeq ($(TARGET_OS),SAFERTOS)
-  CSOURCES += ../../ipc_cfg/ipc_trace.c
-  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_safertos.c
+  CSOURCES += ../ipc_cfg/ipc_trace.c
+  CSOURCES += ../common/r5f_mpu_$(SOC_LC)_safertos.c
 endif
 
-LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
+LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/$(CPU_ID)/linker_mem_map.cmd
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
+  LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC)_$(CPU_ID).cmd
 endif
 
 STATIC_LIBS += ethfw_callbacks
@@ -114,16 +114,16 @@ DEFS+=A72_QNX_OS
 
 CSOURCES    := main.c
 ifeq ($(TARGET_OS),FREERTOS)
-  CSOURCES += ../../ipc_cfg/ipc_trace.c
-  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_default.c
+  CSOURCES += ../ipc_cfg/ipc_trace.c
+  CSOURCES += ../common/r5f_mpu_$(SOC_LC)_default.c
 else ifeq ($(TARGET_OS),SAFERTOS)
-  CSOURCES += ../../ipc_cfg/ipc_trace.c
-  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_safertos.c
+  CSOURCES += ../ipc_cfg/ipc_trace.c
+  CSOURCES += ../common/r5f_mpu_$(SOC_LC)_safertos.c
 endif
 
-LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
+LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/$(CPU_ID)/linker_mem_map.cmd
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
+  LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC)_$(CPU_ID).cmd
 endif
 
 STATIC_LIBS += ethfw_callbacks
@@ -204,16 +204,16 @@ DEFS        += ETHFW_CCS
 
 CSOURCES    := main.c
 ifeq ($(TARGET_OS),FREERTOS)
-  CSOURCES += ../../ipc_cfg/ipc_trace.c
-  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_default.c
+  CSOURCES += ../ipc_cfg/ipc_trace.c
+  CSOURCES += ../common/r5f_mpu_$(SOC_LC)_default.c
 else ifeq ($(TARGET_OS),SAFERTOS)
-  CSOURCES += ../../ipc_cfg/ipc_trace.c
-  CSOURCES += ../../common/r5f_mpu_$(SOC_LC)_safertos.c
+  CSOURCES += ../ipc_cfg/ipc_trace.c
+  CSOURCES += ../common/r5f_mpu_$(SOC_LC)_safertos.c
 endif
 
-LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/linker_mem_map.cmd
+LINKER_CMD_FILES = $(SDIR)/$(SOC_LC)/$(CPU_ID)/linker_mem_map.cmd
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC).cmd
+  LINKER_CMD_FILES += $(SDIR)/linker_$(TARGET_OS_LC)_$(CPU_ID).cmd
 endif
 
 STATIC_LIBS += ethfw_callbacks
