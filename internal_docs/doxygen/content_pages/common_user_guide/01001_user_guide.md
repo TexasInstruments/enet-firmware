@@ -787,7 +787,7 @@ the various netifs, including the lwIP bridge, created on the R5F_0 server core.
 which belong to the bridgeif. The individual netifs, including the Enet LLD netif, are neither
 visible to the network stack / application, nor do they get IP or MAC addresses.
  
-Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/main.c`
 to understand how these netifs are instantiated and added to the bridge:
 
 ```C
@@ -845,7 +845,7 @@ lwIP bridge, created on the R5F_1 client core.
 which belong to the bridgeif. The individual netifs, including the Enet LLD netif, are neither
 visible to the network stack / application, nor do they get IP or MAC addresses.
 
-Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_client/mcu_2_1/main.c`
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_client/main.c`
 to understand how these netifs are instantiated and added to the bridge:
 
 ```C
@@ -1092,7 +1092,7 @@ if (ETHFW_IS_BIT_SET(virtPortMask, i) &&
 }
 ```
 
-Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/main.c`
 to understand how application can configure VEPA configurations (i.e. private VLAN associated to
 each virtual switch port)
 
@@ -1156,7 +1156,7 @@ mechanism, therefore it is suited for low to medium bandwidth multicast traffic 
 -# The <b>shared multicast address list</b> is defined in source as shown below so the user
 will need to modify and rebuild the EthFw binaries if they need to change these addresses:
 
-Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`:
+Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/main.c`:
 
 ```C
 /* Must not exceed ETHAPP_MAX_SHARED_MCAST_ADDR entries */

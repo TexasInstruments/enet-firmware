@@ -212,7 +212,7 @@ demo.
 
 If dynamic IP configuration is not possible, static IPs can be setup as follows:
 
--# For Ethernet Firmware server, set below flag in `ethfw/apps/app_remoteswitchcfg_server/mcu_2_0/main.c`
+-# For Ethernet Firmware server, set below flag in `ethfw/apps/app_remoteswitchcfg_server/main.c`
    to disable DHCP and use static IP instead:
 
        #define ETHAPP_LWIP_USE_DHCP            (0)
@@ -223,7 +223,7 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
        #define ETHFW_CLIENT_GW(addr)           IP4_ADDR((addr), 192,168,1,1)
        #define ETHFW_CLIENT_NETMASK(addr)      IP4_ADDR((addr), 255,255,255,0)
 
--# For RTOS client application, set below flag in `ethfw/apps/app_remoteswitchcfg_client/mcu_2_1/main.c`:
+-# For RTOS client application, set below flag in `ethfw/apps/app_remoteswitchcfg_client/main.c`:
 
        #define ETHAPP_LWIP_USE_DHCP            (0)
 
@@ -394,7 +394,7 @@ and difference in master-slave correction in nanoseconds.
 This stack supports gPTP config parameters which can be configured in the stack
 via application, like phase adjustment, clock modes, phase offsets etc.
 These params can be configured inside `EthApp_configPtpCb()` function in
-`<ethfw>/apps/app_remoteswitchcfg_server/mcu2_0/main.c` file.
+`<ethfw>/apps/app_remoteswitchcfg_server/main.c` file.
 
 By default, the gPTP Sync interval is set to 125 milliseconds.
 If you need a shorter Sync interval, you can adjust it by setting
@@ -1236,8 +1236,8 @@ between the A72 Linux and R5_0 (MCU2_0) master core. To achieve this, a TAP devi
 from and write to the Linux network stack.  Ethernet frames are copied from/to the shared memory
 region to allow other cores to access it.
 
-> **Note:** While building TAP application for non ADAS Linux, please update memory map addresses for intercore shared descriptors and data buffers from <b>`<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/<soc>/linker_mem_map.cmd`</b> to <b>`<ethfw>/apps/tap/<soc>.conf`</b>
-> -# See INTERCORE_ETH_DESC_MEM and INTERCORE_ETH_DATA_MEM memory starting address (ORIGIN) with length (LENGTH) from <b>`<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/<soc>/linker_mem_map.cmd`</b>
+> **Note:** While building TAP application for non ADAS Linux, please update memory map addresses for intercore shared descriptors and data buffers from <b>`<ethfw>/apps/app_remoteswitchcfg_server/<soc>/mcu_2_0/linker_mem_map.cmd`</b> to <b>`<ethfw>/apps/tap/<soc>.conf`</b>
+> -# See INTERCORE_ETH_DESC_MEM and INTERCORE_ETH_DATA_MEM memory starting address (ORIGIN) with length (LENGTH) from <b>`<ethfw>/apps/app_remoteswitchcfg_server/<soc>/mcu_2_0/linker_mem_map.cmd`</b>
 > -# Match the same with ICQ_BASE_ADDR and BUFPOOL_BASE_ADDR (with their corresponding memory length) in <b>`<ethfw>/apps/tap/<soc>.conf`</b>
 
 > As an extra check corresponding values should match with Linux device tree overlay's <b>reserved_memory</b> (i.e. main_r5fss0_core0_shared_memory_queue_region and main_r5fss0_core0_shared_memory_bufpool_region) for inter-core network communication as well. Download and install PSDK Linux, instructions are [here](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-jacinto7/latest/exports/docs/vision_apps/docs/user_guide/ENVIRONMENT_SETUP.html).

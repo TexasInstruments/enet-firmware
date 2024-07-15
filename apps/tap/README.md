@@ -1,6 +1,6 @@
 # TAP User-space Application
-While building TAP application for non ADAS Linux, please update memory map addresses for intercore shared descriptors and data buffers from <b>`<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/<soc>/linker_mem_map.cmd`</b> to <b>`<ethfw>/apps/tap/<soc>.conf`</b>.
-See INTERCORE_ETH_DESC_MEM and INTERCORE_ETH_DATA_MEM memory starting address (ORIGIN) with length (LENGTH) from <b>`<ethfw>/apps/app_remoteswitchcfg_server/mcu_2_0/<soc>/linker_mem_map.cmd`</b>.
+While building TAP application for non ADAS Linux, please update memory map addresses for intercore shared descriptors and data buffers from <b>`<ethfw>/apps/app_remoteswitchcfg_server/<soc>/mcu_2_0/linker_mem_map.cmd`</b> to <b>`<ethfw>/apps/tap/<soc>.conf`</b>.
+See INTERCORE_ETH_DESC_MEM and INTERCORE_ETH_DATA_MEM memory starting address (ORIGIN) with length (LENGTH) from <b>`<ethfw>/apps/app_remoteswitchcfg_server/<soc>/mcu_2_0/linker_mem_map.cmd`</b>.
 Match the same with ICQ_BASE_ADDR and BUFPOOL_BASE_ADDR (with their corresponding memory length) in <b>`<ethfw>/apps/tap/<soc>.conf`</b>.
 As an extra check corresponding values should match with Linux device tree overlay's <b>reserved_memory</b> (i.e. main_r5fss0_core0_shared_memory_queue_region and main_r5fss0_core0_shared_memory_bufpool_region) for inter-core network communication as well. Download and install PSDK Linux, instructions are [here](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-jacinto7/latest/exports/docs/vision_apps/docs/user_guide/ENVIRONMENT_SETUP.html).
 Device-tree overlays are present in <b>${PSDKL_PATH}/board-support/ti-linux-kernel-<version>/arch/arm64/boot/dts/ti</b> folder.
