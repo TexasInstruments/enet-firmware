@@ -543,7 +543,7 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
     vlanInArgs.noLearnMask             = 0U;
     vlanInArgs.vidIngressCheck         = BTRUE;
     vlanInArgs.limitIPNxtHdr           = BFALSE;
-    vlanInArgs.disallowIPFrag          = BTRUE;
+    vlanInArgs.disallowIPFrag          = BFALSE;
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &vlanInArgs, &aleEntry);
 
