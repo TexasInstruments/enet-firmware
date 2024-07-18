@@ -408,6 +408,9 @@ int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
         /* Set SGMII mode (applicable for Q/SGMII ports only) */
         macCfg->sgmiiMode = portCfg->sgmiiMode;
 
+        /* Set MAC port RX MTU (MRU) to incorporate VLAN tagged packets */
+        macCfg->rxMtu = 1522U;
+
         status = ENET_SOK;
     }
 
