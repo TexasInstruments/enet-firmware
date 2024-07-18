@@ -133,7 +133,11 @@
 #define CPSWPROXY_IPC_TASK_STACKALIGN                   (8192U)
 
 /*! Heartbeat Task priority */
+#ifndef QNX_OS
 #define CPSWPROXY_HB_TASK_PRI                           (2U)
+#else
+#define CPSWPROXY_HB_TASK_PRI                           (22U)
+#endif
 
 /*! Heartbeat Task stack size and alignment */
 #if defined(SAFERTOS)
