@@ -134,6 +134,27 @@ Refer to following documentation for further details:</p><p>
 <p>
 Users moving from SDK 8.2 or older to SDK 8.6 must refer to the <a href="docs/user_guide/ethfw_c_porting_top.html" target="_blank">Porting Guide</a>
 document which describes how the board initialization routines have been restructured.
+
+<li> CpswProxy_init() now takes initialization configuration params (CpswProxy_initParams). </li>
+<li> CpswProxy_attach() and CpswProxy_attachExtended() now has feature flag (features) parameter. This flag is required by clients to identify features enabled 
+     in hardware like checksum offload when enabled in CPSW, remote clients can disable software checksum. </li>
+<li> Error codes for Ethw Remote config layer (EthRemoteCfg_ErrorCode) has been updated to match the Enet driver Error codes. </li>
+<li> Response of ETHREMOTECFG_CMD_GET_SERVER_STATUS cmd (EthRemoteCfg_ServerStatusRes) now return the server status of type (EthRemoteCfg_ServerStatus) instead on uint32_t status. </li>
+<li> Ethernet Firmware configuration (EthFw_Config) now has PPS config params (ppsConfig). </li>
+<li> Ethernet Firmware configuration (EthFw_Config) now has parameter to pass packets with errors to Host Port (passErrPkt). This feature is currently not enabled due to a known HW issue. </li>
+<li> EthFw_initConfigParams() and EthFw_init() now has Enet instance id parameter in their declarations.  </li>
+<li> EthFwCallbacks_lwipifCpswGetHandle now takes Enet Type and instance id parameters along with inArgs and outArgs. </li>
+<li> EthFwCallbacks_lwipifCpswReleaseHandle now takes Enet Type and instance id parameters along with releaseInfo. </li>
+
+<p>
+</p>
+The following ETHFW commands have been discontinued:
+<li> ETHREMOTECFG_CMD_ENABLE_PROMISC and ETHREMOTECFG_CMD_DISABLE_PROMISC used to enable/disable promiscuous mode by virtual MAC ports. Removed due to hardware limitation. </li>
+<li> ETHREMOTECFG_CMD_MESSAGE_PING used to check ETHFW command interface. It's replaced by ETHREMOTECFG_CMD_GET_SERVER_STATUS. </li>
+<li> ETHREMOTECFG_CMD_READ_REGISTER and ETHREMOTECFG_CMD_WRITE_REGISTER used to read/write Ethernet device registers. </li>
+<li> ETHREMOTECFG_CMD_IOCTL allowed thin clients to execute Enet LLD IOCTLs remotely. Remote clients should use the dedicated command corresponding to the feature of interest. </li>
+
+
 <p>
 </p><h2><a class="anchor" name="Device_Support"></a>Device Support</h2>
 Below table shows device support for EthFw.
