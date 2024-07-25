@@ -239,14 +239,136 @@ the A72 Linux and R5_0 (MCU2_0) master core.
 </tr>
 </table>
 
+
+## VEPA intercore (only on J784S4) {#ethfw_vepa_datasheet}
+
+EthFw provides support to enable VEPA (Virtual Ethernet Port Aggregator) functionality with CPSW capable of multihost data flow. Multihost is a CPSW ALE feature that enables packets to be sent and received on host port.
+
+VEPA or hairpin mode allows the traffic to return to the same port (host port in this case) at which it ingressed on. It enables to forward packets directly to clients via host port increasing intercore virtual ethernet communication performance.
+
+### Test Setup {#ethfw_vepa_test_setup}
+
+![](Intercore_VEPA_Performance_Setup.png "Intercore using shared memory transport")
+
+### Performance Numbers {#ethfw_vepa_numbers}
+
+#### TCP Performance
+
+| Test              | Bandwidth (Mbps)   | CPU Load (%)|
+|:------------------|:------------------:|:-----------:|
+| TCP RX            | 238                |    93       |
+| TCP TX            | 237                |    92       |
+| TCP Bidirectional | RX=91, TX=106      |    76       |
+
+
+#### UDP Performance
+
+
+<table style="width:96%;" rules="all" frame="box">
+<tr class="header">
+<th rowspan="2">Test</th>
+<th colspan="3">Datagram Length = 64B</th>
+<th colspan="3">Datagram Length = 256B</th>
+<th colspan="3">Datagram Length = 512B</th>
+<th colspan="3">Datagram Length = 1470B</th>
+</tr>
+<tr class="odd"><th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th><th>
+<p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+</tr>
+<tr class="odd">
+<td rowspan="3">UDP RX</td>
+<td align="center">5.02</td>
+<td align="center">27</td>
+<td align="center">0.00</td>
+<td align="center">25.3</td>
+<td align="center">37</td>
+<td align="center">0.00</td>
+<td align="center">25.1</td>
+<td align="center">27</td>
+<td align="center">0.00</td>
+<td align="center">25.0</td>
+<td align="center">20</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="even">
+<td align="center">10.0</td>
+<td align="center">46</td>
+<td align="center">0.00</td>
+<td align="center">51.1</td>
+<td align="center">79</td>
+<td align="center">0.13</td>
+<td align="center">50.6</td>
+<td align="center">43</td>
+<td align="center">0.006</td>
+<td align="center">50.0</td>
+<td align="center">30</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="odd">
+<td align="center">15.0</td>
+<td align="center">90</td>
+<td align="center">0.096</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">102</td>
+<td align="center">87</td>
+<td align="center">0.16</td>
+<td align="center">101</td>
+<td align="center">51</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="even">
+<td>UDP RX (Max)</td>
+<td align="center">20.1</td>
+<td align="center">91</td>
+<td align="center">0.71</td>
+<td align="center">67.7</td>
+<td align="center">91</td>
+<td align="center">0.88</td>
+<td align="center">110</td>
+<td align="center">90</td>
+<td align="center">0.25</td>
+<td align="center">193</td>
+<td align="center">93</td>
+<td align="center">0.11</td>
+</tr>
+<tr class="odd">
+<td>UDP TX (Max)</td>
+<td align="center">28.6</td>
+<td align="center">100</td>
+<td align="center">0.003</td>
+<td align="center">98.3</td>
+<td align="center">100</td>
+<td align="center">0.02</td>
+<td align="center">169</td>
+<td align="center">100</td>
+<td align="center">0.001</td>
+<td align="center">327</td>
+<td align="center">100</td>
+<td align="center">0.001</td>
+</tr>
+</table>
+
 <BR>
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Document Revision History  {#ethfw_datasheet_rev_hist}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Revision | Date          | Author        | Description           | Status
----------|---------------|---------------|-----------------------|----------------
-1.1      | 28 Nov 2023   | Misael Lopez  | Added SDK 9.1 results | Approved
-1.2      | 25 Mar 2024   | Misael Lopez  | Added SDK 9.2 results | Approved
+Revision | Date          | Author         | Description            | Status
+---------|---------------|----------------|------------------------|----------------
+1.1      | 28 Nov 2023   | Misael Lopez   | Added SDK 9.1 results  | Approved
+1.2      | 25 Mar 2024   | Misael Lopez   | Added SDK 9.2 results  | Approved
+1.3      | 26 Jul 2024   | Vaibhav Jindal | Added SDK 10.0 results | Approved
 
