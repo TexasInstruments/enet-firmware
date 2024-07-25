@@ -1766,6 +1766,16 @@ For more information, refer to the [EthFwTrace API guide](../api_guide/group__ET
 
 [Back To Top](@ref ethfw_c_ug_top)
 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Heartbeat Mechanism {#ethfw_c_ug_heartbeat_mechanism}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Heartbeat mechanism in EthFw is enabled for remote clients to query the operational state of EthFw. The status of EthFw can be queried by remote clients via [ETHREMOTECFG_CMD_GET_SERVER_STATUS](../api_guide/group__ETHFW__ETHREMOTECFG.html#ggacfc53541f27433475f4bbdf233ce4ba7a2e8efba75b7697ed13c35993cc76cdfa) cmd. EthFw can be in one of the following operational states (`ETHREMOTECFG_SERVERSTATUS_UNINIT` , `ETHREMOTECFG_SERVERSTATUS_READY`, `ETHREMOTECFG_SERVERSTATUS_RECOVERY` and `ETHREMOTECFG_SERVERSTATUS_BAD`). A state diagram showing EthFw's transition to different possible states is shown below.
+![](heartbeat_mechanism_stateDiagram.png "Heartbeat Mechanism state diagram.")
+
+Remote Clients can implement a mechanism to periodically monitor the status of EthFw. The `ETHREMOTECFG_CMD_GET_SERVER_STATUS` cmd will return the current state of EthFw [<b>EthRemoteCfg_ServerStatus</b>](../api_guide/group__ETHFW__ETHREMOTECFG.html#gae795a400c19d20a478080a085be49540). Reference of heartbeat mechanism on client core can be taken from @ref ethfw_intercore_r5client.
+
+If EthFw is not responsive and fails to respond to client's commands, a timeout mechanism is implemented on CPSW proxy client which will end the wait loop for response and return `ETHREMOTECFG_SERVERSTATUS_BAD` status to client application via callback function when the configured timeout period for cmd expires. 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Demos {#ethfw_c_ug_ethfw_demos}
