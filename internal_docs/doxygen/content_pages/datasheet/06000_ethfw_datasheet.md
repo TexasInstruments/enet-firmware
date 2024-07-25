@@ -6,6 +6,7 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Boot Time {#ethfw_datasheet_boot_time}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 The Ethernet Firmware boot time measurements in the table below show the current
 status in the TI Processor SDK for J721E/J7200/J784S4.  The test setup is:
@@ -92,10 +93,157 @@ time taken by the Ethernet PHYs to establish a link with the remote partner.  Th
 *Layer-2 switching active* time must take into account the *link time* corresponding to the
 PHY configuration being used.
 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Intercore Performance Numbers {#ethfw_performance_numbers}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## Configuration
+
+| Hardware Configuration    | Value                    |
+|:--------------------------|:------------------------:|
+| Processing Core           | R5F0 and A72             |
+| Core Frequency            | 1 GHz                    |
+| Packet buffer memory      | DDR                      |
+| Hardware checksum offload | Yes                      |
+| Scatter-gather TX         | Yes                      |
+| Scatter-gather RX         | No                       |
+
+
+| Software Configuration    | Value                    |
+|:--------------------------|:------------------------:|
+| RTOS                      | FreeRTOS                 |
+| RTOS application          | EthFw applicaton         |
+| TCP/IP stack              | lwIP 2.2.0               |
+| Linux client tool version | iperf v2.0.5             |
+
+
+## Shared Memory transport {#ethfw_shared_mem_transport_datasheet}
+
+Inter-core network interface allows EthFw to communicate with another core using standard TCP/IP protocol suite.
+Tap user-space application serves as a medium to facilitate the exchange of Ethernet frames between 
+the A72 Linux and R5_0 (MCU2_0) master core.
+
+
+### Test Setup {#ethfw_shared_mem_test_setup}
+
+![](Intercore_SharedMem_Performance_Setup.png "Intercore using shared memory transport")
+
+### Performance Numbers {#ethfw_shared_mem_numbers}
+
+#### TCP Performance
+
+| Test              | Bandwidth (Mbps)   | CPU Load (%)|
+|:------------------|:------------------:|:-----------:|
+| TCP RX            | 11.8               |    27       |
+| TCP TX            | 11.7               |    26       |
+| TCP Bidirectional | RX=5.83, TX=5.98   |    32       |
+
+
+#### UDP Performance
+
+
+<table style="width:96%;" rules="all" frame="box">
+<tr class="header">
+<th rowspan="2">Test</th>
+<th colspan="3">Datagram Length = 64B</th>
+<th colspan="3">Datagram Length = 256B</th>
+<th colspan="3">Datagram Length = 512B</th>
+<th colspan="3">Datagram Length = 1470B</th>
+</tr>
+<tr class="odd"><th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th><th>
+<p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+</tr>
+<tr class="odd">
+<td rowspan="3">UDP RX</td>
+<td align="center">0.205</td>
+<td align="center">14</td>
+<td align="center">0.00</td>
+<td align="center">1.00</td>
+<td align="center">16</td>
+<td align="center">0.00</td>
+<td align="center">2.0</td>
+<td align="center">16</td>
+<td align="center">0.00</td>
+<td align="center">5.00</td>
+<td align="center">18</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="even">
+<td align="center">0.410</td>
+<td align="center">19</td>
+<td align="center">0.00</td>
+<td align="center">2.00</td>
+<td align="center">21</td>
+<td align="center">0.00</td>
+<td align="center">4.00</td>
+<td align="center">22</td>
+<td align="center">0.00</td>
+<td align="center">8.00</td>
+<td align="center">21</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="odd">
+<td align="center">0.511</td>
+<td align="center">21</td>
+<td align="center">0.00</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">10.00</td>
+<td align="center">24</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="even">
+<td>UDP RX (Max)</td>
+<td align="center">0.512</td>
+<td align="center">22</td>
+<td align="center">0.32</td>
+<td align="center">2.05</td>
+<td align="center">22</td>
+<td align="center">0.34</td>
+<td align="center">4.09</td>
+<td align="center">23</td>
+<td align="center">0.71</td>
+<td align="center">11.8</td>
+<td align="center">26</td>
+<td align="center">0.57</td>
+</tr>
+<tr class="odd">
+<td>UDP TX (Max)</td>
+<td align="center">15.5</td>
+<td align="center">90</td>
+<td align="center">0.0038</td>
+<td align="center">32.0</td>
+<td align="center">82</td>
+<td align="center">0.0064</td>
+<td align="center">41.4</td>
+<td align="center">78</td>
+<td align="center">0.003</td>
+<td align="center">51.3</td>
+<td align="center">80</td>
+<td align="center">0.0023</td>
+</tr>
+</table>
+
 <BR>
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Document Revision History  {#ethfw_datasheet_rev_hist}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Revision | Date          | Author        | Description           | Status
 ---------|---------------|---------------|-----------------------|----------------
