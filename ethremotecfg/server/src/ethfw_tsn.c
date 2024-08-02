@@ -885,10 +885,10 @@ static int32_t EthFwTsn_gptpNonYangConfig(uint8_t instance)
 {
     uint32_t i;
     int32_t status;
-    EthFwTsn_gPTPConfigArg *cbArgs = NULL;
+    EthFwTsn_gPTPConfigArg cbArgs;
 
-    gEthFwTsnObj.configPtpCbArg = (void *)cbArgs;
-    cbArgs->inst = instance;
+    gEthFwTsnObj.configPtpCbArg = (void *)&cbArgs;
+    cbArgs.inst = instance;
 
     /* Let app overwrite any gPTP configuration parameters */
     if (gEthFwTsnObj.configPtpCb != NULL)
