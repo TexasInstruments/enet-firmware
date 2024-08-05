@@ -887,13 +887,12 @@ static int32_t EthFwTsn_gptpNonYangConfig(uint8_t instance)
     int32_t status;
     EthFwTsn_gPTPConfigArg cbArgs;
 
-    gEthFwTsnObj.configPtpCbArg = (void *)&cbArgs;
     cbArgs.inst = instance;
 
     /* Let app overwrite any gPTP configuration parameters */
     if (gEthFwTsnObj.configPtpCb != NULL)
     {
-        gEthFwTsnObj.configPtpCb(gEthFwTsnObj.configPtpCbArg);
+        gEthFwTsnObj.configPtpCb((void *)&cbArgs);
     }
 
     for (i = 0U; i < sizeof(gGptpNonYangDs)/sizeof(gGptpNonYangDs[0]); i++)
