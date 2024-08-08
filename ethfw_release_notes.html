@@ -123,8 +123,10 @@ Refer to following documentation for further details:</p><p>
 <p><h2><a class="anchor" name="Whats_New"></a>What's New</h2>
 <p>
 <ul>
-    <li> QoS support: multi-channel support for TX and RX. </li>
-    <li> TSN: gPTP multi-domain support, EST demo support with gPTP</li>
+    <li> TCP throughput support > 400 Mbps on RTOS. </li>
+    <li> RTOS client support on MCU3_0. </li>
+    <li> PPS signal generation support. </li>
+    <li> Heartbeat mechanism support enabled on EthFw. </li>
 </ul>
 </p>
 <p>
@@ -195,7 +197,7 @@ instructions to install and setup the dependencies.
 <p>
 <b>Build Tools (included in Processor SDK)</b>
     <ul>
-        <li> TI ARM CLANG: 3.2.1.LTS </li>
+        <li> TI ARM CLANG: 3.2.2.LTS </li>
         <li> lwIP stack: 2.2.0 </li>
         <li> FreeRTOS Kernel: 10.4.3 </li>
         <li> SafeRTOS Kernel - see table below </li>
@@ -237,36 +239,36 @@ instructions to install and setup the dependencies.
 <td align="center"><b>Fixed in Release</b></td>
 </tr>
 <tr>
-  <td align="center"> ETHFW-2576 </td>
-  <td align="left"> EthFW: Enable to transmit the packets from client to External Network for the filtered Multicast MAC requested by client </td>
-  <td align="center"> ETHFW </td>
-  <td align="center"> J721E </td>
-  <td align="center"> 09.01.00.00 </td>
-  <td align="left"> 09.02.00 </td>
-  </tr>
-<tr>
-<td align="center"> ETHFW-2538 </td>
-<td align="left"> EthFW: Buffers & Queue Address using for Inter-core Ethernet communication is not matching with Linux Device tree Reserved Address for Virtual Eth communication </td>
-<td align="center"> EthFw </td>
-<td align="center"> J721E, J784S4 </td>
-<td align="center"> 09.01.00.00 </td>
-<td align="left"> 09.02.00 </td>
-</tr>
-<tr>
-  <td align="center"> ETHFW-2536 </td>
-  <td align="left"> EthFW: VLAN tagged packets coming on MAC-only port in promiscuous mode </td>
+  <td align="center"> ETHFW-2587 </td>
+  <td align="left"> No Error message from EthFw when client is requesting for reserved Multicast filter to EthFw </td>
   <td align="center"> EthFw </td>
   <td align="center"> J721E, J7200, J784S4 </td>
   <td align="center"> 09.01.00.00 </td>
-  <td align="left"> 09.02.00 </td>
-  </tr>
+  <td align="left"> 10.00.00 </td>
+</tr>
 <tr>
-  <td align="center"> ETHFW-2429 </td>
-  <td align="left"> Ethfw linker file generate incorrect address mapping for interrupt handlers like "HwiP_prefetch_abort_handler" </td>
+  <td align="center"> ETHFW-2440 </td>
+  <td align="left"> ADAS: ETHFW is initialized only after A72 IPC is up </td>
+  <td align="center"> EthFw </td>
+  <td align="center"> J721E, J784S4 </td>
+  <td align="center"> 09.00.00.00 </td>
+  <td align="left"> 10.00.00 </td>
+</tr>
+<tr>
+  <td align="center"> ETHFW-2833 </td>
+  <td align="left"> EthFw: IP fragmented VLAN packets are dropped </td>
+  <td align="center"> EthFw </td>
+  <td align="center"> J721E, J7200, J784S4 </td>
+  <td align="center"> 09.02.00.00 </td>
+  <td align="left"> 10.00.00 </td>
+</tr>
+<tr>
+  <td align="center"> ETHFW-2820 </td>
+  <td align="left"> CpswProxy: Features flag not returned in attach()/attachExt() </td>
   <td align="center"> EthFw </td>
   <td align="center"> J721E, J7200, J784S4 </td>
   <td align="center"> 09.00.00.00 </td>
-  <td align="left"> 09.02.00 </td>
+  <td align="left"> 10.00.00 </td>
 </tr>
 </table>
 <p>
@@ -290,14 +292,6 @@ instructions to install and setup the dependencies.
 <td align="left"> None. </td>
 </tr>
 <tr>
-<td align="center"> ETHFW-2219 </td>
-<td align="left"> Issue of structures having members with Enum type when using same header files in QNX io-sock
-<td align="center"> EthFw </td>
-<td align="center"> 08.06.00.00 </td>
-<td align="center"> J721E, J7200, J784S4 </td>
-<td align="left"> None. </td>
-</tr>
-<tr>
 <td align="center"> ETHFW-2006 </td>
 <td align="left"> UDP Speed slow down while open 2 ports on EVM
 <td align="center"> EthFw </td>
@@ -305,11 +299,28 @@ instructions to install and setup the dependencies.
 <td align="center"> J721E, J7200, J784S4 </td>
 <td align="left"> None. </td>
 </tr>
-<td align="center"> ETHFW-2587 </td>
-<td align="left"> No Error message from EthFw when client is requesting for reserved Multicast filter to EthFw
+<tr>
+<td align="center"> ETHFW-2575 </td>
+<td align="left"> CPSW error flags are not getting updated in UDMA host packet descriptor
 <td align="center"> EthFw </td>
-<td align="center"> 09.01.00.00 </td>
+<td align="center"> 09.02.00.00 </td>
 <td align="center"> J721E, J7200, J784S4 </td>
+<td align="left"> None. </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-2593 </td>
+<td align="left"> ETHFW: gPTP: TSN stack initialization increased
+<td align="center"> EthFw </td>
+<td align="center"> 09.02.00.00 </td>
+<td align="center"> J721E, J7200, J784S4 </td>
+<td align="left"> None. </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-2839 </td>
+<td align="left"> VLAN Broadcast packets were not duplicated to clients in VEPA
+<td align="center"> EthFw </td>
+<td align="center"> 09.02.00.00 </td>
+<td align="center"> J784S4 </td>
 <td align="left"> None. </td>
 </tr>
 
