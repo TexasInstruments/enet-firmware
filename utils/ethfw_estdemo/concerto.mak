@@ -3,7 +3,7 @@ include $(PRELUDE)
 TARGET      := ethfw_estdemo
 TARGETTYPE  := library
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 J742S2))
 ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
 CSOURCES += src/ethfw_estdemo.c
 endif

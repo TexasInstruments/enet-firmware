@@ -96,7 +96,7 @@ extern "C" {
  */
 
 /*! Max number of CPSW MAC ports supported */
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
 #define CPSWPROXYSERVER_MAC_PORT_MAX                  (8U)
 #else
 #define CPSWPROXYSERVER_MAC_PORT_MAX                  (4U)

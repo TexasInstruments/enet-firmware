@@ -94,7 +94,7 @@ extern "C" {
 */
 #if defined(SOC_J721E) || defined(SOC_J7200)
 #define DEFAULT_INTERFACE_INDEX         (1U)
-#elif defined(SOC_J784S4)
+#elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define DEFAULT_INTERFACE_INDEX         (0U)
 #endif
 

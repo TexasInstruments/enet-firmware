@@ -50,6 +50,9 @@ ifeq ($(TARGET_OS),FREERTOS)
     IDIRS += $(PDK_PATH)/packages/ti/kernel/freertos/portable/TI_CGT/${TARGET_CPU_FOLDER}
     IDIRS += $(PDK_PATH)/packages/ti/kernel/freertos/config/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}
     IDIRS += $(PDK_PATH)/packages/ti/kernel/freertos/FreeRTOS-LTS/FreeRTOS-Kernel/include
+    ifeq ($(TARGET_PLATFORM),J742S2)
+        IDIRS += $(PDK_PATH)/packages/ti/kernel/freertos/config/j784s4/${TARGET_CPU_FOLDER}
+    endif
 endif
 IDIRS += $(PDK_PATH)/packages
 IDIRS += $(REMOTE_DEVICE_PATH)

@@ -8,7 +8,7 @@ TARGET      := unity_console
 TARGETTYPE  := library
 
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 J742S2))
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 ifeq ($(TARGET_CPU),$(filter $(TARGET_CPU), R5F R5Ft))
   CSOURCES := src/unity.c
@@ -41,7 +41,7 @@ include $(PRELUDE)
 TARGET      := unity_uart
 TARGETTYPE  := library
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 J742S2))
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 ifeq ($(TARGET_CPU),$(filter $(TARGET_CPU), R5F R5Ft))
   CSOURCES := src/unity.c

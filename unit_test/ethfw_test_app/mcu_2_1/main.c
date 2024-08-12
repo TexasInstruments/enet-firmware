@@ -100,7 +100,7 @@
 #define IPC_VRING_MEM_SIZE                    (32U * 1024U * 1024U)
 #elif defined(SOC_J7200)
 #define IPC_VRING_MEM_SIZE                    (8U * 1024U * 1024U)
-#elif defined(SOC_J784S4)
+#elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define IPC_VRING_MEM_SIZE                    (48U * 1024U * 1024U)
 #else
 #error "Unsupported device"
@@ -147,13 +147,17 @@ static uint32_t gRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
     IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
+#elif defined(SOC_J742S2)
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
+    IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
 #endif
 };
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 
 #if defined(SOC_J721E) || defined(SOC_J7200)
 #define BOARD_UART_INSTANCE                   (0U)
-#elif defined(SOC_J784S4)
+#elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define BOARD_UART_INSTANCE                   (8U)
 #else
 #error "Unsupported device"
@@ -209,7 +213,7 @@ static Enet_MacPort gRemoteAppMacPorts[] =
 CpswRemoteApp_Obj gRemoteAppObj =
 {
     .hUdmaDrv         = NULL,
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
     .enetType         = ENET_CPSW_9G,
     .instId           = 0U,
 #elif defined(SOC_J7200)

@@ -120,7 +120,7 @@
 EthFw_Config *gTestEthFwCfg;
 EthFw_Handle gTestEthFw;
 
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
 Enet_Type gEnetType = ENET_CPSW_9G;
 uint32_t gInstId = 0U;
 #elif defined(SOC_J7200)
@@ -145,6 +145,10 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 #endif
 
 #if defined(SOC_J784S4)
+    ENET_MAC_PORT_3,
+#endif
+
+#if defined(SOC_J742S2)
     ENET_MAC_PORT_3,
 #endif
 };

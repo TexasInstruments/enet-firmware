@@ -128,7 +128,7 @@
 #define ETHFW_TIME_SEC_TO_NS                          (1000000000U)
 
 /*! Max number of CPSW MAC ports supported */
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J784S4)
 #define ETHFW_MON_MAC_PORT_MAX                        (8U)
 #else
 #define ETHFW_MON_MAC_PORT_MAX                        (4U)

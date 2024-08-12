@@ -3,7 +3,7 @@ include $(PRELUDE)
 TARGET      := app_perf_stats
 TARGETTYPE  := library
 
-ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 AM65XX))
+ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 AM65XX J742S2))
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 ifeq ($(TARGET_CPU),$(filter $(TARGET_CPU), R5F R5Ft C66 C71))
 CSOURCES := src/app_perf_stats_rtos.c

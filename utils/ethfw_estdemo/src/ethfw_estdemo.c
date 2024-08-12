@@ -969,7 +969,7 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
     Enet_Handle hEnet;
 
 
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
     enetType = ENET_CPSW_9G,
     instId   = 0U,
 #elif defined(SOC_J7200)

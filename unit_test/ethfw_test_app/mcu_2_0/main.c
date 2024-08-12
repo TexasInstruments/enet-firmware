@@ -179,7 +179,7 @@ static void EthApp_waitForDebugger(void);
 
 EthTestAppObj gEthTestAppObj =
 {
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
     .enetType = ENET_CPSW_9G,
     .instId   = 0U,
 #elif defined(SOC_J7200)
@@ -217,7 +217,7 @@ Enet_MacPort gEthAppPorts[] =
     ENET_MAC_PORT_4, /* QSGMII sub */
 #endif
 
-#if defined(SOC_J784S4)
+#if defined(SOC_J784S4) || defined(SOC_J742S2)
     ENET_MAC_PORT_1, /* QSGMII main */
     ENET_MAC_PORT_3, /* QSGMII sub */
     ENET_MAC_PORT_4, /* QSGMII sub */
@@ -334,7 +334,7 @@ static int32_t EthApp_boardInit(void)
 #endif
 #endif
 
-#if defined(SOC_J784S4)
+#if defined(SOC_J784S4) || defined(SOC_J742S2)
     flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_UART_ALLOWED);
 #if defined(ETHFW_CCS)
     flags |= ETHFW_BOARD_I2C_ALLOWED;

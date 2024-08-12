@@ -19,6 +19,9 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   else ifeq ($(TARGET_PLATFORM),J784S4)
     CSOURCES    += src/j784s4/board_j784s4_evm.c
     CSOURCES    += src/j784s4/board_pinmux_data.c
+  else ifeq ($(TARGET_PLATFORM),J742S2)
+    CSOURCES    += src/j742s2/board_j742s2_evm.c
+    CSOURCES    += src/j742s2/board_pinmux_data.c
   endif
 endif
 

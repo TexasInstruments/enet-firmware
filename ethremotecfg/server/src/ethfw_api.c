@@ -141,7 +141,7 @@
 #define ETHFW_SWITCH_PORTS_VLAN_ID                    (3U)
 
 /*! Max number of CPSW MAC ports supported */
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
 #define ETHFW_MAC_PORT_MAX                            (8U)
 #else
 #define ETHFW_MAC_PORT_MAX                            (4U)
@@ -308,7 +308,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
         },
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
         [4] =
         {
             .coreId        = IPC_MCU3_0,
@@ -325,7 +325,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
         },
 #endif
     },
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
     .numCores = 6U,
 #else
     .numCores = 4U,
@@ -339,7 +339,7 @@ static const EnetRm_IoctlPermissionTable gEthFw_rmIoctlPerm =
     .defaultPermittedCoreMask = (ENET_BIT(IPC_MPU1_0) |
                                  ENET_BIT(IPC_MCU2_0) |
                                  ENET_BIT(IPC_MCU2_1) |
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
                                  ENET_BIT(IPC_MCU3_0) |
                                  ENET_BIT(IPC_MCU3_1) |
 #endif

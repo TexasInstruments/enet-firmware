@@ -155,7 +155,7 @@
 #define IPC_VRING_MEM_SIZE                      (32U * 1024U * 1024U)
 #elif defined(SOC_J7200)
 #define IPC_VRING_MEM_SIZE                      (8U * 1024U * 1024U)
-#elif defined(SOC_J784S4)
+#elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define IPC_VRING_MEM_SIZE                      (48U * 1024U * 1024U)
 #else
 #error "Unsupported device"
@@ -183,7 +183,7 @@
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_2) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3))
-#elif defined(SOC_J784S4)
+#elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_5))
@@ -523,7 +523,7 @@ static sys_sem_t gEthApp_lwipMainTaskSemObj;
 
 static EthAppObj gEthAppObj =
 {
-#if defined(SOC_J721E) || defined(SOC_J784S4)
+#if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
     .enetType = ENET_CPSW_9G,
     .instId   = 0U,
 #elif defined(SOC_J7200)
@@ -563,7 +563,7 @@ static Enet_MacPort gEthAppPorts[] =
 #endif
 #endif
 
-#if defined(SOC_J784S4)
+#if defined(SOC_J784S4) || defined(SOC_J742S2)
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     ENET_MAC_PORT_2, /* SGMII */
 #else
@@ -602,7 +602,7 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 #endif
 #endif
 
-#if defined(SOC_J784S4)
+#if defined(SOC_J784S4) || defined(SOC_J742S2)
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     ENET_MAC_PORT_2,
 #else
@@ -787,6 +787,10 @@ static uint32_t gEthAppRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU3_0,
     IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
+#elif defined(SOC_J742S2)
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU3_0,
+    IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
+    IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
 #endif
 };
 #else
@@ -802,6 +806,10 @@ static uint32_t gEthAppRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
     IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
+#elif defined(SOC_J742S2)
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
+    IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
 #endif
 };
 #endif
@@ -933,7 +941,7 @@ static int32_t EthApp_boardInit(void)
 #endif
 #endif
 
-#if defined(SOC_J784S4)
+#if defined(SOC_J784S4) || defined(SOC_J742S2)
     flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_UART_ALLOWED);
 #if defined(ETHFW_CCS)
     flags |= ETHFW_BOARD_I2C_ALLOWED;
@@ -1262,7 +1270,7 @@ static int32_t EthApp_initEthFw(void)
 #if defined(SOC_J721E) || defined (SOC_J7200)
         ethFwCfg.ppsConfig.tsrIn = CSLR_TIMESYNC_INTRTR0_IN_CPSW0_CPTS_GENF0_0;
         ethFwCfg.ppsConfig.tsrOut = ETHAPP_PPS_TIMESYNC_INTR_SYNC2_OUT_PIN;
-#elif defined(SOC_J784S4)
+#elif defined(SOC_J784S4) || defined(SOC_J742S2)
         ethFwCfg.ppsConfig.tsrIn = CSLR_TIMESYNC_INTRTR0_IN_CPSW_9XUSSM0_CPTS_GENF0_0;
         ethFwCfg.ppsConfig.tsrOut = ETHAPP_PPS_TIMESYNC_INTR_SYNC3_OUT_PIN;
 #else

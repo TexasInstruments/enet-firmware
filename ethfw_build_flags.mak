@@ -21,7 +21,7 @@ BUILD_CPU_C7x_1?=no
 BUILD_CPU_MCU1_1?=no
 BUILD_CPU_MCU2_1?=yes
 BUILD_CPU_MCU3_1?=no
-BUILD_SOC_LIST ?= J721E J7200 J784S4
+BUILD_SOC_LIST ?= J721E J7200 J784S4 J742S2
 export BUILD_SOC_LIST
 # Build FREERTOS only binaries
 BUILD_APP_FREERTOS?=yes
@@ -74,7 +74,7 @@ else
   BUILD_ISA_A53=no
 endif
 
-ifneq (,$(filter $(BUILD_SOC_LIST),J784S4))
+ifneq (,$(filter $(BUILD_SOC_LIST),J784S4 J742S2))
   ETHFW_CPSW_VEPA_SUPPORT?=yes
 endif
 
@@ -117,7 +117,7 @@ ETHFW_EST_DEMO_TALKER?=no
 ETHFW_EST_DEMO_LISTENER?=no
 
 # Disable RTOS client build for mcu2_1 core if enabled for mcu3_0 core
-ifneq (,$(filter $(BUILD_SOC_LIST),J784S4 J721E))
+ifneq (,$(filter $(BUILD_SOC_LIST),J784S4 J721E J742S2))
   ETHFW_RTOS_MCU3_0_SUPPORT?=no
 endif
 
