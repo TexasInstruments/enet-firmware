@@ -806,46 +806,56 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
     uint32_t i;
     uint32_t j = 0U;
 
-    for (i = 0U; i < ETHFW_TSN_CFG_NUM_MAC_PORTS; i++)
+    if (portMask != 0U)
     {
-        if (ENET_IS_BIT_SET(portMask, i))
+        for (i = 0U; i < ETHFW_TSN_CFG_NUM_MAC_PORTS; i++)
         {
-            macPort = ENET_MACPORT_DENORM(i);
+            if (ENET_IS_BIT_SET(portMask, i))
+            {
+                macPort = ENET_MACPORT_DENORM(i);
 
-            /* Linking each MAC port with an interface name */
-            snprintf(&gEthFwTsnObj.netDevInfo.netDevs[j][0], ETHFW_TSN_IFNAMSIZ, "tilld%d", i + 1);
-            gEthFwTsnObj.netDevInfo.gPtpNetDevs[j] = &gEthFwTsnObj.netDevInfo.netDevs[j][0];
-            ethdevs[j].netdev  = gEthFwTsnObj.netDevInfo.netDevs[j];
-            ethdevs[j].macport = macPort;
-            memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
+                /* Linking each MAC port with an interface name */
+                snprintf(&gEthFwTsnObj.netDevInfo.netDevs[j][0], ETHFW_TSN_IFNAMSIZ, "tilld%d", i + 1);
+                gEthFwTsnObj.netDevInfo.gPtpNetDevs[j] = &gEthFwTsnObj.netDevInfo.netDevs[j][0];
+                ethdevs[j].netdev  = gEthFwTsnObj.netDevInfo.netDevs[j];
+                ethdevs[j].macport = macPort;
+                memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
 
-            ETHFWTRACE_INFO("ETHFW: Enable gPTP on MAC port %u (%s)",
-                            ENET_MACPORT_ID(macPort), gEthFwTsnObj.netDevInfo.gPtpNetDevs[j]);
-            j++;
+                ETHFWTRACE_INFO("ETHFW: Enable gPTP on MAC port %u (%s)",
+                                ENET_MACPORT_ID(macPort), gEthFwTsnObj.netDevInfo.gPtpNetDevs[j]);
+                j++;
+            }
         }
     }
 
     gEthFwTsnObj.netDevInfo.numNetDevs = j;
 
+    ETHFWTRACE_WARN_IF(gEthFwTsnObj.netDevInfo.numNetDevs == 0U,
+                       "gPTP is not enabled on any MAC port");
+    ETHFWTRACE_DBG_IF(hostMacAddr == NULL,
+                      "TSN stack will allocate %u MAC addrs from MAC pool", j);
+
     /* Filling netdev table where each entry consists of an interface,
      * its MAC port and mac addr (if any) */
-    if (status == ETHFW_SOK)
+    if (gEthFwTsnObj.netDevInfo.numNetDevs > 0U)
     {
-        status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
-                                         (Enet_Type) gEthFwTsnObj.enetType,
-                                         gEthFwTsnObj.instId);
-        
-        if (ETHFW_SOK != status)
+        if (status == ETHFW_SOK)
         {
-            status = ETHFW_EFAIL;
-            ETHFWTRACE_ERR(status, "ETHFW: Failed to int devs table");
+            status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
+                                             (Enet_Type) gEthFwTsnObj.enetType,
+                                             gEthFwTsnObj.instId);
+            if (ETHFW_SOK != status)
+            {
+                status = ETHFW_EFAIL;
+                ETHFWTRACE_ERR(status, "ETHFW: Failed to int devs table");
+            }
         }
-    }
 
-    if (ETHFW_SOK == status)
-    {
-        status = EthFwTsn_startMod();
-        ETHFWTRACE_INFO_IF((ETHFW_SOK == status), "ETHFW: TimeSync PTP enabled");
+        if (ETHFW_SOK == status)
+        {
+            status = EthFwTsn_startMod();
+            ETHFWTRACE_INFO_IF((ETHFW_SOK == status), "ETHFW: TimeSync PTP enabled");
+        }
     }
 
     return status;
