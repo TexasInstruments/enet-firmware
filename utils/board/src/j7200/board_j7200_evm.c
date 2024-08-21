@@ -301,7 +301,7 @@ int32_t EthFwBoard_init(uint32_t flags)
     EthFwBoard_detectDBs();
 
     /* Configure QSGMII expansion board */
-    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    if (gEthFwBoard.qenetEnabled)
     {
         EthFwBoard_configQenet();
     }
@@ -326,7 +326,7 @@ uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])
 
     memset(macPorts, 0, sizeof(*macPorts));
 
-    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    if (gEthFwBoard.qenetEnabled)
     {
         req = EnetUtils_min(ENET_MAC_PORT_NUM, ENET_ARRAYSIZE(gEthFw_qenetMacPortCfg));
         for (i = 0U; i < req; i++)
@@ -351,7 +351,7 @@ static const EthFwBoard_MacPortCfg *EthFwBoard_findPortCfg(Enet_MacPort macPort)
     const EthFwBoard_MacPortCfg *portCfg = NULL;
     uint32_t i;
 
-    if (gEthFwBoard.qenetEnabled && gEthFwBoard.qenetDetected)
+    if (gEthFwBoard.qenetEnabled)
     {
         for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_qenetMacPortCfg); i++)
         {
