@@ -1,0 +1,35 @@
+diff --git a/packages/ti/board/src/j742s2_evm/board_serdes_cfg.c b/packages/ti/board/src/j742s2_evm/board_serdes_cfg.c
+index cb184134a..6c77257df 100644
+--- a/packages/ti/board/src/j742s2_evm/board_serdes_cfg.c
++++ b/packages/ti/board/src/j742s2_evm/board_serdes_cfg.c
+@@ -213,7 +213,7 @@ static Board_STATUS Board_CfgQsgmii1(void)
+ 
+     /* QSGMII Config */
+     serdesLaneEnableParams.serdesInstance    = (CSL_SerdesInstance)BOARD_SERDES_SGMII_INSTANCE;
+-    serdesLaneEnableParams.baseAddr          = CSL_WIZ16B8M4CT3_1_WIZ16B8M4CT3_BASE;
++    serdesLaneEnableParams.baseAddr          = CSL_WIZ16B8M4CT3_2_WIZ16B8M4CT3_BASE;
+     serdesLaneEnableParams.refClock          = CSL_SERDES_REF_CLOCK_100M;
+     serdesLaneEnableParams.refClkSrc         = CSL_SERDES_REF_CLOCK_INT0;
+     serdesLaneEnableParams.linkRate          = CSL_SERDES_LINK_RATE_5G;
+diff --git a/packages/ti/board/src/j742s2_evm/include/board_serdes_cfg.h b/packages/ti/board/src/j742s2_evm/include/board_serdes_cfg.h
+index e5ae5963e..2c03d1b39 100644
+--- a/packages/ti/board/src/j742s2_evm/include/board_serdes_cfg.h
++++ b/packages/ti/board/src/j742s2_evm/include/board_serdes_cfg.h
+@@ -58,7 +58,7 @@
+ extern "C" {
+ #endif
+ 
+-#define BOARD_SERDES_SGMII_INSTANCE       (CSL_TORRENT_SERDES1)
++#define BOARD_SERDES_SGMII_INSTANCE       (CSL_TORRENT_SERDES2)
+ 
+ #define BOARD_SERDES_SGMII_ENET1_LANE_NUM       (2U)
+ #define BOARD_SERDES_SGMII_ENET1_LANE_COUNT     (1U)
+@@ -68,7 +68,7 @@ extern "C" {
+ #define BOARD_SERDES_SGMII_ENET2_LANE_COUNT     (1U)
+ #define BOARD_SERDES_SGMII_ENET2_LANE_MASK      (1 << BOARD_SERDES_SGMII_ENET2_LANE_NUM)
+ 
+-#define BOARD_SERDES_LANE_SELECT_CPSW           (0U)
++#define BOARD_SERDES_LANE_SELECT_CPSW           (1U)
+ 
+ extern CSL_SerdesStatus CSL_serdesConfigStatus (uint32_t baseAddr);
+ 

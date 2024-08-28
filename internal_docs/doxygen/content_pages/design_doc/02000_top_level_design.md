@@ -13,10 +13,12 @@ The directory structure of the Ethernet Firmware is shown below::
     │   │   ├── j7200
     │   │   ├── j721e
     │   │   ├── j784s4
+    |   |   ├── j742s2
     │   ├── app_remoteswitchcfg_server      # Ethernet Firmware server application
     │   │   ├── j7200
     │   │   ├── j721e
     │   │   ├── j784s4
+    |   |   ├── j742s2
     │   ├── common                          # Common MPU settings for J721E/J7200
     │   ├── ipc_cfg                         # Common IPC configuration
     │   └── tap                             # Linux user-space demo app for intercore interface

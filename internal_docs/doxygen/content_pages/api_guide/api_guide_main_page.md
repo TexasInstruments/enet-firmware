@@ -3,7 +3,7 @@
 # Introduction {#ethfw_api_introduction}
 
 Ethernet Firmware is a RTOS based server-client application which runs on Cortex
-R5F 0 core 0 in main domain of J721E, J7200 and J784S4 SoCs. ETHFW enables multiple
+R5F 0 core 0 in main domain of J721E, J7200, J784S4 and J742S2 SoCs. ETHFW enables multiple
 client drivers to run independently on the remaining cores in the system. So the
 multiport CPSW switch present in the Jacinto family devices will be shared among
 all the participating cores within the SoC. ETHFW owns the CPSW switch and provides

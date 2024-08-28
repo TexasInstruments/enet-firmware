@@ -95,7 +95,7 @@ The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is 
 | Resource    | Count  | EthFw Usage (mcu2_0)
 |:------------|:------:|:-----------------------------------
 | TX channel  |   2    | <ul><li>lwIP netif (1)</li><li>gPTP (1)
-| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4)</li><li>SW interVLAN (1)</li><li>Reserved flow (1)</li></ul>
+| RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4 and J742S2)</li><li>SW interVLAN (1)</li><li>Reserved flow (1)</li></ul>
 | MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
 
 UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
@@ -171,14 +171,14 @@ is periodically synchronized with the CPTS clock via HW push event 2.
 In SoCs with multiple R5F cores, system design may require virtual network support on a 
 different R5F core, instead of Main R5F 0 Core 1.
 Starting from SDK 10.0, Ethernet Firmware provides RTOS client support on Main R5F 1 core 0 
-(*mcu3_0*) in all supported SoCs (i.e. J721E and J784S4).
+(*mcu3_0*) in all supported SoCs (i.e. J721E, J784S4 and J742S2).
 This is exactly the same FreeRTOS client example application which runs on Main R5F 0 core 1.
 
 RTOS client by default is enabled for Main R5F 0 core 1. `ETHFW_RTOS_MCU3_0_SUPPORT` is the
 build flag defined in `<ethfw>/ethfw_build_flags.mak` to enable RTOS client on Main R5F 1 core 0.
 Use the following commands to build EthFw with RTOS client on Main R5F 0 core 1:
 ```C
-make -s -j ethfw_all BUILD_SOC_LIST=<J721E/J784S4> PROFILE=<release/debug> ETHFW_RTOS_MCU3_0_SUPPORT=yes
+make -s -j ethfw_all BUILD_SOC_LIST=<J721E/J784S4/J742S2> PROFILE=<release/debug> ETHFW_RTOS_MCU3_0_SUPPORT=yes
 ```
 
 It's worth noting that RTOS client is sharing the same resources (same virtual switch/mac ports and tx channels) 
@@ -309,7 +309,7 @@ mode has been enabled, let's start by defining key concepts:
 ![](EthFw_PortCfg_generic.png "Ethernet Firmware logical ports and hardware ports")
 
 The default port configuration for J721E and J7200 are shown in \ref ethfw_j721e_port_cfg
-\ref ethfw_j7200_port_cfg and \ref ethfw_j784s4_port_cfg subsections, respectively.
+\ref ethfw_j7200_port_cfg, \ref ethfw_j784s4_port_cfg and \ref ethfw_j742s2_port_cfg subsections, respectively.
 
 The port's default VLAN for MAC ports configured in MAC-only mode is `0`, and for MAC ports
 configured in switch mode is `1`. They can be changed via `EthFw_Config::dfltVlanIdMacOnlyPorts`
@@ -683,6 +683,46 @@ MAC ports 2, 6, 7 and 8 are not enabled.
 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## J742S2 Port Configuration {#ethfw_j742s2_port_cfg}
+
+J742S2 EVM E1 version does not provide any Enet board/connector.
+To test EthFw functionality (\ref ethfw_j742s2_testing) four MAC ports of CPSW9G are 
+enabled by default in Ethernet Firmware for J742S2 SoC.
+
+Two MAC ports are configured in MAC-only mode and allocated for A72 (Linux) and Main R5F
+Core 1 (RTOS) usage. The remaining two MAC ports are configured in switch mode.
+
+![](EthFw_PortCfg_j784s4_evm.png "J742S2 default port configuration")
+
+The following table shows the full list of MAC ports in J742S2 EVM, the board they are
+located and their MAC mode.
+
+| MAC Port    | PHY Addr | Board  | MAC mode
+|:------------|:--------:|:------:|:------------
+| MAC Port 1  |   16     | QSGMII | MAC-only
+| MAC Port 3  |   17     | QSGMII | Switch Port
+| MAC Port 4  |   18     | QSGMII | MAC-only
+| MAC Port 5  |   19     | QSGMII | Switch Port
+
+MAC ports 2, 6, 7 and 8 are not enabled. Note that J742S2 CPSW supports up to 4 ports.
+To maximize pin muxing flexibility, the system designer can choose based on any 
+available ports, but must limit the total number of ports used to 4 or less.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+### ETHFW J742S2 Testing {#ethfw_j742s2_testing}
+
+As J742S2 EVM E1 version does not provide any Enet board/connector, <b>NO</b> functionality 
+test has been done on J742S2-EVM as there is no external port to transfer or receive data.
+
+EthFw (built for J742S2) for CPSW_9G is validated on J784S4-EVM post applying this 
+[patch](pdk_j742s2_serdes_2.patch) in PDK to configure SERDES_2.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Inter-core Virtual Ethernet via Shared Memory Transport {#ethfw_intercore_eth}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -951,7 +991,7 @@ Please refer to the following code in `<ethfw>/apps/tap/tapif.c`:
 # Inter-core Virtual Ethernet via VEPA {#ethfw_intercore_vepa}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-VEPA is supported on J784S4 only, starting from SDK 9.1. EthFw provides support to enable VEPA
+VEPA is supported on J784S4 and J742S2 only, starting from SDK 9.1. EthFw provides support to enable VEPA
 (Virtual Ethernet Port Aggregator) functionality with CPSW capable of _multihost_ data flow.
 _Multihost_ is a CPSW ALE feature that enables packets to be sent and received on host port.
 Multihost is the foundational feature to support VEPA.
@@ -1802,8 +1842,8 @@ Inter-VLAN Routing (HW) | Illustrates hardware offload support for inter-VLAN ro
 ## EthFw Switching & TCP/IP Apps Demo {#ethfw_switching_demo}
 
 This demo showcases switching capabilities of the integrated Ethernet Switch
-(CPSW9G or CPSW5G) found in J721E, J7200 and J784S4 devices for features like VLAN,
-Multicast, etc.  It also demonstrates lwIP (TCP/IP stack) integration into
+(CPSW9G or CPSW5G) found in J721E, J7200, J784S4 and J742S2 devices for features like VLAN,
+Multicast, etc. It also demonstrates lwIP (TCP/IP stack) integration into
 the EthFw.
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -2008,6 +2048,7 @@ J721E   | \ref ethfw_depend_evm_j721e   | \ref ethfw_depend_evm_gesi_j721e
 ^       | ^                             | \ref ethfw_depend_evm_quadport_j721e
 J7200   | \ref ethfw_depend_evm_j721e   | \ref ethfw_depend_evm_quadport_j7200
 J784S4  | \ref ethfw_depend_evm_j784s4  | \ref ethfw_depend_evm_quadport_j784s4
+J742S2  | \ref ethfw_depend_evm_j784s4  | None
 
 
 **Note:** Quad-Port Eth expansion board is supported in all EVMs, but with different
@@ -2068,9 +2109,9 @@ J7200 EVM.
 [Back To Top](@ref ethfw_c_ug_top)
 
 
-### J784S4 EVM {#ethfw_depend_evm_j784s4}
+### J784S4/J742S2 EVM {#ethfw_depend_evm_j784s4}
 
-![](J784S4EVM_CPSW_TopView.png "J784S4 EVM connections")
+![](J784S4EVM_CPSW_TopView.png "J784S4/J742S2 EVM connections")
 
 
 ### J784S4 Quad-Port Eth Expansion Board {#ethfw_depend_evm_quadport_j784s4}
@@ -2157,7 +2198,7 @@ LwIP supports the following features:
 - ARP (Address Resolution Protocol)
 
 Starting in SDK 8.0, Ethernet Firmware has been migrated to lwIP stack.  The actual
-integration of lwIP into J721E/J7200/J784S4 devices is done through Enet LLD, which
+integration of lwIP into J721E/J7200/J784S4/J742S2 devices is done through Enet LLD, which
 implements the lwIP netif driver interface.
 
 The Enet LLD lwIP driver interface implementation can be located at:
@@ -2182,7 +2223,7 @@ The previous gPTP test stack used in SDK 8.x and older releases is no longer sup
 and has been fully removed from both, Enet LLD and Ethernet Firmware.
 
 The new gPTP stack provides time synchronization for CPSW5G/CPSW9G on Main R5F0 core 0
-for J721E, J7200 and J784S4. The stack is composed of the following modules:
+for J721E, J7200, J784S4 and J742S2. The stack is composed of the following modules:
 
   - **tsn_unibase** : Universal utility libraries that are platform-independent.
   - **tsn_combase** : Communication utility libraries that provide support for functions
@@ -2242,6 +2283,8 @@ J721E  | R5F | 009-004-199-024-219-001
 J7200  | R5F | 009-002-199-024-243-001
 J784S4 | R5F | 009-004-199-024-251-001
 
+**Note:** There is no SafeRTOS support for J742S2
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -2251,6 +2294,8 @@ J784S4 | R5F | 009-004-199-024-251-001
 Install Code Composer Studio and setup a <b>Target Configuration</b> for use with
 J721E, J7200 or J784S4 EVM.  Refer to the instructions in *CCS Setup* section of
 the Processor SDK RTOS documentation.
+
+**Note:** There is no CCS support for J742S2
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -2372,6 +2417,10 @@ For J7200:
 For J784S4:
 
     make ethfw_all BUILD_SOC_LIST=J784S4
+
+For J742S2:
+
+    make ethfw_all BUILD_SOC_LIST=J742S2
 
 
 By default, above commands will build Ethernet Firmware for FreeRTOS.
@@ -2535,6 +2584,8 @@ Flag                             | Description
 `-D=J7200`                       | Identifies the J7200 device type
 `-D=SOC_J784S4`                  | Identifies the J784S4 SoC type
 `-D=J784s4`                      | Identifies the J784S4 device type
+`-D=SOC_J742S2`                  | Identifies the J742S2 SoC type
+`-D=J742S2`                      | Identifies the J742S2 device type
 `-D=R5Ft="R5Ft"`                 | Identifies the core type as ARM R5F with Thumb2 enabled
 `-D=TARGET_NUM_CORES=2`          | Identifies the core id as mcu2_0 (ETHFW server)
 `-D=TARGET_NUM_CORES=3`          | Identifies the core id as mcu2_1 (RTOS client)
@@ -2543,7 +2594,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHFW_CPSW_VEPA_SUPPORT`     | Enable VEPA support on EthFw server (only applicable to J784S4)
+`-D=ETHFW_CPSW_VEPA_SUPPORT`     | Enable VEPA support on EthFw server (only applicable to J784S4 and J742S2)
 `-D=ETHAPP_ENABLE_INTERCORE_ETH` | Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
@@ -2575,6 +2626,8 @@ Flag                             | Description
 `-D=J7200`                       | Identifies the J7200 device type
 `-D=SOC_J784S4`                  | Identifies the J784S4 SoC type
 `-D=J784S4`                      | Identifies the J784S4 device type
+`-D=SOC_J742S2`                  | Identifies the J742S2 SoC type
+`-D=J742S2`                      | Identifies the J742S2 device type
 `-D=R5Ft="R5Ft"`                 | Identifies the core type as ARM R5F with Thumb2 enabled
 `-D=TARGET_NUM_CORES=2`          | Identifies the core id as mcu2_0 (ETHFW server)
 `-D=TARGET_NUM_CORES=3`          | Identifies the core id as mcu2_1 (RTOS client)
@@ -2583,7 +2636,7 @@ Flag                             | Description
 `-D=FREERTOS`                    | Identifies as FreeRTOS operating system build
 `-D=SAFERTOS`                    | Identifies as SafeRTOS operating system build
 `-D=ETHFW_PROXY_ARP_SUPPORT`     | Enable Proxy ARP support on EthFw server
-`-D=ETHFW_CPSW_VEPA_SUPPORT`     | Enable VEPA support on EthFw server (only applicable to J784S4)
+`-D=ETHFW_CPSW_VEPA_SUPPORT`     | Enable VEPA support on EthFw server (only applicable to J784S4 and J742S2)
 `-D=ETHAPP_ENABLE_INTERCORE_ETH` | Enable Intercore Virtual Ethernet support (disabled in QNX images)
 `-D=ETHAPP_ENABLE_IPERF_SERVER`  | Enable lwIP iperf server support (TCP only)
 `-D=ENABLE_QSGMII_PORTS`         | Enable QSGMII ports in QpENet expansion board (applicable only to J721E)
@@ -2609,6 +2662,7 @@ Device Family | Variant              | Known by other names
 Jacinto 7     | J721E                | -
 ^             | J7200                | -
 ^             | J784S4               | -
+^             | J742S2               | -
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -2633,6 +2687,7 @@ Revision | Date          | Author                 | Description
 1.5      | 01 Jul 2021   | Misael Lopez           | Updates for J784S4 support and SDK 8.02.01
 1.6      | 10 Feb 2023   | Misael Lopez           | Added SafeRTOS build info
 1.7      | 29 Nov 2023   | Misael Lopez           | SDK 9.1 and VLAN, trace support
+1.8      | 28 Aug 2024   | Vaibhav Jindal         | Added J742S2 support for SDK 10.0.1
 
 [Back To Top](@ref ethfw_c_ug_top)
 (@ref ethfw_c_ug_top)

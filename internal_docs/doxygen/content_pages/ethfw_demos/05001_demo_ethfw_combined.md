@@ -238,14 +238,14 @@ If dynamic IP configuration is not possible, static IPs can be setup as follows:
    for suggested instructions about static IP configuration under a Windows
    environment.
 
-    Device                                           |  IP address
-    ------------------------------------------------ | -------------
-    PC 1                                             | 192.168.1.202
-    J721E/J7200/J784S4 Main R5F core (running EthFw) | 192.168.1.203
-    PC 2                                             | 192.168.1.204
-    J721E/J7200/J784S4 A72 core (virtual net driver) | 192.168.1.205
-    Default Gateway                                  | 192.168.1.1
-    Subnet Mask                                      | 255.255.255.0
+    Device                                                   |  IP address
+    -------------------------------------------------------- | -------------
+    PC 1                                                     | 192.168.1.202
+    J721E/J7200/J784S4/J742S2 Main R5F core (running EthFw)  | 192.168.1.203
+    PC 2                                                     | 192.168.1.204
+    J721E/J7200/J784S4/J742S2 A72 core (virtual net driver)  | 192.168.1.205
+    Default Gateway                                          | 192.168.1.1
+    Subnet Mask                                              | 255.255.255.0
 
 > **Note:** Make sure that all IPs assigned manually are in the same subnet as the Ethernet Firmware.
 
@@ -468,6 +468,8 @@ capable device (i.e. another EVM, PC, TSN switch).
 Install Code Composer Studio and setup a <b>Target Configuration</b> for use
 with J721E, J7200 or J784S4 EVM. Refer to @ref ethfw_instal_ccs.
 
+**Note:** There is no CCS support for J742S2
+
 ### Steps {#demo_ethfw_combined_CCS_steps}
 
 -# Connect a micro USB cable to JTAG port of J721E/J7200/J784S4_EVM. The XDS110 JTAG
@@ -529,11 +531,19 @@ with J721E, J7200 or J784S4 EVM. Refer to @ref ethfw_instal_ccs.
 
    For J721E using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j721e
 
    For J7200 using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ethfw/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j7200
+
+   For J784S4 using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw/out/J784S4/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j784s4
+
+   For J742S2 using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw/out/J742S2/R5Ft/FREERTOS/debug/app_remoteswitchcfg_server_strip.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j742s2
 
 -# If needed, update the soft-link `j7-main-r5f0_0-fw` or `j7200-main-r5f0_0-fw`
    to point to the demo application copied to SD card in the previous step.
@@ -541,29 +551,51 @@ with J721E, J7200 or J784S4 EVM. Refer to @ref ethfw_instal_ccs.
    For J721E:
 
        cd <MOUNT>/rootfs/lib/firmware/
-       ln -sf ethfw/app_remoteswitchcfg_server_strip.xer5f j7-main-r5f0_0-fw
+       ln -sf /lib/firmware/ti-eth/j721e/app_remoteswitchcfg_server_strip.xer5f j7-main-r5f0_0-fw
 
    For J7200:
 
        cd <MOUNT>/rootfs/lib/firmware/
-       ln -sf ethfw/app_remoteswitchcfg_server_strip.xer5f j7200-main-r5f0_0-fw
+       ln -sf /lib/firmware/ti-eth/j7200/app_remoteswitchcfg_server_strip.xer5f j7200-main-r5f0_0-fw
+
+   For J784S4:
+
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf /lib/firmware/ti-eth/j784s4/app_remoteswitchcfg_server_strip.xer5f j784s4-main-r5f0_0-fw
+
+   For J742S2:
+
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf /lib/firmware/ti-eth/j742s2/app_remoteswitchcfg_server_strip.xer5f j742s2-main-r5f0_0-fw
 
 -# **Optional:** Copy the remote client application to the `firmware` directory
    of Linux filesystem in SD card and update soft-link:
 
    For J721E using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J721E/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j721e/
        cd <MOUNT>/rootfs/lib/firmware/
-       ln -sf app_remoteswitchcfg_client.xer5f j7-main-r5f0_1-fw
+       ln -sf /lib/firmware/ti-eth/j721e/app_remoteswitchcfg_client.xer5f j7-main-r5f0_1-fw
 
    For J7200 using FREERTOS:
 
-       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j7200
        cd <MOUNT>/rootfs/lib/firmware/
-       ln -sf app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
+       ln -sf /lib/firmware/ti-eth/j7200/app_remoteswitchcfg_client.xer5f j7200-main-r5f0_1-fw
 
--# Connect a micro USB cable to MAIN Domain UART port on J721E/J7200/J784S4 EVM.
+   For J784S4 using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j784s4
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf /lib/firmware/ti-eth/j784s4/app_remoteswitchcfg_client.xer5f j784s4-main-r5f0_1-fw
+
+   For J742S2 using FREERTOS:
+
+       cp <SDK_INSTALL_PATH>/ethfw/out/J7200/R5Ft/FREERTOS/debug/app_remoteswitchcfg_client.xer5f <MOUNT>/rootfs/lib/firmware/ti-eth/j742s2
+       cd <MOUNT>/rootfs/lib/firmware/
+       ln -sf /lib/firmware/ti-eth/j742s2/app_remoteswitchcfg_client.xer5f j742s2-main-r5f0_1-fw
+
+-# Connect a micro USB cable to MAIN Domain UART port on J721E/J7200/J784S4/J742S2 EVM.
    It's labeled `UART`.
 
 -# Set EVM's DIP switches `SW8` and `SW9` for SD card boot:
@@ -582,7 +614,7 @@ with J721E, J7200 or J784S4 EVM. Refer to @ref ethfw_instal_ccs.
 
    ![](demo_l2_switching_minicom.png "Serial Port Settings in Minicom")
 
--# Insert SD card into slot labeled `MICRO SD` and power on the J721E/J7200/J784S4 EVM board.
+-# Insert SD card into slot labeled `MICRO SD` and power on the J721E/J7200/J784S4/J742S2 EVM board.
 
 [Back To Top](@ref demo_ethfw_combined_top)
 
@@ -617,9 +649,11 @@ with J721E, J7200 or J784S4 EVM. Refer to @ref ethfw_instal_ccs.
 
     -# Connect **PC 2** to MAC port 5 of QPENet board.
 
+> **Note:** Demo application is not supported on J742S2 EVM as there are no ports to connect
+
 > **Note:** The demo application in this release assumes that external devices,
 > **PC 1** and **PC 2**, are connected prior to starting the demo.  It's a
-> **mandatory step**.
+> **mandatory step**
 
 The IPs assigned dynamically to Main R5F cores 0 and 1 will be printed in the
 UART2 serial terminal.
@@ -743,7 +777,7 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 #endif
 #endif
 
-#if defined(SOC_J784S4)
+#if defined(SOC_J784S4) || defined(SOC_J742S2)
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     ENET_MAC_PORT_2,
 #else
@@ -1137,7 +1171,7 @@ of other protocols in the VLAN network.
 
 ## Inter-core Virtual Ethernet communication with VEPA {#ethfw_intercore_communication_vepa}
 
-**Note:** VEPA (Virtual Ethernet Port Aggregator) is supported on J784S4 only, from SDK 9.1 or later.
+**Note:** VEPA (Virtual Ethernet Port Aggregator) is supported on J784S4 and J742S2 only, from SDK 9.1 or later.
 
 VEPA or hairpin mode allows the traffic to return to the same port (host port in this case) 
 at which it ingressed on. It enables to forward broadcast and multicast packets directly to
@@ -1145,11 +1179,11 @@ clients via host port increasing intercore virtual ethernet communication perfor
 
 ### Compile time configuration for VEPA
 
-VEPA is enabled by default for J784S4 for all clients. `ETHFW_CPSW_VEPA_SUPPORT` is the build flag defined in
+VEPA is enabled by default for J784S4 and J742S2 for all clients. `ETHFW_CPSW_VEPA_SUPPORT` is the build flag defined in
 `<ethfw>/ethfw_build_flags.mak` to enable/disable VEPA support.
-Use the following commands to build EthFw <b>without</b> VEPA support on J784S4:
+Use the following commands to build EthFw <b>without</b> VEPA support:
 ```C
-make -s -j ethfw_all BUILD_SOC_LIST=J784S4 PROFILE=<release/debug> ETHFW_CPSW_VEPA_SUPPORT=no
+make -s -j ethfw_all BUILD_SOC_LIST=<J784S4/J742S2> PROFILE=<release/debug> ETHFW_CPSW_VEPA_SUPPORT=no
 ```
 
 ### RTOS client test {#intercore_rtos_client_test_vepa}
@@ -1193,7 +1227,7 @@ core. Incoming broadcast packets follow this data path:
   ![](EthFw_VEPA_A72.png "Inter-core Virtual Ethernet - Linux client test with VEPA")
 
 **Note:** TAP application is not required for intercore ethernet communication 
-when VEPA is enabled for J784S4 with Linux client
+when VEPA is enabled for J784S4 and J742S2 with Linux client
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1242,7 +1276,7 @@ region to allow other cores to access it.
 
 > As an extra check corresponding values should match with Linux device tree overlay's <b>reserved_memory</b> (i.e. main_r5fss0_core0_shared_memory_queue_region and main_r5fss0_core0_shared_memory_bufpool_region) for inter-core network communication as well. Download and install PSDK Linux, instructions are [here](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-jacinto7/latest/exports/docs/vision_apps/docs/user_guide/ENVIRONMENT_SETUP.html).
 > -# Device-tree overlays are present in <b>${PSDKL_PATH}/board-support/ti-linux-kernel-(version)/arch/arm64/boot/dts/ti</b> folder.
-> -# Overlay names are k3-j721e-evm-virt-mac-client.dtso for J721E, k3-j7200-evm-virt-mac-client.dtso for J7200 and k3-j784s4-evm-virt-mac-client.dtso for J784S4 respectively.
+> -# Overlay names are k3-j721e-evm-virt-mac-client.dtso for J721E, k3-j7200-evm-virt-mac-client.dtso for J7200 and k3-j784s4-evm-virt-mac-client.dtso for J784S4/J742S2 respectively.
 
 ##### Compiling and installing TAP application {#intercore_linux_tap_compilation}
 
@@ -1257,7 +1291,7 @@ The steps listed below assume that an SD card is used for Linux booting of the T
 
 -# Cross-compile the TAP application and install in SD card. Here,`<aarch64-none-linux-gnu install dir>`
    is the absolute path where the ARM64 A72 Linux compiler was installed using `setuptools.sh`
-   in previous step. $SOC is the soc (J7200, J721E or J784S4) for which we are running TAP application.
+   in previous step. $SOC is the soc (J7200, J721E, J784S4 or J742S2) for which we are running TAP application.
 
        $ make CROSS_COMPILE=<aarch64-none-linux-gnu install dir>/bin/aarch64-none-linux-gnu- install DESTDIR=<Path to the root file system on SD card> SOC=<SOC>
 
@@ -1651,7 +1685,6 @@ RTOS-App: Added interface 'br2', IP is 10.24.68.87
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 53444332639
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 70575888512
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 87755751908
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Back To Top](@ref demo_ethfw_combined_top)
@@ -1813,7 +1846,6 @@ RTOS-App: Added interface 'br2', IP is 10.24.68.61
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 48601698778
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 70076463468
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 91551303478
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Back To Top](@ref demo_ethfw_combined_top)
@@ -1944,6 +1976,122 @@ RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 124183104725
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 141362929834
 RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 158542800123
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
+
+### J742S2 {#demo_ethfw_combined_output_j742s2}
+
+#### UART Console Logs (MCU2_0 Server Application) {#demo_ethfw_combined_logs_uart_j742s2}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ETHFW: Detected boards: None
+=======================================================
+            CPSW Ethernet Firmware                     
+=======================================================
+ETHFW: Warning: Using 6 random MAC address(es)
+ETHFW: Warning: Using 6 MAC address(es) from static pool
+ETHFW: Shared multicasts:
+ETHFW:   01:00:5e:00:00:01
+ETHFW:   01:00:5e:00:00:fb
+ETHFW:   01:00:5e:00:00:fc
+ETHFW:   33:33:00:00:00:01
+ETHFW:   33:33:ff:1d:92:c2
+ETHFW:   01:80:c2:00:00:00
+ETHFW:   01:80:c2:00:00:03
+ETHFW: Reserved multicasts:
+ETHFW:   01:80:c2:00:00:0e
+ETHFW:   01:1b:19:00:00:00
+EnetMcm: CPSW_9G on MAIN NAVSS
+ETHFW: VLAN 1024 member=0x29 virtMember=0x7 regMcastFlood=0x29 unregMcastFlood=0x29 untag=0x0
+ETHFW: 1 VLAN entries added in ALE table
+
+ETHFW Version   : 0.05.00
+ETHFW Build Date: Aug 28, 2024
+ETHFW Build Time: 13:59:26
+ETHFW Commit SHA: b6cde9d6
+
+unibase-1.1.5-jacinto
+Starting lwIP, local interface IP is dhcp-enabled
+ETHFW: Virtual port configuration:
+ETHFW: Host MAC address: 70:af:73:c0:ef:88
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+Added interface 'ti0', IP is 0.0.0.0
+ETHFW: ETHFW: Enable gPTP on MAC port 3 (tilld3)
+ETHFW: EthFwTsn_gptpYangConfig:domain=0
+ETHFW: ETHFW: TimeSync PTP enabled
+ETHFW: CpswProxyServer: initialization completed (core: mcu2_0)
+INF:cbase:tilld3: has mac: 70:AF:73:C0:EF:88
+INF:cbase:cb_lld_task_create: Uniconf Task stack_size=16384
+INF:cbase:cb_rawsock_open:combase-1.1.4-jacinto
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannels=0 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=
+INF:cbase:cb_lld_task_create: uniconf_hwal_thread stack_size=16384
+INF:cbase:cb_lld_task_create: gPTP Task stack_size=16384
+INF:cbase:cbl_query_response:tilld3 link DOWN !!!!
+INF:gptp:gptpman_run:max_domains=1, max_ports=1
+INF:cbase:cb_rawsock_open:combase-1.1.4-jacinto
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxCannels=0 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:DmaOpen: TxChNum -1
+INF:cbase:DmaOpen: Rx startIdx 114 flowId 6
+INF:cbase:LLDEnetFilter:destmac:01:80:C2:00:00:0E, vlanId:0, ethType:0x88f7
+INF:gptp:dev:tilld3 open success
+INF:gptp:gptpnt_init:Open lldtsync OK!
+INF:gptp:IEEE1588-2019 performance monitoring disabled.
+INF:gptp:onenet_activate:tilld3 status=0, duplex=1, speed=0Mbps
+INF:ubase:GPTP_MEDIUM_ALLOC: fragsize=16 fragused/fragnum=606/1426 (42
+INF:ubase:GPTP_SMALL_ALLOC: frasize=4 fragused/fragnum=13/97 (13
+INF:ubase:SM_DATA_INST: fragsize=8 fragused/fragnum=1100/3806 (28
+INF:gptp:gptpman_run:GPTPNET_INTERVAL_TIMEOUT_NSEC=125000000
+INF:gptp:000002-630952:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70AF:73:FF:FE:C0:EF:88
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate=2
+INF:gptp:set_phase_offsetGM:domainIndex=0, New adjustment(New GM?)
+INF:gptp:set_phase_offsetGM:domainIndex=0, stable
+INF:gptp:domainIndex=0, clock_maste_sync_receive:stable rate, 244msec from unstable
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+#### CCS Console Logs (MCU2_1 Client Application) {#demo_ethfw_combined_logs_sysmin_j742s2}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[MAIN_Cortex_R5_0_1] CpswProxy: Local cmd endpt 101, notify endpt 30
+CpswProxy: ETHFW services found at core 3 endpts 101 (ti.ethfw.ethdevice) and 102 (ti.ethfw.notifyservice)
+RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
+CpswProxy: ATTACH | C2S | virtPort=1
+CpswProxy: ATTACH | S2C | token=100 rxMtu=1522 features=2 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=100 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=100 txPsil=0xca01 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=100
+CpswProxy: ALLOC_RX | S2C | token=100 flow=114,8 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=100
+CpswProxy: ALLOC_MAC | S2C | token=100 macAddr=70:8a:e8:34:9a:cf status=0
+CpswProxy: REGISTER_MAC | C2S | token=100 flowIdx=114,8
+CpswProxy: REGISTER_MAC | S2C | token=100 status=0
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+RTOS-App: Added interface 'ti0', IP is 0.0.0.0
+CpswProxy: REGISTER_REMOTE_TIMER | C2S | token=100 timerId=1 hwPushNum=2
+CpswProxy: REGISTER_REMOTE_TIMER | S2C | token=100 status=0
+RTOS-App: Starting lwIP, local interface IP is dhcp-enabled
+CpswProxy: ATTACH | C2S | virtPort=7
+CpswProxy: ATTACH | S2C | token=700 rxMtu=1522 features=0 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=700 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=700 txPsil=0xca02 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=700
+CpswProxy: ALLOC_RX | S2C | token=700 flow=114,9 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=700
+CpswProxy: ALLOC_MAC | S2C | token=700 macAddr=70:3b:6b:de:67:51 status=0
+CpswProxy: REGISTER_MAC | C2S | token=700 flowIdx=114,9
+CpswProxy: REGISTER_MAC | S2C | token=700 status=0
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+RTOS-App: Added interface 'ti1', IP is 0.0.0.0
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 236546310805
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 253726024785
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 270905875926
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 288085760843
+RTOS-App: Current synchronized time via HWPUSH_2 in Epoch format: 305265628884
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[Back To Top](@ref demo_ethfw_combined_top)
+
 
 ## PPS signal generation {#pps_sig_gen}
 
@@ -2178,3 +2326,4 @@ Revision | Date          | Author                 | Description
 1.5      | 01 Jul 2022   | Misael Lopez           | Updates for v.8.02.01 (J784S4 support)
 1.6      | 15 Aug 2022   | Misael Lopez           | Updates for v.8.04.00
 1.7      | 04 Dec 2022   | Misael Lopez           | Updates for v.8.05.00
+1.8      | 28 Aug 2024   | Vaibhav Jindal         | Added J742S2 support for SDK 10.0.1

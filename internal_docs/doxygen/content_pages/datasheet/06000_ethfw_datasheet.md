@@ -93,6 +93,8 @@ time taken by the Ethernet PHYs to establish a link with the remote partner.  Th
 *Layer-2 switching active* time must take into account the *link time* corresponding to the
 PHY configuration being used.
 
+**Note:** Boot time measurements are not done for J742S2 due to EVM limitation.
+
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Intercore Performance Numbers {#ethfw_performance_numbers}
@@ -361,6 +363,8 @@ VEPA or hairpin mode allows the traffic to return to the same port (host port in
 </table>
 
 <BR>
+
+**Note:** VEPA intercore performance numbers for J742S2 are not published in this release. Will come in later releases.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Document Revision History  {#ethfw_datasheet_rev_hist}

@@ -6,8 +6,8 @@
 # Introduction {#ethfw_porting_intro}
 
 The default implementation of Ethernet Firmware provided in this software package
-enables CPSW switch support on TI EVMs, currently supporting J721E, J7200 and
-J784S4 TI EVMs.  So Ethernet Firmware's default implementation is board specific,
+enables CPSW switch support on TI EVMs, currently supporting J721E, J7200, J784S4 
+and J742S2 TI EVMs.  So Ethernet Firmware's default implementation is board specific,
 and porting is required when enabling a new platform.
 
 The main porting steps will be explained throughout this document, and they can
@@ -215,7 +215,8 @@ The CSL SerDes library support can be found at the following locations:
  - J721E: `<pdk>/packages/ti/csl/src/ip/serdes_cd/V0`
  - J7200: `<pdk>/packages/ti/csl/src/ip/serdes_cd/V1`
  - J721S2: `<pdk>/packages/ti/csl/src/ip/serdes_cd/V2`
- - J784S4: `<pdk>/packages/ti/csl/ src/ip/serdes_cd/V3`
+ - J784S4: `<pdk>/packages/ti/csl/src/ip/serdes_cd/V3`
+ - J742S2: `<pdk>/packages/ti/csl/src/ip/serdes_cd/V3`
 
 
 ## CPSW clocks configuration {#ethfw_porting_board_init_cpsw}
