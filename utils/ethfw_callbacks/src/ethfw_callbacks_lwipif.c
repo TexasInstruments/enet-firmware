@@ -289,13 +289,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     outArgs->rxCsumOffloadEn = BTRUE;
 #endif
 
-    /* TODO: Polling timer is getting corrupted at times of sudden burst of
-     * traffic, because of which timer callback is never called.
-     * With polling timer not functional, packets are never serviced then after.
-     * As a workaround setting isRingMonUsed to true (irrespective of ring monitor
-     * is enabled or not) to ensure interrupts are used instead of polling.
-     * Timer corruption needs to be root-caused and fixed. */
-    rxInfo->disableEvent = !useRingMon;
+    rxInfo->disableEvent = BTRUE;
     outArgs->timerPeriodUs = CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US;
 
     /* Let LwIP interface use optimized processing where TX packets are relinquished
@@ -312,10 +306,18 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     rxInfo->handlePktFxn = NULL;
     rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
 
+    /* Mode of packet operation should be either interrupt or polling 
+     * based, not both. So ensure both Rx and Tx mode have either interrupt
+     * enabled or disabled. based on this configuration, LwipIf layer
+     * will enable one of these two modes. */
+    EnetAppUtils_assert(outArgs->txInfo.disableEvent == outArgs->rxInfo[0U].disableEvent);
+
 #if defined(ETHFW_VEPA_SUPPORT)
     /* Open second RX channel/flow for broadcast/multicast packet duplication */
     rxCfg  = &inArgs->rxCfg[1U];
     rxInfo = &outArgs->rxInfo[1U];
+
+    rxInfo->disableEvent = BTRUE;
 
     status = EthFwCallbacks_setupPacketDuplicationRoute(handleInfo.hEnet,
                                                         attachInfo.coreKey,
@@ -340,6 +342,8 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     rxCfg  = &inArgs->rxCfg[1U];
     rxInfo = &outArgs->rxInfo[1U];
 
+    rxInfo->disableEvent = BTRUE;
+
     status = EthFwCallbacks_setupArpRoute(handleInfo.hEnet,
                                           attachInfo.coreKey,
                                           outArgs->coreId,
@@ -359,6 +363,13 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
         rxInfo->handlePktFxn = EthFwCallbacks_handleArpRxPktFxn;
     }
 #endif
+
+    /* Mode of packet operation should be either interrupt or polling 
+     * based, not both. So ensure modes of both flows have either interrupt
+     * enabled or disabled. based on this configuration, LwipIf layer
+     * will enable one of these two modes. */
+    EnetAppUtils_assert(outArgs->rxInfo[0U].disableEvent == outArgs->rxInfo[1U].disableEvent);
+
 
     rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
 }
