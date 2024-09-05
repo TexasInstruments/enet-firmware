@@ -75,6 +75,8 @@
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #include <ti/drv/udma/udma.h>
 #include <ti/drv/enet/enet.h>
@@ -309,15 +311,14 @@ void tearDown(void)
 #endif
 }
 
-static void CpswRemoteTestApp_initTask(void* a0,
-                                       void* a1)
+static void CpswRemoteTestApp_initTask(void* a0)
 {
-    TaskP_Params params;
+    EthFwOsal_TaskParams params;
     uint32_t numProc = gNumRemoteProc;
     Ipc_VirtIoParams vqParam;
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
-    MailboxP_Params mbxParams;
+    EthFwOsal_MailboxParams mbxParams;
     CpswProxy_initParams initParams;
 
     int32_t status;
@@ -395,7 +396,7 @@ static void CpswRemoteTestApp_initTask(void* a0,
     gProxy = CpswProxy_open(&gProxyConfig);
     localAssert(gProxy != NULL);
 
-    /* SafeRTOS doesn't have support for MailboxP_delete and teardown/setup functions
+    /* SafeRTOS doesn't have support for EthFwOsal_deleteMailbox and teardown/setup functions
      * deletes and creates new mailbox as a result UT fails on SafeRTOS after 20
      * test cases (OSAL_SAFERTOS_CONFIGNUM_MAILBOX) . As a solution, 
      * Init and deinit only once for SafeRTOS per client */
@@ -459,8 +460,8 @@ static void CpswRemoteTestApp_initTask(void* a0,
 
 int main(void)
 {
-    TaskP_Handle task;
-    TaskP_Params taskParams;
+    EthFwOsal_TaskHandle task;
+    EthFwOsal_TaskParams taskParams;
     int32_t status;
 
     OS_init();
@@ -484,12 +485,12 @@ int main(void)
         localAssert(status == ENET_SOK);
     }
 
-    TaskP_Params_init(&taskParams);
+    EthFwOsal_initTaskParams(&taskParams);
     taskParams.priority = 2;
     taskParams.stack = &g_initTaskStackBuf[0];
     taskParams.stacksize = sizeof(g_initTaskStackBuf);
 
-    task = TaskP_create(&CpswRemoteTestApp_initTask, &taskParams);
+    task = EthFwOsal_createTask(&CpswRemoteTestApp_initTask, &taskParams);
 
     if (NULL == task)
     {

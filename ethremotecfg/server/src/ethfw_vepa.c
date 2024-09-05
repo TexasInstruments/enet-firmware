@@ -82,6 +82,8 @@
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include "ethfw_vepa_priv.h"
 
 /* ========================================================================== */
@@ -122,11 +124,8 @@ typedef struct EthFwVepa_Obj_s
     /* MAC address associated with virtual switch port */
     struct eth_addr virtPortToMacAddr[ETHREMOTECFG_SWITCH_PORT_LAST + 1];
 
-    /* Mutex object. Used to protect Vepa table from concurrent accesses */
-    MutexP_Object mutexObj;
-
-    /* Handle to Vepa table mutex */
-    MutexP_Handle hMutex;
+    /* Mutex handle. Used to protect Vepa table from concurrent accesses */
+    EthFwOsal_MutexHandle hMutex;
 
     /* Flow idx where packets to be duplicated arrive at */
     uint32_t packetDuplicationFlowIdx;
@@ -187,7 +186,7 @@ int32_t EthFwVepa_init(const EthFwVepa_Cfg *vepaCfg)
     uint32_t i;
 
     /* Create mutex to protect VEPA table */
-    gEthFwVepaObj.hMutex = MutexP_create(&gEthFwVepaObj.mutexObj);
+    gEthFwVepaObj.hMutex = EthFwOsal_createMutex();
     if (gEthFwVepaObj.hMutex == NULL)
     {
         status = ETHFW_EFAIL;
@@ -223,7 +222,7 @@ void EthFwVepa_deinit(void)
     if (gEthFwVepaObj.hMutex != NULL)
     {
         EthFwVepa_flushTable();
-        MutexP_delete(gEthFwVepaObj.hMutex);
+        EthFwOsal_deleteMutex(gEthFwVepaObj.hMutex);
         gEthFwVepaObj.hMutex = NULL;
     }
     else
@@ -236,7 +235,7 @@ uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx)
 {
     int32_t status = ETHFW_EFAIL;
 
-    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
 
     if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
     {
@@ -244,21 +243,21 @@ uint32_t EthFwVepa_setPacketDuplicationFlowIdx(uint32_t flowIdx)
         status = ETHFW_SOK;
     }
 
-    MutexP_unlock(gEthFwVepaObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVepaObj.hMutex);
 
     return status;
 }
 
 void EthFwVepa_clearPacketDuplicationFlowIdx(void)
 {
-    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
 
     if (gEthFwVepaObj.packetDuplicationFlowIdx != ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
     {
         gEthFwVepaObj.packetDuplicationFlowIdx = ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED;
     }
 
-    MutexP_unlock(gEthFwVepaObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVepaObj.hMutex);
 }
 
 /* Given a multicast/broadcast address, it returns virtPortMask
@@ -271,7 +270,7 @@ static int32_t EthFwVepa_getVirtPortMask(struct eth_addr *hwAddr,
     int32_t status = ETHFW_EFAIL;
     uint32_t i;
 
-    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
 
     /* Check if VEPA table has a corresponding entry */
     for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
@@ -289,7 +288,7 @@ static int32_t EthFwVepa_getVirtPortMask(struct eth_addr *hwAddr,
         }
     }
 
-    MutexP_unlock(gEthFwVepaObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVepaObj.hMutex);
 
     return status;
 }
@@ -384,7 +383,7 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
     uint32_t i;
     bool done = BFALSE;
 
-    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
 
     if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
     {
@@ -444,7 +443,7 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
         }
     }
 
-    MutexP_unlock(gEthFwVepaObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVepaObj.hMutex);
 
     return status;
 }
@@ -462,7 +461,7 @@ int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
     int32_t status = ETHFW_EFAIL;
     uint32_t i;
 
-    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
 
     /* Check if VEPA table has a corresponding entry */
     for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
@@ -502,7 +501,7 @@ int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
         }
     }
 
-    MutexP_unlock(gEthFwVepaObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVepaObj.hMutex);
 
     return status;
 }
@@ -561,7 +560,7 @@ void EthFwVepa_flushTable(void)
 {
     uint32_t i;
 
-    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
 
     /* Removes all entries from the VEPA table */
     memset(gEthFwVepaObj.remoteCoreVepaTable, 0U, sizeof(gEthFwVepaObj.remoteCoreVepaTable));
@@ -570,7 +569,7 @@ void EthFwVepa_flushTable(void)
         gEthFwVepaObj.remoteCoreVepaTable[i].isFree = BTRUE;
     }
 
-    MutexP_unlock(gEthFwVepaObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVepaObj.hMutex);
 }
 
 int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
@@ -780,7 +779,7 @@ uint32_t EthFwVepa_getUseCnt(void)
     uint32_t cnt = 0U;
     uint32_t i;
 
-    MutexP_lock(gEthFwVepaObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
 
     for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
     {
@@ -790,7 +789,7 @@ uint32_t EthFwVepa_getUseCnt(void)
         }
     }
 
-    MutexP_unlock(gEthFwVepaObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVepaObj.hMutex);
 
     return cnt;
 }

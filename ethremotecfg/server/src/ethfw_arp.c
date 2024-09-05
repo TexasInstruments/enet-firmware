@@ -80,6 +80,8 @@
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include "ethfw_arp_priv.h"
 
 /* ========================================================================== */
@@ -115,11 +117,8 @@ typedef struct EthFwArp_Obj_s
     /*! ARP table */
     EthFwArp_AddrEntry remoteCoreArpTable[ETHFW_ARP_TABLE_SIZE];
 
-    /*! Mutex object. Used to protect ARP table from concurrent accesses */
-    MutexP_Object mutexObj;
-
-    /*! Handle to ARP table mutex */
-    MutexP_Handle hMutex;
+    /*! Mutex handle. Used to protect ARP table from concurrent accesses */
+    EthFwOsal_MutexHandle hMutex;
 } EthFwArp_Obj;
 
 /* ========================================================================== */
@@ -150,7 +149,7 @@ int32_t EthFwArp_init(void)
     uint32_t i;
 
     /* Create mutex to protect ARP table */
-    gEthFwArpObj.hMutex = MutexP_create(&gEthFwArpObj.mutexObj);
+    gEthFwArpObj.hMutex = EthFwOsal_createMutex();
     if (gEthFwArpObj.hMutex == NULL)
     {
         status = ETHFW_EFAIL;
@@ -173,7 +172,7 @@ void EthFwArp_deinit(void)
 {
     if (gEthFwArpObj.hMutex != NULL)
     {
-        MutexP_delete(gEthFwArpObj.hMutex);
+        EthFwOsal_deleteMutex(gEthFwArpObj.hMutex);
     }
     else
     {
@@ -189,7 +188,7 @@ int32_t EthFwArp_getHwAddr(const ip4_addr_t *ipAddr,
     int32_t status = ETHFW_EFAIL;
     uint32_t i;
 
-    MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwArpObj.hMutex);
 
     for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
     {
@@ -206,7 +205,7 @@ int32_t EthFwArp_getHwAddr(const ip4_addr_t *ipAddr,
         }
     }
 
-    MutexP_unlock(gEthFwArpObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwArpObj.hMutex);
 
     return status;
 }
@@ -232,7 +231,7 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
     }
     else
     {
-        MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
+        EthFwOsal_lockMutex(gEthFwArpObj.hMutex);
 
         /* Check if an entry already in table needs to be updated */
         for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
@@ -271,7 +270,7 @@ int32_t EthFwArp_addAddr(const ip4_addr_t *ipAddr,
             }
         }
 
-        MutexP_unlock(gEthFwArpObj.hMutex);
+        EthFwOsal_unlockMutex(gEthFwArpObj.hMutex);
 
         status = done ? ETHFW_SOK : ETHFW_EALLOC;
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
@@ -292,7 +291,7 @@ int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
     bool done = BFALSE;
     uint32_t i;
 
-    MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwArpObj.hMutex);
 
     for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
     {
@@ -311,7 +310,7 @@ int32_t EthFwArp_delAddr(const ip4_addr_t *ipAddr,
         }
     }
 
-    MutexP_unlock(gEthFwArpObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwArpObj.hMutex);
 
     status = done ? ETHFW_SOK : ETHFW_EFAIL;
 
@@ -323,7 +322,7 @@ uint32_t EthFwArp_getUseCnt(void)
     uint32_t cnt = 0U;
     uint32_t i;
 
-    MutexP_lock(gEthFwArpObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwArpObj.hMutex);
 
     for (i = 0U; i < ETHFW_ARP_TABLE_SIZE; i++)
     {
@@ -333,7 +332,7 @@ uint32_t EthFwArp_getUseCnt(void)
         }
     }
 
-    MutexP_unlock(gEthFwArpObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwArpObj.hMutex);
 
     return cnt;
 }

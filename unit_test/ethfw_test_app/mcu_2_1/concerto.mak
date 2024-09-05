@@ -40,6 +40,7 @@ endif
 STATIC_LIBS += ethfw_remotecfg_client
 STATIC_LIBS += ethfw_common
 STATIC_LIBS += unity_console
+STATIC_LIBS += ethfw_abstract
 
 # TODO: Client app should be agnostic of port specifics
 ifeq ($(TARGET_PLATFORM),J7200)

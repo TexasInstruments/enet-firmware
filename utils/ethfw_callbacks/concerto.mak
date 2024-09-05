@@ -11,6 +11,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 IDIRS := ${ETHFW_PATH}
+IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-stack/src/include
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/$(TARGET_OS_LC)/include

@@ -52,6 +52,8 @@
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include "ethfw_vlan_priv.h"
 
 /* ========================================================================== */
@@ -100,11 +102,8 @@ typedef struct EthFwVlan_Obj_s
     /* Number of valid VLAN configuration entries */
     uint32_t numVlans;
 
-    /*! Mutex object used to protect VLAN configuration table */
-    MutexP_Object mutexObj;
-
-    /*! Handle to VLAN table mutex */
-    MutexP_Handle hMutex;
+    /*! Mutex handle used to protect VLAN configuration table */
+    EthFwOsal_MutexHandle hMutex;
 } EthFwVlan_Obj;
 
 /* ========================================================================== */
@@ -159,7 +158,7 @@ int32_t EthFwVlan_init(Enet_Handle hEnet,
     int32_t status = ENET_SOK;
 
     /* Create mutex to protect VLAN configuration table */
-    gEthFwVlanObj.hMutex = MutexP_create(&gEthFwVlanObj.mutexObj);
+    gEthFwVlanObj.hMutex = EthFwOsal_createMutex();
     if (gEthFwVlanObj.hMutex == NULL)
     {
         status = ENET_EFAIL;
@@ -215,7 +214,7 @@ void EthFwVlan_deinit(Enet_Handle hEnet)
     /* Delete VLAN configuration table mutex */
     if (gEthFwVlanObj.hMutex != NULL)
     {
-        MutexP_delete(gEthFwVlanObj.hMutex);
+        EthFwOsal_deleteMutex(gEthFwVlanObj.hMutex);
         gEthFwVlanObj.hMutex = NULL;
     }
 }
@@ -239,7 +238,7 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
                        macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
-    MutexP_lock(gEthFwVlanObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVlanObj.hMutex);
 
     /* Get VLAN info for the VLAN id that remote client is trying to join */
     if (status == ENET_SOK)
@@ -288,7 +287,7 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
         vlan->virtActiveMask |= ENET_BIT(virtPort);
     }
 
-    MutexP_unlock(gEthFwVlanObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVlanObj.hMutex);
 
     return status;
 }
@@ -312,7 +311,7 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
                        macAddr[3U], macAddr[4U], macAddr[5U]);
     }
 
-    MutexP_lock(gEthFwVlanObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVlanObj.hMutex);
 
     /* Get VLAN info for the VLAN id that remote client is trying to join */
     vlan = EthFwVlan_getVlan(vlanId);
@@ -368,7 +367,7 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
                           "Failed to delete classifier for VLAN %u flowIdx %u", vlanId, flowIdx);
     }
 
-    MutexP_unlock(gEthFwVlanObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVlanObj.hMutex);
 
     return status;
 }
@@ -379,12 +378,12 @@ bool EthFwVlan_isInVlan(EthRemoteCfg_VirtPort virtPort,
     EthFwVlan_Vlan *vlan = NULL;
     bool active = BFALSE;
 
-    MutexP_lock(gEthFwVlanObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwVlanObj.hMutex);
 
     vlan = EthFwVlan_getVlan(vlanId);
     active = (vlan != NULL) && ENET_IS_BIT_SET(vlan->virtActiveMask, virtPort);
 
-    MutexP_unlock(gEthFwVlanObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwVlanObj.hMutex);
 
     return active;
 }

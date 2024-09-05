@@ -21,6 +21,7 @@ ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
 endif
 
 IDIRS := ${ETHFW_PATH}
+IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
 IDIRS += $(PDK_PATH)/packages
 IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack
 IDIRS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/tsn_combase/tilld/jacinto

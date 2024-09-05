@@ -94,6 +94,8 @@
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #include <ti/drv/enet/include/mod/cpsw_cpts.h>
 
@@ -241,14 +243,11 @@ typedef struct EthFwTsn_Obj_s
     /* TSN stack netdev info */
     EthFwTsn_NetDevInfo netDevInfo;
 
-    /* Mutex object used for TSN stack logging */
-    MutexP_Object logMutexObj;
-
-    /* Mutex handle for logMutexObj */
-    MutexP_Handle hLogMutex;
+    /* Mutex handle used for TSN stack logging */
+    EthFwOsal_MutexHandle hLogMutex;
 
     /* TSN stack logging task handle */
-    TaskP_Handle hLogTask;
+    EthFwOsal_TaskHandle hLogTask;
 
     /* TSN logger task stack buffer */
     uint8_t logTaskStackBuf[ETHFW_TSN_LOGGER_TASK_STACK_SIZE] __attribute__ ((aligned(ETHFW_TSN_LOGGER_TASK_STACK_ALIGN)));
@@ -467,7 +466,7 @@ static EthFwTsn_GptpOpt gGptpOpt =
 /*                          Function Definitions                              */
 /* ========================================================================== */
 
-static void EthFwTsn_logTask(void *a0, void *a1)
+static void EthFwTsn_logTask(void *a0)
 {
     int32_t len;
     int32_t maxLen = sizeof(gEthFwTsnObj.traceBuf);
@@ -476,7 +475,7 @@ static void EthFwTsn_logTask(void *a0, void *a1)
 
     while (gEthFwTsnObj.logTaskrun)
     {
-        MutexP_lock(gEthFwTsnObj.hLogMutex, MutexP_WAIT_FOREVER);
+        EthFwOsal_lockMutex(gEthFwTsnObj.hLogMutex);
         len = strlen((char *)gEthFwTsnObj.logBuf);
         if (len > 0U)
         {
@@ -484,7 +483,7 @@ static void EthFwTsn_logTask(void *a0, void *a1)
             gEthFwTsnObj.logBuf[0U] = 0U;
             gEthFwTsnObj.printBuf[len] = 0U;
         }
-        MutexP_unlock(gEthFwTsnObj.hLogMutex);
+        EthFwOsal_unlockMutex(gEthFwTsnObj.hLogMutex);
 
         if (len > 0U)
         {
@@ -500,7 +499,7 @@ static void EthFwTsn_logTask(void *a0, void *a1)
             while (retLen > 0U && i <= len);
         }
 
-        TaskP_sleepInMsecs(100U);
+        EthFwOsal_sleepTaskinMsecs(100U);
     }
 }
 
@@ -511,7 +510,7 @@ static int32_t EthFwTsn_logBuffer(bool flush, const char *str)
     int32_t loglen = strlen(str);
     int32_t status = ENET_SOK;
 
-    MutexP_lock(gEthFwTsnObj.hLogMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwTsnObj.hLogMutex);
     usedLen = strlen((char *)gEthFwTsnObj.logBuf);
     bufSizeLeft = sizeof(gEthFwTsnObj.logBuf)-usedLen;
     if (bufSizeLeft > loglen)
@@ -522,25 +521,25 @@ static int32_t EthFwTsn_logBuffer(bool flush, const char *str)
     {
         snprintf((char *)&gEthFwTsnObj.logBuf[0], sizeof(gEthFwTsnObj.logBuf), "log overflow!\n");
     }
-    MutexP_unlock(gEthFwTsnObj.hLogMutex);
+    EthFwOsal_unlockMutex(gEthFwTsnObj.hLogMutex);
 
     return status;
 }
 
 static void EthFwTsn_startLogTask(void)
 {
-    TaskP_Params params;
+    EthFwOsal_TaskParams params;
 
-    gEthFwTsnObj.hLogMutex = MutexP_create(&gEthFwTsnObj.logMutexObj);
+    gEthFwTsnObj.hLogMutex = EthFwOsal_createMutex();
 
     /* Create logging task for gPTP stack */
-    TaskP_Params_init(&params);
+    EthFwOsal_initTaskParams(&params);
     params.priority  = ETHFW_TSN_LOGGER_TASK_PRIORITY;
     params.stack     = &gEthFwTsnObj.logTaskStackBuf[0];
     params.stacksize = sizeof(gEthFwTsnObj.logTaskStackBuf);
     params.name      = "ETHFW Log Task";
 
-    gEthFwTsnObj.hLogTask = TaskP_create(&EthFwTsn_logTask, &params);
+    gEthFwTsnObj.hLogTask = EthFwOsal_createTask(&EthFwTsn_logTask, &params);
     if (NULL == gEthFwTsnObj.hLogTask)
     {
         ETHFWTRACE_ERR(ENET_EFAIL, "Failed to create log task");
@@ -720,12 +719,12 @@ void EthFwTsn_deInit(void)
 
     if (gEthFwTsnObj.hLogTask != NULL)
     {
-        TaskP_delete(&gEthFwTsnObj.hLogTask);
+        EthFwOsal_deleteTask(&gEthFwTsnObj.hLogTask);
         gEthFwTsnObj.hLogTask = NULL;
     }
     if (gEthFwTsnObj.hLogMutex != NULL)
     {
-        MutexP_delete(gEthFwTsnObj.hLogMutex);
+        EthFwOsal_deleteMutex(gEthFwTsnObj.hLogMutex);
         gEthFwTsnObj.hLogMutex = NULL;
     }
     if (gEthFwTsnObj.ucCfg.ucReadySem != NULL)

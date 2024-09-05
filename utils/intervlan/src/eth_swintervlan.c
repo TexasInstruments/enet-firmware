@@ -79,6 +79,8 @@
 
 #include <utils/intervlan/include/eth_swintervlan.h>
 #include <utils/console_io/include/app_log.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -137,7 +139,7 @@ typedef struct
     uint32_t txChNum;
 
     /* Semaphore for signalling packet ready for processing*/
-    SemaphoreP_Handle completionSem;
+    EthFwOsal_SemHandle completionSem;
 
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
 
@@ -176,17 +178,15 @@ static uint8_t gAppTskStackMain[APP_TSK_STACK_SIZE]
  __attribute__((section(".bss:appStack")))
 __attribute__ ((aligned(APP_TSK_STACK_ALIGN)));
 
-static TaskP_Handle task;
+static EthFwOsal_TaskHandle task;
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-static void CpswApp_InterVlanRouting(void* a0,
-                                     void* a1)
+static void CpswApp_InterVlanRouting(void* a0)
 {
     int32_t status;
     EnetDma_PktQ fqPktInfoQ, cqPktInfoQ;
-    SemaphoreP_Params semParams;
     EnetMcm_HandleInfo handleInfo;
     EnetPer_AttachCoreOutArgs attachInfo;
     EnetMcm_CmdIf cmdIf;
@@ -217,10 +217,7 @@ static void CpswApp_InterVlanRouting(void* a0,
         EnetAppUtils_assert(gCpswInterVlanAppObj.hUdmaDrv == NULL);
     }
 
-    SemaphoreP_Params_init(&semParams);
-    semParams.mode = SemaphoreP_Mode_BINARY;
-
-    gCpswInterVlanAppObj.completionSem = SemaphoreP_create(0, &semParams);
+    gCpswInterVlanAppObj.completionSem = EthFwOsal_createSemaphore(0U);
 
     status = CpswApp_getRxTxHandle();
     appLogPrintf("Rx Flow for Software Inter-VLAN Routing is up\n");
@@ -281,7 +278,7 @@ void CpswApp_ingRxIsrFxn(void *appData)
     EnetDma_disableRxEvent(*rxFlow);
 
     /*Step2 : Post semaphore for signalling the Forwarding task */
-    SemaphoreP_post(gCpswInterVlanAppObj.completionSem);
+    EthFwOsal_postSemaphore(gCpswInterVlanAppObj.completionSem);
 }
 
 void CpswApp_txIsrFxn(void *appData)
@@ -293,7 +290,7 @@ void CpswApp_txIsrFxn(void *appData)
     EnetDma_disableTxEvent(*txChn);
 
     /*Step2 : Post semaphore for signalling the Forwarding task */
-    SemaphoreP_post(gCpswInterVlanAppObj.completionSem);
+    EthFwOsal_postSemaphore(gCpswInterVlanAppObj.completionSem);
 }
 
 static void CpswApp_initRxReadyPktQ(void)
@@ -709,7 +706,7 @@ static void CpswApp_pktRxTx(void)
     SemaphoreP_Status semStatus;
     uint32_t iterationCount = 0U;
     volatile bool testDone = BFALSE;
-    TaskP_Handle hTask;
+    EthFwOsal_TaskHandle hTask;
 
     /*  The packet handling loop is structured as described below
      *  The outer loop waits for semaphore notification from RX completion
@@ -724,10 +721,10 @@ static void CpswApp_pktRxTx(void)
      */
     EnetQueue_initQ(&gCpswInterVlanAppObj.rxReadyQ);
 
-    hTask = TaskP_self();
+    hTask = EthFwOsal_getTaskSelf();
     if (hTask != NULL)
     {
-        TaskP_setPrio(hTask, 5);
+        EthFwOsal_setTaskPrio(hTask, 5);
     }
 
     do
@@ -762,7 +759,7 @@ static void CpswApp_pktRxTx(void)
 #endif
 
             /* Pend on semaphore notification event from Rx Completion ISR */
-            semStatus = SemaphoreP_pend(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
+            semStatus = EthFwOsal_pendSemaphore(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
             if (semStatus != SemaphoreP_OK)
             {
                 iterationCount++;
@@ -788,7 +785,7 @@ static void CpswApp_pktRxTx(void)
                 /* Consume the received packets and release them */
                 /* TODO: Invalidate for the header portion*/
                 frame = (EthVlanFrame *)pktInfo->sgList.list[0].bufPtr;
-                CacheP_Inv((Ptr)frame, PKT_HEADER_SIZE);
+                EthFwOsal_invCache((Ptr)frame, PKT_HEADER_SIZE);
 
                 /* Step2: Modify SA, DA fields of Ethernet header*/
 
@@ -806,7 +803,7 @@ static void CpswApp_pktRxTx(void)
                     EthFrame_decrementTTL(frame);
 
                     /* TODO: Flush the cache contents for header region */
-                    CacheP_wbInv((Ptr)frame, PKT_HEADER_SIZE);
+                    EthFwOsal_invCache((Ptr)frame, PKT_HEADER_SIZE);
 
                     /* Step3: Enq the modified frame for transmission */
                     EnetQueue_enq(&txSubmitQ, &pktInfo->node);
@@ -858,19 +855,19 @@ static uint32_t CpswApp_receivePkts(void)
 void EthSwInterVlan_setupRouting(Enet_Type enetType,
                                  uint32_t swInterVlanTaskPri)
 {
-    TaskP_Params params;
+    EthFwOsal_TaskParams params;
 
     gCpswInterVlanAppObj.enetType = enetType;
 
     /* Initialize the task params. Set the task priority higher than the
      * default priority (1) */
-    TaskP_Params_init(&params);
+    EthFwOsal_initTaskParams(&params);
     params.priority = swInterVlanTaskPri;
     params.stack = gAppTskStackMain;
     params.stacksize = sizeof(gAppTskStackMain);
     params.name = "Eth SW InterVLAN Task";
 
-    task = TaskP_create(&CpswApp_InterVlanRouting, &params);
+    task = EthFwOsal_createTask(&CpswApp_InterVlanRouting, &params);
     if (task == NULL)
     {
         OS_stop();

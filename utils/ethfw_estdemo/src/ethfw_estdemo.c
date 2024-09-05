@@ -78,6 +78,8 @@
 #include <utils/ethfw_common/include/ethfw_utils.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_types.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #include <tsn_uniconf/yangs/yang_db_runtime.h>
 #include <tsn_uniconf/ucman.h>
@@ -649,7 +651,7 @@ static void EthFwEstDemo_runTalker(EstDemoAppCtx *ctx)
     while (!EthFwEstDemo_isPTPClockStateSync(ctx, ctx->netdev[ctx->ifidx]))
     {
         appLogPrintf("Waiting for PTP clock to be synchronized!\n");
-        TaskP_sleepInMsecs(2000ULL);
+        EthFwOsal_sleepTaskinMsecs(2000ULL);
     }
 
     uint32_t schedIdx = 0U;
@@ -658,7 +660,7 @@ static void EthFwEstDemo_runTalker(EstDemoAppCtx *ctx)
                                    ctx->netdev[ctx->ifidx]);
     if (status == 0U)
     {
-        TaskP_sleepInMsecs((ctx->adminDelayOffset)/1000);
+        EthFwOsal_sleepTaskinMsecs((ctx->adminDelayOffset)/1000);
 
         EthFwEstDemo_startTalker(ctx, &gEthFwEstDemoTestLists[schedIdx].stParam);
     }
@@ -735,7 +737,7 @@ static void EthFwEstDemo_runListener(EstDemoAppCtx *ctx)
     while (!EthFwEstDemo_isPTPClockStateSync(ctx, ctx->netdev[ctx->ifidx]))
     {
         appLogPrintf("Waiting for PTP clock to be synchronized!\n");
-        TaskP_sleepInMsecs(2000ULL);
+        EthFwOsal_sleepTaskinMsecs(2000ULL);
     }
 
     EthFwEstDemo_calcExpectedTimeSlot(ctx, &gEthFwEstDemoTestLists[schedIdx].list,
@@ -1044,7 +1046,7 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
         while (gptpmasterclock_init(NULL))
         {
             /* wait gptpmaster clock ready */
-            TaskP_sleepInMsecs(100000);
+            EthFwOsal_sleepTaskinMsecs(100000);
         }
     }
 
@@ -1172,7 +1174,7 @@ static void *EthFwEstDemo_talkerHandler(void *arg)
         if (nShortSleep >= HIGH_CPU_LOAD_THRESHOLD && minSleepTime > 0U)
         {
             minSleepTime = UB_MSEC_US;
-            TaskP_yield();
+            EthFwOsal_yieldTask();
             nShortSleep = 0U;
         }
 
@@ -1359,7 +1361,7 @@ static void *EthFwEstDemo_listenerHandler(void *arg)
                           &addr, sizeof(CB_SOCKADDR_LL_T));
         if (status <= ETHFW_SOK)
         {
-            TaskP_yield();
+            EthFwOsal_yieldTask();
             status = CB_SEM_WAIT(&listener->rxPacketSem);
             if (status != ETHFW_SOK)
             {

@@ -62,6 +62,8 @@
 
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <utils/console_io/include/app_log.h>
 
@@ -98,9 +100,9 @@ typedef struct
 
     ClockP_Handle hStatsClock;
 
-    SemaphoreP_Handle clockSem;
+    EthFwOsal_SemHandle clockSem;
 
-    TaskP_Handle hStatsCollectorTask;
+    EthFwOsal_TaskHandle hStatsCollectorTask;
 
     bool ethfwStatsUpdateEnable;
 
@@ -111,7 +113,7 @@ typedef struct
 static app_ethfw_stats_obj_t g_app_ethfw_stats_obj;
 static uint8_t g_ethfwStatsCollectorStack[APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE] __attribute__ ((aligned(APP_ETHFW_STATS_COLLECTOR_TASK_STACKALIGN)));
 
-static void appEthfw_statsCollectorTask(void *arg0, void *arg1);
+static void appEthfw_statsCollectorTask(void *arg0);
 static void appEthfwStats_clockCb(void *arg);
 
 
@@ -122,23 +124,23 @@ static void appEthfwStats_clockCb(void *arg)
 
     if (obj->ethfwStatsUpdateEnable == BTRUE)
     {
-        SemaphoreP_post(obj->clockSem);
+        EthFwOsal_postSemaphore(obj->clockSem);
     }
 }
 
 static int32_t appEthfw_createClock(app_ethfw_stats_obj_t *obj)
 {
     int32_t status = ENET_SOK;
-    ClockP_Params clkParams;
+    EthFwOsal_ClockParams clkParams;
 
-    ClockP_Params_init(&clkParams);
-    clkParams.startMode = ClockP_StartMode_AUTO;
+    EthFwOsal_initClockParams(&clkParams);
+    clkParams.startMode = ETHFWCLOCK_STARTMODE_AUTO;
     clkParams.period    = APP_ETHFW_STATS_POLL_PERIOD_MS;
-    clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
+    clkParams.runMode   = ETHFWCLOCK_RUNMODE_CONTINUOUS;
     clkParams.arg       = (void *)obj;
 
     /* Creating clock and setting clock callback function*/
-    obj->hStatsClock = ClockP_create((void*) &appEthfwStats_clockCb,
+    obj->hStatsClock = EthFwOsal_createClock((void*) &appEthfwStats_clockCb,
                                       &clkParams);
     if (obj->hStatsClock == NULL)
     {
@@ -183,7 +185,7 @@ static void appEthfw_calculateBw(CpswStats_PortStats currPortStats,
     *rx_bandwidth = ((rxOctetsDiff + (rxFramesDiff * APP_ETHFW_STATS_BW_FRAMES_MULT)) * (APP_ETHFW_STATS_BW_MULT));
 }
 
-static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
+static void appEthfw_statsCollectorTask(void *arg0)
 {
     Enet_IoctlPrms prms;
     CpswStats_PortStats currPortStats;
@@ -194,7 +196,7 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
 
     while (!obj->ethfwStatsShutdown)
     {
-        SemaphoreP_pend(obj->clockSem, SemaphoreP_WAIT_FOREVER);
+        EthFwOsal_pendSemaphore(obj->clockSem, ETHFWOSAL_WAIT_FOREVER);
 
         /* Set Host port status to true always*/
         obj->ethfwPortBw.isportenabled[0] = BTRUE;
@@ -251,8 +253,7 @@ static void appEthfw_statsCollectorTask(void *arg0, void *arg1)
 int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
 {
     int32_t status = ENET_SOK;
-    SemaphoreP_Params semParams;
-    TaskP_Params params;
+    EthFwOsal_TaskParams params;
     EnetPer_AttachCoreOutArgs attachInfo;
     EnetMcm_HandleInfo handleInfo;
     EnetMcm_CmdIf cmdIf;
@@ -275,9 +276,7 @@ int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
     obj->hEnet = handleInfo.hEnet;
     obj->coreKey = attachInfo.coreKey;
 
-    SemaphoreP_Params_init(&semParams);
-    semParams.mode = SemaphoreP_Mode_BINARY;
-    obj->clockSem = SemaphoreP_create(1U, &semParams);
+    obj->clockSem = EthFwOsal_createSemaphore(1U);
     if(obj->clockSem==NULL)
     {
         appLogPrintf("ETHFW STATS: Unable to create clock semaphore\n");
@@ -286,15 +285,14 @@ int32_t appEthfwStatsInit(Enet_Type enetType, uint32_t instId)
 
     if (status == ENET_SOK)
     {
-        TaskP_Params_init(&params);
+        EthFwOsal_initTaskParams(&params);
         params.name      = "EthFw stats collector Task";
         params.priority  = APP_ETHFW_STATS_COLLECTOR_TASK_PRI;
         params.stack     = g_ethfwStatsCollectorStack;
         params.stacksize = APP_ETHFW_STATS_COLLECTOR_TASK_STACKSIZE;
         params.arg0      = (void *)obj;
-        params.arg1      = NULL;
 
-        obj->hStatsCollectorTask = (void *)TaskP_create(&appEthfw_statsCollectorTask,
+        obj->hStatsCollectorTask = (void *)EthFwOsal_createTask(&appEthfw_statsCollectorTask,
                                                         &params);
         if (NULL == obj->hStatsCollectorTask)
         {
@@ -382,9 +380,9 @@ static void appEthfwStatsDeleteStatsCollectorTask(app_ethfw_stats_obj_t *obj)
     uint32_t sleep_time = 16U;
 
     /* confirm task termination */
-    while ( ! TaskP_isTerminated(obj->hStatsCollectorTask) )
+    while ( ! EthFwOsal_isTaskTerminated(obj->hStatsCollectorTask) )
     {
-        TaskP_sleepInMsecs(sleep_time);
+        EthFwOsal_sleepTaskinMsecs(sleep_time);
         sleep_time >>= 1U;
         if (sleep_time == 0U)
         {
@@ -392,7 +390,7 @@ static void appEthfwStatsDeleteStatsCollectorTask(app_ethfw_stats_obj_t *obj)
             break;
         }
     }
-    TaskP_delete(&obj->hStatsCollectorTask);
+    EthFwOsal_deleteTask(&obj->hStatsCollectorTask);
 }
 
 void appEthfwStatsDeInit(void)
@@ -404,11 +402,11 @@ void appEthfwStatsDeInit(void)
     appEthfwStatsDeleteStatsCollectorTask(obj);
 
     /* Delete semaphore */
-    SemaphoreP_delete(obj->clockSem);
+    EthFwOsal_deleteSemaphore(obj->clockSem);
 
     /* Stop and delete the clock */
-    ClockP_stop(obj->hStatsClock);
-    ClockP_delete(obj->hStatsClock);
+    EthFwOsal_stopClock(obj->hStatsClock);
+    EthFwOsal_deleteClock(obj->hStatsClock);
 
     obj->ethfwStatsUpdateEnable = BFALSE;
     obj->ethfwStatsShutdown = BTRUE;

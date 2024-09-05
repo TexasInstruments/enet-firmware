@@ -27,6 +27,7 @@ endif
 
 IDIRS += $(PDK_PATH)/packages
 IDIRS += $(ETHFW_PATH)
+IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
 
 ifeq ($(ETHFW_RAND_MACADDR_GEN),yes)
   DEFS += ETHFW_RAND_MACADDR_GEN

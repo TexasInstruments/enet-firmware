@@ -57,6 +57,7 @@ endif
 IDIRS += $(PDK_PATH)/packages
 IDIRS += $(REMOTE_DEVICE_PATH)
 IDIRS += $(ETHFW_PATH)
+IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
     LDIRS += $(PDK_PATH)/packages/ti/osal/lib/${TARGET_OS_LC}/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/

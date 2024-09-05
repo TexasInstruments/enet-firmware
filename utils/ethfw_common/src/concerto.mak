@@ -10,6 +10,7 @@ ifneq (,$(filter $(TARGET_PLATFORM),J721E J7200 J784S4 J742S2))
     CSOURCES := ethfw_trace.c
 
     IDIRS := ${ETHFW_PATH}
+    IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
     IDIRS += $(PDK_PATH)/packages
 
     DEFS += MAKEFILE_BUILD

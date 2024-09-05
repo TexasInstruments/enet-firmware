@@ -99,6 +99,8 @@
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
 #include <utils/board/include/ethfw_board_utils.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/server/include/ethfw.h>
@@ -357,6 +359,10 @@ static EthFwTrace_Cfg gEthApp_traceCfg =
 
 void setUp(void)
 {
+    EnetOsal_Cfg *osalPrms = NULL;
+    EnetUtils_Cfg *utilsPrms = NULL;
+
+    Enet_init(osalPrms, utilsPrms);
     Cpsw_Cfg *cpswCfg = &gEthTestAppObj.hEthFwCfg.cpswCfg;
 
     EnetRm_MacAddressPool *pool = &cpswCfg->resCfg.macList;
@@ -393,12 +399,15 @@ void tearDown(void)
     memset(&gEthTestAppObj.hEthFwCfg, 0, sizeof(EthFw_Config)); 
 }
 
-static void EthFwTest_initTask(void* a0,
-                               void* a1)
+static void EthFwTest_initTask(void* a0)
 {
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     EthFw_Version ver;
     int32_t status = ETHAPP_OK;
+    EnetOsal_Cfg *osalPrms = NULL;
+    EnetUtils_Cfg *utilsPrms = NULL;
+
+    Enet_init(osalPrms, utilsPrms);
 
     /* Initialize EthFw trace utils */
     EthFwTrace_init(&gEthApp_traceCfg);
@@ -432,8 +441,8 @@ static void EthFwTest_initTask(void* a0,
 
 int main(void)
 {
-    TaskP_Handle task;
-    TaskP_Params taskParams;
+    EthFwOsal_TaskHandle task;
+    EthFwOsal_TaskParams taskParams;
     int32_t status;
 
     OS_init();
@@ -444,13 +453,13 @@ int main(void)
     gEthTestAppObj.coreId = EnetSoc_getCoreId();
 
     /* Create initialization task */
-    TaskP_Params_init(&taskParams);
+    EthFwOsal_initTaskParams(&taskParams);
     taskParams.priority = 2;
     taskParams.stack = &gEthTestAppStackBuf[0];
     taskParams.stacksize = sizeof(gEthTestAppStackBuf);
     taskParams.name = "Test App Init Task";
 
-    task = TaskP_create(&EthFwTest_initTask, &taskParams);
+    task = EthFwOsal_createTask(&EthFwTest_initTask, &taskParams);
     if (NULL == task)
     {
         OS_stop();

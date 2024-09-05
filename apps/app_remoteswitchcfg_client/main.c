@@ -73,6 +73,8 @@
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
 #include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
@@ -393,7 +395,7 @@ typedef struct CpswRemoteApp_Obj_s
 
 #if defined(ETHFW_MONITOR_SUPPORT)
     /* Mailbox of virtual netifs to be closed during CPSW recovery */
-    MailboxP_Handle hMbx;
+    EthFwOsal_MailboxHandle hMbx;
 
     /* Mailbox buffer for storing all the command messages */
     uint8_t mbxBuf[ETHAPP_VIRTNETIF_MBX_SIZE] __attribute__ ((aligned(32)));
@@ -478,8 +480,7 @@ static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif);
 
 char *VerStr = "LWIP CPSW Example";
 
-static void EthApp_lwipMain(void *a0,
-                            void *a1);
+static void EthApp_lwipMain(void *a0);
 
 static void EthApp_initLwip(void *arg);
 
@@ -494,8 +495,7 @@ static void EthApp_openDma(struct netif *netif);
 
 static void EthApp_closeDma(struct netif *netif);
 
-static void CpswRemoteApp_hwRecoveryTask(void *a0,
-                                         void *a1);
+static void CpswRemoteApp_hwRecoveryTask(void *a0);
 
 static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
                                            void *notifyArg,
@@ -675,15 +675,14 @@ static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
     }
 }
 
-static void rpmsg_vdevMonitorFxn(void* arg0,
-                                 void* arg1)
+static void rpmsg_vdevMonitorFxn(void* arg0)
 {
     int32_t status = IPC_SOK;
 
     /* Wait for Linux VDev ready... */
     while (!Ipc_isRemoteReady(IPC_MPU1_0))
     {
-        TaskP_sleep(10);
+        EthFwOsal_sleepTask(10U);
     }
 
     /* Create the VRing now ... */
@@ -761,15 +760,14 @@ void printDevInfo(EthRemoteCfg_DeviceData *ethDevData)
                     ethDevData->uartId);
 }
 
-static void CpswRemoteApp_initTask(void* a0,
-                                   void* a1)
+static void CpswRemoteApp_initTask(void* a0)
 {
-    TaskP_Params params;
+    EthFwOsal_TaskParams params;
     uint32_t numProc = gNumRemoteProc;
     Ipc_VirtIoParams vqParam;
     Ipc_InitPrms initPrms;
     RPMessage_Params cntrlParam;
-    MailboxP_Params mbxParams;
+    EthFwOsal_MailboxParams mbxParams;
     CpswProxy_initParams initParams;
     int32_t status;
     uint32_t i;
@@ -826,12 +824,12 @@ static void CpswRemoteApp_initTask(void* a0,
     }
 
     /* Step 4: Create RPMessage monitor task */
-    TaskP_Params_init(&params);
+    EthFwOsal_initTaskParams(&params);
     params.priority = 3;
     params.stack = &g_vdevMonStackBuf[0];
     params.stacksize = sizeof(g_vdevMonStackBuf);
 
-    TaskP_create(&rpmsg_vdevMonitorFxn, &params);
+    EthFwOsal_createTask(&rpmsg_vdevMonitorFxn, &params);
 
     /* Step 5: Start Cpsw Proxy */
     /* Initialize config to default values, this is NOT mandatory */
@@ -860,7 +858,7 @@ static void CpswRemoteApp_initTask(void* a0,
     }
 
     /* Step 6: Initialize lwIP */
-    TaskP_Params_init(&params);
+    EthFwOsal_initTaskParams(&params);
     params.priority  = DEFAULT_THREAD_PRIO;
     params.stack     = &gEthAppLwipStackBuf[0];
     params.stacksize = sizeof(gEthAppLwipStackBuf);
@@ -869,35 +867,35 @@ static void CpswRemoteApp_initTask(void* a0,
     params.userData  = &gEthApp_lwipMainSemObj;
 #endif
 
-    TaskP_create(&EthApp_lwipMain, &params);
+    EthFwOsal_createTask(&EthApp_lwipMain, &params);
 
 #if defined(ETHFW_MONITOR_SUPPORT)
     /* Step 7: Create mailbox to pass virtual netifs to close during recovery */
-    MailboxP_Params_init(&mbxParams);
+    EthFwOsal_initMailboxParams(&mbxParams);
     mbxParams.name    = (uint8_t *)"VirtNetif Mbox";
     mbxParams.size    = ETHAPP_VIRTNETIF_MBX_MSGSIZE;
     mbxParams.count   = ETHAPP_VIRTNETIF_MBX_MSGCOUNT;
     mbxParams.buf     = (void *)&gRemoteAppObj.mbxBuf[0U];
     mbxParams.bufsize = sizeof(gRemoteAppObj.mbxBuf);
 
-    gRemoteAppObj.hMbx = MailboxP_create(&mbxParams);
+    gRemoteAppObj.hMbx = EthFwOsal_createMailbox(&mbxParams);
 
     /* Step 8: Create HW recovery task */
-    TaskP_Params_init(&params);
+    EthFwOsal_initTaskParams(&params);
     params.name      = "HW Recovery Task";
     params.priority  = ETHAPP_HWRECOVERY_TASK_PRI;
     params.arg0      = (void *)&gRemoteAppObj;
     params.stack     = &gEthAppRecoveryStackBuf[0];
     params.stacksize = sizeof(gEthAppRecoveryStackBuf);
 
-    TaskP_create(&CpswRemoteApp_hwRecoveryTask, &params);
+    EthFwOsal_createTask(&CpswRemoteApp_hwRecoveryTask, &params);
 #endif
 }
 
 int main(void)
 {
-    TaskP_Handle task;
-    TaskP_Params taskParams;
+    EthFwOsal_TaskHandle task;
+    EthFwOsal_TaskParams taskParams;
     int32_t status;
 
     OS_init();
@@ -921,12 +919,12 @@ int main(void)
         localAssert(status == ENET_SOK);
     }
 
-    TaskP_Params_init(&taskParams);
+    EthFwOsal_initTaskParams(&taskParams);
     taskParams.priority = 2;
     taskParams.stack = &g_initTaskStackBuf[0];
     taskParams.stacksize = sizeof(g_initTaskStackBuf);
 
-    task = TaskP_create(&CpswRemoteApp_initTask, &taskParams);
+    task = EthFwOsal_createTask(&CpswRemoteApp_initTask, &taskParams);
 
     if (NULL == task)
     {
@@ -1120,8 +1118,7 @@ static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
     }
 }
 
-static void EthApp_lwipMain(void *a0,
-                            void *a1)
+static void EthApp_lwipMain(void *a0)
 {
     err_t err;
     sys_sem_t initSem;
@@ -1726,7 +1723,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
 
     /* Put some delay for flow to close by Sciclient.
      * Temp change will be removed when gPTP_stop issue is resolved. */
-    TaskP_sleep(200U);
+    EthFwOsal_sleepTask(200U);
     releaseInfo->rxInfo[0U].hRxFlow = NULL;
 
     releaseInfo->rxFreePkt[0U].cb(releaseInfo->rxFreePkt[0U].cbArg, &fqPktInfoQ, &cqPktInfoQ);
@@ -1774,7 +1771,7 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
             msgMbx.notifyType = notifyType;
             ETHFWTRACE_INFO("Virtual %s port %u: HWERROR notify received",
                             isMacPort ? "MAC" : "switch", portNum);
-        MailboxP_post(gRemoteAppObj.hMbx,  (void *)&msgMbx, MailboxP_WAIT_FOREVER);
+        EthFwOsal_postMailbox(gRemoteAppObj.hMbx,  (void *)&msgMbx, ETHFWOSAL_WAIT_FOREVER);
         }
         else if (notifyType == ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE)
         {
@@ -1782,7 +1779,7 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
             msgMbx.notifyType = notifyType;
             ETHFWTRACE_INFO("Virtual %s port %u: HWRECOVERY_COMPLETE notify received",
                     isMacPort ? "MAC" : "switch", portNum);
-            MailboxP_post(gRemoteAppObj.hMbx, (void *)&msgMbx, MailboxP_WAIT_FOREVER);
+            EthFwOsal_postMailbox(gRemoteAppObj.hMbx, (void *)&msgMbx, ETHFWOSAL_WAIT_FOREVER);
         }
         else
         {
@@ -1795,8 +1792,7 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
     }
 }
 
-static void CpswRemoteApp_hwRecoveryTask(void *a0,
-                                         void *a1)
+static void CpswRemoteApp_hwRecoveryTask(void *a0)
 {
     CpswRemoteApp_HwRecoveryMsg msgMbx;
     volatile bool exitTask = BFALSE;
@@ -1805,7 +1801,7 @@ static void CpswRemoteApp_hwRecoveryTask(void *a0,
 
     while (!exitTask)
     {
-        MailboxP_pend(gRemoteAppObj.hMbx,  (void *)&msgMbx, MailboxP_WAIT_FOREVER);
+        EthFwOsal_pendMailbox(gRemoteAppObj.hMbx,  (void *)&msgMbx, ETHFWOSAL_WAIT_FOREVER);
 
         isMacPort = CpswProxy_isMacPort(msgMbx.virtNetif->virtPort);
         portNum = CpswProxy_getPortNum(msgMbx.virtNetif->virtPort);

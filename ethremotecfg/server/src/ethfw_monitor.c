@@ -82,6 +82,8 @@
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include <ethremotecfg/server/include/ethfw_monitor.h>
 #include "cpsw_proxy_server.h"
 
@@ -168,13 +170,13 @@ typedef struct EthFwMon_Obj_s
     CpswStats_PortStats cpswStats;
 
     /*! Clock handle for Monitor Task */
-    ClockP_Handle hMonitorClock;
+    EthFwOsal_ClockHandle hMonitorClock;
 
     /*! Semaphore handle for Monitor Task */
-    SemaphoreP_Handle hMonitorSem;
+    EthFwOsal_SemHandle hMonitorSem;
 
     /*! Task handle for Monitor Task */
-    TaskP_Handle hMonitorTask;
+    EthFwOsal_TaskHandle hMonitorTask;
 
     /* To run Monitor Task */
     bool monitorTaskRun;
@@ -192,8 +194,7 @@ typedef struct EthFwMon_Obj_s
 /*                          Function Declarations                             */
 /* ========================================================================== */
 
-static void EthFwMon_Task(void *a0,
-                          void *a1);
+static void EthFwMon_Task(void *a0);
 
 static int32_t EthFwMon_resetHandler(void);
 
@@ -217,7 +218,7 @@ static EthFwMon_Obj gEthFwMonObj;
 void EthFwMon_ClockCb(void *arg)
 {
     /* Post semaphore to Monitor Task */
-    SemaphoreP_post(gEthFwMonObj.hMonitorSem);
+    EthFwOsal_postSemaphore(gEthFwMonObj.hMonitorSem);
 }
 
 void EthFwMon_initCfg(EthFwMon_Cfg *monCfg)
@@ -252,14 +253,11 @@ int32_t EthFwMon_init(const EthFwMon_Cfg *monCfg,
 
 int32_t EthFwMon_startTask(void)
 {
-    SemaphoreP_Params semParams;
-    ClockP_Params clkParams;
-    TaskP_Params params;
+    EthFwOsal_ClockParams clkParams;
+    EthFwOsal_TaskParams params;
     int32_t status = ETHFW_SOK;
 
-    SemaphoreP_Params_init(&semParams);
-    semParams.mode = SemaphoreP_Mode_BINARY;
-    gEthFwMonObj.hMonitorSem = SemaphoreP_create(1U, &semParams);
+    gEthFwMonObj.hMonitorSem = EthFwOsal_createSemaphore(1U);
 
     if (gEthFwMonObj.hMonitorSem == NULL)
     {
@@ -271,14 +269,14 @@ int32_t EthFwMon_startTask(void)
     if (status == ETHFW_SOK)
     {
         /* Create Monitor Task to monitor and detect EthFw's failure. */
-        TaskP_Params_init(&params);
+        EthFwOsal_initTaskParams(&params);
         params.priority  = ETHFW_MON_TASK_PRIORITY;
         params.stack     = &gEthFwMonObj.monTaskStackBuf[0];
         params.stacksize = sizeof(gEthFwMonObj.monTaskStackBuf);
         params.name      = "ETHFW Monitor Task";
         gEthFwMonObj.monitorTaskRun = BTRUE;
 
-        gEthFwMonObj.hMonitorTask = TaskP_create(&EthFwMon_Task, &params);
+        gEthFwMonObj.hMonitorTask = EthFwOsal_createTask(&EthFwMon_Task, &params);
 
         if (gEthFwMonObj.hMonitorTask == NULL)
         {
@@ -290,13 +288,13 @@ int32_t EthFwMon_startTask(void)
 
     if (status == ETHFW_SOK)
     {
-        ClockP_Params_init(&clkParams);
-        clkParams.startMode = ClockP_StartMode_AUTO;
+        EthFwOsal_initClockParams(&clkParams);
+        clkParams.startMode = ETHFWCLOCK_STARTMODE_AUTO;
         clkParams.period    = gEthFwMonObj.monitor.periodInMsecs;
-        clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
+        clkParams.runMode   = ETHFWCLOCK_RUNMODE_CONTINUOUS;
 
         /* Creating clock and setting clock callback function */
-        gEthFwMonObj.hMonitorClock = ClockP_create((void*)&EthFwMon_ClockCb, &clkParams);
+        gEthFwMonObj.hMonitorClock = EthFwOsal_createClock((void*)&EthFwMon_ClockCb, &clkParams);
         if (gEthFwMonObj.hMonitorClock == NULL)
         {
             status = ETHFW_EALLOC;
@@ -313,16 +311,16 @@ void EthFwMon_stopTask(void)
 
     if (gEthFwMonObj.hMonitorTask != NULL)
     {
-        TaskP_delete(&gEthFwMonObj.hMonitorTask);
+        EthFwOsal_deleteTask(&gEthFwMonObj.hMonitorTask);
         gEthFwMonObj.hMonitorTask = NULL;
     }
 
     /* Delete semaphore */
-    SemaphoreP_delete(gEthFwMonObj.hMonitorSem);
+    EthFwOsal_deleteSemaphore(gEthFwMonObj.hMonitorSem);
 
     /* Stop and delete the clock */
-    ClockP_stop(gEthFwMonObj.hMonitorClock);
-    ClockP_delete(gEthFwMonObj.hMonitorClock);
+    EthFwOsal_stopClock(gEthFwMonObj.hMonitorClock);
+    EthFwOsal_deleteClock(gEthFwMonObj.hMonitorClock);
 }
 
 static void EthFwMon_saveStats(void)
@@ -517,8 +515,7 @@ static bool EthFwMon_analyzePortStats(Enet_MacPort macPort)
     return needsRecovery;
 }
 
-static void EthFwMon_Task(void *a0,
-                              void *a1)
+static void EthFwMon_Task(void *a0)
 {
     EnetMcm_HandleInfo handleInfo;
     Enet_MacPort macPort;
@@ -543,7 +540,7 @@ static void EthFwMon_Task(void *a0,
 
     while (gEthFwMonObj.monitorTaskRun)
     {
-        SemaphoreP_pend(gEthFwMonObj.hMonitorSem, SemaphoreP_WAIT_FOREVER);
+        EthFwOsal_pendSemaphore(gEthFwMonObj.hMonitorSem, ETHFWOSAL_WAIT_FOREVER);
 
         needsRecovery = EthFwMon_analyzeHostStats();
 
@@ -567,7 +564,7 @@ static void EthFwMon_Task(void *a0,
         if (needsRecovery && gEthFwMonObj.recoveryEn)
         {
             /* Stop the clock during reset recovery handling */
-            ClockP_stop(gEthFwMonObj.hMonitorClock);
+            EthFwOsal_stopClock(gEthFwMonObj.hMonitorClock);
 
             /* Stop periodic ticks to Mcm */
             EnetMcm_stopPeriodicTick(&gEthFwMonObj.mcmCmdIf);
@@ -593,7 +590,7 @@ static void EthFwMon_Task(void *a0,
                         isTeardownComplete = BTRUE;
                     }
 
-                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
+                    EthFwOsal_sleepTask(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
 
                     teardownLoopCnt++;
                     if ((teardownLoopCnt % ETHFW_MON_HWRECOVERY_RETRY_LOG_ITER) == 0U)
@@ -620,7 +617,7 @@ static void EthFwMon_Task(void *a0,
                         noPendingReq = BTRUE;
                     }
 #endif
-                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
+                    EthFwOsal_sleepTask(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
                 }
             }
 
@@ -648,7 +645,7 @@ static void EthFwMon_Task(void *a0,
                         isrecoveryPortLinked = BTRUE;
                     }
 
-                    TaskP_sleep(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
+                    EthFwOsal_sleepTask(ETHFW_MON_HWRECOVERY_IDLE_CHECK_PERIOD_MS);
                 }
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -666,7 +663,7 @@ static void EthFwMon_Task(void *a0,
             noPendingReq = BFALSE;
             /* CPSW recovery is complete, ETHFW can be moved back to READY state. */
             EthFw_setStatus(ETHREMOTECFG_SERVERSTATUS_READY);
-            ClockP_start(gEthFwMonObj.hMonitorClock);
+            EthFwOsal_startClock(gEthFwMonObj.hMonitorClock);
         }
     }
 }
@@ -724,7 +721,7 @@ static int32_t EthFwMon_resetHandler(void)
     currentTime = EthFwMon_getCurrentTime(&nanoSeconds, &seconds);
 
     /* Get OS time before triggering a reset */
-    preResetTime = TimerP_getTimeInUsecs();
+    preResetTime = EthFwOsal_getTimeInUsecs();
 
     /* Close MAC Ports */
     status = EnetMcm_closeMacPorts(&gEthFwMonObj.mcmCmdIf);
@@ -766,7 +763,7 @@ static int32_t EthFwMon_resetHandler(void)
     EnetAppUtils_assert(status == ENET_SOK);
 
     /* Get OS time post reset is done */
-    postResetTime = TimerP_getTimeInUsecs();
+    postResetTime = EthFwOsal_getTimeInUsecs();
 
     /* Calculate the updated time( current time + (time taken by during reset)*1000U (convert to nanoseconds))
     * in nanoseconds to be set into CPTS */

@@ -75,6 +75,8 @@
 #include <stdio.h>
 #include <ti/osal/MutexP.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -104,11 +106,8 @@
 /* EthFw Trace object */
 typedef struct EthFwTrace_Obj_s
 {
-    /* Mutex object used to protect print buffer */
-    MutexP_Object mutexObj;
-
     /* Handle to mutex used to protect print buffer */
-    MutexP_Handle hMutex;
+    EthFwOsal_MutexHandle hMutex;
 
     /* Print buffer */
     char printBuf[ETHFW_CFG_PRINT_BUF_LEN];
@@ -147,7 +146,7 @@ int32_t EthFwTrace_init(const EthFwTrace_Cfg *cfg)
 {
     int32_t status = ETHFW_SOK;
 
-    gEthFwTraceObj.hMutex = MutexP_create(&gEthFwTraceObj.mutexObj);
+    gEthFwTraceObj.hMutex = EthFwOsal_createMutex();
     if (gEthFwTraceObj.hMutex == NULL)
     {
         status = ETHFW_EFAIL;
@@ -174,7 +173,7 @@ void EthFwTrace_deinit(void)
 {
     if (gEthFwTraceObj.hMutex != NULL)
     {
-        MutexP_delete(gEthFwTraceObj.hMutex);
+        EthFwOsal_deleteMutex(gEthFwTraceObj.hMutex);
         gEthFwTraceObj.hMutex = NULL;
     }
 }
@@ -199,14 +198,14 @@ void EthFwTrace_print(const char *fmt, ...)
     char *buf = &gEthFwTraceObj.printBuf[0U];
     va_list args;
 
-    MutexP_lock(gEthFwTraceObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwTraceObj.hMutex);
 
     va_start(args, fmt);
     vsnprintf(buf, sizeof(gEthFwTraceObj.printBuf), fmt, args);
     gEthFwTraceObj.print(buf);
     va_end(args);
 
-    MutexP_unlock(gEthFwTraceObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwTraceObj.hMutex);
 }
 
 #if (ETHFW_CFG_TRACE_LEVEL > ETHFW_CFG_TRACE_LEVEL_NONE)
@@ -230,7 +229,7 @@ void EthFwTrace_trace(EthFwTrace_TraceLevel globalLevel,
     va_list ap;
     char *buf = NULL;
 
-    MutexP_lock(gEthFwTraceObj.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gEthFwTraceObj.hMutex);
 
     /* Check if specified level is enabled */
     if (globalLevel >= level)
@@ -294,6 +293,6 @@ void EthFwTrace_trace(EthFwTrace_TraceLevel globalLevel,
         }
     }
 
-    MutexP_unlock(gEthFwTraceObj.hMutex);
+    EthFwOsal_unlockMutex(gEthFwTraceObj.hMutex);
 }
 #endif

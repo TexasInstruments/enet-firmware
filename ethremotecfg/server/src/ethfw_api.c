@@ -84,6 +84,8 @@
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_utils.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include <ethremotecfg/server/include/ethfw.h>
 #include <ethremotecfg/server/include/ethfw_virtport.h>
 #include "cpsw_proxy_server.h"
@@ -1179,12 +1181,12 @@ void EthFw_deinit(EthFw_Handle hEthFw)
     EthFwMon_stopTask();
 #endif
 
-    /* De-initialize MCM */
-    EthFw_deinitMcm();
-
 #if defined(ETHFW_GPTP_SUPPORT)
     EthFwTsn_deInit();
 #endif
+
+    /* De-initialize MCM */
+    EthFw_deinitMcm();
 
     gEthFwObj.numPorts = 0U;
 

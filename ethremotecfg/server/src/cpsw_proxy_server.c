@@ -80,6 +80,8 @@
 /* EthFw utils header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include "cpsw_proxy_server.h"
 #include "ethfw_mcast_priv.h"
 #include "ethfw_arp_priv.h"
@@ -229,9 +231,9 @@ typedef CpswProxyServer_ClientObj *CpswProxyServer_ClientHandle;
 typedef struct CpswProxyServer_AsrServiceObj_s
 {
     /* Task handle for AUTOSAR IPC communication */
-    TaskP_Handle                 hAutosarEthTsk;
+    EthFwOsal_TaskHandle         hAutosarEthTsk;
     /* RPMessage handle for AUTOSAR IPC communication */
-    RPMessage_Handle             hAutosarEthRpMsgEp;
+    RPMessage_Handle         hAutosarEthRpMsgEp;
     /* Processor Id of AUTOSAR client */
     uint32_t                     coreId;
     /* Local endpoint for the AUTOSAR client */
@@ -243,10 +245,10 @@ typedef struct CpswProxyServer_AsrServiceObj_s
 typedef struct CpswProxyServer_NotifyServiceObj_s
 {
     Enet_Type                    notifyServiceCpswType;
-    TaskP_Handle                 hNotifyServiceTsk;
+    EthFwOsal_TaskHandle         hNotifyServiceTsk;
     EventP_Handle                hHwPushNotifyServiceEvent;
     uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HWPUSH_COUNT_MAX];
-    RPMessage_Handle             hNotifyServicRpMsgEp;
+    RPMessage_Handle         hNotifyServicRpMsgEp;
     uint32_t                     hwPush2CoreIdMap[CPSW_CPTS_HWPUSH_COUNT_MAX];
     uint32_t                     hwPush2TokenMap[CPSW_CPTS_HWPUSH_COUNT_MAX];
     uint32_t                     dstProcMask;
@@ -256,18 +258,16 @@ typedef struct CpswProxyServer_NotifyServiceObj_s
 
 typedef struct CpswProxyServer_ClientServiceObj_s
 {
-    TaskP_Handle                 hClientServiceTsk;
-    RPMessage_Handle             hClientServicRpMsgEp;
-    SemaphoreP_Handle            rpmsgStartSem;
+    EthFwOsal_TaskHandle         hClientServiceTsk;
+    RPMessage_Handle         hClientServicRpMsgEp;
+    EthFwOsal_SemHandle          rpmsgStartSem;
     uint32_t                     localEp;
 } CpswProxyServer_ClientServiceObj;
 
 typedef struct CpswProxyServer_Obj_s
 {
-    /* Mutex object used to protect get/free CpswProxy_ClientObjs */
-    MutexP_Object mutexObj;
-    /* Handle to mutexObj */
-    MutexP_Handle hMutex;
+    /* Mutex handle used to protect get/free CpswProxy_ClientObjs */
+    EthFwOsal_MutexHandle hMutex;
     /* enetType of the server object */
     Enet_Type enetType;
     /* coreId of the master core (Server) */
@@ -321,9 +321,9 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj * hSer
                                                       CpswProxyServer_Config_t * cfg,
                                                       uint32_t clientInst);
 
-static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1);
+static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0);
 
-static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0, void* arg1);
+static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0);
 
 static int32_t CpswProxyServer_validateStartIdx(Enet_Handle hEnet,
                                                 uint32_t hostId,
@@ -350,7 +350,7 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
 
 static void CpswProxyServer_hwPushNotifyFxn(void *arg, CpswCpts_HwPush hwPushNum);
 
-static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1);
+static void CpswProxyServer_notifyServiceTaskFxn(void* arg0);
 
 static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer,
                                                    CpswProxyServer_Config_t * cfg);
@@ -480,7 +480,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
     status = CpswProxyServer_getHandle(&hServer);
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(hServer->hMutex);
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj[remoteProcId].clientObj); i++)
     {
@@ -506,7 +506,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
         }
     }
 
-    MutexP_unlock(hServer->hMutex);
+    EthFwOsal_unlockMutex(hServer->hMutex);
 
     if(!isAvailable)
     {
@@ -527,11 +527,11 @@ static void CpswProxyServer_freeClient(CpswProxyServer_ClientHandle hClient)
 
     if (ETHREMOTECFG_SOK == status)
     {
-        MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
+        EthFwOsal_lockMutex(hServer->hMutex);
         memset(hClient, 0, sizeof(*hClient));
         hClient->inUse = BFALSE;
         hClient->token = ETHREMOTECFG_TOKEN_NONE;
-        MutexP_unlock(hServer->hMutex);
+        EthFwOsal_unlockMutex(hServer->hMutex);
     }
 }
 
@@ -548,7 +548,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remotePro
     status = CpswProxyServer_getHandle(&hServer);
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
 
-    MutexP_lock(hServer->hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(hServer->hMutex);
 
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj[remoteProcId].clientObj); i++)
     {
@@ -561,7 +561,7 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remotePro
         }
     }
 
-    MutexP_unlock(hServer->hMutex);
+    EthFwOsal_unlockMutex(hServer->hMutex);
 
     if(!isFound)
     {
@@ -702,7 +702,7 @@ int32_t CpswProxyServer_bcastNotify(uint32_t notifyId)
                 ETHFWTRACE_ERR_IF((ETHFW_SOK != status), status,
                                   "Send Notification failed for coreId: %u", i);
             }
-            TaskP_sleep(50);
+            EthFwOsal_sleepTask(50);
         }
     }
 
@@ -2626,7 +2626,6 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
 
 int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 {
-    SemaphoreP_Params sem_params;
     CpswProxyServer_Obj *hServer;
     RPMessage_Params cntrlParam;
     EnetMcm_CmdIf *hMcmCmdIf;
@@ -2692,11 +2691,9 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 
     if (status == ETHFW_SOK)
     {
-        hServer->hMutex = MutexP_create(&hServer->mutexObj);
+        hServer->hMutex = EthFwOsal_createMutex();
 
-        SemaphoreP_Params_init(&sem_params);
-        sem_params.mode = SemaphoreP_Mode_BINARY;
-        hServer->clientServiceObj.rpmsgStartSem = SemaphoreP_create(0, &sem_params);
+        hServer->clientServiceObj.rpmsgStartSem = EthFwOsal_createSemaphore(0U);
         EnetAppUtils_assert(hServer->clientServiceObj.rpmsgStartSem != NULL);
 
         hServer->numVirtPorts = cfg->numVirtPorts;
@@ -3639,7 +3636,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
 static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *hServer,
                                                            CpswProxyServer_Config_t * cfg)
 {
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     int32_t status = ETHFW_SOK;
     RPMessage_Params comParams;
     uint32_t  localEp;
@@ -3659,7 +3656,7 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
     }
     else
     {
-        SemaphoreP_post(hServer->clientServiceObj.rpmsgStartSem);
+        EthFwOsal_postSemaphore(hServer->clientServiceObj.rpmsgStartSem);
     }
 
     if (ETHFW_SOK == status)
@@ -3670,14 +3667,14 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
     if (ETHFW_SOK == status)
     {
         /* Initialize the task params */
-        TaskP_Params_init(&taskParams);
+        EthFwOsal_initTaskParams(&taskParams);
         taskParams.name         = CPSWPROXY_ETH_CLIENT_TASK_NAME;
         taskParams.priority     = CPSWPROXY_ETH_CLIENT_TASK_PRIORITY;
         taskParams.arg0         = (void*) hServer;
         taskParams.stack        = &gCpswProxyServer_remoteClientEthDriverTaskStackBuf[0];
         taskParams.stacksize    = CPSWPROXY_ETH_CLIENT_TASK_STACK;
 
-        hServer->clientServiceObj.hClientServiceTsk = TaskP_create(&CpswProxyServer_remoteClientEthDriverTaskFxn, &taskParams);
+        hServer->clientServiceObj.hClientServiceTsk = EthFwOsal_createTask(&CpswProxyServer_remoteClientEthDriverTaskFxn, &taskParams);
         if(hServer->clientServiceObj.hClientServiceTsk == NULL)
         {
             status = ETHFW_EFAIL;
@@ -3688,7 +3685,7 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
     return status;
 }
 
-static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0, void* arg1)
+static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0)
 {
     CpswProxyServer_Obj *hServer = (CpswProxyServer_Obj *)arg0;
     int32_t rtnVal = IPC_SOK;
@@ -3760,7 +3757,7 @@ static void CpswProxyServer_hwPushNotifyFxn(void *arg, CpswCpts_HwPush hwPushNum
         CpswProxyServer_Obj *hServer = (CpswProxyServer_Obj *)arg;
 
         /* Post Event */
-        EventP_post(hServer->notifyServiceObj.hHwPushNotifyServiceEvent,
+        EthFwOsal_postEvent(hServer->notifyServiceObj.hHwPushNotifyServiceEvent,
                     hServer->notifyServiceObj.hwPushNotifyEventId[CPSW_CPTS_HWPUSH_NORM(hwPushNum)]);
     }
 }
@@ -3769,7 +3766,7 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
                                                       CpswProxyServer_Config_t * cfg,
                                                       uint32_t clientInst)
 {
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     int32_t retVal = ETHFW_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
@@ -3796,15 +3793,14 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
     if (ETHFW_SOK == retVal)
     {
         /* Initialize the task params */
-        TaskP_Params_init(&taskParams);
+        EthFwOsal_initTaskParams(&taskParams);
         taskParams.name         = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_NAME;
         taskParams.priority     = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_PRIORITY;
-        taskParams.arg0         = (void*) hServer;
-        taskParams.arg1         = (void*) clientInst;
+        taskParams.arg0         = (void*) clientInst;
         taskParams.stack        = &gCpswProxyServer_autosarEthDriverTaskStackBuf[clientInst][0];
         taskParams.stacksize    = CPSWPROXY_AUTOSAR_ETHDRIVER_TASK_STACK;
 
-        hServer->ethDrvObj[clientInst].hAutosarEthTsk = TaskP_create(&CpswProxyServer_autosarEthDriverTaskFxn, &taskParams);
+        hServer->ethDrvObj[clientInst].hAutosarEthTsk = EthFwOsal_createTask(&CpswProxyServer_autosarEthDriverTaskFxn, &taskParams);
         if(hServer->ethDrvObj[clientInst].hAutosarEthTsk == NULL)
         {
             retVal = ETHFW_EFAIL;
@@ -3817,11 +3813,11 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
 
 static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer, CpswProxyServer_Config_t * cfg)
 {
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     int32_t retVal = ETHFW_SOK;
     RPMessage_Params comChParam;
     uint32_t  localEp;
-    EventP_Params eventParams;
+    EthFwOsal_EventParams eventParams;
     uint8_t i = 0;
 
     hServer->notifyServiceObj.notifyServiceCpswType = hServer->enetType;
@@ -3862,14 +3858,14 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
     /* Create Event to notify task */
     if (ETHFW_SOK == retVal)
     {
-        EventP_Params_init(&eventParams);
+        EthFwOsal_initEventParams(&eventParams);
 
         for (i = 0U; i < CPSW_CPTS_HWPUSH_COUNT_MAX; i++)
         {
             hServer->notifyServiceObj.hwPushNotifyEventId[i] = (1U << i);
         }
 
-        hServer->notifyServiceObj.hHwPushNotifyServiceEvent = EventP_create(&eventParams);
+        hServer->notifyServiceObj.hHwPushNotifyServiceEvent = EthFwOsal_createEvent(&eventParams);
 
         if (hServer->notifyServiceObj.hHwPushNotifyServiceEvent == NULL)
         {
@@ -3881,13 +3877,13 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
     if (ETHFW_SOK == retVal)
     {
         /* Initialize the task params */
-        TaskP_Params_init(&taskParams);
+        EthFwOsal_initTaskParams(&taskParams);
         taskParams.name         = CPSWPROXY_NOTIFY_SERVICE_TASK_NAME;
         taskParams.priority     = CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY;
         taskParams.arg0         = (void*) hServer;
         taskParams.stack        = &gCpswProxyServer_notifyServiceTaskStackBuf[0];
         taskParams.stacksize    = CPSWPROXY_NOTIFY_SERVICE_SERVER_TASK_STACKSIZE;
-        hServer->notifyServiceObj.hNotifyServiceTsk = TaskP_create(&CpswProxyServer_notifyServiceTaskFxn, &taskParams);
+        hServer->notifyServiceObj.hNotifyServiceTsk = EthFwOsal_createTask(&CpswProxyServer_notifyServiceTaskFxn, &taskParams);
         if(hServer->notifyServiceObj.hNotifyServiceTsk == NULL)
         {
             retVal = ETHFW_EFAIL;
@@ -3898,7 +3894,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
     return retVal;
 }
 
-static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
+static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
 {
     int32_t rtnVal = ENET_SOK;
     Enet_Handle hEnet;
@@ -3930,10 +3926,10 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
     while (!exitTask)
     {
         /*Wait 1ms for hardware push event, then move on to other events*/
-        events = EventP_wait(hServer->notifyServiceObj.hHwPushNotifyServiceEvent,
-                             CPSWPROXY_CPTS_HWPUSH_EVENTS_OR_MASK,
-                             EventP_WaitMode_ANY,
-                             1U);
+        events = EthFwOsal_waitEvent(hServer->notifyServiceObj.hHwPushNotifyServiceEvent,
+                                     CPSWPROXY_CPTS_HWPUSH_EVENTS_OR_MASK,
+                                     ETHFWEVENT_WAITMODE_ANY,
+                                     1U);
 
         /* Lookup for timestamp if it is a hardware push notification*/
         if (events)
@@ -4006,12 +4002,12 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0, void* arg1)
 }
 
 
-static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0, void* arg1)
+static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
 {
     int32_t rtnVal = IPC_SOK;
     uint32_t remoteProcId, remoteEndPt;
-    CpswProxyServer_Obj *hServer = (CpswProxyServer_Obj *)arg0;
-    uint32_t clientNum = (uint32_t)arg1;
+    CpswProxyServer_Obj *hServer = CpswProxyServer_initHandle();
+    uint32_t clientNum = (uint32_t)arg0;
     uint32_t remoteProc, remoteEp;
     uint16_t len;
     uint64_t msgBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE / sizeof(uint64_t)];
@@ -4104,7 +4100,7 @@ int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
 
     status = CpswProxyServer_getHandle(&hServer);
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
-    SemaphoreP_pend(hServer->clientServiceObj.rpmsgStartSem, SemaphoreP_WAIT_FOREVER);
+    EthFwOsal_pendSemaphore(hServer->clientServiceObj.rpmsgStartSem, ETHFWOSAL_WAIT_FOREVER);
 
     retVal = RPMessage_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
     ETHFWTRACE_INFO_IF((retVal == IPC_SOK), "Announce Endpoint Service to HLOS");

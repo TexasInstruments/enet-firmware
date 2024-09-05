@@ -100,6 +100,8 @@
 #include <utils/perf_stats/include/app_perf_stats.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
 #include <utils/board/include/ethfw_board_utils.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #define System_printf  Ipc_Trace_printf
 #define System_vprintf Ipc_Trace_vprintf
@@ -327,7 +329,7 @@ typedef struct
 
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Semaphore used to indicate when host port MAC address has been allocated */
-    SemaphoreP_Handle hHostMacAllocSem;
+    EthFwOsal_SemHandle hHostMacAllocSem;
 #endif
 
     /* IPC trace buffer address */
@@ -362,9 +364,9 @@ void appLogPrintf(const char *format, ...);
 
 static void EthApp_waitForDebugger(void);
 
-static void EthApp_initTaskFxn(void* arg0, void* arg1);
+static void EthApp_initTaskFxn(void* arg0);
 
-static void EthApp_initIpcTaskFxn(void* arg0, void* arg1);
+static void EthApp_initIpcTaskFxn(void* arg0);
 
 static int32_t EthApp_boardInit(void);
 
@@ -380,8 +382,7 @@ static void EthApp_startHwInterVlan(char *recvBuff,
                                     char *sendBuff);
 #endif
 
-static void EthApp_lwipMain(void *a0,
-                            void *a1);
+static void EthApp_lwipMain(void *a0);
 
 static void EthApp_initLwip(void *arg);
 
@@ -406,7 +407,7 @@ static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
                                     void *arg);
 #endif
 
-static void EthApp_traceBufFlush(void* arg0, void* arg1);
+static void EthApp_traceBufFlush(void* arg0);
 
 #if defined(ETHFW_GPTP_SUPPORT)
 static void EthApp_configPtpCb(void *arg);
@@ -848,8 +849,8 @@ static uint32_t gEthApp_remoteClientPrivVlanIdMap[ETHREMOTECFG_SWITCH_PORT_LAST+
 
 int main(void)
 {
-    TaskP_Handle task;
-    TaskP_Params taskParams;
+    EthFwOsal_TaskHandle task;
+    EthFwOsal_TaskParams taskParams;
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     memset(gEthAppObj.bootTs, 0, sizeof(gEthAppObj.bootTs));
@@ -864,13 +865,13 @@ int main(void)
     gEthAppObj.coreId = EnetSoc_getCoreId();
 
     /* Create initialization task */
-    TaskP_Params_init(&taskParams);
+    EthFwOsal_initTaskParams(&taskParams);
     taskParams.priority = 2;
     taskParams.stack = &gEthAppStackBuf[0];
     taskParams.stacksize = sizeof(gEthAppStackBuf);
     taskParams.name = "EthFw Init Task";
 
-    task = TaskP_create(&EthApp_initTaskFxn, &taskParams);
+    task = EthFwOsal_createTask(&EthApp_initTaskFxn, &taskParams);
     if (NULL == task)
     {
         OS_stop();
@@ -963,13 +964,14 @@ static EthFwTrace_Cfg gEthApp_traceCfg =
     .extTraceFunc = NULL,
 };
 
-static void EthApp_initTaskFxn(void* arg0, void* arg1)
+static void EthApp_initTaskFxn(void* arg0)
 {
-#if defined(ETHFW_GPTP_SUPPORT)
-    SemaphoreP_Params semParams;
-#endif
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     int32_t status = ETHAPP_OK;
+    EnetOsal_Cfg *osalPrms = NULL;
+    EnetUtils_Cfg *utilsPrms = NULL;
+
+    Enet_init(osalPrms, utilsPrms);
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     /* EthFw's initial timestamp, used as offset for further profiling timestamps */
@@ -1003,10 +1005,7 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
      * shared with the gPTP stack */
     if (status == ETHAPP_OK)
     {
-        SemaphoreP_Params_init(&semParams);
-        semParams.mode = SemaphoreP_Mode_BINARY;
-
-        gEthAppObj.hHostMacAllocSem = SemaphoreP_create(0, &semParams);
+        gEthAppObj.hHostMacAllocSem = EthFwOsal_createSemaphore(0U);
         if (gEthAppObj.hHostMacAllocSem == NULL)
         {
             appLogPrintf("ETHFW: failed to create hostport MAC addr semaphore\n");
@@ -1024,7 +1023,7 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
     /* Initialize lwIP */
     if (status == ENET_SOK)
     {
-        TaskP_Params_init(&taskParams);
+        EthFwOsal_initTaskParams(&taskParams);
         taskParams.priority  = DEFAULT_THREAD_PRIO;
         taskParams.stack     = &gEthAppLwipStackBuf[0];
         taskParams.stacksize = sizeof(gEthAppLwipStackBuf);
@@ -1033,19 +1032,19 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
 #endif
         taskParams.name      = "lwIP main loop";
 
-        TaskP_create(&EthApp_lwipMain, &taskParams);
+        EthFwOsal_createTask(&EthApp_lwipMain, &taskParams);
     }
 
     /* Create IPC initialization task */
     if (status == ENET_SOK)
     {
-        TaskP_Params_init(&taskParams);
+        EthFwOsal_initTaskParams(&taskParams);
         taskParams.priority = 1;
         taskParams.stack = &gEthAppIpcInitStackBuf[0];
         taskParams.stacksize = sizeof(gEthAppIpcInitStackBuf);
         taskParams.name = "EthFw IPC init Task";
 
-        TaskP_create(&EthApp_initIpcTaskFxn, &taskParams);
+        EthFwOsal_createTask(&EthApp_initIpcTaskFxn, &taskParams);
     }
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1058,27 +1057,27 @@ static void EthApp_initTaskFxn(void* arg0, void* arg1)
 
 }
 
-static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
+static void EthApp_initIpcTaskFxn(void* arg0)
 {
     uint32_t selfProcId = IPC_MCU2_0;
     uint32_t numProc = ARRAY_SIZE(gEthAppRemoteProc);
     Ipc_VirtIoParams vqParam;
     Ipc_InitPrms initPrms;
     int32_t status;
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     RPMessage_Params cntrlParam;
 
     /* Step 1: Initialize the multiproc */
     Ipc_mpSetConfig(selfProcId, numProc, &gEthAppRemoteProc[0]);
 
     /* Task to flush IPC traceBuf */
-    TaskP_Params_init(&taskParams);
+    EthFwOsal_initTaskParams(&taskParams);
     taskParams.priority  = 0;
     taskParams.stack     = &gEthAppTraceBufFlushBuf[0];
     taskParams.stacksize = sizeof(gEthAppTraceBufFlushBuf);
     taskParams.name      = "IPC tracebuf flush";
 
-    TaskP_create(&EthApp_traceBufFlush, &taskParams);
+    EthFwOsal_createTask(&EthApp_traceBufFlush, &taskParams);
 
     /* Initialize params with defaults */
     IpcInitPrms_init(0U, &initPrms);
@@ -1143,7 +1142,7 @@ static void EthApp_initIpcTaskFxn(void* arg0, void* arg1)
     {
         while (!Ipc_isRemoteReady(IPC_MPU1_0))
         {
-            TaskP_sleep(10);
+            EthFwOsal_sleepTask(10);
         }
     }
 
@@ -1422,7 +1421,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
 #endif
 #if defined(ETHFW_GPTP_SUPPORT)
-    SemaphoreP_post(gEthAppObj.hHostMacAllocSem);
+    EthFwOsal_postSemaphore(gEthAppObj.hHostMacAllocSem);
 #endif
 }
 
@@ -1431,8 +1430,7 @@ void LwipifEnetAppCb_releaseHandle(LwipifEnetAppIf_ReleaseHandleInfo *releaseInf
     EthFwCallbacks_lwipifCpswReleaseHandle(gEthAppObj.enetType, gEthAppObj.instId, releaseInfo);
 }
 
-static void EthApp_lwipMain(void *a0,
-                            void *a1)
+static void EthApp_lwipMain(void *a0)
 {
     err_t err;
     sys_sem_t initSem;
@@ -1710,13 +1708,13 @@ static void EthApp_statsMonMacEvtCb(Enet_MacPort macPort,
 }
 #endif
 
-static void EthApp_traceBufFlush(void* arg0, void* arg1)
+static void EthApp_traceBufFlush(void* arg0)
 {
     bool exitTask = BFALSE;
 
     while (!exitTask)
     {
-        TaskP_sleepInMsecs(ETHAPP_TRACEBUF_FLUSH_PERIOD_IN_MSEC);
+        EthFwOsal_sleepTaskinMsecs(ETHAPP_TRACEBUF_FLUSH_PERIOD_IN_MSEC);
         EthApp_traceBufCacheWb();
     }
 }
@@ -1753,7 +1751,7 @@ static void EthApp_startHwInterVlan(char *recvBuff,
 /* IPC trace buffer flush */
 void EthApp_traceBufCacheWb(void)
 {
-    uint64_t newticksInUsecs = TimerP_getTimeInUsecs();
+    uint64_t newticksInUsecs = EthFwOsal_getTimeInUsecs();
 
     /* Don't keep flusing cache */
     if ((newticksInUsecs - gEthAppObj.traceBufLastFlushTicksInUsecs) >=
@@ -1764,7 +1762,7 @@ void EthApp_traceBufCacheWb(void)
         /* Flush the cache of the traceBuf buffer */
         if (gEthAppObj.traceBufAddr != NULL)
         {
-            CacheP_wb((const void *)gEthAppObj.traceBufAddr,
+            EthFwOsal_wbCache((const void *)gEthAppObj.traceBufAddr,
                       gEthAppObj.traceBufSize);
         }
     }
@@ -1975,7 +1973,7 @@ static void EthApp_initPtp(void)
 #endif
 
     /* Wait for host port MAC address to be allocated during lwIP getHandle */
-    SemaphoreP_pend(gEthAppObj.hHostMacAllocSem, SemaphoreP_WAIT_FOREVER);
+    EthFwOsal_pendSemaphore(gEthAppObj.hHostMacAllocSem, ETHFWOSAL_WAIT_FOREVER);
 
     EthFwTsn_initTimeSyncPtp(&gEthAppObj.hostMacAddr[0U], portMask);
 
@@ -1993,7 +1991,7 @@ static void EthApp_setBootTs(EthApp_BootTsId tsId)
     uint64_t val;
     uint32_t i;
 
-    val = TimerP_getTimeInUsecs();
+    val = EthFwOsal_getTimeInUsecs();
 
     /* Save the profiling timestamp */
     switch (tsId)

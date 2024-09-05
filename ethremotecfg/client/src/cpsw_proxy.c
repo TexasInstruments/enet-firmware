@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020-2023 Texas Instruments Incorporated
+ * Copyright (c) 2020-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -81,13 +81,11 @@
 #endif
 #endif
 
-/* OSAL */
-#include <ti/osal/osal.h>
-#include <ti/drv/ipc/ipc.h>
-
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #if defined(SAFERTOS)
 #include "SafeRTOS_API.h"
@@ -169,7 +167,7 @@ typedef struct CpswProxy_Cmd_s
 {
 #ifndef QNX_OS
     /* Mailbox where command service will send response to */
-    MailboxP_Handle hMbx;
+    EthFwOsal_MailboxHandle hMbx;
 #endif
 
     /* Command request header */
@@ -224,7 +222,7 @@ typedef struct CpswProxy_NotifyService_s
     uint32_t masterEndpt;
 
     /* Task handle for remote notify service */
-    TaskP_Handle hTask;
+    EthFwOsal_TaskHandle hTask;
 
     /* Whether notify task should exit */
     bool exitTask;
@@ -252,21 +250,18 @@ typedef struct CpswProxy_CmdService_s
     /* Endpoint associated with Cpsw Proxy Server */
     uint32_t masterEndpt;
 
-    /* Mutex object used to protect the order in the cmd mailbox */
-    MutexP_Object mutexObj;
-
-    /* Handle to mutexObj */
-    MutexP_Handle hMutex;
+    /* Mutex handle used to protect the order in the cmd mailbox */
+    EthFwOsal_MutexHandle hMutex;
 
     /* Task handle for message handling */
-    TaskP_Handle hTask;
+    EthFwOsal_TaskHandle hTask;
 
     /* Whether command handler task should exit */
     bool exitTask;
 
 #ifndef QNX_OS
     /* Mailbox used to receive command responses from service task */
-    MailboxP_Handle hMbx;
+    EthFwOsal_MailboxHandle hMbx;
 
     /* Mailbox buffer for storing all the response message */
     uint8_t mbxBuf[CPSWPROXY_CMD_RES_MBX_SIZE] __attribute__ ((aligned(32)));
@@ -311,23 +306,20 @@ typedef struct CpswProxy_ClientObj_s
 /* Cpsw Proxy - services multiple clients */
 typedef struct CpswProxy_Obj_s
 {
-    /* Mutex object used to protect get/free CpswProxy_ClientObjs */
-    MutexP_Object mutexObj;
-
-    /* Handle to mutexObj */
-    MutexP_Handle hMutex;
+    /* Mutex handle used to protect get/free CpswProxy_ClientObjs */
+    EthFwOsal_MutexHandle hMutex;
 
     /*! CPSW Proxy Heartbeat period in milliseconds */
     uint32_t hbPeriodInMsecs;
 
     /*! Clock handle for Heartbeat Task */
-    ClockP_Handle hHeartbeatClock;
+    EthFwOsal_ClockHandle hHeartbeatClock;
 
     /*! Semaphore handle for Heartbeat Task */
-    SemaphoreP_Handle hHeartbeatSem;
+    EthFwOsal_SemHandle hHeartbeatSem;
 
     /*! Task handle for Heartbeat Task */
-    TaskP_Handle hHeartbeatTask;
+    EthFwOsal_TaskHandle hHeartbeatTask;
 
     /* Enable Heartbeat for CPSW Proxy */
     bool heartBeatEn;
@@ -371,8 +363,7 @@ static int32_t CpswProxy_initCmdSvc(CpswProxy_CmdService *svc);
 
 static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc);
 
-static void CpswProxy_cmdHandlerTask(void* arg0,
-                                     void* arg1);
+static void CpswProxy_cmdHandlerTask(void* arg0);
 
 static int32_t CpswProxy_cmdHandler(CpswProxy_CmdService *svc,
                                     CpswProxy_Msg *msg);
@@ -381,8 +372,7 @@ static int32_t CpswProxy_initNotifySvc(CpswProxy_NotifyService *svc);
 
 static void CpswProxy_deinitNotifySvc(CpswProxy_NotifyService *svc);
 
-static void CpswProxy_notifySvcTask(void *arg0,
-                                    void *arg1);
+static void CpswProxy_notifySvcTask(void *arg0);
 
 static int32_t CpswProxy_notifyHandler(EthRemoteCfg_NotifyHdr *hdr,
                                        uint16_t msgLen);
@@ -426,14 +416,14 @@ int32_t CpswProxy_init(const CpswProxy_initParams *params)
     /* Passing a value of 0 for cmdTimeoutInMsecs means ProxyClient blocks forever for remote command response */
     if (params->cmdTimeoutInMsecs == 0U)
     {
-        gCpswProxy.cmdTimeoutInMsecs = MailboxP_WAIT_FOREVER;
+        gCpswProxy.cmdTimeoutInMsecs = ETHFWOSAL_WAIT_FOREVER;
     }
     else
     {
         gCpswProxy.cmdTimeoutInMsecs = params->cmdTimeoutInMsecs;
     }
 
-    gCpswProxy.hMutex = MutexP_create(&gCpswProxy.mutexObj);
+    gCpswProxy.hMutex = EthFwOsal_createMutex();
     if (gCpswProxy.hMutex == NULL)
     {
         status = CPSWPROXY_EALLOC;
@@ -471,16 +461,16 @@ void CpswProxy_deinit(void)
 
     if (gCpswProxy.hHeartbeatTask != NULL)
     {
-        TaskP_delete(&gCpswProxy.hHeartbeatTask);
+        EthFwOsal_deleteTask(&gCpswProxy.hHeartbeatTask);
         gCpswProxy.hHeartbeatTask = NULL;
     }
 
     /* Stop and delete the clock */
-    ClockP_stop(gCpswProxy.hHeartbeatClock);
-    ClockP_delete(gCpswProxy.hHeartbeatClock);
+    EthFwOsal_stopClock(gCpswProxy.hHeartbeatClock);
+    EthFwOsal_deleteClock(gCpswProxy.hHeartbeatClock);
 
     /* Delete semaphore */
-    SemaphoreP_delete(gCpswProxy.hHeartbeatSem);
+    EthFwOsal_deleteSemaphore(gCpswProxy.hHeartbeatSem);
 
     /* Deinitialize command service */
     CpswProxy_deinitCmdSvc(&gCpswProxy.cmdSvc);
@@ -490,18 +480,17 @@ void CpswProxy_deinit(void)
 
     if (gCpswProxy.hMutex != NULL)
     {
-        MutexP_delete(gCpswProxy.hMutex);
+        EthFwOsal_deleteMutex(gCpswProxy.hMutex);
     }
 }
 
 static void CpswProxy_ClockCb(void *arg)
 {
     /* Post semaphore to Heartbeat Task */
-    SemaphoreP_post(gCpswProxy.hHeartbeatSem);
+    EthFwOsal_postSemaphore(gCpswProxy.hHeartbeatSem);
 }
 
-static void CpswProxy_HeartbeatTask(void *a0,
-                                    void *a1)
+static void CpswProxy_HeartbeatTask(void *a0)
 {
     CpswProxy_HeartbeatCbFxn cbFxn;
     void *cbArg = NULL;
@@ -512,7 +501,7 @@ static void CpswProxy_HeartbeatTask(void *a0,
 
     while (gCpswProxy.heartBeatEn)
     {
-        SemaphoreP_pend(gCpswProxy.hHeartbeatSem, SemaphoreP_WAIT_FOREVER);
+        EthFwOsal_pendSemaphore(gCpswProxy.hHeartbeatSem, ETHFWOSAL_WAIT_FOREVER);
 
         if (gCpswProxy.clientObj[0U].inUse == BTRUE)
         {
@@ -527,9 +516,8 @@ int32_t CpswProxy_connect(void)
 {
     CpswProxy_CmdService *cmdSvc = &gCpswProxy.cmdSvc;
     CpswProxy_NotifyService *notifySvc = &gCpswProxy.notifySvc;
-    SemaphoreP_Params semParams;
-    ClockP_Params clkParams;
-    TaskP_Params params;
+    EthFwOsal_ClockParams clkParams;
+    EthFwOsal_TaskParams params;
     int32_t status = CPSWPROXY_SOK;
 
     /* Wait for ETHFW's command service to be active */
@@ -564,9 +552,7 @@ int32_t CpswProxy_connect(void)
         /* Start the CPSW Proxy Heartbeat task*/
         if (status == CPSWPROXY_SOK)
         {
-            SemaphoreP_Params_init(&semParams);
-            semParams.mode = SemaphoreP_Mode_BINARY;
-            gCpswProxy.hHeartbeatSem = SemaphoreP_create(1U, &semParams);
+            gCpswProxy.hHeartbeatSem = EthFwOsal_createSemaphore(1U);
 
             if (gCpswProxy.hHeartbeatSem == NULL)
             {
@@ -579,13 +565,13 @@ int32_t CpswProxy_connect(void)
         if (status == CPSWPROXY_SOK)
         {
             /* Create Heartbeat Task to detect EthFw's failure. */
-            TaskP_Params_init(&params);
+            EthFwOsal_initTaskParams(&params);
             params.priority  = CPSWPROXY_HB_TASK_PRI;
             params.stack     = &gCpswProxy.hbTaskStackBuf[0];
             params.stacksize = sizeof(gCpswProxy.hbTaskStackBuf);
             params.name      = "CPSW Proxy Heartbeat Task";
 
-            gCpswProxy.hHeartbeatTask = TaskP_create(&CpswProxy_HeartbeatTask, &params);
+            gCpswProxy.hHeartbeatTask = EthFwOsal_createTask(&CpswProxy_HeartbeatTask, &params);
 
             if (gCpswProxy.hHeartbeatTask == NULL)
             {
@@ -597,13 +583,13 @@ int32_t CpswProxy_connect(void)
 
         if (status == CPSWPROXY_SOK)
         {
-            ClockP_Params_init(&clkParams);
-            clkParams.startMode = ClockP_StartMode_AUTO;
+            EthFwOsal_initClockParams(&clkParams);
+            clkParams.startMode = ETHFWCLOCK_STARTMODE_AUTO;
             clkParams.period    = gCpswProxy.hbPeriodInMsecs;
-            clkParams.runMode   = ClockP_RunMode_CONTINUOUS;
+            clkParams.runMode   = ETHFWCLOCK_RUNMODE_CONTINUOUS;
 
             /* Creating clock and setting clock callback function */
-            gCpswProxy.hHeartbeatClock = ClockP_create((void*)&CpswProxy_ClockCb, &clkParams);
+            gCpswProxy.hHeartbeatClock = EthFwOsal_createClock((void*)&CpswProxy_ClockCb, &clkParams);
             if (gCpswProxy.hHeartbeatClock == NULL)
             {
                 status = CPSWPROXY_EALLOC;
@@ -1444,7 +1430,7 @@ static CpswProxy_Handle CpswProxy_getHandle(uint32_t token)
     CpswProxy_Handle hProxyClient;
     uint32_t i;
 
-    MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gCpswProxy.hMutex);
 
     for (i = 0U; i < ETHFW_ARRAYSIZE(gCpswProxy.clientObj); i++)
     {
@@ -1458,7 +1444,7 @@ static CpswProxy_Handle CpswProxy_getHandle(uint32_t token)
         }
     }
 
-    MutexP_unlock(gCpswProxy.hMutex);
+    EthFwOsal_unlockMutex(gCpswProxy.hMutex);
 
     return hProxy;
 }
@@ -1468,7 +1454,7 @@ static CpswProxy_Handle CpswProxy_allocHandle(void)
     CpswProxy_Handle hProxy = NULL;
     uint32_t i;
 
-    MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gCpswProxy.hMutex);
 
     for (i = 0U; i < ETHFW_ARRAYSIZE(gCpswProxy.clientObj); i++)
     {
@@ -1480,16 +1466,16 @@ static CpswProxy_Handle CpswProxy_allocHandle(void)
         }
     }
 
-    MutexP_unlock(gCpswProxy.hMutex);
+    EthFwOsal_unlockMutex(gCpswProxy.hMutex);
 
     return hProxy;
 }
 
 static void CpswProxy_freeHandle(CpswProxy_Handle hProxy)
 {
-    MutexP_lock(gCpswProxy.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gCpswProxy.hMutex);
     memset(hProxy, 0, sizeof(*hProxy));
-    MutexP_unlock(gCpswProxy.hMutex);
+    EthFwOsal_unlockMutex(gCpswProxy.hMutex);
 }
 
 static void CpswProxy_instanceInit(CpswProxy_Handle hProxy,
@@ -1513,13 +1499,13 @@ static void CpswProxy_instanceDeinit(CpswProxy_Handle hProxy)
 static int32_t CpswProxy_initCmdSvc(CpswProxy_CmdService *svc)
 {
 #ifndef QNX_OS
-    MailboxP_Params mbxParams;
+    EthFwOsal_MailboxParams mbxParams;
 #endif
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     RPMessage_Params rpmsgParams;
     int32_t status = CPSWPROXY_SOK;
 
-    svc->hMutex = MutexP_create(&svc->mutexObj);
+    svc->hMutex = EthFwOsal_createMutex();
     if (svc->hMutex == NULL)
     {
         status = CPSWPROXY_EALLOC;
@@ -1531,14 +1517,14 @@ static int32_t CpswProxy_initCmdSvc(CpswProxy_CmdService *svc)
     if (status == CPSWPROXY_SOK)
     {
         /* Create command mailbox */
-        MailboxP_Params_init(&mbxParams);
+        EthFwOsal_initMailboxParams(&mbxParams);
         mbxParams.name    = (uint8_t *)"CmdSvc.CmdResMbx";
         mbxParams.size    = CPSWPROXY_CMD_RES_MBX_MSGSIZE;
         mbxParams.count   = CPSWPROXY_CMD_RES_MBX_MSGCOUNT;
         mbxParams.buf     = (void *)&svc->mbxBuf[0U];
         mbxParams.bufsize = sizeof(svc->mbxBuf);
 
-        svc->hMbx = MailboxP_create(&mbxParams);
+        svc->hMbx = EthFwOsal_createMailbox(&mbxParams);
         if (svc->hMbx == NULL)
         {
             status = CPSWPROXY_EALLOC;
@@ -1589,14 +1575,14 @@ static int32_t CpswProxy_initCmdSvc(CpswProxy_CmdService *svc)
     /* Create command handler task */
     if (status == CPSWPROXY_SOK)
     {
-        TaskP_Params_init(&taskParams);
+        EthFwOsal_initTaskParams(&taskParams);
         taskParams.name      = CPSWPROXY_CMD_SERVICE_TASK_NAME;
         taskParams.priority  = CPSWPROXY_CMD_SERVICE_TASK_PRI;
         taskParams.arg0      = (void *)svc;
         taskParams.stack     = &svc->taskStackBuf[0U];
         taskParams.stacksize = sizeof(svc->taskStackBuf);
 
-        svc->hTask = TaskP_create(&CpswProxy_cmdHandlerTask, &taskParams);
+        svc->hTask = EthFwOsal_createTask(&CpswProxy_cmdHandlerTask, &taskParams);
         if (svc->hTask == NULL)
         {
             status = CPSWPROXY_EFAIL;
@@ -1627,13 +1613,13 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
         }
 
         /* Wait for task termination */
-        while (TaskP_isTerminated(svc->hTask) != 1)
+        while (EthFwOsal_isTaskTerminated(svc->hTask) != 1)
         {
-            TaskP_sleep(10);
+            EthFwOsal_sleepTask(10);
         }
 
         ETHFWTRACE_DBG("Deleted cmd service task");
-        TaskP_delete(&svc->hTask);
+        EthFwOsal_deleteTask(&svc->hTask);
     }
 
     /* Delete RPMessage */
@@ -1649,7 +1635,7 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
     /* Delete command request mailbox */
     if (svc->hMbx != NULL)
     {
-        MailboxP_delete(svc->hMbx);
+        EthFwOsal_deleteMailbox(svc->hMbx);
         svc->hMbx = NULL;
     }
 #else
@@ -1660,7 +1646,7 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
 
     if (svc->hMutex != NULL)
     {
-        MutexP_delete(svc->hMutex);
+        EthFwOsal_deleteMutex(svc->hMutex);
         svc->hMutex = NULL;
     }
 
@@ -1675,7 +1661,7 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                           uint16_t resLen)
 {
 #ifndef QNX_OS
-    MailboxP_Status mbxStatus;
+    int32_t mbxStatus;
 #endif
     CpswProxy_Msg msg;
     EthRemoteCfg_ResHdr *hdr = (EthRemoteCfg_ResHdr *)&msg.buf;
@@ -1684,7 +1670,7 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
 
     EthFw_assert(hProxy != NULL);
 
-    MutexP_lock(gCpswProxy.cmdSvc.hMutex, MutexP_WAIT_FOREVER);
+    EthFwOsal_lockMutex(gCpswProxy.cmdSvc.hMutex);
 
     reqId = hProxy->reqId++;
 
@@ -1718,13 +1704,13 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
     if (status == CPSWPROXY_SOK)
     {
         do {
-            mbxStatus = MailboxP_pend(gCpswProxy.cmdSvc.hMbx, (void *)&msg, gCpswProxy.cmdTimeoutInMsecs);
-            if(mbxStatus == MailboxP_TIMEOUT)
+            mbxStatus = EthFwOsal_pendMailbox(gCpswProxy.cmdSvc.hMbx, (void *)&msg, gCpswProxy.cmdTimeoutInMsecs);
+            if(mbxStatus == ETHFWOSAL_TIMEOUT)
             {
                 status = CPSWPROXY_ETIMEOUT;
                 ETHFWTRACE_ERR(status, "CMD %u response timed out from client's queue", reqType);
             }
-            else if (mbxStatus != MailboxP_OK)
+            else if (mbxStatus != ETHFWOSAL_SUCCESS)
             {
                 status = CPSWPROXY_EFAIL;
                 ETHFWTRACE_ERR(status, "Failed to get cmd %u response from client's queue", reqType);
@@ -1780,13 +1766,12 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
         ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Cmd %u failed on remote side", reqType);
     }
 
-    MutexP_unlock(gCpswProxy.cmdSvc.hMutex);
+    EthFwOsal_unlockMutex(gCpswProxy.cmdSvc.hMutex);
 
     return status;
 }
 
-static void CpswProxy_cmdHandlerTask(void *arg0,
-                                     void *arg1)
+static void CpswProxy_cmdHandlerTask(void *arg0)
 {
     CpswProxy_CmdService *svc = (CpswProxy_CmdService *)arg0;
     CpswProxy_Msg msg;
@@ -1888,7 +1873,7 @@ static int32_t CpswProxy_cmdHandler(CpswProxy_CmdService *svc,
 {
     EthRemoteCfg_ResHdr *hdr = (EthRemoteCfg_ResHdr *)msg->buf;
 #ifndef QNX_OS
-    MailboxP_Status mbxStatus;
+    int32_t mbxStatus;
 #else
     int rcvid;
     uint32_t reqType;
@@ -1897,8 +1882,8 @@ static int32_t CpswProxy_cmdHandler(CpswProxy_CmdService *svc,
 
     /* Send command response back to caller */
 #ifndef QNX_OS
-    mbxStatus = MailboxP_post(svc->hMbx, (void *)msg, MailboxP_WAIT_FOREVER);
-    if (mbxStatus != MailboxP_OK)
+    mbxStatus = EthFwOsal_postMailbox(svc->hMbx, (void *)msg, ETHFWOSAL_WAIT_FOREVER);
+    if (mbxStatus != ETHFWOSAL_SUCCESS)
     {
         status = CPSWPROXY_EUNEXPECTED;
         ETHFWTRACE_ERR(status, "Failed to send cmd %u response via mailbox", hdr->resType);
@@ -1930,7 +1915,7 @@ static int32_t CpswProxy_cmdHandler(CpswProxy_CmdService *svc,
 static int32_t CpswProxy_initNotifySvc(CpswProxy_NotifyService *svc)
 {
     RPMessage_Params rpmsgParams;
-    TaskP_Params taskParams;
+    EthFwOsal_TaskParams taskParams;
     uint32_t localEndpt;
     int32_t status = CPSWPROXY_SOK;
 
@@ -1966,14 +1951,14 @@ static int32_t CpswProxy_initNotifySvc(CpswProxy_NotifyService *svc)
     /* Create notify handler task */
     if (status == CPSWPROXY_SOK)
     {
-        TaskP_Params_init(&taskParams);
+        EthFwOsal_initTaskParams(&taskParams);
         taskParams.name      = CPSWPROXY_NOTIFY_SERVICE_TASK_NAME;
         taskParams.priority  = CPSWPROXY_NOTIFY_SERVICE_TASK_PRI;
         taskParams.arg0      = (void *)svc;
         taskParams.stack     = &svc->taskStack[0U];
         taskParams.stacksize = sizeof(svc->taskStack);
 
-        svc->hTask = TaskP_create(&CpswProxy_notifySvcTask, &taskParams);
+        svc->hTask = EthFwOsal_createTask(&CpswProxy_notifySvcTask, &taskParams);
         if (svc->hTask == NULL)
         {
             status = CPSWPROXY_EFAIL;
@@ -2004,13 +1989,13 @@ static void CpswProxy_deinitNotifySvc(CpswProxy_NotifyService *svc)
         }
 
         /* Wait for task termination */
-        while (TaskP_isTerminated(svc->hTask) != 1)
+        while (EthFwOsal_isTaskTerminated(svc->hTask) != 1)
         {
-            TaskP_sleep(10);
+            EthFwOsal_sleepTask(10);
         }
 
         ETHFWTRACE_DBG("Deleted cmd service task");
-        TaskP_delete(&svc->hTask);
+        EthFwOsal_deleteTask(&svc->hTask);
     }
 
     /* Delete RPMessage */
@@ -2025,8 +2010,7 @@ static void CpswProxy_deinitNotifySvc(CpswProxy_NotifyService *svc)
     ETHFWTRACE_DBG("Notify service has been deinitialized");
 }
 
-static void CpswProxy_notifySvcTask(void *arg0,
-                                    void *arg1)
+static void CpswProxy_notifySvcTask(void *arg0)
 {
     CpswProxy_NotifyService *svc = (CpswProxy_NotifyService *)arg0;
     uint64_t msgBuf[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];

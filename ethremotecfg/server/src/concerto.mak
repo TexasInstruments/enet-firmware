@@ -45,6 +45,7 @@ endif
 
 # Top-level ETHFW include path
 IDIRS += $(ETHFW_PATH)
+IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD

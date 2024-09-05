@@ -9,6 +9,7 @@ CSOURCES := src/eth_hwintervlan.c
 CSOURCES += src/eth_swintervlan.c
 
 IDIRS := ${ETHFW_PATH}
+IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
 IDIRS += $(PDK_PATH)/packages
 
 endif

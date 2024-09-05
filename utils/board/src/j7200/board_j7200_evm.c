@@ -57,6 +57,8 @@
 
 #include <utils/board/include/ethfw_board_utils.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -499,7 +501,7 @@ static void EthFwBoard_configQenet(void)
 
     /* Wait till we can access QSGMII PHY registers after reset, irrespective
      * of the NRESET gpio set by ETHFW or bootloader */
-    TaskP_sleepInMsecs(ETHFW_QSGMII_PHY_TWAIT_MSECS);
+    EthFwOsal_sleepTaskinMsecs(ETHFW_QSGMII_PHY_TWAIT_MSECS);
 
     if (gEthFwBoard.serdesAllowed)
     {
