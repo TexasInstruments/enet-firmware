@@ -82,6 +82,7 @@
 #include <ethremotecfg/server/include/ethfw_vepa.h>
 #include <ethremotecfg/server/include/ethfw_monitor.h>
 #include <ethremotecfg/server/include/ethfw_qos.h>
+#include <ethremotecfg/server/include/ethfw_portmirror.h>
 #include <utils/ethfw_common/include/ethfw_types.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
@@ -254,6 +255,9 @@ typedef struct EthFw_Config_s
      *  the application through `handleErrPktFxn()` callback of lwIP adaptation
      *  layer's output args `LwipifEnetAppIf_GetHandleOutArgs`. */
     bool passErrPkt;
+
+    /*! Port mirroring configuration */
+    EthFwPortMirroring_Cfg *portMirCfg;
 } EthFw_Config;
 
 /*!

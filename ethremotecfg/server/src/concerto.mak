@@ -18,6 +18,7 @@ CSOURCES += ethfw_mcast.c
 CSOURCES += ethfw_vlan.c
 CSOURCES += ethfw_arp.c
 CSOURCES += ethfw_api.c
+CSOURCES += ethfw_portmirror.c
 ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   CSOURCES += ethfw_monitor.c
 endif

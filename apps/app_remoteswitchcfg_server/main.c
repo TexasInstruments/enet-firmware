@@ -794,6 +794,11 @@ static EthFwVlan_VlanCfg gEthApp_vlanCfg[] =
     },
 };
 
+static EthFwPortMirroring_Cfg gEthApp_portMirCfg = 
+{
+    .mirroringType = DISABLE_PORT_MIRRORING
+};
+
 #if !defined(MCU_PLUS_SDK)
 static uint8_t gEthAppStackBuf[ETHAPP_INIT_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_INIT_TASK_STACKALIGN)));
 #endif
@@ -1344,6 +1349,8 @@ static int32_t EthApp_initEthFw(void)
            gEthApp_remoteClientPrivVlanIdMap,
            sizeof(gEthApp_remoteClientPrivVlanIdMap));
 #endif
+
+    ethFwCfg.portMirCfg = &gEthApp_portMirCfg;
 
     /* Initialize the EthFw */
     if (status == ETHAPP_OK)

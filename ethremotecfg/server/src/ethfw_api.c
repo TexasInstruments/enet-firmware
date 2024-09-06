@@ -262,6 +262,7 @@ static void EthFw_handleProfileInfoNotify(uint32_t host_id,
 
 EthRemoteCfg_ServerStatus EthFw_getStatus(void);
 void EthFw_setStatus(EthRemoteCfg_ServerStatus serverStatus);
+
 /* ========================================================================== */
 /*                          Extern variables                                  */
 /* ========================================================================== */
@@ -860,6 +861,9 @@ void EthFw_initConfigParams(Enet_Type enetType,
 
     memset(config, 0, sizeof(*config));
 
+    /* Port mirroring configuration */
+    config->portMirCfg = NULL;
+
     /* MAC port ownership */
     config->ports = NULL;
     config->numPorts = 0U;
@@ -1090,6 +1094,12 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     if (status == ENET_SOK)
     {
         status = EthFw_setAleBcastEntry();
+    }
+
+    /* Port mirroring */
+    if (status == ENET_SOK)
+    {
+        status = EthFwPortMirroring_init(gEthFwObj.hEnet, config->portMirCfg);
     }
 
     /* Setup static VLANs */
