@@ -37,8 +37,8 @@ STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
-STATIC_LIBS += ethfw_abstract
 STATIC_LIBS += ethfw_remotecfg_server
+STATIC_LIBS += ethfw_abstract
 STATIC_LIBS += unity_uart
 ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
 STATIC_LIBS += ethfw_estdemo
@@ -130,8 +130,8 @@ STATIC_LIBS += ethfw_callbacks
 STATIC_LIBS += eth_intervlan
 STATIC_LIBS += ethfw_board
 STATIC_LIBS += ethfw_common
-STATIC_LIBS += ethfw_abstract
 STATIC_LIBS += ethfw_remotecfg_server
+STATIC_LIBS += ethfw_abstract
 STATIC_LIBS += unity_uart
 ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
 STATIC_LIBS += ethfw_estdemo

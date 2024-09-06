@@ -150,6 +150,8 @@
 #define CPSWPROXY_TASK_STACKSIZE                        (16U * 1024U)
 #define CPSWPROXY_TASK_STACKALIGN                       CPSWPROXY_TASK_STACKSIZE
 
+#define CPSWPROXY_CMD_SERVICE_END_POINT                 (36U)
+
 #if defined(__KLOCWORK__)
 #define CpswProxy_assert(cond)               do { if (!(cond)) abort(); } while (0)
 #else
@@ -210,7 +212,7 @@ typedef struct CpswProxy_NotifyCb_s
 typedef struct CpswProxy_NotifyService_s
 {
     /* RPMessage handle for remote notify service */
-    RPMessage_Handle hRpMsg;
+    EthFwIpc_RpmsgHandle hRpMsg;
 
     /* Local endpoint for notify service in proxy client */
     uint32_t localEndpt;
@@ -239,7 +241,7 @@ typedef struct CpswProxy_NotifyService_s
 typedef struct CpswProxy_CmdService_s
 {
     /* RPMessage handle */
-    RPMessage_Handle hRpMsg;
+    EthFwIpc_RpmsgHandle hRpMsg;
 
     /* Local endpoint */
     uint32_t localEndpt;
@@ -521,7 +523,7 @@ int32_t CpswProxy_connect(void)
     int32_t status = CPSWPROXY_SOK;
 
     /* Wait for ETHFW's command service to be active */
-    status = RPMessage_getRemoteEndPt(RPMESSAGE_ANY,
+    status = EthFwIpc_getRemoteEndPt(RPMESSAGE_ANY,
                                       ETHREMOTECFG_FRAMEWORK_SERVICE_NAME,
                                       &cmdSvc->masterCoreId,
                                       &cmdSvc->masterEndpt,
@@ -532,11 +534,11 @@ int32_t CpswProxy_connect(void)
     /* Wait for ETHFW's notify service to be active on the same remote core */
     if (status == CPSWPROXY_SOK)
     {
-        status = RPMessage_getRemoteEndPt(cmdSvc->masterCoreId,
+        status = EthFwIpc_getRemoteEndPt(cmdSvc->masterCoreId,
                                           ETHREMOTECFG_REMOTE_NOTIFY_SERVICE,
                                           &notifySvc->masterCoreId,
                                           &notifySvc->masterEndpt,
-                                          IPC_RPMESSAGE_TIMEOUT_FOREVER);
+                                          ETHFWIPC_WAIT_FOREVER);
         ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
                           "Failed to get ETHFW command service endpt");
     }
@@ -1502,7 +1504,7 @@ static int32_t CpswProxy_initCmdSvc(CpswProxy_CmdService *svc)
     EthFwOsal_MailboxParams mbxParams;
 #endif
     EthFwOsal_TaskParams taskParams;
-    RPMessage_Params rpmsgParams;
+    EthFwIpc_RpmsgCreateParams rpmsgParams;
     int32_t status = CPSWPROXY_SOK;
 
     svc->hMutex = EthFwOsal_createMutex();
@@ -1559,16 +1561,20 @@ static int32_t CpswProxy_initCmdSvc(CpswProxy_CmdService *svc)
     /* Create command RPMessage endpoint */
     if (status == CPSWPROXY_SOK)
     {
-        RPMessageParams_init(&rpmsgParams);
-        rpmsgParams.requestedEndpt = RPMESSAGE_ANY;
+        EthFwIpc_initRpmsgParams(&rpmsgParams);
         rpmsgParams.buf            = &svc->rpMsgBuf[0U];
         rpmsgParams.bufSize        = sizeof(svc->rpMsgBuf);
+        rpmsgParams.requestedEndpt = CPSWPROXY_CMD_SERVICE_END_POINT;
 
-        svc->hRpMsg = RPMessage_create(&rpmsgParams, &svc->localEndpt);
+        svc->hRpMsg = EthFwIpc_createRpmsg(&rpmsgParams);
         if (svc->hRpMsg == NULL)
         {
             status = CPSWPROXY_EFAIL;
             ETHFWTRACE_ERR(status, "Failed to create command service endpt");
+        }
+        else
+        {
+            svc->localEndpt = rpmsgParams.requestedEndpt;
         }
     }
 
@@ -1609,7 +1615,7 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
         /* Unblock service thread if blocked on recv() */
         if (svc->hRpMsg != NULL)
         {
-            RPMessage_unblock(svc->hRpMsg);
+            EthFwIpc_unblockRpmsg(svc->hRpMsg);
         }
 
         /* Wait for task termination */
@@ -1625,7 +1631,7 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
     /* Delete RPMessage */
     if (svc->hRpMsg != NULL)
     {
-        status = RPMessage_delete(&svc->hRpMsg);
+        status = EthFwIpc_deleteRpmsg(svc->hRpMsg);
         ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
                           "Failed to delete endpt %u", svc->localEndpt);
         svc->hRpMsg = NULL;
@@ -1690,7 +1696,7 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                       req->reqId);
 
     /* Send command request to ETHFW */
-    status = RPMessage_send(gCpswProxy.cmdSvc.hRpMsg,
+    status = EthFwIpc_sendRpmsg(gCpswProxy.cmdSvc.hRpMsg,
                             gCpswProxy.cmdSvc.masterCoreId,
                             gCpswProxy.cmdSvc.masterEndpt,
                             gCpswProxy.cmdSvc.localEndpt,
@@ -1784,12 +1790,12 @@ static void CpswProxy_cmdHandlerTask(void *arg0)
     while (!svc->exitTask)
     {
         /* Wait for new messages from ETHFW */
-        status = RPMessage_recv(svc->hRpMsg,
+        status = EthFwIpc_recvRpmsg(svc->hRpMsg,
                                 (void *)msg.buf,
                                 &len,
                                 &remoteEndpt,
                                 &remoteProcId,
-                                IPC_RPMESSAGE_TIMEOUT_FOREVER);
+                                ETHFWIPC_WAIT_FOREVER);
         if (status != IPC_SOK)
         {
             ETHFWTRACE_ERR(status, "Failed to receive IPC message");
@@ -1914,38 +1920,27 @@ static int32_t CpswProxy_cmdHandler(CpswProxy_CmdService *svc,
 
 static int32_t CpswProxy_initNotifySvc(CpswProxy_NotifyService *svc)
 {
-    RPMessage_Params rpmsgParams;
+    EthFwIpc_RpmsgCreateParams rpmsgParams;
     EthFwOsal_TaskParams taskParams;
     uint32_t localEndpt;
     int32_t status = CPSWPROXY_SOK;
 
     /* Create RPMessage to be used for S2C notification */
-    RPMessageParams_init(&rpmsgParams);
+    EthFwIpc_initRpmsgParams(&rpmsgParams);
     rpmsgParams.requestedEndpt = ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID;
     rpmsgParams.buf            = &svc->rpMsgBuf[0U];
     rpmsgParams.bufSize        = sizeof(svc->rpMsgBuf);
     rpmsgParams.numBufs        = ETHREMOTECFG_IPC_NUM_MSG_BUFS;
 
-    svc->hRpMsg = RPMessage_create(&rpmsgParams, &localEndpt);
+    svc->hRpMsg = EthFwIpc_createRpmsg(&rpmsgParams);
     if (svc->hRpMsg == NULL)
     {
         status = CPSWPROXY_EFAIL;
         ETHFWTRACE_ERR(status, "Failed to create endpt %u", rpmsgParams.requestedEndpt);
     }
-
-    /* Check if requested endpoint was granted */
-    if (status == CPSWPROXY_SOK)
+    else
     {
-        if (localEndpt != ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID)
-        {
-            status = CPSWPROXY_EFAIL;
-            ETHFWTRACE_ERR(status, "Failed create required endpt %u, got %u",
-                           ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID, localEndpt);
-        }
-        else
-        {
-            svc->localEndpt = localEndpt;
-        }
+        svc->localEndpt = rpmsgParams.requestedEndpt;
     }
 
     /* Create notify handler task */
@@ -1985,7 +1980,7 @@ static void CpswProxy_deinitNotifySvc(CpswProxy_NotifyService *svc)
         /* Unblock service thread if blocked on recv() */
         if (svc->hRpMsg != NULL)
         {
-            RPMessage_unblock(svc->hRpMsg);
+            EthFwIpc_unblockRpmsg(svc->hRpMsg);
         }
 
         /* Wait for task termination */
@@ -2001,7 +1996,7 @@ static void CpswProxy_deinitNotifySvc(CpswProxy_NotifyService *svc)
     /* Delete RPMessage */
     if (svc->hRpMsg != NULL)
     {
-        status = RPMessage_delete(&svc->hRpMsg);
+        status = EthFwIpc_deleteRpmsg(svc->hRpMsg);
         ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
                           "Failed to delete endpt %u", svc->localEndpt);
         svc->hRpMsg = NULL;
@@ -2023,12 +2018,12 @@ static void CpswProxy_notifySvcTask(void *arg0)
     while (!svc->exitTask)
     {
         /* Wait for new messages from ETHFW */
-        status = RPMessage_recv(svc->hRpMsg,
+        status = EthFwIpc_recvRpmsg(svc->hRpMsg,
                                 (void *)msgBuf,
                                 &len,
                                 &remoteEndpt,
                                 &remoteProcId,
-                                IPC_RPMESSAGE_TIMEOUT_FOREVER);
+                                ETHFWIPC_WAIT_FOREVER);
         if (status != IPC_SOK)
         {
             ETHFWTRACE_ERR(status, "Failed to receive IPC message");

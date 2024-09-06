@@ -159,6 +159,9 @@
         }                                                \
     } while (0)
 
+#define CPSWPROXY_NOTIFY_SERVICE_ENDPT_ID                (24U)
+#define CPSWPROXY_REMOTE_SERVICE_ENDPT_ID                (34U)
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -233,7 +236,7 @@ typedef struct CpswProxyServer_AsrServiceObj_s
     /* Task handle for AUTOSAR IPC communication */
     EthFwOsal_TaskHandle         hAutosarEthTsk;
     /* RPMessage handle for AUTOSAR IPC communication */
-    RPMessage_Handle         hAutosarEthRpMsgEp;
+    EthFwIpc_RpmsgHandle         hAutosarEthRpMsgEp;
     /* Processor Id of AUTOSAR client */
     uint32_t                     coreId;
     /* Local endpoint for the AUTOSAR client */
@@ -248,7 +251,7 @@ typedef struct CpswProxyServer_NotifyServiceObj_s
     EthFwOsal_TaskHandle         hNotifyServiceTsk;
     EventP_Handle                hHwPushNotifyServiceEvent;
     uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HWPUSH_COUNT_MAX];
-    RPMessage_Handle         hNotifyServicRpMsgEp;
+    EthFwIpc_RpmsgHandle         hNotifyServicRpMsgEp;
     uint32_t                     hwPush2CoreIdMap[CPSW_CPTS_HWPUSH_COUNT_MAX];
     uint32_t                     hwPush2TokenMap[CPSW_CPTS_HWPUSH_COUNT_MAX];
     uint32_t                     dstProcMask;
@@ -259,7 +262,7 @@ typedef struct CpswProxyServer_NotifyServiceObj_s
 typedef struct CpswProxyServer_ClientServiceObj_s
 {
     EthFwOsal_TaskHandle         hClientServiceTsk;
-    RPMessage_Handle         hClientServicRpMsgEp;
+    EthFwIpc_RpmsgHandle         hClientServicRpMsgEp;
     EthFwOsal_SemHandle          rpmsgStartSem;
     uint32_t                     localEp;
 } CpswProxyServer_ClientServiceObj;
@@ -611,7 +614,7 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
 {
     CpswProxyServer_Obj *hServer = NULL;
     EthRemoteCfg_CommonNotify notifyMsg;
-    RPMessage_Handle handle = NULL;
+    EthFwIpc_RpmsgHandle handle = NULL;
     uint32_t srcEndPt = 0U;
     uint32_t clientInst;
     int32_t status = ETHFW_SOK;
@@ -665,7 +668,7 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
                        EnetSoc_getCoreId(), srcEndPt,
                        hClient->coreId, hClient->remoteEp);
 
-        status = RPMessage_send(handle,
+        status = EthFwIpc_sendRpmsg(handle,
                                 hClient->coreId,
                                 hClient->remoteEp,
                                 srcEndPt,
@@ -2771,7 +2774,7 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     return status;
 }
 
-static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
+static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle,
                                                  const void *reqBuf,
                                                  uint8_t clientId,
                                                  uint32_t remoteProcId,
@@ -3629,7 +3632,7 @@ static void CpswProxyServer_clientRequestHandler(RPMessage_Handle hMsgHandle,
                           EnetSoc_getCoreId(), localEp,
                           remoteProcId, remoteEndPt);
 
-    rtnVal = RPMessage_send(hMsgHandle, remoteProcId, remoteEndPt, localEp, &resBuf, resLen);
+    rtnVal = EthFwIpc_sendRpmsg(hMsgHandle, remoteProcId, remoteEndPt, localEp, &resBuf, resLen);
     ETHFWTRACE_ERR_IF((rtnVal != IPC_SOK), rtnVal, "Failed to send msg via IPC");
 }
 
@@ -3638,17 +3641,17 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
 {
     EthFwOsal_TaskParams taskParams;
     int32_t status = ETHFW_SOK;
-    RPMessage_Params comParams;
-    uint32_t  localEp;
+    EthFwIpc_RpmsgCreateParams comParams;
 
     /* Initialize the param and set memory for HeapMemory for control task */
-    RPMessageParams_init(&comParams);
+    EthFwIpc_initRpmsgParams(&comParams);
     comParams.buf = gCpswProxyServerRpmsgbuf;
     comParams.bufSize = sizeof(gCpswProxyServerRpmsgbuf);
     comParams.numBufs = ETHREMOTECFG_IPC_NUM_MSG_BUFS;
+    comParams.requestedEndpt = CPSWPROXY_REMOTE_SERVICE_ENDPT_ID;
 
-    hServer->clientServiceObj.hClientServicRpMsgEp = RPMessage_create(&comParams, &localEp);
-    if (NULL == hServer->clientServiceObj.hClientServicRpMsgEp)
+    hServer->clientServiceObj.hClientServicRpMsgEp = EthFwIpc_createRpmsg(&comParams);
+    if (hServer->clientServiceObj.hClientServicRpMsgEp == NULL)
     {
         status = ETHFW_EFAIL;
         ETHFWTRACE_ERR(status, "Could not create communication channel for endpoint %d",
@@ -3661,7 +3664,7 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
 
     if (ETHFW_SOK == status)
     {
-        hServer->clientServiceObj.localEp = localEp;
+        hServer->clientServiceObj.localEp = comParams.requestedEndpt;
     }
 
     if (ETHFW_SOK == status)
@@ -3694,9 +3697,9 @@ static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0)
     uint64_t msgBuf[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];
     bool exitTask;
     uint32_t localEp = hServer->clientServiceObj.localEp;
-    RPMessage_Handle hClientServicRpMsgEp = hServer->clientServiceObj.hClientServicRpMsgEp;
+    EthFwIpc_RpmsgHandle hClientServicRpMsgEp = hServer->clientServiceObj.hClientServicRpMsgEp;
 
-    rtnVal = RPMessage_announce(RPMESSAGE_ALL, localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
+    rtnVal = EthFwIpc_announceAll(localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
     if (IPC_SOK != rtnVal)
     {
         ETHFWTRACE_ERR(rtnVal, "Couldn't announce endpoint for remote clients");
@@ -3707,12 +3710,12 @@ static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0)
 
         while (!exitTask)
         {
-            rtnVal = RPMessage_recv(hClientServicRpMsgEp,
+            rtnVal = EthFwIpc_recvRpmsg(hClientServicRpMsgEp,
                                     (void *)msgBuf,
                                     &len,
                                     &remoteEndPt,
                                     &remoteProcId,
-                                    IPC_RPMESSAGE_TIMEOUT_FOREVER);
+                                    ETHFWIPC_WAIT_FOREVER);
             if (IPC_SOK == rtnVal)
             {
                 int32_t status;
@@ -3768,26 +3771,24 @@ static int32_t CpswProxyServer_initAutosarEthDeviceEp(CpswProxyServer_Obj *hServ
 {
     EthFwOsal_TaskParams taskParams;
     int32_t retVal = ETHFW_SOK;
-    RPMessage_Params comChParam;
-    uint32_t  localEp;
+    EthFwIpc_RpmsgCreateParams comChParam;
 
-    RPMessageParams_init(&comChParam);
+    EthFwIpc_initRpmsgParams(&comChParam);
     comChParam.numBufs = CPSWPROXY_AUTOSAR_ETHDRIVER_NUM_RPMSG_BUFS;
     comChParam.buf = g_CpswProxyServerAutosarRpmsgBuf[clientInst];
     comChParam.bufSize = sizeof(g_CpswProxyServerAutosarRpmsgBuf[clientInst]);
     comChParam.requestedEndpt = hServer->ethDrvObj[clientInst].localEp;
 
-    hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp = RPMessage_create(&comChParam, &localEp);
-    if (NULL == hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp)
+    hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp = EthFwIpc_createRpmsg(&comChParam);
+    if (hServer->ethDrvObj[clientInst].hAutosarEthRpMsgEp == NULL)
     {
         retVal = ETHFW_EFAIL;
         ETHFWTRACE_ERR(retVal, "Could not create communication channel for endpoint %d",
                        comChParam.requestedEndpt);
     }
-
-    if (ETHFW_SOK == retVal)
+    else
     {
-        hServer->ethDrvObj[clientInst].localEp = localEp;
+        hServer->ethDrvObj[clientInst].localEp = comChParam.requestedEndpt;
     }
 
     if (ETHFW_SOK == retVal)
@@ -3815,8 +3816,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
 {
     EthFwOsal_TaskParams taskParams;
     int32_t retVal = ETHFW_SOK;
-    RPMessage_Params comChParam;
-    uint32_t  localEp;
+    EthFwIpc_RpmsgCreateParams comChParam;
     EthFwOsal_EventParams eventParams;
     uint8_t i = 0;
 
@@ -3829,13 +3829,15 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
         hServer->notifyServiceObj.hwPush2TokenMap[i] = ETHREMOTECFG_TOKEN_NONE;
     }
 
-    RPMessageParams_init(&comChParam);
+    EthFwIpc_initRpmsgParams(&comChParam);
     comChParam.numBufs = ETHREMOTECFG_IPC_NUM_MSG_BUFS;
     comChParam.buf = g_CpswProxyServerNotifyServiceRpmsgBuf;
     comChParam.bufSize = sizeof(g_CpswProxyServerNotifyServiceRpmsgBuf);
-    hServer->notifyServiceObj.hNotifyServicRpMsgEp = RPMessage_create(&comChParam, &localEp);
+    comChParam.requestedEndpt = CPSWPROXY_NOTIFY_SERVICE_ENDPT_ID;
 
-    if (NULL == hServer->notifyServiceObj.hNotifyServicRpMsgEp)
+    hServer->notifyServiceObj.hNotifyServicRpMsgEp = EthFwIpc_createRpmsg(&comChParam);
+
+    if (hServer->notifyServiceObj.hNotifyServicRpMsgEp == NULL)
     {
         retVal = ETHFW_EFAIL;
         ETHFWTRACE_ERR(retVal, "Could not create communication channel");
@@ -3843,16 +3845,15 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
 
     if (ETHFW_SOK == retVal)
     {
-        hServer->notifyServiceObj.localEp = localEp;
+        hServer->notifyServiceObj.localEp = comChParam.requestedEndpt;
     }
 
     /* Announce service */
     if (ETHFW_SOK == retVal)
     {
-        retVal = RPMessage_announce(RPMESSAGE_ALL,
-                                    hServer->notifyServiceObj.localEp,
-                                    ETHREMOTECFG_REMOTE_NOTIFY_SERVICE);
-        ETHFWTRACE_ERR_IF((retVal != IPC_SOK), retVal, "Failed to annount notify server");
+        retVal = EthFwIpc_announceAll(hServer->notifyServiceObj.localEp,
+                                      ETHREMOTECFG_REMOTE_NOTIFY_SERVICE);
+        ETHFWTRACE_ERR_IF((retVal != ETHFW_SOK), retVal, "Failed to annount notify server");
     }
 
     /* Create Event to notify task */
@@ -3981,7 +3982,7 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
                                                EnetSoc_getCoreId(), hServer->notifyServiceObj.localEp,
                                                remoteCoreId, ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID);
 
-                                rtnVal = RPMessage_send(hServer->notifyServiceObj.hNotifyServicRpMsgEp,
+                                rtnVal = EthFwIpc_sendRpmsg(hServer->notifyServiceObj.hNotifyServicRpMsgEp,
                                                         remoteCoreId,
                                                         ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID,
                                                         hServer->notifyServiceObj.localEp,
@@ -4013,11 +4014,11 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
     uint64_t msgBuf[CPSWPROXY_AUTOSAR_ETHDRIVER_MSG_SIZE / sizeof(uint64_t)];
     uint32_t localdstProc = hServer->ethDrvObj[clientNum].coreId;
     uint32_t localEp = hServer->ethDrvObj[clientNum].localEp;
-    RPMessage_Handle hAutosarEthRpMsgEp = hServer->ethDrvObj[clientNum].hAutosarEthRpMsgEp;
+    EthFwIpc_RpmsgHandle hAutosarEthRpMsgEp = hServer->ethDrvObj[clientNum].hAutosarEthRpMsgEp;
     EthRemoteCfg_DeviceData deviceData;
 
     /* Wait for Remote EP to active */
-    rtnVal = RPMessage_getRemoteEndPt(localdstProc,
+    rtnVal = EthFwIpc_getRemoteEndPt(localdstProc,
                                       ETHREMOTECFG_AUTOSAR_REMOTE_SERVICE_NAME,
                                       &remoteProcId,
                                       &remoteEndPt,
@@ -4039,7 +4040,7 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
         deviceData.hdr.common.token = ETHREMOTECFG_TOKEN_NONE;
 
         /* Send the EthFw Device Data to AUTOSAR EthDriver on location of endpoint */
-        rtnVal = RPMessage_send(hAutosarEthRpMsgEp,
+        rtnVal = EthFwIpc_sendRpmsg(hAutosarEthRpMsgEp,
                                 remoteProcId,
                                 remoteEndPt,
                                 localEp,
@@ -4049,12 +4050,12 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
 
         while (!exitTask)
         {
-            rtnVal = RPMessage_recv(hAutosarEthRpMsgEp,
+            rtnVal = EthFwIpc_recvRpmsg(hAutosarEthRpMsgEp,
                                     (Ptr)msgBuf,
                                     &len,
                                     &remoteEp,
                                     &remoteProc,
-                                    IPC_RPMESSAGE_TIMEOUT_FOREVER);
+                                    ETHFWIPC_WAIT_FOREVER);
             if (IPC_SOK == rtnVal)
             {
                 int32_t status;
@@ -4102,7 +4103,7 @@ int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
     EthFwOsal_pendSemaphore(hServer->clientServiceObj.rpmsgStartSem, ETHFWOSAL_WAIT_FOREVER);
 
-    retVal = RPMessage_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
+    retVal = EthFwIpc_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
     ETHFWTRACE_INFO_IF((retVal == IPC_SOK), "Announce Endpoint Service to HLOS");
 
     return retVal;

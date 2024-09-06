@@ -332,23 +332,12 @@ static void CpswRemoteTestApp_initTask(void* a0)
     EthFwTrace_init(&gRemoteApp_traceCfg);
     EthFwTrace_setLevel(ETHFW_TRACE_INFO);
 
-    /* Step1 : Initialize the multiproc */
-    status = Ipc_mpSetConfig(selfProcId, numProc, &gRemoteProc[0]);
-
-    /* Initialize params with defaults */
-    IpcInitPrms_init(0U, &initPrms);
-
-    initPrms.printFxn = &CpswRemoteApp_ipcPrint;
-
-    status += Ipc_init(&initPrms);
-#if !defined(A72_QNX_OS)
-    if (status == ENET_SOK)
-    {
-        Ipc_loadResourceTable(appGetIpcResourceTable());
-    }
-#else
-    ETHFWTRACE_INFO("Skipping Ipc_loadResourceTable for QNX (core : %s)", Ipc_mpGetSelfName());
-#endif
+    /* Step 1: Initialize the IPC */
+    status = EthFwIpc_init(selfProcId,
+                           numProc,
+                           &gRemoteProc[0],
+                           &CpswRemoteApp_ipcPrint,
+                           appGetIpcResourceTable());
 
     if (status == ENET_SOK)
     {
@@ -361,22 +350,17 @@ static void CpswRemoteTestApp_initTask(void* a0)
         status = Ipc_initVirtIO(&vqParam);
     }
 
-    if (status == ENET_SOK)
+    if (status == ETHFW_SOK)
     {
-        /* Step 3: Initialize RPMessage */
-        /* Initialize the param */
-        status = RPMessageParams_init(&cntrlParam);
+        status = EthFwIpc_initVirtIO(numProc, &sysVqBuf, &g_vringMemBuf,
+                                     IPC_VRING_MEM_SIZE);
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to init virtIO");
     }
 
-    if (status == ENET_SOK)
+    if (status == ETHFW_SOK)
     {
-        /* Set memory for HeapMemory for control task */
-        cntrlParam.buf = &gCntrlBuf[0];
-        cntrlParam.bufSize = CPSW_REMOTE_APP_IPC_DATA_SIZE;
-        cntrlParam.stackBuffer = &ctrlTaskBuf[0];
-        cntrlParam.stackSize = sizeof(ctrlTaskBuf);
-        status = RPMessage_init(&cntrlParam);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "ETHFW RPMessage_init failed");
+        status = EthFwIpc_initRpmsg(&gCntrlBuf, &ctrlTaskBuf, selfProcId);
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to init RPMsg");
     }
 
     /* Step 5: Start Cpsw Proxy */

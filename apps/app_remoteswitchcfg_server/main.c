@@ -154,11 +154,11 @@
 #define VQ_BUF_SIZE                             (2048U)
 
 #if defined(SOC_J721E)
-#define IPC_VRING_MEM_SIZE                      (32U * 1024U * 1024U)
+#define ETHAPP_IPC_VRING_MEM_SIZE               (32U * 1024U * 1024U)
 #elif defined(SOC_J7200)
-#define IPC_VRING_MEM_SIZE                      (8U * 1024U * 1024U)
+#define ETHAPP_IPC_VRING_MEM_SIZE               (8U * 1024U * 1024U)
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
-#define IPC_VRING_MEM_SIZE                      (48U * 1024U * 1024U)
+#define ETHAPP_IPC_VRING_MEM_SIZE               (48U * 1024U * 1024U)
 #else
 #error "Unsupported device"
 #endif
@@ -775,7 +775,7 @@ static uint8_t gEthAppSysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section("ipc_data_b
 
 static uint8_t gEthAppCntrlBuf[ETHAPP_IPC_DATA_SIZE] __attribute__ ((section("ipc_data_buffer"), aligned(8)));
 
-static uint8_t gEthAppVringMemBuf[IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
+static uint8_t gEthAppVringMemBuf[ETHAPP_IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
 #if defined (ETHFW_RTOS_MCU3_0)
 static uint32_t gEthAppRemoteProc[] =
@@ -1059,16 +1059,17 @@ static void EthApp_initTaskFxn(void* arg0)
 
 static void EthApp_initIpcTaskFxn(void* arg0)
 {
-    uint32_t selfProcId = IPC_MCU2_0;
+    uint32_t selfProcId = EnetSoc_getCoreId();
     uint32_t numProc = ARRAY_SIZE(gEthAppRemoteProc);
-    Ipc_VirtIoParams vqParam;
-    Ipc_InitPrms initPrms;
-    int32_t status;
+    int32_t status = ETHFW_SOK;
     EthFwOsal_TaskParams taskParams;
-    RPMessage_Params cntrlParam;
 
-    /* Step 1: Initialize the multiproc */
-    Ipc_mpSetConfig(selfProcId, numProc, &gEthAppRemoteProc[0]);
+    /* Step 1: Initialize the IPC */
+    status = EthFwIpc_init(selfProcId,
+                           numProc,
+                           &gEthAppRemoteProc[0],
+                           &EthApp_ipcPrint,
+                           appGetIpcResourceTable());
 
     /* Task to flush IPC traceBuf */
     EthFwOsal_initTaskParams(&taskParams);
@@ -1079,22 +1080,6 @@ static void EthApp_initIpcTaskFxn(void* arg0)
 
     EthFwOsal_createTask(&EthApp_traceBufFlush, &taskParams);
 
-    /* Initialize params with defaults */
-    IpcInitPrms_init(0U, &initPrms);
-
-    initPrms.printFxn = &EthApp_ipcPrint;
-
-    status = Ipc_init(&initPrms);
-
-#if !defined(A72_QNX_OS)
-    if (status == ENET_SOK)
-    {
-        status = Ipc_loadResourceTable(appGetIpcResourceTable());
-    }
-#else
-    appLogPrintf("Skipping Ipc_loadResourceTable for QNX (core : %s) .....\r\n", Ipc_mpGetSelfName());
-#endif
-
     if (status == ENET_SOK)
     {
         /* Trace buffer */
@@ -1103,27 +1088,23 @@ static void EthApp_initIpcTaskFxn(void* arg0)
         gEthAppObj.traceBufLastFlushTicksInUsecs = 0ULL;
     }
 
-    if (status == ENET_SOK)
+    if (status == ETHFW_SOK)
     {
-        /* Step 2: Initialize Virtio */
-        vqParam.vqObjBaseAddr = (void *)&gEthAppSysVqBuf[0];
-        vqParam.vqBufSize = numProc * Ipc_getVqObjMemoryRequiredPerCore();
-        vqParam.vringBaseAddr = (void *)gEthAppVringMemBuf;
-        vqParam.vringBufSize = sizeof(gEthAppVringMemBuf);
-        vqParam.timeoutCnt = 100;     /* Wait for counts */
-        status = Ipc_initVirtIO(&vqParam);
+        status = EthFwIpc_initVirtIO(numProc, &gEthAppSysVqBuf, &gEthAppVringMemBuf,
+                                     ETHAPP_IPC_VRING_MEM_SIZE);
+        if (status != ETHAPP_OK)
+        {
+            appLogPrintf("Failed to initialize virtIO");
+        }
     }
 
-    if (status == ENET_SOK)
+    if (status == ETHFW_SOK)
     {
-        /* Step 3: Initialize RPMessage */
-        /* Initialize the param and set memory for HeapMemory for control task */
-        RPMessageParams_init(&cntrlParam);
-        cntrlParam.buf = &gEthAppCntrlBuf[0];
-        cntrlParam.bufSize = ETHAPP_IPC_DATA_SIZE;
-        cntrlParam.stackBuffer = &gEthAppCtrlTaskBuf[0];
-        cntrlParam.stackSize = IPC_TASK_STACKSIZE;
-        status = RPMessage_init(&cntrlParam);
+        status = EthFwIpc_initRpmsg(&gEthAppCntrlBuf, &gEthAppCtrlTaskBuf, selfProcId);
+        if (status != ETHAPP_OK)
+        {
+            appLogPrintf("Failed to initialize RPMessage Module");
+        }
     }
 
     /* Initialize the Remote Config server (CPSW Proxy Server) */
@@ -1140,51 +1121,30 @@ static void EthApp_initIpcTaskFxn(void* arg0)
     /* Wait for Linux VDev ready... */
     if (status == ENET_SOK)
     {
-        while (!Ipc_isRemoteReady(IPC_MPU1_0))
-        {
-            EthFwOsal_sleepTask(10);
-        }
+        EthFwIpc_isRemoteReady(IPC_MPU1_0, ETHFWIPC_WAIT_FOREVER);
     }
 
-    /* Create the VRing now ... */
-    if (status == ENET_SOK)
+    /* Create the virtio if one hasn't been created already */
+    if (status == ETHFW_SOK)
     {
-        /* Create virtio if one hasn't been created already */
-        if(!Ipc_isRemoteVirtioCreated(IPC_MPU1_0))
-        {
-            status = Ipc_lateVirtioCreate(IPC_MPU1_0);
-            if (status != IPC_SOK)
-            {
-                appLogPrintf("EthApp_initIpcTask: Ipc_lateVirtioCreate failed: %d\n", status);
-            }
-        }
-    }
-
-    /* Late init */
-    if (status == IPC_SOK)
-    {
-        status = RPMessage_lateInit(IPC_MPU1_0);
-        if (status != IPC_SOK)
-        {
-            appLogPrintf("EthApp_initIpcTask: RPMessage_lateInit failed: %d\n", status);
-        }
+        status = EthFwIpc_lateInit(IPC_MPU1_0);
     }
 
     /* Late announcement of server's endpoint to MPU */
-    if (status == IPC_SOK)
+    if (status == ETHFW_SOK)
     {
         status = EthFw_lateAnnounce(gEthAppObj.hEthFw, IPC_MPU1_0);
-        if (status != ENET_SOK)
+        if (status != ETHFW_SOK)
         {
             appLogPrintf("EthApp_initIpcTask: late announcement failed: %d\n", status);
         }
     }
 
     /* Init EthFw services: task/CPU statistics and Ethernet statistics */
-    if (status == IPC_SOK)
+    if (status == ETHFW_SOK)
     {
         status = EthApp_initRemoteServices();
-        if (status != ENET_SOK)
+        if (status != ETHFW_SOK)
         {
             appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
         }
