@@ -16,6 +16,7 @@ TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
 SOC_LC      := $(call lowercase,$(TARGET_PLATFORM))
 
 CSOURCES    := main.c
+CSOURCES    += virtnetif_lwipif.c
 ifeq ($(TARGET_OS),FREERTOS)
   CSOURCES += ../ipc_cfg/ipc_trace.c
   CSOURCES += ../common/r5f_mpu_$(SOC_LC)_default.c
@@ -93,6 +94,7 @@ SOC_LC      := $(call lowercase,$(TARGET_PLATFORM))
 DEFS+=A72_QNX_OS
 
 CSOURCES    := main.c
+CSOURCES    += virtnetif_lwipif.c
 ifeq ($(TARGET_OS),FREERTOS)
   CSOURCES += ../ipc_cfg/ipc_trace.c
   CSOURCES += ../common/r5f_mpu_$(SOC_LC)_default.c
@@ -167,6 +169,7 @@ TARGET_OS_LC := $(call lowercase,$(TARGET_OS))
 SOC_LC      := $(call lowercase,$(TARGET_PLATFORM))
 
 CSOURCES    := main.c
+CSOURCES    += virtnetif_lwipif.c
 ifeq ($(TARGET_OS),FREERTOS)
   CSOURCES += ../ipc_cfg/ipc_trace.c
   CSOURCES += ../common/r5f_mpu_$(SOC_LC)_default.c

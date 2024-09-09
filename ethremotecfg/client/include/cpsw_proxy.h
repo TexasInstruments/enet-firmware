@@ -68,6 +68,7 @@
 /* ========================================================================== */
 
 #include <ethremotecfg/protocol/ethremotecfg.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -170,13 +171,18 @@ extern "C" {
 /* ========================================================================== */
 
 /*!
- * \brief Cpsw Proxy client configuration structure
+ * \brief CPSW remote notification callback
+ *
+ * Clients can register a callback function of this type to get notified of
+ * events on the Ethernet Firmware remote side.
+ *
+ * \param notifyType  Notification type, see \ref EthRemoteCfg_NotifyType.
+ * \param notifyArg   Notification argument, specific to the notification type.
+ * \param cbArg       Callback argument passed at the time of registration.
  */
-typedef struct CpswProxy_Config_s
-{
-    /*! Virtual port id */
-    EthRemoteCfg_VirtPort virtPort;
-} CpswProxy_Config;
+typedef void (*CpswProxy_NotifyCbFxn)(uint32_t notifyType,
+                                      void *notifyArg,
+                                      void *cbArg);
 
 /*!
  * \brief CPSW Proxy Heartbeat notification callback
@@ -191,6 +197,15 @@ typedef void (*CpswProxy_HeartbeatCbFxn)(EthRemoteCfg_ServerStatus serverStatus,
                                          void *cbArg);
 
 /*!
+ * \brief Cpsw Proxy client configuration structure
+ */
+typedef struct CpswProxy_Config_s
+{
+    /*! Virtual port id */
+    EthRemoteCfg_VirtPort virtPort;
+} CpswProxy_Config;
+
+/*!
  * \brief Cpsw Proxy Heartbeat Callback info.
  */
 typedef struct CpswProxy_HeartbeatCb_s
@@ -201,6 +216,18 @@ typedef struct CpswProxy_HeartbeatCb_s
     /*! Heartbeat argument */
     void *cbArg;
 } CpswProxy_HeartbeatCb;
+
+/*!
+ * \brief Cpsw Proxy TimeSync Callback info.
+ */
+typedef struct CpswProxy_TimeSyncCb_s
+{
+    /*! Callback function */
+    CpswProxy_NotifyCbFxn cbFxn;
+
+    /*! TimeSync function argument */
+    void *cbArg;
+} CpswProxy_TimeSyncCb;
 
 /*!
  * \brief Cpsw Proxy init params structure
@@ -218,6 +245,9 @@ typedef struct CpswProxy_initParams_s
 
     /* Heartbeat callback function */
     CpswProxy_HeartbeatCb hbNotifyCb;
+
+    /* TimeSync callback function */
+    CpswProxy_TimeSyncCb tsNotifyCb;
 } CpswProxy_initParams;
 
 /*!
@@ -240,20 +270,6 @@ typedef struct CpswProxy_HwPushNotifyParams_s
     /* CPTS timestamp */
     uint64_t timestamp;
 } CpswProxy_HwPushNotifyParams;
-
-/*!
- * \brief CPSW remote notification callback
- *
- * Clients can register a callback function of this type to get notified of
- * events on the Ethernet Firmware remote side.
- *
- * \param notifyType  Notification type, see \ref EthRemoteCfg_NotifyType.
- * \param notifyArg   Notification argument, specific to the notification type.
- * \param cbArg       Callback argument passed at the time of registration.
- */
-typedef void (*CpswProxy_NotifyCbFxn)(uint32_t notifyType,
-                                      void *notifyArg,
-                                      void *cbArg);
 
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */

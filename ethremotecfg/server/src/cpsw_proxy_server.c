@@ -253,7 +253,6 @@ typedef struct CpswProxyServer_NotifyServiceObj_s
     uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HWPUSH_COUNT_MAX];
     EthFwIpc_RpmsgHandle         hNotifyServicRpMsgEp;
     uint32_t                     hwPush2CoreIdMap[CPSW_CPTS_HWPUSH_COUNT_MAX];
-    uint32_t                     hwPush2TokenMap[CPSW_CPTS_HWPUSH_COUNT_MAX];
     uint32_t                     dstProcMask;
     uint32_t                     localEp;
     uint32_t                     remoteEp;
@@ -2380,6 +2379,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
 
     status = CpswProxyServer_getHandle(&hServer);
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
+    CPSWPROXY_ERR_CHECK((hClient != NULL), status, ETHREMOTECFG_EFAIL);
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
@@ -2418,7 +2418,6 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
         if (status == ENET_SOK)
         {
             hServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNorm] = hostId;
-            hServer->notifyServiceObj.hwPush2TokenMap[hwPushNorm] = hClient->token;
         }
     }
     else
@@ -2440,6 +2439,7 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
 
     status = CpswProxyServer_getHandle(&hServer);
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
+    CPSWPROXY_ERR_CHECK((hClient != NULL), status, ETHREMOTECFG_EFAIL);
 
     if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
@@ -2476,7 +2476,6 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
         {
             /* Use IPC_MAX_PROCS as invalid core id */
             hServer->notifyServiceObj.hwPush2CoreIdMap[hwPushNorm] = IPC_MAX_PROCS;
-            hServer->notifyServiceObj.hwPush2TokenMap[hwPushNorm] = ETHREMOTECFG_TOKEN_NONE;
         }
     }
     else
@@ -3489,13 +3488,9 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             ETHFWTRACE_INFO("REGISTER_REMOTE_TIMER | C2S | core=%u endpt=%u hwPushNum=%u timerId=%u",
                             remoteProcId, remoteEndPt, req->hwPushNum, req->timerId);
 
-            /* Get client object for token */
-            hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
-
             if (ETHREMOTECFG_SOK == status)
             {
-                status = CpswProxyServer_registerRemoteTimerHandlerCb(hClient,
+                status = CpswProxyServer_registerRemoteTimerHandlerCb(NULL,
                                                                       remoteProcId,
                                                                       req->timerId,
                                                                       req->hwPushNum);
@@ -3516,13 +3511,9 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             ETHFWTRACE_INFO("DEREGISTER_REMOTE_TIMER | C2S | core=%u endpt=%u hwPushNum=%u",
                             remoteProcId, remoteEndPt, req->hwPushNum);
 
-            /* Get client object for token */
-            hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
-
             if (ETHREMOTECFG_SOK == status)
             {
-                status = CpswProxyServer_unregisterRemoteTimerHandlerCb(hClient,
+                status = CpswProxyServer_unregisterRemoteTimerHandlerCb(NULL,
                                                                         remoteProcId,
                                                                         req->hwPushNum);
             }
@@ -3826,7 +3817,6 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
     for (i = 0U; i < CPSW_CPTS_HWPUSH_COUNT_MAX; i++)
     {
         hServer->notifyServiceObj.hwPush2CoreIdMap[i] = IPC_MAX_PROCS;
-        hServer->notifyServiceObj.hwPush2TokenMap[i] = ETHREMOTECFG_TOKEN_NONE;
     }
 
     EthFwIpc_initRpmsgParams(&comChParam);
@@ -3909,7 +3899,6 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
     uint32_t i = 0U;
     uint32_t events = 0U;
     uint32_t remoteCoreId;
-    uint32_t token;
 
     /* Get MCM cmd handle */
     if (hServer->hMcmCmdIf != NULL)
@@ -3944,10 +3933,9 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
                         EthRemoteCfg_NotifyServiceHwPushMsg *hwPushMsg = (EthRemoteCfg_NotifyServiceHwPushMsg *)msgBuffer;
 
                         remoteCoreId = hServer->notifyServiceObj.hwPush2CoreIdMap[i];
-                        token = hServer->notifyServiceObj.hwPush2TokenMap[i];
 
                         memset(hwPushMsg, 0, sizeof(*hwPushMsg));
-                        hwPushMsg->hdr.common.token = token;
+                        hwPushMsg->hdr.common.token = ETHREMOTECFG_TOKEN_NONE;
                         hwPushMsg->hdr.notifyType = ETHREMOTECFG_NOTIFY_HWPUSH;
                         hwPushMsg->hwPushNum = i + 1U;
 
@@ -3962,7 +3950,6 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
                         if (rtnVal == ENET_SOK)
                         {
                             if ((remoteCoreId != IPC_MAX_PROCS) &&
-                                (token != ETHREMOTECFG_TOKEN_NONE) &&
                                 ENET_IS_BIT_SET(hServer->notifyServiceObj.dstProcMask, remoteCoreId))
                             {
                                 hwPushMsg->timeStamp = lookupEventOutArgs.tsVal;

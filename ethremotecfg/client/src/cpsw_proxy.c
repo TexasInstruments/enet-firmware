@@ -67,6 +67,9 @@
 #define ETHFWTRACE_MOD_ID 0x201
 #define ETHFWTRACE_MOD_NAME "CpswProxy"
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #ifdef QNX_OS
 #include <stdlib.h>
 #include <errno.h>
@@ -329,8 +332,14 @@ typedef struct CpswProxy_Obj_s
     /* Heartbeat Task stack buffer */
     uint8_t hbTaskStackBuf[CPSWPROXY_HB_TASK_STACK_SIZE] __attribute__ ((aligned(CPSWPROXY_HB_TASK_STACK_ALIGN)));
 
-    /* Notify callbacks for CPSW Proxy Heartbeat Events */
+    /* Notify callbacks for CPSW Proxy Heartbeat Event */
     CpswProxy_HeartbeatCb hbNotifyCb;
+
+    /* Enable TimeSync for CPSW Proxy */
+    bool timeSyncEn;
+
+    /* Notify callbacks for CPSW Proxy TimeSync Event */
+    CpswProxy_TimeSyncCb tsNotifyCb;
 
     /* Array of client objects. Size of this array determines the number of virtual ports
      * that can be used by this core */
@@ -395,6 +404,8 @@ void CpswProxy_initConfig(CpswProxy_initParams *params)
     params->cmdTimeoutInMsecs = CPSWPROXY_CMD_DEFAULT_TIMEOUT_MS;
     params->hbNotifyCb.cbArg  = NULL;
     params->hbNotifyCb.cbFxn  = NULL;
+    params->tsNotifyCb.cbArg  = NULL;
+    params->tsNotifyCb.cbFxn  = NULL;
 }
 
 int32_t CpswProxy_init(const CpswProxy_initParams *params)
@@ -413,6 +424,17 @@ int32_t CpswProxy_init(const CpswProxy_initParams *params)
     else
     {
         gCpswProxy.heartBeatEn = BFALSE;
+    }
+
+    if (params->tsNotifyCb.cbFxn != NULL)
+    {
+        gCpswProxy.timeSyncEn = BTRUE;
+        gCpswProxy.tsNotifyCb.cbArg = params->tsNotifyCb.cbArg;
+        gCpswProxy.tsNotifyCb.cbFxn = params->tsNotifyCb.cbFxn;
+    }
+    else
+    {
+        gCpswProxy.timeSyncEn = BFALSE;
     }
 
     /* Passing a value of 0 for cmdTimeoutInMsecs means ProxyClient blocks forever for remote command response */
@@ -524,10 +546,10 @@ int32_t CpswProxy_connect(void)
 
     /* Wait for ETHFW's command service to be active */
     status = EthFwIpc_getRemoteEndPt(RPMESSAGE_ANY,
-                                      ETHREMOTECFG_FRAMEWORK_SERVICE_NAME,
-                                      &cmdSvc->masterCoreId,
-                                      &cmdSvc->masterEndpt,
-                                      CPSWPROXY_LOCATE_TIMEOUT);
+                                     ETHREMOTECFG_FRAMEWORK_SERVICE_NAME,
+                                     &cmdSvc->masterCoreId,
+                                     &cmdSvc->masterEndpt,
+                                     CPSWPROXY_LOCATE_TIMEOUT);
     ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
                       "Failed to get ETHFW command service endpt");
 
@@ -535,10 +557,10 @@ int32_t CpswProxy_connect(void)
     if (status == CPSWPROXY_SOK)
     {
         status = EthFwIpc_getRemoteEndPt(cmdSvc->masterCoreId,
-                                          ETHREMOTECFG_REMOTE_NOTIFY_SERVICE,
-                                          &notifySvc->masterCoreId,
-                                          &notifySvc->masterEndpt,
-                                          ETHFWIPC_WAIT_FOREVER);
+                                         ETHREMOTECFG_REMOTE_NOTIFY_SERVICE,
+                                         &notifySvc->masterCoreId,
+                                         &notifySvc->masterEndpt,
+                                         ETHFWIPC_WAIT_FOREVER);
         ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
                           "Failed to get ETHFW command service endpt");
     }
@@ -1667,7 +1689,7 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                           uint16_t resLen)
 {
 #ifndef QNX_OS
-    int32_t mbxStatus;
+    int32_t mbxStatus = CPSWPROXY_SOK;
 #endif
     CpswProxy_Msg msg;
     EthRemoteCfg_ResHdr *hdr = (EthRemoteCfg_ResHdr *)&msg.buf;
@@ -1697,11 +1719,11 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
 
     /* Send command request to ETHFW */
     status = EthFwIpc_sendRpmsg(gCpswProxy.cmdSvc.hRpMsg,
-                            gCpswProxy.cmdSvc.masterCoreId,
-                            gCpswProxy.cmdSvc.masterEndpt,
-                            gCpswProxy.cmdSvc.localEndpt,
-                            (void *)req,
-                            reqLen);
+                                gCpswProxy.cmdSvc.masterCoreId,
+                                gCpswProxy.cmdSvc.masterEndpt,
+                                gCpswProxy.cmdSvc.localEndpt,
+                                (void *)req,
+                                reqLen);
     ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
                       "Failed to send command %u request", reqType);
 
@@ -1791,11 +1813,11 @@ static void CpswProxy_cmdHandlerTask(void *arg0)
     {
         /* Wait for new messages from ETHFW */
         status = EthFwIpc_recvRpmsg(svc->hRpMsg,
-                                (void *)msg.buf,
-                                &len,
-                                &remoteEndpt,
-                                &remoteProcId,
-                                ETHFWIPC_WAIT_FOREVER);
+                                    (void *)msg.buf,
+                                    &len,
+                                    &remoteEndpt,
+                                    &remoteProcId,
+                                    ETHFWIPC_WAIT_FOREVER);
         if (status != IPC_SOK)
         {
             ETHFWTRACE_ERR(status, "Failed to receive IPC message");
@@ -1879,7 +1901,7 @@ static int32_t CpswProxy_cmdHandler(CpswProxy_CmdService *svc,
 {
     EthRemoteCfg_ResHdr *hdr = (EthRemoteCfg_ResHdr *)msg->buf;
 #ifndef QNX_OS
-    int32_t mbxStatus;
+    int32_t mbxStatus = CPSWPROXY_SOK;
 #else
     int rcvid;
     uint32_t reqType;
@@ -1889,7 +1911,7 @@ static int32_t CpswProxy_cmdHandler(CpswProxy_CmdService *svc,
     /* Send command response back to caller */
 #ifndef QNX_OS
     mbxStatus = EthFwOsal_postMailbox(svc->hMbx, (void *)msg, ETHFWOSAL_WAIT_FOREVER);
-    if (mbxStatus != ETHFWOSAL_SUCCESS)
+    if (mbxStatus != CPSWPROXY_SOK)
     {
         status = CPSWPROXY_EUNEXPECTED;
         ETHFWTRACE_ERR(status, "Failed to send cmd %u response via mailbox", hdr->resType);
@@ -1922,7 +1944,6 @@ static int32_t CpswProxy_initNotifySvc(CpswProxy_NotifyService *svc)
 {
     EthFwIpc_RpmsgCreateParams rpmsgParams;
     EthFwOsal_TaskParams taskParams;
-    uint32_t localEndpt;
     int32_t status = CPSWPROXY_SOK;
 
     /* Create RPMessage to be used for S2C notification */
@@ -2019,11 +2040,11 @@ static void CpswProxy_notifySvcTask(void *arg0)
     {
         /* Wait for new messages from ETHFW */
         status = EthFwIpc_recvRpmsg(svc->hRpMsg,
-                                (void *)msgBuf,
-                                &len,
-                                &remoteEndpt,
-                                &remoteProcId,
-                                ETHFWIPC_WAIT_FOREVER);
+                                    (void *)msgBuf,
+                                    &len,
+                                    &remoteEndpt,
+                                    &remoteProcId,
+                                    ETHFWIPC_WAIT_FOREVER);
         if (status != IPC_SOK)
         {
             ETHFWTRACE_ERR(status, "Failed to receive IPC message");
@@ -2071,12 +2092,41 @@ static int32_t CpswProxy_notifyHandler(EthRemoteCfg_NotifyHdr *hdr,
     int32_t status = CPSWPROXY_SOK;
 
     hProxy = CpswProxy_getHandle(hdr->common.token);
-    ETHFWTRACE_WARN_IF((hProxy == NULL),
-                       "Notify %u dropped, intended client (token %d) is not available",
-                       hdr->notifyType, (int32_t)hdr->common.token);
 
     /* Process received notification */
+    /* Check if this is a virtual netif based notify message */
     if (hProxy != NULL)
+    {
+        switch (notifyType)
+        {
+            case ETHREMOTECFG_NOTIFY_HWERROR:
+            case ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE:
+            {
+                /* No notify specific params */
+                notifyArg = NULL;
+                break;
+            }
+            default:
+            {
+                status = CPSWPROXY_EBADARGS;
+                ETHFWTRACE_ERR(status, "Unknown notify type %u", notifyType);
+                break;
+            }
+        }
+
+        /* Call app's notify callback if one is registered */
+        if (status == CPSWPROXY_SOK)
+        {
+            cbFxn = hProxy->notifyCb[notifyType].cbFxn;
+            cbArg = hProxy->notifyCb[notifyType].cbArg;
+            if (cbFxn != NULL)
+            {
+                cbFxn(notifyType, notifyArg, cbArg);
+            }
+        }
+    }
+    /* Check if this is a core based notify message */
+    else
     {
         switch (notifyType)
         {
@@ -2100,13 +2150,6 @@ static int32_t CpswProxy_notifyHandler(EthRemoteCfg_NotifyHdr *hdr,
                 }
                 break;
             }
-            case ETHREMOTECFG_NOTIFY_HWERROR:
-            case ETHREMOTECFG_NOTIFY_HWRECOVERY_COMPLETE:
-            {
-                /* No notify specific params */
-                notifyArg = NULL;
-                break;
-            }
             default:
             {
                 status = CPSWPROXY_EBADARGS;
@@ -2114,12 +2157,11 @@ static int32_t CpswProxy_notifyHandler(EthRemoteCfg_NotifyHdr *hdr,
                 break;
             }
         }
-
         /* Call app's notify callback if one is registered */
         if (status == CPSWPROXY_SOK)
         {
-            cbFxn = hProxy->notifyCb[notifyType].cbFxn;
-            cbArg = hProxy->notifyCb[notifyType].cbArg;
+            cbFxn = gCpswProxy.tsNotifyCb.cbFxn;
+            cbArg = gCpswProxy.tsNotifyCb.cbArg;
             if (cbFxn != NULL)
             {
                 cbFxn(notifyType, notifyArg, cbArg);
