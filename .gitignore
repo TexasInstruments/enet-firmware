@@ -8,3 +8,5 @@ docs/datasheet
 internal_docs/*/output.txt
 internal_docs/*/*/*/output.txt
 apps/tap/tapif
+generated/
+obj/
