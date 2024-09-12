@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2023
+ *  Copyright (c) Texas Instruments Incorporated 2023-2024
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -64,7 +64,7 @@ extern "C" {
 
 /*! \brief Line terminator to be used by all EthFwTrace macros */
 #ifndef ETHFW_CFG_TRACE_LINE_TERM
-#define ETHFW_CFG_TRACE_LINE_TERM             "\n"
+#define ETHFW_CFG_TRACE_LINE_TERM             "\r\n"
 #endif
 
 /*! \brief Trace print buffer length. */

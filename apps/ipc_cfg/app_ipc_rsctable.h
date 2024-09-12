@@ -50,7 +50,7 @@ extern "C" {
 #define BUILD_C7X_1
 #endif
 
-#include <ti/drv/ipc/include/ipc_rsctypes.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
 #include <apps/ipc_cfg/ipc_trace.h>
 
 /*
@@ -71,13 +71,13 @@ extern "C" {
 
 #define TRACEBUFADDR ((uintptr_t)&Ipc_traceBuffer)
 
-#define RPMSG_VRING_ADDR_ANY FW_RSC_ADDR_ANY
+#define RPMSG_VRING_ADDR_ANY (~0U)
 
 const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(".resource_table"), aligned(4096))) =
 {
-    1,            /* we're the first version that implements this */
+    { 1,            /* we're the first version that implements this */
     NUM_ENTRIES,  /* number of entries in the table */
-    0, 0,         /* reserved, must be zero */
+    { 0, 0}},         /* reserved, must be zero */
 
     /* offsets to entries */
     {

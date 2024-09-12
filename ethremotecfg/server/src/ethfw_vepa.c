@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2023 Texas Instruments Incorporated
+ * Copyright (c) 2023-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -73,17 +73,13 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x104
 
-/* OSAL header files */
-#include <ti/osal/osal.h>
-
 /* Enet LLD header files */
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
+#include <enet.h>
+#include <include/per/cpsw.h>
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include "ethfw_vepa_priv.h"
 
 /* ========================================================================== */

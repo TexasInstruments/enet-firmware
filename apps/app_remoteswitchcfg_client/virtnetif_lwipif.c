@@ -956,7 +956,7 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
         CpswProxy_attachExtended(virtNetif->hCpswProxy,
                                  virtNetif->virtPort,
                                  &outArgs->hostPortRxMtu,
-                                 &outArgs->txMtu[0],
+                                 &outArgs->txMtu[0U],
                                  &txPSILId,
                                  &rxStartFlowId,
                                  &rxFlowIdOffset,
@@ -1200,7 +1200,8 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
     }
 }
 
-static void CpswRemoteApp_hwRecoveryTask(void *a0, void *a1)
+static void CpswRemoteApp_hwRecoveryTask(void *a0,
+                                         void *a1)
 {
     CpswRemoteApp_HwRecoveryMsg msgMbx;
     volatile bool exitTask = BFALSE;

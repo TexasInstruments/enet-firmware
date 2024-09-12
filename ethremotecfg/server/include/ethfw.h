@@ -73,7 +73,8 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/enet/enet.h>
+#include <enet.h>
+#include <include/per/cpsw.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/server/include/ethfw_virtport.h>
 #include <ethremotecfg/server/include/ethfw_mcast.h>

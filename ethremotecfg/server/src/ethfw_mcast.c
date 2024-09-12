@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2023
+ *  Copyright (c) Texas Instruments Incorporated 2023-2024
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -43,14 +43,12 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x103
 
-/* PDK header files */
-#include <ti/osal/osal.h>
-
 /* Enet LLD header files */
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
+#include <enet.h>
+#include <include/per/cpsw.h>
 
 /* EthFw header files */
+#include <utils/ethfw_abstract/ethfw_osal.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw_virtport.h>
 #include "ethfw_mcast_priv.h"
@@ -190,7 +188,6 @@ int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
                         uint32_t macOnlyPortMask,
                         uint32_t hostPortVlanId)
 {
-    uint32_t i;
     int32_t status = ETHFW_EFAIL;
 
     memset(&gEthFwMcastObj, 0, sizeof(gEthFwMcastObj));
@@ -533,7 +530,7 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add shared mcast entry in ALE");
 
         /* Add shared multicast entry with host port vlan id
@@ -543,7 +540,7 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add shared mcast entry in ALE");
     }
 
@@ -587,7 +584,7 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
 
         /* Multicast address without VLAN, otherwise as many ALE entries
@@ -600,7 +597,7 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
     }
     else if (mcastInfo->refCnt == 0U)
@@ -648,7 +645,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupInArgs, &lookupOutArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_LOOKUP_MCAST, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_LOOKUP_MCAST, &prms, status);
     if (status == ENET_SOK)
     {
         /* Multicast address already requested, with requestor having exclusive access.
@@ -689,7 +686,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add mcast entry");
     }
 
@@ -711,7 +708,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add mcast entry");
     }
 
@@ -742,7 +739,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup ALE classifier");
     }
 
@@ -784,7 +781,7 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ALE classifier");
 
     /* Removes ALE entry of multicast address with host port vlan id */
@@ -793,7 +790,7 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
 
     return status;

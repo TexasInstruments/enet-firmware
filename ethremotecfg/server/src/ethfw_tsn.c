@@ -85,17 +85,13 @@
 #include <tsn_gptp/gptpman.h>
 #include <tsn_unibase/unibase_binding.h>
 
-/* PDK driver header files */
-#include <ti/osal/osal.h>
-
 /* Enet LLD header files */
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+#include <enet.h>
+#include <utils/include/enet_apputils.h>
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #include <ti/drv/enet/include/mod/cpsw_cpts.h>
 

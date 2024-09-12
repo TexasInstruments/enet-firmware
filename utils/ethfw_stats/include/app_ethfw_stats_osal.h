@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020 Texas Instruments Incorporated
+ * Copyright (c) 2020-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -64,11 +64,7 @@
 #define __APP_ETHFW_STATS_OSAL_H__
 
 #include <stdint.h>
-
-#include <ti/osal/osal.h>
-
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <enet.h>
 
 #include "app_ethfw_stats.h"
 

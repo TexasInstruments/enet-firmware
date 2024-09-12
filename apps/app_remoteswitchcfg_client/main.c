@@ -68,26 +68,19 @@
 #include <stdlib.h>
 #endif
 
-#include <ti/csl/cslr_gtc.h>
-#include <ti/osal/osal.h>
+#include <cslr_gtc.h>
+#include <apps/ipc_cfg/app_ipc_rsctable.h>
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include <utils/ethfw_abstract/ethfw_ipc.h>
 
-#include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
-#include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
-
-#include <ti/drv/udma/udma.h>
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
-
-#include <ti/drv/ipc/ipc.h>
-#include <apps/ipc_cfg/app_ipc_rsctable.h>
+#include <enet.h>
+#include <include/per/cpsw.h>
+#include <utils/include/enet_apputils.h>
+#include <utils/include/enet_appmemutils_cfg.h>
+#include <utils/include/enet_appmemutils.h>
 
 /* lwIP core includes */
 #include "lwip/opt.h"
@@ -100,15 +93,6 @@
 #include "lwip/tcp.h"
 #include "lwip/udp.h"
 #include "lwip/dhcp.h"
-
-/* lwIP netif includes */
-#include "lwip/etharp.h"
-#include "netif/ethernet.h"
-#include "netif/bridgeif.h"
-
-#if defined(ETHAPP_ENABLE_IPERF_SERVER)
-#include "examples/lwiperf/lwiperf_example.h"
-#endif
 
 #define System_printf printf
 #define System_vprintf vprintf
@@ -131,6 +115,8 @@
 #define IPC_VRING_MEM_SIZE                    (8U * 1024U * 1024U)
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define IPC_VRING_MEM_SIZE                    (48U * 1024U * 1024U)
+#elif defined(SOC_AM62PX)
+#define IPC_VRING_MEM_SIZE                    (0x2000U)
 #else
 #error "Unsupported device"
 #endif
@@ -158,7 +144,8 @@ static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
 __attribute__((aligned(ETHAPP_LWIP_TASK_STACKALIGN)));
 
-static uint8_t g_initTaskStackBuf[IPC_TASK_STACKSIZE]
+#if !defined(MCU_PLUS_SDK)
+static uint8_t g_initTaskStackBuf[ETHAPP_IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
@@ -167,6 +154,7 @@ static uint8_t g_vdevMonStackBuf[ETHAPP_IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
 __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)))
 ;
+#endif
 
 static uint8_t ctrlTaskBuf[ETHAPP_IPC_TASK_STACKSIZE]
 __attribute__ ((section(".bss:taskStackSection")))
@@ -216,6 +204,8 @@ static uint32_t gRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
     IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
+#elif defined(SOC_AM62PX)
+    IPC_MCU2_0,
 #endif
 };
 #endif
@@ -278,6 +268,9 @@ CpswRemoteApp_Obj gRemoteAppObj =
 #elif defined(SOC_J7200)
     .enetType         = ENET_CPSW_5G,
     .instId           = 0U,
+#elif defined(SOC_AM62PX)
+    .enetType         = ENET_CPSW_3G,
+    .instId           = 0U,
 #endif
     .hwPushNotifyMsg  =
     {
@@ -337,6 +330,7 @@ static void CpswRemoteApp_ipcPrint(const char *str)
     return;
 }
 
+#if !defined(MCU_PLUS_SDK)
 static uint64_t CpswRemoteApp_getLocalTime(void)
 {
     uint32_t gtcTimeLo = 0U, gtcTimeHi = 0U;
@@ -429,6 +423,7 @@ static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
         hSyncTimerObj->prevCptsTime = syncTime;
     }
 }
+#endif
 
 static void rpmsg_vdevMonitorFxn(void* arg0)
 {
@@ -511,7 +506,9 @@ void CpswRemoteApp_initTask(void* a0)
     EthFwOsal_TaskParams params;
     uint32_t numProc = gNumRemoteProc;
     uint32_t selfProcId = gRemoteAppObj.coreId;
+#if !defined(MCU_PLUS_SDK)
     CpswRemoteApp_HwPushNotifyMsg *hwPushNotifyMsg = &gRemoteAppObj.hwPushNotifyMsg;
+#endif
     CpswProxy_initParams initParams;
     int32_t status;
 
@@ -543,13 +540,15 @@ void CpswRemoteApp_initTask(void* a0)
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to init RPMsg");
     }
 
+#if !defined(MCU_PLUS_SDK)
     /* Step 4: Create RPMessage monitor task */
     EthFwOsal_initTaskParams(&params);
-    params.priority = 2;
+    params.priority = 3;
     params.stack = &g_vdevMonStackBuf[0];
     params.stacksize = sizeof(g_vdevMonStackBuf);
 
     EthFwOsal_createTask(&rpmsg_vdevMonitorFxn, &params);
+#endif
 
     /* Step 5: Start Cpsw Proxy */
     /* Initialize config to default values, this is NOT mandatory */
@@ -562,9 +561,11 @@ void CpswRemoteApp_initTask(void* a0)
     initParams.cmdTimeoutInMsecs = CPSW_REMOTE_APP_CMD_TIMEOUT_MS;
     initParams.hbNotifyCb.cbFxn = CpswRemoteApp_hbStatus;
 
+#if !defined(MCU_PLUS_SDK)
     /* Update timesync specific callback arguments */
     initParams.tsNotifyCb.cbFxn = CpswRemoteApp_calcSyncTimeParams;
     initParams.tsNotifyCb.cbArg = hwPushNotifyMsg;
+#endif
  
     CpswProxy_init(&initParams);
 
@@ -577,6 +578,7 @@ void CpswRemoteApp_initTask(void* a0)
 
     CpswRemoteApp_initVirtNetif(gRemoteAppObj.enetType, gRemoteAppObj.instId);
 
+#if !defined(MCU_PLUS_SDK)
     memset(&hwPushNotifyMsg->syncTimerObj, 0, sizeof(CpswRemoteApp_SyncTimerObj));
 
     /* Register to Remote Timer to start TimeSync */
@@ -586,6 +588,7 @@ void CpswRemoteApp_initTask(void* a0)
     {
         hwPushNotifyMsg->syncTimerInitDone =  BTRUE;
     }
+#endif
 
     /* Step 6: Initialize lwIP */
     EthFwOsal_initTaskParams(&params);
@@ -600,6 +603,7 @@ void CpswRemoteApp_initTask(void* a0)
     EthFwOsal_createTask(&EthApp_lwipMain, &params);
 }
 
+#if !defined(MCU_PLUS_SDK)
 int main(void)
 {
     EthFwOsal_TaskHandle hRemoteAppTask;
@@ -635,6 +639,7 @@ int main(void)
 
     return(0);
 }
+#endif
 
 static void EthApp_waitForDebugger(void)
 {

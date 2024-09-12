@@ -73,7 +73,7 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
+#include <lwipif2enet_appif.h>
 
 #ifdef __cplusplus
 extern "C" {

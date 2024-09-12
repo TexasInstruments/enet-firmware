@@ -68,27 +68,26 @@
 #include <stdlib.h>
 #endif
 #include <stdio.h>
-/* OSAL */
-#include <ti/osal/osal.h>
 
-#include <ti/csl/cslr_gtc.h>
+#include <cslr_gtc.h>
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include <utils/ethfw_abstract/ethfw_ipc.h>
 
+#include <enet.h>
+#include <include/per/cpsw.h>
+#include <utils/include/enet_apputils.h>
+#include <utils/include/enet_appmemutils_cfg.h>
+#include <utils/include/enet_appmemutils.h>
+
+#if !defined(MCU_PLUS_SDK)
 #include <ti/drv/udma/udma.h>
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
-
-#include <ti/drv/ipc/ipc.h>
-#include <apps/ipc_cfg/app_ipc_rsctable.h>
-
 #include <ti/drv/uart/UART_stdio.h>
+#endif
+
+#include <apps/ipc_cfg/app_ipc_rsctable.h>
 
 #include <ethfw_test_cases.h>
 
@@ -313,7 +312,6 @@ void tearDown(void)
 
 static void CpswRemoteTestApp_initTask(void* a0)
 {
-    EthFwOsal_TaskParams params;
     uint32_t numProc = gNumRemoteProc;
     Ipc_VirtIoParams vqParam;
     Ipc_InitPrms initPrms;

@@ -73,19 +73,17 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x101
 
-/* PDK Driver header files */
-#include <ti/osal/osal.h>
-#include <ti/drv/ipc/ipc.h>
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+/* Enet Driver header files */
+#include <enet.h>
+#include <include/per/cpsw.h>
+#include <utils/include/enet_mcm.h>
+#include <utils/include/enet_apputils.h>
 
 /* EthFw header files */
-#include <utils/ethfw_common/include/ethfw_utils.h>
-#include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include <utils/ethfw_abstract/ethfw_ipc.h>
+#include <utils/ethfw_common/include/ethfw_utils.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw.h>
 #include <ethremotecfg/server/include/ethfw_virtport.h>
 #include "cpsw_proxy_server.h"
@@ -451,10 +449,11 @@ static int32_t EthFw_setDscpPriorityMapRegisters(void)
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &setHostInArgs);
 
-    status = Enet_ioctl(gEthFwObj.hEnet,
-                        gEthFwObj.coreId,
-                        ENET_HOSTPORT_IOCTL_SET_INGRESS_DSCP_PRI_MAP,
-                        &prms);
+    ENET_IOCTL(gEthFwObj.hEnet,
+               gEthFwObj.coreId,
+               ENET_HOSTPORT_IOCTL_SET_INGRESS_DSCP_PRI_MAP,
+               &prms,
+               status);
 
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to set ingress DSCP priority mapping");
     return status;
@@ -598,7 +597,6 @@ static EthFw_Port *EthFw_getMacPortConfig(Enet_MacPort macPort)
 
 static void EthFw_setPortVlan(void)
 {
-    EthRemoteCfg_VirtPort virtPort;
     EthFw_Port *ethFwPort;
     Enet_MacPort macPort;
     EnetPort_VlanCfg *vlanCfg;
@@ -761,7 +759,6 @@ static void EthFw_setPortMode(void)
 static void EthFw_setTxChRmInfo(uint32_t coreIdx,
                                 uint32_t virtPortId)
 {
-    EnetRm_ResourceInfo *rmInfo = NULL;
     uint32_t i;
     uint32_t j = 0U;
 
@@ -803,11 +800,9 @@ static void EthFw_updateEnetRm(void)
 {
     EnetRm_ResCfg *resCfg = &gEthFwObj.cpswCfg.resCfg;
     EnetRm_ResPrms *rmPrms = &resCfg->resPartInfo;
-    EnetRm_ResourceInfo *rmInfo;
     uint32_t req = 0U;
     uint32_t coreIdx;
     uint32_t i;
-    uint32_t virtPortCnt = 0U;
 
     /* Add RM needed by virtual ports, each one needs:
      * - numTxCh x TX channel
@@ -947,7 +942,11 @@ void EthFw_initConfigParams(Enet_Type enetType,
 #if defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
     hostPortCfg->csumOffloadEn   = BFALSE;
 #else
-    hostPortCfg->csumOffloadEn   = BTRUE;
+#if defined (MCU_PLUS_SDK)
+    hostPortCfg->txCsumOffloadEn   = BTRUE;
+#else
+    hostPortCfg->csumOffloadEn     = BTRUE;
+#endif
 #endif
 
     EthFw_initAleCfg(aleCfg);
@@ -960,7 +959,6 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     EnetUdma_Cfg *udmaCfg;
     char *date = __DATE__;
     char *time = __TIME__;
-    uint32_t i;
     int32_t status = ENET_SOK;
 #if defined(ETHFW_GPTP_SUPPORT)
     EthFwTsn_Config tsnCfg;
@@ -1045,12 +1043,12 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         memcpy(&gEthFwObj.version.sec[0U],
                &time[ETHFWVERSION_OFFSET_SEC],
                ETHFW_VERSION_SECLEN);
-
+#if !defined(MCU_PLUS_SDK)
         /* ETHRPC_ETHSWITCH_VERSION_LAST_COMMIT is defined by the build system */
         memcpy(&gEthFwObj.version.commitHash[0U],
                ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT,
                ETHFW_VERSION_COMMITSHALEN);
-
+#endif
         gEthFwObj.version.month[ETHFW_VERSION_MONTHLEN] = '\0';
         gEthFwObj.version.date[ETHFW_VERSION_DATELEN] = '\0';
         gEthFwObj.version.year[ETHFW_VERSION_YEARLEN] = '\0';
@@ -1208,7 +1206,7 @@ uint32_t EthFw_getRemoteEndptId(uint32_t coreId)
 {
     uint32_t i;
     bool foundCoreId = BFALSE;
-    uint32_t remoteEndptId;
+    uint32_t remoteEndptId = ETHFW_IPC_INVALID_RPMSG_ENDPOINT;
 
     /* match the coreID the number of remote_device-based virtual ports */
     for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_autosarEndptId); i++)
@@ -1227,7 +1225,7 @@ uint32_t EthFw_getRemoteEndptId(uint32_t coreId)
 int32_t EthFw_initRemoteConfig(EthFw_Handle hEthFw)
 {
     CpswProxyServer_Config_t cfg;
-    int32_t status;
+    int32_t status = ETHFW_EFAIL;
     uint32_t i;
     uint32_t numAutosarVirtPorts = 0U;
     uint32_t j;
@@ -1308,7 +1306,7 @@ int32_t EthFw_lateAnnounce(EthFw_Handle hEthFw,
 
     /* Late announcement of server's endpoint to remote processor */
     status = CpswProxyServer_lateAnnounce(procId);
-    ETHFWTRACE_ERR_IF((status != IPC_SOK), status, "Late announcement to proc %u failed", procId);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Late announcement to proc %u failed", procId);
 
     return status;
 }
@@ -1346,8 +1344,10 @@ static int32_t EthFw_initMcm(void)
     mcmCfg.numMacPorts = gEthFwObj.numPorts;
     mcmCfg.periodicTaskPeriod = ENETPHY_FSM_TICK_PERIOD_MS;
     mcmCfg.print = EthFwTrace_print;
+#if !defined(MCU_PLUS_SDK)
     mcmCfg.traceTsFunc = NULL;
     mcmCfg.extTraceFunc = NULL;
+#endif
 
     for (i = 0U; i < gEthFwObj.numPorts; i++)
     {
@@ -1355,7 +1355,8 @@ static int32_t EthFw_initMcm(void)
     }
 
     if ((mcmCfg.enetType != ENET_CPSW_5G) &&
-        (mcmCfg.enetType != ENET_CPSW_9G))
+        (mcmCfg.enetType != ENET_CPSW_9G) &&
+        (mcmCfg.enetType != ENET_CPSW_3G))
     {
         status = ENET_ENOTSUPPORTED;
     }
@@ -1420,6 +1421,7 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
         }
     }
 
+#if !defined(MCU_PLUS_SDK)
     /* Pass MAC control, short or error packets to host port */
     if (gEthFwObj.passErrPkt)
     {
@@ -1427,6 +1429,7 @@ static void EthFw_initLinkArgs(EnetPer_PortLinkCfg *linkArgs,
         macCfg->rxCsfEn = BTRUE;
         macCfg->rxCefEn = BTRUE;
     }
+#endif
 }
 
 static int32_t EthFw_setAleBcastEntry(void)
@@ -1446,10 +1449,7 @@ static int32_t EthFw_setAleBcastEntry(void)
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setMcastInArgs, &setMcastOutArgs);
 
-    status = Enet_ioctl(gEthFwObj.hEnet,
-                        gEthFwObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_MCAST,
-                        &prms);
+    ENET_IOCTL(gEthFwObj.hEnet, gEthFwObj.coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add bcast ALE entry");
 
     return status;

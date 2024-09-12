@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -77,8 +77,11 @@
 extern "C" {
 #endif
 
-#include <ti/drv/enet/include/per/cpsw.h>
+#include <enet.h>
+#include <include/per/cpsw.h>
+#if !defined(MCU_PLUS_SDK)
 #include <ti/drv/enet/enet_cfgserver/enet_cfgserver.h>
+#endif
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */

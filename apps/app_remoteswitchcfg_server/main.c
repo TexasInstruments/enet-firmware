@@ -73,12 +73,6 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x601
 
-/* PDK Driver Header files */
-#include <ti/osal/osal.h>
-#include <ti/drv/ipc/ipc.h>
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-
 /* EthFw header files */
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
 
@@ -94,14 +88,6 @@
 #include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
-
-/* EthFw utils header files */
-#include <utils/remote_service/include/app_remote_service.h>
-#include <utils/perf_stats/include/app_perf_stats.h>
-#include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
-#include <utils/board/include/ethfw_board_utils.h>
-#include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #define System_printf  Ipc_Trace_printf
 #define System_vprintf Ipc_Trace_vprintf
@@ -127,17 +113,32 @@
 #include "examples/lwiperf/lwiperf_example.h"
 #endif
 
-#include <ti/drv/enet/lwipif/inc/default_netif.h>
-#include <ti/drv/enet/lwipif/inc/lwip2lwipif.h>
-
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 #include <ti/drv/enet/lwipific/inc/lwip2enet_ic.h>
 #include <ti/drv/enet/lwipific/inc/lwip2lwipif_ic.h>
 #endif
 
+#include <enet.h>
+#include <utils/include/enet_apputils.h>
+#include <lwip2lwipif.h>
+#if !defined(MCU_PLUS_SDK)
+#include <default_netif.h>
+#endif
+
+/* EthFw utils header files */
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
+#include <utils/remote_service/include/app_remote_service.h>
+#include <utils/perf_stats/include/app_perf_stats.h>
+#include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
+#include <utils/board/include/ethfw_board_utils.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/server/include/ethfw.h>
+
+#if (MCU_PLUS_SDK)
+#include "ti_enet_lwipif.h"
+#endif
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -153,12 +154,16 @@
 
 #define VQ_BUF_SIZE                             (2048U)
 
+#define ETHAPP_IPC_TASK_STACKSIZE               (0x2000U)
+
 #if defined(SOC_J721E)
 #define ETHAPP_IPC_VRING_MEM_SIZE               (32U * 1024U * 1024U)
 #elif defined(SOC_J7200)
 #define ETHAPP_IPC_VRING_MEM_SIZE               (8U * 1024U * 1024U)
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define ETHAPP_IPC_VRING_MEM_SIZE               (48U * 1024U * 1024U)
+#elif defined(SOC_AM62PX)
+#define ETHAPP_IPC_VRING_MEM_SIZE               (0x2000U)
 #else
 #error "Unsupported device"
 #endif
@@ -189,6 +194,10 @@
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_5))
+#elif defined(SOC_AM62PX)
+#define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_1) | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_2))
 #endif
 
 /* Default virtual port mask for shared multicast addresses: all virtual switch ports */
@@ -203,7 +212,7 @@
 #define ETHAPP_LWIP_TASK_STACKALIGN             ETHAPP_LWIP_TASK_STACKSIZE
 #define ETHAPP_TRACEBUF_TASK_STACKALIGN         ETHAPP_TRACEBUF_TASK_STACKSIZE
 #define ETHAPP_INIT_TASK_STACKALIGN             ETHAPP_INIT_TASK_STACKSIZE
-#define ETHAPP_IPC_TASK_STACKALIGN              IPC_TASK_STACKSIZE
+#define ETHAPP_IPC_TASK_STACKALIGN              ETHAPP_IPC_TASK_STACKSIZE
 #else
 #define ETHAPP_LWIP_TASK_STACKSIZE              (4U * 1024U)
 #define ETHAPP_TRACEBUF_TASK_STACKSIZE          (1U * 1024U)
@@ -245,6 +254,11 @@
 #define ETHAPP_LWIP_BRIDGE_MAX_PORTS (4U)
 #define ETHAPP_LWIP_BRIDGE_MAX_DYNAMIC_ENTRIES (32U)
 #define ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES (8U)
+
+/* Ethernet Netif IDs */
+#define ETHAPP_ETHNETIF_0               (0U)
+#define ETHAPP_ETHNETIF_1               (1U)
+#define ETHAPP_ETHNETIF_MAX             (2U)
 
 /* BridgeIf port IDs
  * Used for creating CoreID to Bridge PortId Map
@@ -364,7 +378,7 @@ void appLogPrintf(const char *format, ...);
 
 static void EthApp_waitForDebugger(void);
 
-static void EthApp_initTaskFxn(void* arg0);
+void EthApp_initTaskFxn(void* arg0);
 
 static void EthApp_initIpcTaskFxn(void* arg0);
 
@@ -389,6 +403,8 @@ static void EthApp_initLwip(void *arg);
 static void EthApp_initNetif(void);
 
 static void EthApp_netifStatusCb(struct netif *netif);
+
+static void EthApp_netifLinkChangeCb(struct netif *pNetif);
 
 #if defined(ETHFW_MONITOR_SUPPORT)
 static void EthApp_closeDmaCb(void *arg);
@@ -508,6 +524,11 @@ static EthFwMcast_RsvdMcast gEthApp_rsvdMcastCfgTable[] =
 
 void EthApp_traceBufCacheWb(void);
 
+#if defined(MCU_PLUS_SDK)
+/* Handle to the Application interface for the LwIPIf Layer */
+LwipifEnetApp_Handle hLwipIfApp = NULL;
+#endif
+
 /* ========================================================================== */
 /*                          Extern variables                                  */
 /* ========================================================================== */
@@ -529,6 +550,9 @@ static EthAppObj gEthAppObj =
     .instId   = 0U,
 #elif defined(SOC_J7200)
     .enetType = ENET_CPSW_5G,
+    .instId   = 0U,
+#elif defined(SOC_AM62PX)
+    .enetType = ENET_CPSW_3G,
     .instId   = 0U,
 #endif
     .hEthFw = NULL,
@@ -574,6 +598,11 @@ static Enet_MacPort gEthAppPorts[] =
     ENET_MAC_PORT_5, /* QSGMII sub */
 #endif
 #endif
+
+#if defined(SOC_AM62PX)
+    ENET_MAC_PORT_1,
+    ENET_MAC_PORT_2,
+#endif
 };
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -611,12 +640,19 @@ static Enet_MacPort gEthAppSwitchPorts[]=
     ENET_MAC_PORT_5,
 #endif
 #endif
+
+#if defined(SOC_AM62PX)
+    ENET_MAC_PORT_1,
+    ENET_MAC_PORT_2,
+#endif
 };
 #endif
 
 /* Custom policers which clients need to provide to add their own policers.
  * Make sure that size of this array is <= ETHFW_UTILS_NUM_CUSTOM_POLICERS */
-static CpswAle_SetPolicerEntryInPartitionInArgs gEthApp_customPolicers[ETHFW_UTILS_NUM_CUSTOM_POLICERS] = {};
+#if !defined(MCU_PLUS_SDK)
+    static CpswAle_SetPolicerEntryInPartitionInArgs gEthApp_customPolicers[ETHFW_UTILS_NUM_CUSTOM_POLICERS] = {};
+#endif
 
 /* NOTE: 2 virtual ports should not have same tx channel allocated to them */
 static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
@@ -761,15 +797,17 @@ static EthFwVlan_VlanCfg gEthApp_vlanCfg[] =
     },
 };
 
+#if !defined(MCU_PLUS_SDK)
 static uint8_t gEthAppStackBuf[ETHAPP_INIT_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_INIT_TASK_STACKALIGN)));
+#endif
 
 static uint8_t gEthAppLwipStackBuf[ETHAPP_LWIP_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(ETHAPP_LWIP_TASK_STACKALIGN)));
 
 static uint8_t gEthAppTraceBufFlushBuf[ETHAPP_TRACEBUF_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__((aligned(ETHAPP_TRACEBUF_TASK_STACKALIGN)));
 
-static uint8_t gEthAppIpcInitStackBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
+static uint8_t gEthAppIpcInitStackBuf[ETHAPP_IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
 
-static uint8_t gEthAppCtrlTaskBuf[IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
+static uint8_t gEthAppCtrlTaskBuf[ETHAPP_IPC_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_IPC_TASK_STACKALIGN)));
 
 static uint8_t gEthAppSysVqBuf[VQ_BUF_SIZE]  __attribute__ ((section("ipc_data_buffer"), aligned(8)));
 
@@ -811,6 +849,8 @@ static uint32_t gEthAppRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_1,
     IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
+#elif defined(SOC_AM62PX)
+    IPC_MCU2_1,
 #endif
 };
 #endif
@@ -846,7 +886,7 @@ static uint32_t gEthApp_remoteClientPrivVlanIdMap[ETHREMOTECFG_SWITCH_PORT_LAST+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-
+#if !defined(MCU_PLUS_SDK)
 int main(void)
 {
     EthFwOsal_TaskHandle task;
@@ -882,7 +922,7 @@ int main(void)
 
     return(0);
 }
-
+#endif
 void appLogPrintf(const char *format, ...)
 {
     va_list args;
@@ -917,7 +957,7 @@ static void EthApp_waitForDebugger(void)
 static int32_t EthApp_boardInit(void)
 {
     uint32_t flags = 0U;
-    int32_t status;
+    int32_t status = ETHFW_SOK;
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     flags = (ETHFW_BOARD_ENET_BRIDGE_ENABLE |
@@ -964,14 +1004,19 @@ static EthFwTrace_Cfg gEthApp_traceCfg =
     .extTraceFunc = NULL,
 };
 
-static void EthApp_initTaskFxn(void* arg0)
+void EthApp_initTaskFxn(void* arg0)
 {
     EthFwOsal_TaskParams taskParams;
     int32_t status = ETHAPP_OK;
+
+    EthApp_waitForDebugger();
+
     EnetOsal_Cfg *osalPrms = NULL;
     EnetUtils_Cfg *utilsPrms = NULL;
 
     Enet_init(osalPrms, utilsPrms);
+
+    EthFwOsal_init();
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     /* EthFw's initial timestamp, used as offset for further profiling timestamps */
@@ -995,9 +1040,9 @@ static void EthApp_initTaskFxn(void* arg0)
     /* Print EthFw banner */
     if (status == ETHAPP_OK)
     {
-        appLogPrintf("=======================================================\n");
-        appLogPrintf("            CPSW Ethernet Firmware                     \n");
-        appLogPrintf("=======================================================\n");
+        appLogPrintf("=======================================================\r\n");
+        appLogPrintf("            CPSW Ethernet Firmware                     \r\n");
+        appLogPrintf("=======================================================\r\n");
     }
 
 #if defined(ETHFW_GPTP_SUPPORT)
@@ -1054,7 +1099,6 @@ static void EthApp_initTaskFxn(void* arg0)
         EthApp_initPtp();
     }
 #endif
-
 }
 
 static void EthApp_initIpcTaskFxn(void* arg0)
@@ -1140,6 +1184,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
         }
     }
 
+#if !defined(MCU_PLUS_SDK)
     /* Init EthFw services: task/CPU statistics and Ethernet statistics */
     if (status == ETHFW_SOK)
     {
@@ -1149,6 +1194,9 @@ static void EthApp_initIpcTaskFxn(void* arg0)
             appLogPrintf("EthApp_initIpcTask: failed to init EthFw remote services: %d\n", status);
         }
     }
+#endif
+
+    EthFwOsal_exitTask();
 }
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
@@ -1167,12 +1215,12 @@ static int32_t EthApp_initEthFw(void)
     Cpsw_Cfg *cpswCfg = &ethFwCfg.cpswCfg;
     EnetUdma_Cfg dmaCfg;
     EnetRm_MacAddressPool *pool = &cpswCfg->resCfg.macList;
+#if defined(ETHAPP_ENABLE_INTERCORE_ETH) || defined(ETHFW_VEPA_SUPPORT)
     EthFwMcast_SharedMcastCfg *sharedMcastCfg = &ethFwCfg.mcastCfg.sharedMcastCfg;
+#endif
     EthFwMcast_RsvdMcastCfg *rsvdMcastCfg = &ethFwCfg.mcastCfg.rsvdMcastCfg;
-    EthFwTsn_PpsConfig ppsConfig;
     uint32_t poolSize;
     int32_t status = ETHAPP_OK;
-    uint32_t i;
 
     /* Init EthFw config params */
     EthFw_initConfigParams(gEthAppObj.enetType, gEthAppObj.instId, &ethFwCfg);
@@ -1308,10 +1356,10 @@ static int32_t EthApp_initEthFw(void)
     if (status == ETHAPP_OK)
     {
         EthFw_getVersion(gEthAppObj.hEthFw, &ver);
-        appLogPrintf("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
-        appLogPrintf("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
-        appLogPrintf("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);
-        appLogPrintf("ETHFW Commit SHA: %s\n\n", ver.commitHash);
+        appLogPrintf("\nETHFW Version   : %d.%02d.%02d\r\n", ver.major, ver.minor, ver.rev);
+        appLogPrintf("ETHFW Build Date: %s %s, %s\r\n", ver.month, ver.date, ver.year);
+        appLogPrintf("ETHFW Build Time: %s:%s:%s\r\n", ver.hour, ver.min, ver.sec);
+        appLogPrintf("ETHFW Commit SHA: %s\r\n\n", ver.commitHash);
     }
 
     return status;
@@ -1373,9 +1421,11 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 {
     EthFwCallbacks_lwipifCpswGetHandle(gEthAppObj.enetType, gEthAppObj.instId, inArgs, outArgs);
 
+#if !defined(MCU_PLUS_SDK)
     /* Save host port MAC address */
     EnetUtils_copyMacAddr(&gEthAppObj.hostMacAddr[0U],
                           &outArgs->rxInfo[0U].macAddr[0U]);
+#endif
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
@@ -1410,6 +1460,8 @@ static void EthApp_lwipMain(void *a0)
 #if (LWIP_SOCKET || LWIP_NETCONN) && LWIP_NETCONN_SEM_PER_THREAD
     netconn_thread_init();
 #endif
+
+    EthFwOsal_exitTask();
 }
 
 static void EthApp_initLwip(void *arg)
@@ -1524,10 +1576,18 @@ static void EthApp_initNetif(void)
 #endif
 #else
     netif_add(&netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+#if defined(MCU_PLUS_SDK)
+    hLwipIfApp = LwipifEnetApp_getHandle();
+    LWIPIF_LWIP_start(gEthAppObj.enetType, gEthAppObj.instId, &netif, ETHAPP_ETHNETIF_0);
+    netif_set_link_callback(&netif, EthApp_netifLinkChangeCb);
+#endif
     netif_set_default(&netif);
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
     NETIF_SET_CHECKSUM_CTRL(&netif, chksumFlags);
 #endif
+#endif
+#if defined (MCU_PLUS_SDK)
+    LwipifEnetApp_startSchedule(hLwipIfApp, &netif);
 #endif
 
     netif_set_status_callback(netif_default, EthApp_netifStatusCb);
@@ -1558,13 +1618,15 @@ static void EthApp_initNetif(void)
 
 static void EthApp_netifStatusCb(struct netif *netif)
 {
+#if defined(ETHFW_DEMO_SUPPORT)
     int32_t status;
+#endif
 
     if (netif_is_up(netif))
     {
         const ip4_addr_t *ipAddr = netif_ip4_addr(netif);
 
-        appLogPrintf("Added interface '%c%c%d', IP is %s\n",
+        appLogPrintf("Added interface '%c%c%d', IP is %s\r\n",
                      netif->name[0], netif->name[1], netif->num, ip4addr_ntoa(ipAddr));
 
         if (ipAddr->addr != 0)
@@ -1594,6 +1656,19 @@ static void EthApp_netifStatusCb(struct netif *netif)
     {
         appLogPrintf("Removed interface '%c%c%d'\n", netif->name[0], netif->name[1], netif->num);
     }
+}
+
+static void EthApp_netifLinkChangeCb(struct netif *pNetif)
+{
+    if (netif_is_link_up(pNetif))
+    {
+    	EnetAppUtils_print("[%d]Network Link UP Event\r\n", pNetif->num);
+    }
+    else
+    {
+    	EnetAppUtils_print("[%d]Network Link DOWN Event\r\n", pNetif->num);
+    }
+    return;
 }
 
 #if defined(ETHFW_MONITOR_SUPPORT)

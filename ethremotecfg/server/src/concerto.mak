@@ -26,6 +26,8 @@ endif
 
 # PDK include path
 IDIRS += $(PDK_PATH)/packages
+IDIRS += $(PDK_PATH)/packages/ti/drv/enet
+IDIRS += $(PDK_PATH)/packages/ti/drv/enet/examples
 
 # lwIP include paths
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)

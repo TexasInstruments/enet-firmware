@@ -70,8 +70,10 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+/* Enet LLD Header files */
+#include <per/cpsw.h>
+#include <enet_apputils.h>
+#include <core/enet_mod_tas.h>
 
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #include <utils/ethfw_estdemo/include/ethfw_estdemo.h>
@@ -79,7 +81,6 @@
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_types.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #include <tsn_uniconf/yangs/yang_db_runtime.h>
 #include <tsn_uniconf/ucman.h>
@@ -961,7 +962,6 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
     int32_t status;
     uint32_t i;
     cb_rawsock_paras_t param;
-    EthFwEstDemoCtx *estStatCtx = (EthFwEstDemoCtx *)ctx;
     CpswAle_VlanEntryInfo vlanInArgs;
     Enet_IoctlPrms prms;
     uint32_t aleEntry;
@@ -976,6 +976,9 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
     instId   = 0U,
 #elif defined(SOC_J7200)
     enetType = ENET_CPSW_5G,
+    instId   = 0U,
+#elif defined(SOC_AM62PX)
+    enetType = ENET_CPSW_3G,
     instId   = 0U,
 #endif
 
@@ -992,7 +995,7 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &vlanInArgs, &aleEntry);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_VLAN, &prms, status);
 
     if(ETHFW_SOK == status)
     {
@@ -1290,7 +1293,6 @@ static inline  void EthFwEstDemo_showRecvBitrate(EstDemoStreamParams *stream,
 {
     int64_t now = EthFwEstDemo_getCurrentTimeUs();
     uint64_t duration  = now > stream->prevTs? now - stream->prevTs: 0ULL;
-    uint32_t n;
 
     if (duration >= DISPLAY_BITRATE_INTERVAL_SEC*UB_SEC_US)
     {

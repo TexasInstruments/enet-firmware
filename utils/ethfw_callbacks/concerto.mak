@@ -19,6 +19,9 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   IDIRS += $(PDK_PATH)/packages/ti/transport/lwip/lwip-port/config/$(TARGET_SOC_FOLDER)
 endif
 IDIRS += $(PDK_PATH)/packages
+IDIRS += $(PDK_PATH)/packages/ti/drv/enet
+IDIRS += $(PDK_PATH)/packages/ti/drv/enet/examples
+IDIRS += $(PDK_PATH)/packages/ti/drv/enet/lwipif/inc
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD

@@ -73,13 +73,14 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x501
 
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/lwipif/inc/lwipif2enet_appif.h>
+#include <enet.h>
+#include <utils/include/enet_apputils.h>
+#include <utils/include/enet_appmemutils_cfg.h>
+#include <utils/include/enet_appmemutils.h>
+#include <utils/include/enet_mcm.h>
+#include <lwipif2enet_appif.h>
 
+#include <utils/ethfw_abstract/ethfw_osal.h>
 #include <utils/ethfw_callbacks/include/ethfw_callbacks_lwipif.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw_arp.h>
@@ -135,8 +136,8 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
                                             uint32_t flowIdx,
                                             Lwip2EnetAppIf_FreePktInfo *freePktInfo);
 
-static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
-                                             struct pbuf *pbuf);
+bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
+                                      struct pbuf *pbuf);
 #endif
 
 static void EthFwCallbacks_handleRxErrPkt(struct netif *netif,
@@ -153,6 +154,7 @@ static void EthFwCallbacks_handleRxErrPkt(struct netif *netif,
 /*                            Global Variables                                */
 /* ========================================================================== */
 
+#if !defined(MCU_PLUS_SDK)
 /* CPSW error codes. Relevant when MAC port's CEF, CMF and/or CSF are enabled */
 static const char *gEthFwCallbacks_errCodeInfo[] =
 {
@@ -173,6 +175,7 @@ static const char *gEthFwCallbacks_errCodeInfo[] =
     [ENET_UDMA_CPSW_PKT_ERR_RSV1]           = "Reserved",
     [ENET_UDMA_CPSW_PKT_ERR_RSV2]           = "Reserved",
 };
+#endif
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -190,7 +193,9 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     EnetPer_AttachCoreOutArgs attachInfo;
     EnetUdma_OpenTxChPrms cpswTxChCfg;
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
+#if (UDMA_SOC_CFG_UDMAP_PRESENT == 1)
     EnetUdma_UdmaRingPrms *pFqRingPrms;
+#endif
     uint8_t *macAddr;
     uint32_t coreId = EnetSoc_getCoreId();
     bool useDefaultFlow = BTRUE;    /* Must handle the default flow */
@@ -240,7 +245,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     cpswRxFlowCfg.hUdmaDrv  = handleInfo.hUdmaDrv;
     cpswRxFlowCfg.cbArg     = rxCfg->cbArg;
     cpswRxFlowCfg.useProxy  = BTRUE;
-
+#if (UDMA_SOC_CFG_UDMAP_PRESENT == 1)
     /* Use ring monitor for the CQ ring of RX flow */
     pFqRingPrms                  = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
     pFqRingPrms->useRingMon      = useRingMon;
@@ -254,7 +259,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
 #endif
     /* Ring mon high threshold - to get only low  threshold event, setting high threshold as more than ring depth*/
     pFqRingPrms->ringMonCfg.data1 = rxCfg->numPackets;
-
+#endif
     cpswRxFlowCfg.disableCacheOpsFlag = BFALSE;
     cpswRxFlowCfg.rxFlowMtu           = attachInfo.rxMtu;
     cpswRxFlowCfg.ringMemAllocFxn     = &EnetMem_allocRingMem;
@@ -280,7 +285,9 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     ENET_UTILS_ARRAY_COPY(outArgs->txMtu, attachInfo.txMtu);
     outArgs->hUdmaDrv        = handleInfo.hUdmaDrv;
     outArgs->print           = &EnetAppUtils_print;
+#if !defined(MCU_PLUS_SDK)
     outArgs->isPortLinkedFxn = &EthFwCallbacks_isPortLinked;
+#endif
 #if defined(ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA)
     outArgs->txCsumOffloadEn = BFALSE;
     outArgs->rxCsumOffloadEn = BFALSE;
@@ -298,13 +305,21 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
 
     outArgs->txInfo.txPortNum = ENET_MAC_PORT_INV;
 
+#if defined(MCU_PLUS_SDK)
+    macAddr = &rxInfo->macAddr[0U][0U];
+#else
     macAddr = &rxInfo->macAddr[0U];
+#endif
+
     ETHFWTRACE_INFO("Host MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
                     macAddr[0] & 0xFF, macAddr[1] & 0xFF, macAddr[2] & 0xFF,
                     macAddr[3] & 0xFF, macAddr[4] & 0xFF, macAddr[5] & 0xFF);
 
     rxInfo->handlePktFxn = NULL;
+
+#if !defined(MCU_PLUS_SDK)
     rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
+#endif
 
     /* Mode of packet operation should be either interrupt or polling 
      * based, not both. So ensure both Rx and Tx mode have either interrupt
@@ -371,7 +386,9 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     EnetAppUtils_assert(outArgs->rxInfo[0U].disableEvent == outArgs->rxInfo[1U].disableEvent);
 
 
+#if !defined(MCU_PLUS_SDK)
     rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
+#endif
 }
 
 void EthFwCallbacks_lwipifCpswReleaseHandle(Enet_Type enetType,
@@ -460,9 +477,11 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     LwipifEnetAppIf_RxConfig *rxCfg;
     EnetUdma_OpenTxChPrms cpswTxChCfg;
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
+#if (UDMA_SOC_CFG_UDMAP_PRESENT == 1)
     EnetUdma_UdmaRingPrms *pFqRingPrms;
-    EnetDma_Handle hDma;
     bool useRingMon = BTRUE;
+#endif
+    EnetDma_Handle hDma;
     int32_t status = ENET_SOK;
     uint32_t coreId = EnetSoc_getCoreId();
     Enet_Handle hEnet = (Enet_Handle)outArgs->handleArg;
@@ -509,6 +528,8 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
     rxInfo->handlePktFxn    = NULL;
 
+
+#if (UDMA_SOC_CFG_UDMAP_PRESENT == 1)
     /* Use ring monitor for the CQ ring of RX flow */
     pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
     pFqRingPrms->useRingMon = useRingMon;
@@ -523,6 +544,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 #endif
     /* Ring mon high threshold - to get only low  threshold event, setting high threshold as more than ring depth*/
     pFqRingPrms->ringMonCfg.data1 = rxCfg->numPackets;
+#endif
 
     rxInfo->hRxFlow = EnetDma_openRxCh(hDma, &cpswRxFlowCfg);
     EnetAppUtils_assert(rxInfo->hRxFlow != NULL);
@@ -906,7 +928,6 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
                                             uint32_t flowIdx,
                                             Lwip2EnetAppIf_FreePktInfo *freePktInfo)
 {
-    EnetDma_Handle hDma = Enet_getDmaHandle(hEnet);
     EnetDma_PktQ fqPktInfoQ;
     EnetDma_PktQ cqPktInfoQ;
     const uint8_t bcastAddr[ENET_MAC_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -958,8 +979,8 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
     }
 }
 
-static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
-                                             struct pbuf *pbuf)
+bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
+                                      struct pbuf *pbuf)
 {
     struct eth_hdr *ethHdr;
     struct eth_vlan_hdr *vlanHdr;
@@ -1025,6 +1046,7 @@ static bool EthFwCallbacks_handleArpRxPktFxn(struct netif *netif,
 }
 #endif
 
+#if !defined(MCU_PLUS_SDK)
 const char *EthFwCallbacks_errPktCodeStr(uint32_t errCode)
 {
     const char *str = "Unexpected error code";
@@ -1053,3 +1075,4 @@ static void EthFwCallbacks_handleRxErrPkt(struct netif *netif,
                            netif->name[0], netif->name[1], netif->num, errCode);
     }
 }
+#endif

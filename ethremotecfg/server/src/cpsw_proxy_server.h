@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -65,7 +65,8 @@
 
 
 #include <stdint.h>
-#include <ti/drv/enet/enet.h>
+#include <enet.h>
+#include <utils/include/enet_mcm.h>
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/server/include/ethfw_virtport.h>
 

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021-2023 Texas Instruments Incorporated
+ * Copyright (c) 2021-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -74,7 +74,7 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/enet/enet.h>
+#include <enet.h>
 #include <ethremotecfg/server/include/ethfw_arp.h>
 
 #ifdef __cplusplus

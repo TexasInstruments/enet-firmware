@@ -67,9 +67,6 @@
 #define ETHFWTRACE_MOD_ID 0x201
 #define ETHFWTRACE_MOD_NAME "CpswProxy"
 
-#include <stdint.h>
-#include <stdbool.h>
-
 #ifdef QNX_OS
 #include <stdlib.h>
 #include <errno.h>
@@ -84,11 +81,12 @@
 #endif
 #endif
 
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/ethfw_abstract/ethfw_ipc.h>
+
 #include <ethremotecfg/client/include/cpsw_proxy.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
-#include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #if defined(SAFERTOS)
 #include "SafeRTOS_API.h"
@@ -550,7 +548,7 @@ int32_t CpswProxy_connect(void)
                                      &cmdSvc->masterCoreId,
                                      &cmdSvc->masterEndpt,
                                      CPSWPROXY_LOCATE_TIMEOUT);
-    ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
+    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status,
                       "Failed to get ETHFW command service endpt");
 
     /* Wait for ETHFW's notify service to be active on the same remote core */
@@ -561,11 +559,11 @@ int32_t CpswProxy_connect(void)
                                          &notifySvc->masterCoreId,
                                          &notifySvc->masterEndpt,
                                          ETHFWIPC_WAIT_FOREVER);
-        ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
+        ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status,
                           "Failed to get ETHFW command service endpt");
     }
 
-    ETHFWTRACE_INFO_IF((status == IPC_SOK),
+    ETHFWTRACE_INFO_IF((status == CPSWPROXY_SOK),
                        "ETHFW services found at core %u endpts %u (%s) and %u (%s)",
                        cmdSvc->masterCoreId,
                        cmdSvc->masterEndpt, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME,
@@ -1654,7 +1652,7 @@ static void CpswProxy_deinitCmdSvc(CpswProxy_CmdService *svc)
     if (svc->hRpMsg != NULL)
     {
         status = EthFwIpc_deleteRpmsg(svc->hRpMsg);
-        ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
+        ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status,
                           "Failed to delete endpt %u", svc->localEndpt);
         svc->hRpMsg = NULL;
     }
@@ -1724,7 +1722,7 @@ int32_t CpswProxy_sendCmd(CpswProxy_Handle hProxy,
                                 gCpswProxy.cmdSvc.localEndpt,
                                 (void *)req,
                                 reqLen);
-    ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
+    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status,
                       "Failed to send command %u request", reqType);
 
 #ifndef QNX_OS
@@ -1818,7 +1816,7 @@ static void CpswProxy_cmdHandlerTask(void *arg0)
                                     &remoteEndpt,
                                     &remoteProcId,
                                     ETHFWIPC_WAIT_FOREVER);
-        if (status != IPC_SOK)
+        if (status != CPSWPROXY_SOK)
         {
             ETHFWTRACE_ERR(status, "Failed to receive IPC message");
         }
@@ -2018,7 +2016,7 @@ static void CpswProxy_deinitNotifySvc(CpswProxy_NotifyService *svc)
     if (svc->hRpMsg != NULL)
     {
         status = EthFwIpc_deleteRpmsg(svc->hRpMsg);
-        ETHFWTRACE_ERR_IF((status != IPC_SOK), status,
+        ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status,
                           "Failed to delete endpt %u", svc->localEndpt);
         svc->hRpMsg = NULL;
     }
@@ -2045,7 +2043,7 @@ static void CpswProxy_notifySvcTask(void *arg0)
                                     &remoteEndpt,
                                     &remoteProcId,
                                     ETHFWIPC_WAIT_FOREVER);
-        if (status != IPC_SOK)
+        if (status != CPSWPROXY_SOK)
         {
             ETHFWTRACE_ERR(status, "Failed to receive IPC message");
         }
@@ -2109,6 +2107,9 @@ static int32_t CpswProxy_notifyHandler(EthRemoteCfg_NotifyHdr *hdr,
             default:
             {
                 status = CPSWPROXY_EBADARGS;
+                /* One might get this error with notify type: ETHREMOTECFG_NOTIFY_HWPUSH
+                 * when client gets a HW push notify before both the virtual ports attach - Fixme
+                 */
                 ETHFWTRACE_ERR(status, "Unknown notify type %u", notifyType);
                 break;
             }

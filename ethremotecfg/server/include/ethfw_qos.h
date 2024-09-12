@@ -74,7 +74,7 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/enet/include/mod/cpsw_ale.h>
+#include <include/mod/cpsw_ale.h>
 
 #ifdef __cplusplus
 extern "C" {

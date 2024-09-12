@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -70,17 +70,16 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/csl/csl_cpswitch.h>
 
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils_cfg.h>
-#include <ti/drv/enet/examples/utils/include/enet_appmemutils.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <csl_cpswitch.h>
+#include <utils/include/enet_appmemutils_cfg.h>
+#include <utils/include/enet_appmemutils.h>
+#include <utils/include/enet_apputils.h>
+#include <utils/include/enet_mcm.h>
 
 #include <utils/intervlan/include/eth_swintervlan.h>
 #include <utils/console_io/include/app_log.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -371,10 +370,10 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
-                        gCpswInterVlanAppObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_UCAST,
-                        &prms);
+    ENET_IOCTL(gCpswInterVlanAppObj.hEnet,
+               gCpswInterVlanAppObj.coreId,
+               CPSW_ALE_IOCTL_ADD_UCAST,
+               &prms, status);
     if (status != ENET_SOK)
     {
         appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UCAST: %d\n", __func__, status);
@@ -392,10 +391,10 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
-                        gCpswInterVlanAppObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_UCAST,
-                        &prms);
+    ENET_IOCTL(gCpswInterVlanAppObj.hEnet,
+               gCpswInterVlanAppObj.coreId,
+               CPSW_ALE_IOCTL_ADD_UCAST,
+               &prms, status);
 
     if (status != ENET_SOK)
     {
@@ -414,10 +413,10 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
-                        gCpswInterVlanAppObj.coreId,
-                        CPSW_ALE_IOCTL_ADD_UCAST,
-                        &prms);
+    ENET_IOCTL(gCpswInterVlanAppObj.hEnet,
+               gCpswInterVlanAppObj.coreId,
+               CPSW_ALE_IOCTL_ADD_UCAST,
+               &prms, status);
 
     if (status != ENET_SOK)
     {
@@ -443,10 +442,10 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
-                            gCpswInterVlanAppObj.coreId,
-                            CPSW_ALE_IOCTL_ADD_VLAN,
-                            &prms);
+        ENET_IOCTL(gCpswInterVlanAppObj.hEnet,
+                   gCpswInterVlanAppObj.coreId,
+                   CPSW_ALE_IOCTL_ADD_VLAN,
+                   &prms, status);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
@@ -471,10 +470,10 @@ static int32_t CpswApp_addAleEntries(EnetCfgServer_InterVlanConfig *pInterVlanCf
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
-                            gCpswInterVlanAppObj.coreId,
-                            CPSW_ALE_IOCTL_ADD_VLAN,
-                            &prms);
+        ENET_IOCTL(gCpswInterVlanAppObj.hEnet,
+                   gCpswInterVlanAppObj.coreId,
+                   CPSW_ALE_IOCTL_ADD_VLAN,
+                   &prms, status);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
@@ -553,10 +552,10 @@ int32_t EthSwInterVlan_addClassifierEntries(EnetCfgServer_InterVlanConfig *pInte
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerEntryInArgs, &setPolicerEntryOutArgs);
 
-        status = Enet_ioctl(gCpswInterVlanAppObj.hEnet,
-                            gCpswInterVlanAppObj.coreId,
-                            CPSW_ALE_IOCTL_SET_POLICER,
-                            &prms);
+        ENET_IOCTL(gCpswInterVlanAppObj.hEnet,
+                   gCpswInterVlanAppObj.coreId,
+                   CPSW_ALE_IOCTL_SET_POLICER,
+                   &prms, status);
 
         if (status != ENET_SOK)
         {
@@ -579,7 +578,7 @@ static int32_t CpswApp_getRxTxHandle(void)
     EnetDma_Handle hDma;
     EnetUdma_OpenTxChPrms cpswTxChCfg;
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
-    EnetUdma_UdmaRingPrms *pFqRingPrms;
+    EnetUdma_UdmaRingPrms *pFqRingPrms = NULL;
 
     /* Open the CPSW RX flow for Ingress */
     {
@@ -594,7 +593,9 @@ static int32_t CpswApp_getRxTxHandle(void)
         cpswRxFlowCfg.disableCacheOpsFlag = BTRUE;
 
         /* Use ring monitor for the CQ ring of RX flow */
+#if (UDMA_SOC_CFG_UDMAP_PRESENT == 1)
         pFqRingPrms = &cpswRxFlowCfg.udmaChPrms.fqRingPrms;
+#endif
 #ifdef AUTO_RECLAIM_TXCQ
         /* set ring mode to message as both TX channel (pushes to CQ) and RX flow
          * (pops from FQ) uses this ring */
@@ -703,7 +704,7 @@ static void CpswApp_pktRxTx(void)
     EnetDma_Pkt *pktInfo;
     EthVlanFrame *frame;
     uint32_t rxReadyCnt;
-    SemaphoreP_Status semStatus;
+    int32_t semStatus;
     uint32_t iterationCount = 0U;
     volatile bool testDone = BFALSE;
     EthFwOsal_TaskHandle hTask;
@@ -726,7 +727,11 @@ static void CpswApp_pktRxTx(void)
     {
         EthFwOsal_setTaskPrio(hTask, 5);
     }
-
+    else
+    {
+        status = ENET_EFAIL;
+        appLogPrintf("Couldn't retrieve the cuurent task handle\n", status);
+    }
     do
     {
         /*TODO: add a voluntary yield here for other tasks at same priority to run
@@ -760,7 +765,7 @@ static void CpswApp_pktRxTx(void)
 
             /* Pend on semaphore notification event from Rx Completion ISR */
             semStatus = EthFwOsal_pendSemaphore(gCpswInterVlanAppObj.completionSem, RX_TX_COMPLETION_TIMEOUT);
-            if (semStatus != SemaphoreP_OK)
+            if (semStatus != ETHFWOSAL_SUCCESS)
             {
                 iterationCount++;
                 if ((iterationCount & 0x7FFU) == 0U)
@@ -803,7 +808,7 @@ static void CpswApp_pktRxTx(void)
                     EthFrame_decrementTTL(frame);
 
                     /* TODO: Flush the cache contents for header region */
-                    EthFwOsal_invCache((Ptr)frame, PKT_HEADER_SIZE);
+                    EthFwOsal_wbInvCache((Ptr)frame, PKT_HEADER_SIZE);
 
                     /* Step3: Enq the modified frame for transmission */
                     EnetQueue_enq(&txSubmitQ, &pktInfo->node);

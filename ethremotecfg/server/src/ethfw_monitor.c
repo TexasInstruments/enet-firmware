@@ -74,16 +74,14 @@
 #define ETHFWTRACE_MOD_ID 0x107
 
 #include <stdint.h>
-#include <ti/osal/osal.h>
 
 /* Enet LLD header files */
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
+#include <utils/include/enet_mcm.h>
+#include <utils/include/enet_apputils.h>
 
 /* EthFw header files */
-#include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
+#include <utils/ethfw_common/include/ethfw_trace.h>
 #include <ethremotecfg/server/include/ethfw_monitor.h>
 #include "cpsw_proxy_server.h"
 
@@ -202,7 +200,7 @@ static int32_t EthFwMon_resetHandler(void);
 /*                          Extern variables                                  */
 /* ========================================================================== */
 
-//FIXME: Updating the status for EthFw needs to be done in a cleaner way(without extern).
+/* FIXME: Updating the status for EthFw needs to be done in a cleaner way (without extern). */
 extern void EthFw_setStatus(EthRemoteCfg_ServerStatus serverStatus);
 
 /* ========================================================================== */
@@ -338,7 +336,7 @@ static void EthFwMon_saveStats(void)
     /* Get host port stats counters */
     monStats = &gEthFwMonObj.monStats[0U];
     ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwMonObj.cpswStats);
-    status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+    ENET_IOCTL(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
 
     if (status == ENET_SOK)
@@ -359,7 +357,7 @@ static void EthFwMon_saveStats(void)
         monStats = &gEthFwMonObj.monStats[portNum + 1U];
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwMonObj.cpswStats);
-        status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+        ENET_IOCTL(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
 
@@ -390,7 +388,7 @@ static bool EthFwMon_analyzeHostStats(void)
 
     /* Get host port stats counters */
     ENET_IOCTL_SET_OUT_ARGS(&prms, &gEthFwMonObj.cpswStats);
-    status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+    ENET_IOCTL(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to get host port stats");
 
     /* Check stats counters we are monitoring */
@@ -460,7 +458,7 @@ static bool EthFwMon_analyzePortStats(Enet_MacPort macPort)
 
     /* Get MAC port stats counters */
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &macPort, &gEthFwMonObj.cpswStats);
-    status = Enet_ioctl(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+    ENET_IOCTL(gEthFwMonObj.hEnet, gEthFwMonObj.coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                       "Failed to get MAC port %u stats", ENET_MACPORT_ID(macPort));
 
@@ -517,7 +515,6 @@ static bool EthFwMon_analyzePortStats(Enet_MacPort macPort)
 
 static void EthFwMon_Task(void *a0)
 {
-    EnetMcm_HandleInfo handleInfo;
     Enet_MacPort macPort;
     Enet_MacPort recoveryMacPort = ENET_MAC_PORT_INV;
     bool needsRecovery = BFALSE;
@@ -677,10 +674,11 @@ uint64_t EthFwMon_getCurrentTime(uint32_t *nanoSeconds,
 
     /* Software Time stamp Push event */
     ENET_IOCTL_SET_OUT_ARGS(&prms, &tsVal);
-    status = Enet_ioctl(gEthFwMonObj.hEnet,
-                        gEthFwMonObj.coreId,
-                        ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP,
-                        &prms);
+    ENET_IOCTL(gEthFwMonObj.hEnet,
+               gEthFwMonObj.coreId,
+               ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP,
+               &prms,
+               status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Error in getting the current CPTS time");
 
     *nanoSeconds = (uint32_t)(tsVal % (uint64_t)ETHFW_TIME_SEC_TO_NS);
@@ -699,10 +697,11 @@ void EthFwMon_setCurrentTime(uint64_t *time)
     /* Update the CPTS time */
     ENET_IOCTL_SET_IN_ARGS(&prms, time);
 
-    status = Enet_ioctl(gEthFwMonObj.hEnet,
-                        gEthFwMonObj.coreId,
-                        ENET_TIMESYNC_IOCTL_SET_TIMESTAMP,
-                        &prms);
+    ENET_IOCTL(gEthFwMonObj.hEnet,
+               gEthFwMonObj.coreId,
+               ENET_TIMESYNC_IOCTL_SET_TIMESTAMP,
+               &prms,
+               status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Error in setting the updated CPTS time");
 }
 
@@ -715,7 +714,6 @@ static int32_t EthFwMon_resetHandler(void)
     uint64_t currentTime;
     uint64_t updatedTime;
     int32_t status = ETHFW_SOK;
-    uint32_t i;
 
     /* Get current CPTS time */
     currentTime = EthFwMon_getCurrentTime(&nanoSeconds, &seconds);

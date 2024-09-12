@@ -77,11 +77,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/* PDK Driver Header files */
-#include <ti/osal/osal.h>
-#include <ti/drv/ipc/ipc.h>
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
+/* Enet LLD Driver Header files */
+#include <enet.h>
+#include <utils/include/enet_apputils.h>
 
 /* EthFw header files */
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
@@ -100,7 +98,6 @@
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
 #include <utils/board/include/ethfw_board_utils.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #include <ethremotecfg/protocol/ethremotecfg.h>
 #include <ethremotecfg/server/include/ethfw.h>
@@ -401,7 +398,6 @@ void tearDown(void)
 
 static void EthFwTest_initTask(void* a0)
 {
-    EthFwOsal_TaskParams taskParams;
     EthFw_Version ver;
     int32_t status = ETHAPP_OK;
     EnetOsal_Cfg *osalPrms = NULL;

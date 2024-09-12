@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2023
+ *  Copyright (c) Texas Instruments Incorporated 2023-2024
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -43,17 +43,14 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x105
 
-/* PDK header files */
-#include <ti/osal/osal.h>
 
 /* Enet LLD header files */
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
+#include <enet.h>
+#include <include/per/cpsw.h>
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include "ethfw_vlan_priv.h"
 
 /* ========================================================================== */
@@ -546,7 +543,7 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &vlanInArgs, &aleEntry);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_VLAN, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add ALE VLAN %u entry", vlanId);
 
     /* Add broadcast entry for the VLAN */
@@ -561,7 +558,7 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add VLAN %u bcast ALE entry", vlanId);
     }
 
@@ -585,7 +582,7 @@ static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &mcastInArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete VLAN %u bcast entry", vlanId);
 
     /* Delete VLAN entry */
@@ -594,7 +591,7 @@ static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &vlanInArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_VLAN, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_VLAN, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ALE VLAN %u entry", vlanId);
 }
 
@@ -625,7 +622,7 @@ static int32_t EthFwVlan_setupClassifier(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup ALE classifier VLAN %u", vlanId);
 
     return status;
@@ -653,7 +650,7 @@ static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &polMatchInArgs, &polOutArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_GET_POLICER, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_GET_POLICER, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                       "Failed to find ALE classifier for VLAN %u macAdd=%02x:%02x:%02x:%02x:%02x:%02x",
                       vlanId,
@@ -680,7 +677,7 @@ static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &delPolInArgs);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Invalid VLAN %u policer", vlanId);
     }
 

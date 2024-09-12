@@ -96,6 +96,8 @@ extern "C" {
 #define DEFAULT_INTERFACE_INDEX         (1U)
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define DEFAULT_INTERFACE_INDEX         (0U)
+#elif defined(SOC_AM62PX)
+#define DEFAULT_INTERFACE_INDEX         (0U)
 #endif
 
 #define MAX_KEY_SIZE                    (256U)

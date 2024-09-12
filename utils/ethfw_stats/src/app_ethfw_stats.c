@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -62,10 +62,10 @@
 
 #include <utils/remote_service/include/app_remote_service.h>
 #include <utils/ethfw_stats/include/app_ethfw_stats_osal.h>
-#include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include <ti/drv/enet/examples/utils/include/enet_apputils.h>
 #include <utils/console_io/include/app_log.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
+#include <utils/include/enet_mcm.h>
 
 #define APP_ETHFW_STATS_POLL_PERIOD_MS           (500U)
 
@@ -98,7 +98,7 @@ typedef struct
 
     CpswStats_PortStats prevPortStats[APP_ETHFW_PORT_NUM_MAX];
 
-    ClockP_Handle hStatsClock;
+    EthFwOsal_ClockHandle hStatsClock;
 
     EthFwOsal_SemHandle clockSem;
 

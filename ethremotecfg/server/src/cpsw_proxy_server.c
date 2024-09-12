@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020-2023 Texas Instruments Incorporated
+ * Copyright (c) 2020-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -66,16 +66,12 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x106
 
-/* PDK header files */
-#include <ti/osal/osal.h>
-#include <ti/drv/ipc/ipc.h>
-
 /* Enet utils header files */
-#include <ti/drv/enet/enet.h>
-#include <ti/drv/enet/include/per/cpsw.h>
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/examples/utils/include/enet_mcm.h>
-#include <ti/drv/enet/examples/utils/include/enet_apprm.h>
+#include <enet.h>
+#include <include/per/cpsw.h>
+#include <utils/include/enet_apputils.h>
+#include <utils/include/enet_apprm.h>
+#include <utils/include/enet_mcm.h>
 
 /* EthFw utils header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
@@ -249,7 +245,7 @@ typedef struct CpswProxyServer_NotifyServiceObj_s
 {
     Enet_Type                    notifyServiceCpswType;
     EthFwOsal_TaskHandle         hNotifyServiceTsk;
-    EventP_Handle                hHwPushNotifyServiceEvent;
+    EthFwOsal_EventHandle        hHwPushNotifyServiceEvent;
     uint32_t                     hwPushNotifyEventId[CPSW_CPTS_HWPUSH_COUNT_MAX];
     EthFwIpc_RpmsgHandle         hNotifyServicRpMsgEp;
     uint32_t                     hwPush2CoreIdMap[CPSW_CPTS_HWPUSH_COUNT_MAX];
@@ -542,7 +538,6 @@ static CpswProxyServer_ClientHandle CpswProxyServer_getClient(uint32_t remotePro
 {
     CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
-    EnetMcm_CmdIf *hMcmCmdIf = NULL;
     int32_t status = ETHREMOTECFG_SOK;
     bool isFound = BFALSE;
     uint32_t i;
@@ -668,12 +663,12 @@ static int32_t CpswProxyServer_sendNotify(CpswProxyServer_ClientHandle hClient,
                        hClient->coreId, hClient->remoteEp);
 
         status = EthFwIpc_sendRpmsg(handle,
-                                hClient->coreId,
-                                hClient->remoteEp,
-                                srcEndPt,
-                                &notifyMsg,
-                                sizeof(notifyMsg));
-        ETHFWTRACE_ERR_IF((status != IPC_SOK), status, "Failed to send notify msg via IPC");
+                                    hClient->coreId,
+                                    hClient->remoteEp,
+                                    srcEndPt,
+                                    &notifyMsg,
+                                    sizeof(notifyMsg));
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to send notify msg via IPC");
     }
 
     return status;
@@ -787,10 +782,8 @@ static int32_t CpswProxyServer_attachHandlerCb(CpswProxyServer_ClientHandle hCli
 {
     CpswProxyServer_Obj *hServer = NULL;
     EnetPer_AttachCoreOutArgs attachInfo;
-    Enet_IoctlPrms prms;
     EthRemoteCfg_VirtPort virtPort = ETHREMOTECFG_VIRTPORT_DENORM(portId);
     bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
-    bool csumEnable;
     int32_t status = ETHREMOTECFG_SOK;
     uint32_t i;
 
@@ -1484,11 +1477,11 @@ static int32_t CpswProxyServer_registerIPv4MacHandlerCb(CpswProxyServer_ClientHa
 {
     CpswProxyServer_Obj *hServer = NULL;
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
+    uint16_t vlanId = 0U;
     ip4_addr_t ip4Addr;
     struct eth_addr hwAddr;
 #endif
     bool isSwitchPort;
-    uint16_t vlanId = 0U;
     int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
@@ -1541,9 +1534,9 @@ static int32_t CpswProxyServer_deregisterIPv4MacHandlerCb(CpswProxyServer_Client
     CpswProxyServer_Obj *hServer = NULL;
 #if (defined(FREERTOS) || defined(SAFERTOS)) && defined(ETHFW_PROXY_ARP_HANDLING)
     ip4_addr_t ip4Addr;
+    uint16_t vlanId = 0U;
 #endif
     bool isSwitchPort;
-    uint16_t vlanId = 0U;
     int32_t status = ETHREMOTECFG_SOK;
 
     status = CpswProxyServer_getHandle(&hServer);
@@ -1701,7 +1694,7 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &ucastInArgs, &entryIdx);
 
-        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_ADD_UCAST, &prms);
+        ENET_IOCTL(hEnet, remoteCoreId, CPSW_ALE_IOCTL_ADD_UCAST, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Port %u: failed to add ucast entry", ENET_MACPORT_ID(macPort));
     }
@@ -1720,7 +1713,7 @@ static int32_t CpswProxyServer_regMacPortFlow(Enet_Handle hEnet,
         polInArgs.policerPartLevel       = CPSW_ALE_POLICER_PARTITION_LEVEL_3;
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
-        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
+        ENET_IOCTL(hEnet, remoteCoreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to set port %u policer", ENET_MACPORT_ID(macPort));
     }
@@ -1758,7 +1751,7 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polMatch, &polOutArgs);
 
-        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_GET_POLICER, &prms);
+        ENET_IOCTL(hEnet, remoteCoreId, CPSW_ALE_IOCTL_GET_POLICER, &prms, status);
         if (status == ENET_SOK)
         {
             if ((polOutArgs.threadIdEn == BTRUE) &&
@@ -1781,7 +1774,7 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
 
             ENET_IOCTL_SET_IN_ARGS(&prms, &delPolInArgs);
 
-            status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+            ENET_IOCTL(hEnet, remoteCoreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                               "Invalid port %u policer flow %d", ENET_MACPORT_ID(macPort), flowIdx);
         }
@@ -1795,7 +1788,7 @@ static int32_t CpswProxyServer_unregMacPortFlow(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
 
-        status = Enet_ioctl(hEnet, remoteCoreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms);
+        ENET_IOCTL(hEnet, remoteCoreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Port %u: failed to remove ucast entry", ENET_MACPORT_ID(macPort));
     }
@@ -1943,6 +1936,7 @@ static void CpswProxyServer_printHostPortStats(CpswStats_HostPort_Ng *st)
 {
     uint_fast32_t i;
 
+#if !defined(MCU_PLUS_SDK)
     CPSWPROXY_PRINT_STATS_NONZERO("  rxGoodFrames            = %llu", st->rxGoodFrames);
     CPSWPROXY_PRINT_STATS_NONZERO("  rxBcastFrames           = %llu", st->rxBcastFrames);
     CPSWPROXY_PRINT_STATS_NONZERO("  rxMcastFrames           = %llu", st->rxMcastFrames);
@@ -1994,6 +1988,7 @@ static void CpswProxyServer_printHostPortStats(CpswStats_HostPort_Ng *st)
     CPSWPROXY_PRINT_STATS_NONZERO("  ietTxHold               = %llu", st->ietTxHold);
     CPSWPROXY_PRINT_STATS_NONZERO("  ietTxFrag               = %llu", st->ietTxFrag);
     CPSWPROXY_PRINT_STATS_NONZERO("  txMemProtectError       = %llu", st->txMemProtectError);
+#endif
 
     for (i = 0U; i < ENET_ARRAYSIZE(st->txPri); i++)
     {
@@ -2117,7 +2112,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
     uint32_t i;
 
     ENET_IOCTL_SET_OUT_ARGS(&prms, &portStats);
-    status = Enet_ioctl(hEnet, coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms);
+    ENET_IOCTL(hEnet, coreId, ENET_STATS_IOCTL_GET_HOSTPORT_STATS, &prms, status);
     if (status == ENET_SOK)
     {
         ETHFWTRACE_INFO("");
@@ -2134,6 +2129,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
                 break;
             }
 
+            case ENET_CPSW_3G:
             case ENET_CPSW_5G:
             case ENET_CPSW_9G:
             {
@@ -2164,7 +2160,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
         for (i = 0, portNum = ENET_MAC_PORT_FIRST; i < Enet_getMacPortMax(enetType, instId); i++, portNum++)
         {
             ENET_IOCTL_SET_INOUT_ARGS(&prms, &portNum, &portStats);
-            status = Enet_ioctl(hEnet, coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms);
+            ENET_IOCTL(hEnet, coreId, ENET_STATS_IOCTL_GET_MACPORT_STATS, &prms, status);
             if (status == ENET_SOK)
             {
                 ETHFWTRACE_INFO("");
@@ -2181,6 +2177,7 @@ static void CpswProxyServer_printStats(Enet_Handle hEnet,
                         break;
                     }
 
+                    case ENET_CPSW_3G:
                     case ENET_CPSW_5G:
                     case ENET_CPSW_9G:
                     {
@@ -2239,7 +2236,7 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
 
             memset(&phyOutArgs, 0, sizeof(phyOutArgs));
 
-            status = Enet_ioctl(hServer->hEnet, hostId, ENET_PHY_IOCTL_IS_LINKED, &prms);
+            ENET_IOCTL(hServer->hEnet, hostId, ENET_PHY_IOCTL_IS_LINKED, &prms, status);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to get port %u link status", ENET_MACPORT_ID(phyInArgs.macPort));
 
@@ -2248,7 +2245,7 @@ static int32_t CpswProxyServer_isLinkUpCb(CpswProxyServer_ClientHandle hClient,
             {
                 ENET_IOCTL_SET_INOUT_ARGS(&prms, &phyInArgs, &phyOutArgs);
 
-                status = Enet_ioctl(hServer->hEnet, hostId, ENET_PHY_IOCTL_GET_LINK_MODE, &prms);
+                ENET_IOCTL(hServer->hEnet, hostId, ENET_PHY_IOCTL_GET_LINK_MODE, &prms, status);
                 ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                                 "Failed to get port %u link params", ENET_MACPORT_ID(phyInArgs.macPort));
 
@@ -2305,7 +2302,7 @@ static int32_t CpswProxyServer_registerEthertypeHandlerCb(CpswProxyServer_Client
 
             ENET_IOCTL_SET_INOUT_ARGS(&prms, &setPolicerInArgs, &setPolicerOutArgs);
 
-            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+            ENET_IOCTL(hServer->hEnet, hostId, CPSW_ALE_IOCTL_SET_POLICER, &prms, status);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to setup EtherType based route");
         }
@@ -2348,7 +2345,7 @@ static int32_t CpswProxyServer_deregisterEthertypeHandlerCb(CpswProxyServer_Clie
 
             ENET_IOCTL_SET_IN_ARGS(&prms, &delPolicerInArgs);
 
-            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+            ENET_IOCTL(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to teardown EtherType based route");
         }
@@ -2400,7 +2397,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
 
             ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushCbInArgs);
 
-            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK, &prms);
+            ENET_IOCTL(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_REGISTER_HWPUSH_CALLBACK, &prms, status);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to register CPTS HW Push callback");
         }
@@ -2456,7 +2453,7 @@ static int32_t CpswProxyServer_unregisterRemoteTimerHandlerCb(CpswProxyServer_Cl
         {
             hwPushNum = (CpswCpts_HwPush)hwPushNum;
             ENET_IOCTL_SET_IN_ARGS(&prms, &hwPushNum);
-            status = Enet_ioctl(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_UNREGISTER_HWPUSH_CALLBACK, &prms);
+            ENET_IOCTL(hServer->hEnet, hostId, CPSW_CPTS_IOCTL_UNREGISTER_HWPUSH_CALLBACK, &prms, status);
             ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                             "Failed to deregister CPTS HW push callback");
         }
@@ -2629,7 +2626,6 @@ static int32_t CpswProxyServer_filterDelMacHandlerCb(CpswProxyServer_ClientHandl
 int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 {
     CpswProxyServer_Obj *hServer;
-    RPMessage_Params cntrlParam;
     EnetMcm_CmdIf *hMcmCmdIf;
     Enet_IoctlPrms prms;
     EnetMcm_HandleInfo handleInfo;
@@ -2679,8 +2675,8 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     hServer->hEnet = handleInfo.hEnet;
 
     ENET_IOCTL_SET_OUT_ARGS(&prms, &csumEnable);
-    status = Enet_ioctl(handleInfo.hEnet, hServer->masterCoreId,
-                        ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED, &prms);
+    ENET_IOCTL(handleInfo.hEnet, hServer->masterCoreId,
+               ENET_HOSTPORT_IS_CSUM_OFFLOAD_ENABLED, &prms, status);
     if (ENET_SOK == status)
     {
         hServer->csumOffloadEn = csumEnable;
@@ -2744,6 +2740,9 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
 static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
                                            uint32_t hostId)
 {
+#if defined(MCU_PLUS_SDK)
+    int32_t status = ETHREMOTECFG_ENOTSUPPORTED;
+#else
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_SOK;
     Enet_IoctlPrms prms;
@@ -2754,12 +2753,12 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     if (ETHREMOTECFG_SOK == status)
     {
         ENET_IOCTL_SET_NO_ARGS(&prms);
-        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms);
+        ENET_IOCTL(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_TABLE, &prms, status);
 
     }
     if (ETHREMOTECFG_SOK == status)
     {
-        status = Enet_ioctl(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms);
+        ENET_IOCTL(hServer->hEnet, hostId, CPSW_ALE_IOCTL_DUMP_POLICER_ENTRIES, &prms, status);
     }
     if (ETHREMOTECFG_SOK == status)
     {
@@ -2769,6 +2768,7 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     {
         ETHFWTRACE_ERR(status, "Failed to dump stats for coreId:%u", hostId);
     }
+#endif
 
     return status;
 }
@@ -2785,7 +2785,7 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
     EthRemoteCfg_ReqHdr *reqHdr = (EthRemoteCfg_ReqHdr *)reqBuf;  /* FIXME - make it const */
     EthRemoteCfg_ResHdr *resHdr = (EthRemoteCfg_ResHdr *)resBuf;
     uint16_t resLen = 0U;
-    int32_t rtnVal = IPC_SOK;
+    int32_t rtnVal = ENET_SOK;
     int32_t status = ENET_SOK;
     uint32_t token;
 
@@ -3544,7 +3544,6 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
         }
         case ETHREMOTECFG_CMD_TEARDOWN_COMPLETION:
         {
-            EthRemoteCfg_CommonReq *req = (EthRemoteCfg_CommonReq *)reqBuf;
             EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
             status = ETHREMOTECFG_SOK;
 
@@ -3624,7 +3623,7 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
                           remoteProcId, remoteEndPt);
 
     rtnVal = EthFwIpc_sendRpmsg(hMsgHandle, remoteProcId, remoteEndPt, localEp, &resBuf, resLen);
-    ETHFWTRACE_ERR_IF((rtnVal != IPC_SOK), rtnVal, "Failed to send msg via IPC");
+    ETHFWTRACE_ERR_IF((rtnVal != ETHFW_SOK), rtnVal, "Failed to send msg via IPC");
 }
 
 static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *hServer,
@@ -3682,8 +3681,9 @@ static int32_t CpswProxyServer_initRemoteClientEthDeviceEp(CpswProxyServer_Obj *
 static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0)
 {
     CpswProxyServer_Obj *hServer = (CpswProxyServer_Obj *)arg0;
-    int32_t rtnVal = IPC_SOK;
-    uint32_t remoteProcId, remoteEndPt;
+    int32_t rtnVal = ETHFW_SOK;
+    uint32_t remoteProcId;
+    uint32_t remoteEndPt;
     uint16_t len;
     uint64_t msgBuf[ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t)];
     bool exitTask;
@@ -3691,7 +3691,7 @@ static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0)
     EthFwIpc_RpmsgHandle hClientServicRpMsgEp = hServer->clientServiceObj.hClientServicRpMsgEp;
 
     rtnVal = EthFwIpc_announceAll(localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
-    if (IPC_SOK != rtnVal)
+    if (ETHFW_SOK != rtnVal)
     {
         ETHFWTRACE_ERR(rtnVal, "Couldn't announce endpoint for remote clients");
     }
@@ -3702,14 +3702,13 @@ static void CpswProxyServer_remoteClientEthDriverTaskFxn(void* arg0)
         while (!exitTask)
         {
             rtnVal = EthFwIpc_recvRpmsg(hClientServicRpMsgEp,
-                                    (void *)msgBuf,
-                                    &len,
-                                    &remoteEndPt,
-                                    &remoteProcId,
-                                    ETHFWIPC_WAIT_FOREVER);
-            if (IPC_SOK == rtnVal)
+                                        (void *)msgBuf,
+                                        &len,
+                                        &remoteEndPt,
+                                        &remoteProcId,
+                                        ETHFWIPC_WAIT_FOREVER);
+            if (ETHFW_SOK == rtnVal)
             {
-                int32_t status;
                 EthRemoteCfg_MsgHdr *hdr;
                 uint8_t clientId;
 
@@ -3752,7 +3751,7 @@ static void CpswProxyServer_hwPushNotifyFxn(void *arg, CpswCpts_HwPush hwPushNum
 
         /* Post Event */
         EthFwOsal_postEvent(hServer->notifyServiceObj.hHwPushNotifyServiceEvent,
-                    hServer->notifyServiceObj.hwPushNotifyEventId[CPSW_CPTS_HWPUSH_NORM(hwPushNum)]);
+                            hServer->notifyServiceObj.hwPushNotifyEventId[CPSW_CPTS_HWPUSH_NORM(hwPushNum)]);
     }
 }
 
@@ -3832,8 +3831,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
         retVal = ETHFW_EFAIL;
         ETHFWTRACE_ERR(retVal, "Could not create communication channel");
     }
-
-    if (ETHFW_SOK == retVal)
+    else
     {
         hServer->notifyServiceObj.localEp = comChParam.requestedEndpt;
     }
@@ -3888,7 +3886,7 @@ static int32_t CpswProxyServer_initNotifyServiceEp(CpswProxyServer_Obj * hServer
 static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
 {
     int32_t rtnVal = ENET_SOK;
-    Enet_Handle hEnet;
+    Enet_Handle hEnet = NULL;
     EnetMcm_HandleInfo handleInfo;
     CpswProxyServer_Obj * hServer = (CpswProxyServer_Obj *)arg0;
     uint64_t msgBuffer[(ETHREMOTECFG_IPC_MSG_SIZE / sizeof(uint64_t))];
@@ -3946,7 +3944,7 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
                         lookupEventInArgs.domain  = 0U;
 
                         ENET_IOCTL_SET_INOUT_ARGS(&prms, &lookupEventInArgs, &lookupEventOutArgs);
-                        rtnVal = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_CPTS_IOCTL_LOOKUP_EVENT, &prms);
+                        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_CPTS_IOCTL_LOOKUP_EVENT, &prms, rtnVal);
                         if (rtnVal == ENET_SOK)
                         {
                             if ((remoteCoreId != IPC_MAX_PROCS) &&
@@ -3970,12 +3968,12 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
                                                remoteCoreId, ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID);
 
                                 rtnVal = EthFwIpc_sendRpmsg(hServer->notifyServiceObj.hNotifyServicRpMsgEp,
-                                                        remoteCoreId,
-                                                        ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID,
-                                                        hServer->notifyServiceObj.localEp,
-                                                        hwPushMsg,
-                                                        sizeof(*hwPushMsg));
-                                ETHFWTRACE_ERR_IF((rtnVal != IPC_SOK), rtnVal, "Failed to send tstamp notification");
+                                                            remoteCoreId,
+                                                            ETHREMOTECFG_NOTIFY_SERVICE_ENDPT_ID,
+                                                            hServer->notifyServiceObj.localEp,
+                                                            hwPushMsg,
+                                                            sizeof(*hwPushMsg));
+                                ETHFWTRACE_ERR_IF((rtnVal != ENET_SOK), rtnVal, "Failed to send tstamp notification");
                             }
                         }
                         else
@@ -3992,7 +3990,7 @@ static void CpswProxyServer_notifyServiceTaskFxn(void* arg0)
 
 static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
 {
-    int32_t rtnVal = IPC_SOK;
+    int32_t rtnVal = ENET_SOK;
     uint32_t remoteProcId, remoteEndPt;
     CpswProxyServer_Obj *hServer = CpswProxyServer_initHandle();
     uint32_t clientNum = (uint32_t)arg0;
@@ -4006,11 +4004,12 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
 
     /* Wait for Remote EP to active */
     rtnVal = EthFwIpc_getRemoteEndPt(localdstProc,
-                                      ETHREMOTECFG_AUTOSAR_REMOTE_SERVICE_NAME,
-                                      &remoteProcId,
-                                      &remoteEndPt,
-                                      osal_WAIT_FOREVER);
-    if (IPC_SOK != rtnVal)
+                                     ETHREMOTECFG_AUTOSAR_REMOTE_SERVICE_NAME,
+                                     &remoteProcId,
+                                     &remoteEndPt,
+                                     ETHFWIPC_WAIT_FOREVER);
+
+    if (ENET_SOK != rtnVal)
     {
         ETHFWTRACE_ERR(rtnVal, "Remote AUTOSAR Ethernet Device locate failed");
     }
@@ -4028,24 +4027,23 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
 
         /* Send the EthFw Device Data to AUTOSAR EthDriver on location of endpoint */
         rtnVal = EthFwIpc_sendRpmsg(hAutosarEthRpMsgEp,
-                                remoteProcId,
-                                remoteEndPt,
-                                localEp,
-                                (Ptr)&deviceData,
-                                sizeof(deviceData));
-        EnetAppUtils_assert(IPC_SOK == rtnVal);
+                                    remoteProcId,
+                                    remoteEndPt,
+                                    localEp,
+                                    (Ptr)&deviceData,
+                                    sizeof(deviceData));
+        EnetAppUtils_assert(ENET_SOK == rtnVal);
 
         while (!exitTask)
         {
             rtnVal = EthFwIpc_recvRpmsg(hAutosarEthRpMsgEp,
-                                    (Ptr)msgBuf,
-                                    &len,
-                                    &remoteEp,
-                                    &remoteProc,
-                                    ETHFWIPC_WAIT_FOREVER);
-            if (IPC_SOK == rtnVal)
+                                        (Ptr)msgBuf,
+                                        &len,
+                                        &remoteEp,
+                                        &remoteProc,
+                                        ETHFWIPC_WAIT_FOREVER);
+            if (ENET_SOK == rtnVal)
             {
-                int32_t status;
                 EthRemoteCfg_MsgHdr *hdr;
                 uint8_t clientId;
 
@@ -4058,8 +4056,6 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
 
                 if (hdr->msgType == ETHREMOTECFG_MSGTYPE_REQUEST)
                 {
-                    uint16_t len;
-
                     CpswProxyServer_clientRequestHandler(hAutosarEthRpMsgEp, &msgBuf, clientId, remoteProc, remoteEp, localEp);
                 }
 
@@ -4082,7 +4078,6 @@ static void CpswProxyServer_autosarEthDriverTaskFxn(void* arg0)
 
 int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
 {
-    int32_t retVal;
     CpswProxyServer_Obj *hServer = NULL;
     int32_t status = ETHREMOTECFG_SOK;
 
@@ -4090,10 +4085,10 @@ int32_t CpswProxyServer_lateAnnounce(uint32_t procId)
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
     EthFwOsal_pendSemaphore(hServer->clientServiceObj.rpmsgStartSem, ETHFWOSAL_WAIT_FOREVER);
 
-    retVal = EthFwIpc_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
-    ETHFWTRACE_INFO_IF((retVal == IPC_SOK), "Announce Endpoint Service to HLOS");
+    status = EthFwIpc_announce(procId, hServer->clientServiceObj.localEp, ETHREMOTECFG_FRAMEWORK_SERVICE_NAME);
+    ETHFWTRACE_INFO_IF((status == ETHFW_SOK), "Announce Endpoint Service to HLOS");
 
-    return retVal;
+    return status;
 }
 
 static uint32_t CpswProxyServer_getAbsTxChNumber(uint32_t chRelPriority,
@@ -4162,7 +4157,7 @@ static int32_t CpswProxyServer_createCustomPolicer(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, customPolInArgs, &polOutArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                       "Failed to create custom policer for core %u",
                        coreId);
@@ -4183,7 +4178,7 @@ static int32_t CpswProxyServer_deleteCustomPolicer(Enet_Handle hEnet,
     polInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ALL;
     ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                       "Failed to create custom policer for core %u",
                        coreId);

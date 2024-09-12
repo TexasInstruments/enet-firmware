@@ -137,7 +137,6 @@ const defines_r5f = {
         'PRINT_FORMAT_NO_WARNING',
         'SITARA',
         'GPTP_ENABLED=1',
-        "CPU_mcu2_0",
         "ETHAPP_ENABLE_IPERF_SERVER",
         "MCU_PLUS_SDK",
         "SOC_AM62PX"

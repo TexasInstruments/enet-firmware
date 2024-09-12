@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2023 Texas Instruments Incorporated
+ * Copyright (c) 2023-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -73,10 +73,8 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <ti/osal/MutexP.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */

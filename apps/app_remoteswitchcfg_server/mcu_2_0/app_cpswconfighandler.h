@@ -60,6 +60,9 @@
  *
  */
 
+#ifndef __APP_CPSWCONFIGHANDLER_H_
+#define __APP_CPSWCONFIGHANDLER_H_
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -67,9 +70,6 @@
 #include "task.h"
 #include <networking/enet/utils/include/enet_apputils.h>
 #include <networking/enet/utils/include/enet_board.h>
-
-#ifndef __APP_CPSWCONFIGHANDLER_H_
-#define __APP_CPSWCONFIGHANDLER_H_
 
 void EnetApp_addMCastEntry(Enet_Type enetType,
                           uint32_t instId,

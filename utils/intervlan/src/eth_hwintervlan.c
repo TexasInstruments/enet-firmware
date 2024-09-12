@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019 Texas Instruments Incorporated
+ * Copyright (c) 2019-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -70,13 +70,16 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
-#include <ti/drv/enet/examples/utils/include/enet_apputils.h>
-#include <ti/drv/enet/include/per/cpsw.h>
+#include <include/per/cpsw.h>
+#include <utils/include/enet_apputils.h>
 
+#if !defined(MCU_PLUS_SDK)
 #include <ti/board/board.h>
+#endif
 
 #include <utils/intervlan/include/eth_hwintervlan.h>
 #include <utils/console_io/include/app_log.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -91,6 +94,9 @@
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_5)
 #define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_3)
+#elif defined(SOC_AM62PX)
+#define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_1)
+#define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_2)
 #else
 #error "Unsupported SoC"
 #endif
@@ -165,6 +171,10 @@ uint8_t testDstIpv6AddrMcast[] = {CPSW_TEST_IPV6_HEXTET2ARRAY(0x2FFF),
                                   CPSW_TEST_IPV6_OCTET2ARRAY(0x2)};
 
 static uint8_t testHostMacAddr[] = {0x02, 0x00, 0x00, 0x00, 0x00, 0x02};
+
+/* ========================================================================== */
+/*                          Function Definitions                              */
+/* ========================================================================== */
 
 void EthHwInterVlan_setOpenPrms(Cpsw_Cfg *pCpswCfg)
 {
@@ -268,8 +278,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_INOUT_ARGS(&prms, &setUcastInArgs, &setUcastOutArgs);
 
-    status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_UCAST,
-                        &prms);
+    ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_UCAST, &prms, status);
     if (status != ENET_SOK)
     {
         appLogPrintf("%s() failed CPSW_ALE_IOCTL_ADD_UCAST: %d\n", __func__, status);
@@ -293,7 +302,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms, status);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
@@ -318,7 +327,7 @@ static int32_t CpswAppInterVlan_addUniEgressAleTableEntries(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms);
+        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_ALE_IOCTL_ADD_VLAN, &prms, status);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed ADD_VLAN ioctl failed: %d\n", __func__, status);
@@ -389,8 +398,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
-                            &prms);
+        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS, &prms, status);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n", __func__, status);
@@ -430,8 +438,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
-                            &prms);
+        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS, &prms, status);
 
         if (status != ENET_SOK)
         {
@@ -508,8 +515,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
-                            &prms);
+        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS, &prms, status);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n", __func__, status);
@@ -578,8 +584,7 @@ static int32_t CpswAppInterVlan_setInterVlanUniEgress(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &inArgs, &outArgs);
 
-        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS,
-                            &prms);
+        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS, &prms, status);
         if (status != ENET_SOK)
         {
             appLogPrintf("%s() failed CPSW_PER_IOCTL_SET_INTERVLAN_ROUTE_UNI_EGRESS: %d\n", __func__, status);
@@ -622,15 +627,14 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
     setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapEn      = BFALSE;
     setShortIPGInArgs.portShortIpgCfg[1].shortIpgCfg.txShortGapLimitEn = BFALSE;
 
-    status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_SHORT_IPG_CFG,
-                        &prms);
+    ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_SET_SHORT_IPG_CFG, &prms, status);
     if (ENET_SOK == status)
     {
         Cpsw_TxShortIpgCfg getShortIPGOutArgs;
 
         ENET_IOCTL_SET_OUT_ARGS(&prms, &getShortIPGOutArgs);
 
-        status = Enet_ioctl(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_GET_SHORT_IPG_CFG, &prms);
+        ENET_IOCTL(hEnet, EnetSoc_getCoreId(), CPSW_PER_IOCTL_GET_SHORT_IPG_CFG, &prms, status);
         if (ENET_SOK == status)
         {
             CpswMacPort_PortTxShortIpgCfg *ipgCfg;
@@ -653,10 +657,6 @@ static int32_t CpswAppInterVlan_setShortIPG(Enet_Handle hEnet)
 
     return status;
 }
-
-/* ========================================================================== */
-/*                          Function Definitions                              */
-/* ========================================================================== */
 
 void EthHwInterVlan_setupRouting(Enet_Type enetType,
                                  uint32_t instId,

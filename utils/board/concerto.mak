@@ -26,6 +26,7 @@ ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
 endif
 
 IDIRS += $(PDK_PATH)/packages
+IDIRS += $(PDK_PATH)/packages/ti/drv/enet
 IDIRS += $(ETHFW_PATH)
 IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto
 

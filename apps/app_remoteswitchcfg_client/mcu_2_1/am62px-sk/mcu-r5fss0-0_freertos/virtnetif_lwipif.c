@@ -486,7 +486,7 @@ static void CpswRemoteApp_hwRecoveryNotify(uint32_t notifyType,
                                            void *cbArg);
 #endif
 
-static void App_netifLinkChangeCb(struct netif *pNetif);
+static void EthApp_netifLinkChangeCb(struct netif *pNetif);
 
 void LwipifEnetApp_startSchedule(LwipifEnetApp_Handle handle, struct netif *netif);
 
@@ -789,7 +789,7 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 
         hLwipIfApp = LwipifEnetApp_getHandle();
         LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_0);
-        netif_set_link_callback(netif, App_netifLinkChangeCb);
+        netif_set_link_callback(netif, EthApp_netifLinkChangeCb);
 
     if (virtNetif->isDfltNetif)
     {
@@ -833,7 +833,7 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 
         hLwipIfApp = LwipifEnetApp_getHandle();
         LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_0);
-        netif_set_link_callback(netif, App_netifLinkChangeCb);
+        netif_set_link_callback(netif, EthApp_netifLinkChangeCb);
 
         if (virtNetif->isDfltNetif)
         {
@@ -896,7 +896,7 @@ static void EthApp_virtNetifStatusCb(struct netif *netif)
     }
 }
 
-static void App_netifLinkChangeCb(struct netif *pNetif)
+static void EthApp_netifLinkChangeCb(struct netif *pNetif)
 {
     if (netif_is_link_up(pNetif))
     {

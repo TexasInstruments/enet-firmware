@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 20212-2023 Texas Instruments Incorporated
+ * Copyright (c) 2021-2024 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -75,13 +75,9 @@
 
 #include <string.h>
 
-/* OSAL header files */
-#include <ti/osal/osal.h>
-
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
-#include <utils/ethfw_abstract/ethfw_ipc.h>
 #include "ethfw_arp_priv.h"
 
 /* ========================================================================== */
