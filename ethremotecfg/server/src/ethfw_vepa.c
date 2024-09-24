@@ -371,7 +371,8 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
                           uint16_t vlanId,
                           uint16_t hwVlanId,
                           uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort)
+                          EthRemoteCfg_VirtPort virtPort,
+                          bool addClassifier)
 {
     EthFwVepa_AddrEntry *entry;
     CpswAle_PolicerPartLevel policerPartLevel = CPSW_ALE_POLICER_PARTITION_DEFAULT;
@@ -419,10 +420,14 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
             /* Take the first free entry */
             if (entry->isFree)
             {
-                status = EthFwVepa_addMcastPolicer(hEnet, hostId,
-                                                   hwVlanId, hwAddr->addr,
-                                                   gEthFwVepaObj.packetDuplicationFlowIdx,
-                                                   policerPartLevel);
+                if (addClassifier)
+                {
+                    status = EthFwVepa_addMcastPolicer(hEnet, hostId,
+                                                       hwVlanId, hwAddr->addr,
+                                                       gEthFwVepaObj.packetDuplicationFlowIdx,
+                                                       policerPartLevel);
+                }
+                
                 if (status == ETHFW_SOK)
                 {
                     SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
@@ -449,7 +454,8 @@ int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
                           uint16_t vlanId,
                           uint16_t hwVlanId,
                           uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort)
+                          EthRemoteCfg_VirtPort virtPort,
+                          bool delClassifier)
 {
     EthFwVepa_AddrEntry *entry;
     /* ALE entry mask == 0 means do not delete any ale entry, just delete the policer entry */
@@ -477,11 +483,15 @@ int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
              * remove the policer */
             if (entry->virtPortMask == 0U)
             {
-                /* Put entry mask to CPSW_ALE_POLICER_TABLEENTRY_DELETE_IVLAN,
-                 * if you want to delete the ale entry as well */
-                status = EthFwVepa_delMcastPolicer(hEnet, hostId,
-                                                   hwVlanId, hwAddr->addr,
-                                                   aleEntryMask);
+                if (delClassifier)
+                {
+                    /* Put entry mask to CPSW_ALE_POLICER_TABLEENTRY_DELETE_IVLAN,
+                     * if you want to delete the ale entry as well */
+                    status = EthFwVepa_delMcastPolicer(hEnet, hostId,
+                                                       hwVlanId, hwAddr->addr,
+                                                       aleEntryMask);
+                }
+                
                 if (status == ETHFW_SOK)
                 {
                     entry->isFree = BTRUE;
@@ -629,7 +639,7 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
         /* Add broadcast entry in VEPA table (does not add any ALE entry)
          * Add policer: All broadcast packet (irrespective of vlan) should go to packet duplication flow
          * at the same time reaches all ports (including host port) */
-        status = EthFwVepa_addAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort);
+        status = EthFwVepa_addAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort, BTRUE);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                           "Failed to add bcast addr for VLAN %u into VEPA table", vlanId);
     }
@@ -671,7 +681,7 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
 
         /* Remove broadcast entry from VEPA table for the virtual switch port (does not remove any ALE entry)
          * Remove policer: broadcast packet of (irrespective of vlan) should not go to packet duplication flow */
-        status = EthFwVepa_delAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort);
+        status = EthFwVepa_delAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort, BTRUE);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                           "Failed to delete bcast addr for VLAN %u from VEPA table", vlanId);
     }
@@ -738,7 +748,12 @@ int32_t EthFwVepa_sendRaw(struct netif *netif,
                     SMEMCPY(&ethHdr->dest, ethDstAddr, ETH_HWADDR_LEN);
                     SMEMCPY(&ethHdr->src,  ethSrcAddr, ETH_HWADDR_LEN);
 
-                    /* Adding tpid as 0x8100 (16 bits) */
+                    /* Adding tpid as 0x8100 (16 bits)
+                     * CPSW is switching using INNER VLAN tag in VLAN aware mode and inner VLAN ltype is 0x8100
+                     * Double VLAN tagged packet with 2 customer tags
+                     * (i.e.  dst_mac    src_mac    8100 VLAN_1    8100 VLAN_2  ...)
+                     * will be switched based on the first VLAN (i.e. VLAN_1)
+                     * This helps us to do packet switching based on private vlan added on top of existing packet */
                     ethHdr->type = ethType;
 
                     /* Adding priority and VLAN id tags (16 bits) */

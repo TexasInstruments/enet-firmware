@@ -53,6 +53,10 @@
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include "ethfw_vlan_priv.h"
 
+#if defined(ETHFW_VEPA_SUPPORT)
+#include "ethfw_vepa_priv.h"
+#endif
+
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
@@ -131,7 +135,9 @@ static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
 static EthFwVlan_Obj gEthFwVlanObj;
 
 /* Broadcast address */
-static uint8_t gEthFwVlan_bcastAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+#if defined(ETHFW_VEPA_SUPPORT)
+struct eth_addr bcastAddr = {{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}};
+#endif
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -214,6 +220,9 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
 {
     EthFwVlan_Vlan *vlan = NULL;
     int32_t status = ENET_SOK;
+#if defined(ETHFW_VEPA_SUPPORT)
+    uint32_t coreId;
+#endif
 
     /* MAC address should be client's unicast address */
     if (EnetUtils_isMcastAddr(macAddr))
@@ -266,6 +275,18 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
         vlan->virtActiveMask |= ENET_BIT(virtPort);
     }
 
+#if defined(ETHFW_VEPA_SUPPORT)
+    if (status == ENET_SOK)
+    {
+        coreId = EnetSoc_getCoreId();
+        /* Add broadcast entry with vlanId in VEPA table (does not add any ALE entry)
+         * Add policer: All broadcast packet with vlanId should go to packet duplication flow
+         * No need of policer creation, all broadcast will go to packet duplication flow
+         * irrespective of VLAN id */
+        status = EthFwVepa_addAddr(hEnet, &bcastAddr, vlanId, vlanId, coreId, virtPort, BFALSE);
+    }
+#endif
+
     EthFwOsal_unlockMutex(gEthFwVlanObj.hMutex);
 
     return status;
@@ -279,6 +300,9 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
 {
     EthFwVlan_Vlan *vlan = NULL;
     int32_t status = ENET_SOK;
+#if defined(ETHFW_VEPA_SUPPORT)
+    uint32_t coreId;
+#endif
 
     /* MAC address should be client's unicast address */
     if (EnetUtils_isMcastAddr(macAddr))
@@ -337,6 +361,17 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup VLANs in ALE");
         }
     }
+
+#if defined(ETHFW_VEPA_SUPPORT)
+    if (status == ENET_SOK)
+    {
+        coreId = EnetSoc_getCoreId();
+        /* Remove broadcast entry with vlanId in VEPA table (does not delete any ALE entry)
+         * Remove policer: All broadcast packet with vlanId should not go to packet duplication flow
+         * No need of policer deletion as we did not create any VLAN specific broadcast + VLAN policer */
+        status = EthFwVepa_delAddr(hEnet, &bcastAddr, vlanId, vlanId, coreId, virtPort, BFALSE);
+    }
+#endif
 
     EthFwOsal_unlockMutex(gEthFwVlanObj.hMutex);
 
@@ -494,7 +529,6 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
                                    uint32_t untagMask)
 {
     CpswAle_VlanEntryInfo vlanInArgs;
-    CpswAle_SetMcastEntryInArgs mcastInArgs;
     Enet_IoctlPrms prms;
     uint32_t aleEntry;
     uint32_t coreId;
@@ -520,44 +554,18 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
     ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_VLAN, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add ALE VLAN %u entry", vlanId);
 
-    /* Add broadcast entry for the VLAN */
-    if (status == ENET_SOK)
-    {
-        EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], &gEthFwVlan_bcastAddr[0U]);
-        mcastInArgs.addr.vlanId     = vlanId;
-        mcastInArgs.info.super      = BFALSE;
-        mcastInArgs.info.fwdState   = CPSW_ALE_FWDSTLVL_FWD;
-        mcastInArgs.info.portMask   = memberMask;
-        mcastInArgs.info.numIgnBits = 0U;
-
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
-
-        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add VLAN %u bcast ALE entry", vlanId);
-    }
-
     return status;
 }
 
 static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
                                  uint16_t vlanId)
 {
-    CpswAle_MacAddrInfo mcastInArgs;
     CpswAle_VlanIdInfo vlanInArgs;
     Enet_IoctlPrms prms;
     uint32_t coreId;
     int32_t status = ENET_SOK;
 
     coreId = EnetSoc_getCoreId();
-
-    /* Delete VLAN broadcast entry */
-    EnetUtils_copyMacAddr(&mcastInArgs.addr[0], &gEthFwVlan_bcastAddr[0U]);
-    mcastInArgs.vlanId = vlanId;
-
-    ENET_IOCTL_SET_IN_ARGS(&prms, &mcastInArgs);
-
-    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete VLAN %u bcast entry", vlanId);
 
     /* Delete VLAN entry */
     vlanInArgs.vlanId  = vlanId;

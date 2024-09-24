@@ -248,7 +248,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
             if (status == ETHFW_SOK)
             {
                 SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
-                status = EthFwVepa_addAddr(hEnet, &hwAddr, vlanId, hwVlanId, hostId, virtPort);
+                status = EthFwVepa_addAddr(hEnet, &hwAddr, vlanId, hwVlanId, hostId, virtPort, BTRUE);
                 ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                   "Failed to add shared mcast for core %u into VEPA table", hostId);
             }
@@ -299,7 +299,7 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
 #if defined(ETHFW_VEPA_SUPPORT)
             SMEMCPY(&hwAddr, mcastInfo->macAddr, ETH_HWADDR_LEN);
 
-            status = EthFwVepa_delAddr(hEnet, &hwAddr, vlanId, hwVlanId, hostId, virtPort);
+            status = EthFwVepa_delAddr(hEnet, &hwAddr, vlanId, hwVlanId, hostId, virtPort, BTRUE);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to delete shared mcast for core %u from VEPA table", hostId);
 #endif

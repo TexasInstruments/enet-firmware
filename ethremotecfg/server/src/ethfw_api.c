@@ -919,16 +919,6 @@ void EthFw_initConfigParams(Enet_Type enetType,
     /* VLAN configuration */
     vlanCfg->vlanAware = BTRUE;
 
-#if defined(ETHFW_VEPA_SUPPORT)
-    /* CPSW switching using INNER VLAN tag
-     * VLAN_LTYPE_SEL value is selected by the S_CN_SWITCH
-     * i.e. VLAN processing uses inner_vlan_ltype
-     * vlanCfg->vlanSwitch = ENET_VLAN_TAG_TYPE_INNER
-     * As VLAN_LTYPE_OUTER is same as VLAN_LTYPE_INNER
-     * double tagged packet will be looked as single tagged by ALE */
-    vlanCfg->innerVlan = ENET_ETHERTYPE_CUSTOMER_VLAN;
-    vlanCfg->outerVlan = ENET_ETHERTYPE_CUSTOMER_VLAN;
-#endif
     /* Host port configuration */
     hostPortCfg->removeCrc         = BTRUE;
     hostPortCfg->padShortPacket    = BTRUE;

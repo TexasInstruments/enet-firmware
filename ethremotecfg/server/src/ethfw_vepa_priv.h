@@ -144,12 +144,13 @@ void EthFwVepa_deinit(void);
  *
  * For VLAN tagged traffic, both `vlanId` and `hwVlanId` will both be the same.
  *
- * \param hEnet      Handle to CPSW
- * \param hwAddr     MAC address to add in VEPA table
- * \param vlanId     VLAN id (apparent)
- * \param hwVlanId   VLAN id (used in ALE)
- * \param hostId     Remote core IPC core id
- * \param virtPort   Remote core virtual port id
+ * \param hEnet          Handle to CPSW
+ * \param hwAddr         MAC address to add in VEPA table
+ * \param vlanId         VLAN id (apparent)
+ * \param hwVlanId       VLAN id (used in ALE)
+ * \param hostId         Remote core IPC core id
+ * \param virtPort       Remote core virtual port id
+ * \param addClassifier  Flag to create policer during address addition
  *
  * \returns ETHFW_SOK if multicast entry addition was successful, or a
  *          negative error code if failed.
@@ -159,7 +160,8 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
                           uint16_t vlanId,
                           uint16_t hwVlanId,
                           uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort);
+                          EthRemoteCfg_VirtPort virtPort,
+                          bool addClassifier);
 
 /*!
  * \brief Removes an entry in VEPA table for client
@@ -173,12 +175,13 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
  *
  * For VLAN tagged traffic, both `vlanId` and `hwVlanId` will both be the same.
  *
- * \param hEnet      Handle to CPSW
- * \param hwAddr     MAC address to add in VEPA table
- * \param vlanId     VLAN id (apparent)
- * \param hwVlanId   VLAN id (used in ALE)
- * \param hostId     Remote core IPC core id
- * \param virtPort   Remote core virtual port id
+ * \param hEnet          Handle to CPSW
+ * \param hwAddr         MAC address to add in VEPA table
+ * \param vlanId         VLAN id (apparent)
+ * \param hwVlanId       VLAN id (used in ALE)
+ * \param hostId         Remote core IPC core id
+ * \param virtPort       Remote core virtual port id
+ * \param delClassifier  Flag to delete policer during address deletion
  *
  * \returns ETHFW_SOK if multicast entry deletion was successful, or a
  *          negative error code if failed.
@@ -188,7 +191,8 @@ int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
                           uint16_t vlanId,
                           uint16_t hwVlanId,
                           uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort);
+                          EthRemoteCfg_VirtPort virtPort,
+                          bool delClassifier);
 
 /*!
  * \brief Print VEPA table with private VLAN associated to each virtual port.
