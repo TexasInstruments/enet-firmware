@@ -8,8 +8,6 @@ const files = {
         "ipc_trace.c",
 
         /* ethremotecfg */
-        "ethfw_osal.c",
-        "ethfw_ipc.c",
         "cpsw_proxy_server.c",
         "cpsw_proxy.c",
         "ethfw_api.c",
@@ -17,8 +15,11 @@ const files = {
         "ethfw_mcast.c",
         "ethfw_monitor.c",
         "ethfw_vlan.c",
+        "ethfw_tsn.c",
 
         /* Utils */
+        "ethfw_osal.c",
+        "ethfw_ipc.c",
         /* board */
         "board_am62px_evm.c",
 
@@ -183,6 +184,7 @@ const defines_wkup_r5f = {
         "ETHFW_INTERCORE_ETH_SUPPORT",
         "ETHFW_IPERF_SERVER_SUPPORT",
         "ETHFW_PROXY_ARP_HANDLING",
+        "ETHFW_GPTP_SUPPORT",
         "CPU_mcu2_0",
         "MCU_PLUS_SDK",
         "SOC_AM62PX"

@@ -139,7 +139,8 @@ const defines_r5f = {
         'GPTP_ENABLED=1',
         "ETHAPP_ENABLE_IPERF_SERVER",
         "MCU_PLUS_SDK",
-        "SOC_AM62PX"
+        "SOC_AM62PX",
+        "CPU_mcu2_1",
     ],
 };
 

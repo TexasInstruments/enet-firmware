@@ -74,7 +74,11 @@
 #define ETHFWTRACE_MOD_ID 0x108
 
 /* TSN header files */
+#if defined(MCU_PLUS_SDK)
+#include <tsn_buildconf/sitara_buildconf.h>
+#else
 #include <tsn_buildconf/jacinto_buildconf.h>
+#endif
 #include <tsn_gptp/tilld/lld_gptp_private.h>
 #include <tsn_uniconf/yangs/yang_db_runtime.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
@@ -93,7 +97,7 @@
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
-#include <ti/drv/enet/include/mod/cpsw_cpts.h>
+#include <include/mod/cpsw_cpts.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -148,6 +152,9 @@
 
 /* Macro to start GenF compare time in future - 1sec */
 #define ETHFW_PPS_TIMESYNC_COMP_TIME_NS                             (1000000000U)
+
+/* Log Buffer end line macro */
+#define ETHFW_LOG_BUFFER_ENDLINE                                    "\r"
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
@@ -309,7 +316,7 @@ static void EthFwTsn_cfgGptpPortDs(yang_db_runtime_dataq_t *ydrd,
 
 static uint64_t EthFwTsn_getCurrentTime(void);
 
-static void EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig);
+static int32_t EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig);
 
 /* ========================================================================== */
 /*                          Extern variables                                  */
@@ -507,16 +514,18 @@ static int32_t EthFwTsn_logBuffer(bool flush, const char *str)
     int32_t status = ENET_SOK;
 
     EthFwOsal_lockMutex(gEthFwTsnObj.hLogMutex);
+
     usedLen = strlen((char *)gEthFwTsnObj.logBuf);
     bufSizeLeft = sizeof(gEthFwTsnObj.logBuf)-usedLen;
     if (bufSizeLeft > loglen)
     {
-        snprintf((char *)&gEthFwTsnObj.logBuf[usedLen], bufSizeLeft, "%s", str);
+        snprintf((char *)&gEthFwTsnObj.logBuf[usedLen], bufSizeLeft, "%s" ETHFW_LOG_BUFFER_ENDLINE, str);
     }
     else
     {
         snprintf((char *)&gEthFwTsnObj.logBuf[0], sizeof(gEthFwTsnObj.logBuf), "log overflow!\n");
     }
+
     EthFwOsal_unlockMutex(gEthFwTsnObj.hLogMutex);
 
     return status;
@@ -547,7 +556,7 @@ static void *EthFwTsn_gptpTask(void *args)
 {
     int32_t i;
     int32_t status;
-    const char *netdevs[IFNAMSIZ];
+    const char *netdevs[ETHFW_TSN_IFNAMSIZ];
     EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_GPTP_TASK_IDX];
     EthFwTsn_UniconfCfg *ucCfg = &gEthFwTsnObj.ucCfg;
 
@@ -594,6 +603,7 @@ static void *EthFwTsn_uniconfTask(void *args)
 void EthFwTsn_init(EthFwTsn_Config *tsnCfg)
 {
     unibase_init_para_t params;
+    int32_t status = ETHFW_SOK;
 
     gEthFwTsnObj.enetType       = tsnCfg->enetType;
     gEthFwTsnObj.instId         = tsnCfg->instId;
@@ -621,7 +631,9 @@ void EthFwTsn_init(EthFwTsn_Config *tsnCfg)
         gEthFwTsnObj.tsnInit = BTRUE;
     }
 
-    EthFwTsn_genPPS(&tsnCfg->ppsConfig);
+    status = EthFwTsn_genPPS(&tsnCfg->ppsConfig);
+    ETHFWTRACE_WARN_IF((ETHFW_ENOTSUPPORTED == status),
+                       "PPS via GenF is not supported for this SoC");
 }
 
 static uint64_t EthFwTsn_getCurrentTime(void)
@@ -632,8 +644,8 @@ static uint64_t EthFwTsn_getCurrentTime(void)
 
     /* Software push event */
     ENET_IOCTL_SET_OUT_ARGS(&prms, &tsVal);
-    status = Enet_ioctl(gEthFwTsnObj.hEnet, gEthFwTsnObj.coreId,
-                        ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP, &prms);
+    ENET_IOCTL(gEthFwTsnObj.hEnet, gEthFwTsnObj.coreId,
+               ENET_TIMESYNC_IOCTL_GET_CURRENT_TIMESTAMP, &prms, status);
     if (status != ENET_SOK)
     {
         tsVal = 0ULL;
@@ -642,15 +654,16 @@ static uint64_t EthFwTsn_getCurrentTime(void)
     return tsVal;
 }
 
-void EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig)
+int32_t EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig)
 {
+    int32_t status = ETHFW_SOK;
+#if !defined(MCU_PLUS_SDK)
     Enet_IoctlPrms prms;
-    CSL_IntrRouterCfg irRegs;
     CpswCpts_SetFxnGenInArgs setGenFInArgs;
     uint32_t tsrIn;
     uint32_t tsrOut;
     uint64_t cptsrefClk;
-    int32_t status = ETHFW_SOK;
+    CSL_IntrRouterCfg irRegs;
 
     irRegs.pIntrRouterRegs = (CSL_intr_router_cfgRegs *) CSL_TIMESYNC_INTRTR0_INTR_ROUTER_CFG_BASE;
     irRegs.pIntdRegs       = (CSL_intr_router_intd_cfgRegs *) NULL;
@@ -663,10 +676,11 @@ void EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig)
     if (ETHFW_SOK == status)
     {
         ENET_IOCTL_SET_OUT_ARGS(&prms, &cptsrefClk);
-        status = Enet_ioctl(gEthFwTsnObj.hEnet,
-                            gEthFwTsnObj.coreId,
-                            CPSW_CPTS_IOCTL_GET_CPTS_REFCLK,
-                            &prms);
+        ENET_IOCTL(gEthFwTsnObj.hEnet,
+                   gEthFwTsnObj.coreId,
+                   CPSW_CPTS_IOCTL_GET_CPTS_REFCLK,
+                   &prms,
+                   status);
         ETHFWTRACE_ERR_IF((ENET_SOK != status), status, "Failed to get CPTS RefClk Frequency");
     }
     if (ETHFW_SOK == status)
@@ -694,21 +708,25 @@ void EthFwTsn_genPPS(EthFwTsn_PpsConfig *ppsConfig)
         setGenFInArgs.ppmMode = ENET_TIMESYNC_ADJMODE_DISABLE;
 
         ENET_IOCTL_SET_IN_ARGS(&prms, &setGenFInArgs);
-        status = Enet_ioctl(gEthFwTsnObj.hEnet,
-                            gEthFwTsnObj.coreId,
-                            CPSW_CPTS_IOCTL_SET_GENF,
-                            &prms);
+        ENET_IOCTL(gEthFwTsnObj.hEnet,
+                   gEthFwTsnObj.coreId,
+                   CPSW_CPTS_IOCTL_SET_GENF,
+                   &prms,
+                   status);
         ETHFWTRACE_ERR_IF((ENET_SOK != status), status, "Failed to set GenF");
         ETHFWTRACE_ERR_IF((ENET_ENOTSUPPORTED == status), status,
                            "Failed to reconfigure CPTS GenF due to hardware limitation");
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to generate PPS signal");
     }
+#else
+    status = ETHFW_ENOTSUPPORTED;
+#endif
 
-    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to generate PPS signal");
+    return status;
 }
 
 void EthFwTsn_deInit(void)
 {
-    EthFwTsn_ModuleCfg *mod;
     uint32_t i;
 
     gEthFwTsnObj.logTaskrun = BFALSE;
@@ -795,7 +813,7 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
             macPort = ENET_MACPORT_DENORM(i);
 
             /* Linking each MAC port with an interface name */
-            snprintf(&gEthFwTsnObj.netDevInfo.netDevs[j][0], IFNAMSIZ, "tilld%d", i + 1);
+            snprintf(&gEthFwTsnObj.netDevInfo.netDevs[j][0], ETHFW_TSN_IFNAMSIZ, "tilld%d", i + 1);
             gEthFwTsnObj.netDevInfo.gPtpNetDevs[j] = &gEthFwTsnObj.netDevInfo.netDevs[j][0];
             ethdevs[j].netdev  = gEthFwTsnObj.netDevInfo.netDevs[j];
             ethdevs[j].macport = macPort;
@@ -856,7 +874,6 @@ static int32_t EthFwTsn_uniconfInit(EthFwTsn_dbArgs *dbArgs)
 
 static int32_t EthFwTsn_gptpDbInit(EthFwTsn_dbArgs *dbArgs)
 {
-    EthFwTsn_UniconfCfg *ucCfg = &gEthFwTsnObj.ucCfg;
     int32_t status = ETHFW_SOK;
     uint32_t i;
 

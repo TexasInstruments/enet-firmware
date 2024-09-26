@@ -17,8 +17,6 @@ LIBNAME:=ethfw.am62px.mcu-r5f.ti-arm-clang.$(PROFILE).lib
 
 FILES_common := \
     ipc_trace.c \
-    ethfw_osal.c \
-    ethfw_ipc.c \
     cpsw_proxy_server.c \
     cpsw_proxy.c \
     ethfw_api.c \
@@ -26,6 +24,9 @@ FILES_common := \
     ethfw_mcast.c \
     ethfw_monitor.c \
     ethfw_vlan.c \
+    ethfw_tsn.c \
+    ethfw_osal.c \
+    ethfw_ipc.c \
     board_am62px_evm.c \
     ethfw_callbacks_lwipif.c \
     ethfw_trace.c \

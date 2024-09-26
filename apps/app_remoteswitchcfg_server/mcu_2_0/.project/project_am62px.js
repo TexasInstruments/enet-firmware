@@ -164,6 +164,7 @@ const defines_wkup_r5f = {
         "ENABLE_ETHFW_PROXYARP",
         "CPU_mcu2_0",
         "ETHAPP_ENABLE_IPERF_SERVER",
+        "ETHFW_GPTP_SUPPORT",
         "MCU_PLUS_SDK",
         "SOC_AM62PX"
     ],

@@ -194,12 +194,12 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     EnetUdma_OpenTxChPrms cpswTxChCfg;
     EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
 #if (UDMA_SOC_CFG_UDMAP_PRESENT == 1)
+    bool useRingMon = BTRUE;
     EnetUdma_UdmaRingPrms *pFqRingPrms;
 #endif
     uint8_t *macAddr;
     uint32_t coreId = EnetSoc_getCoreId();
     bool useDefaultFlow = BTRUE;    /* Must handle the default flow */
-    bool useRingMon = BTRUE;
 #if defined(ETHFW_PROXY_ARP_HANDLING) || defined(ETHFW_VEPA_SUPPORT)
     int32_t status;
 #endif

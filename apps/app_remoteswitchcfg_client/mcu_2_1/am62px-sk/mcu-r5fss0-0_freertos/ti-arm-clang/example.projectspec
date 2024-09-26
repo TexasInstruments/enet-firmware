@@ -78,10 +78,10 @@
             -DPRINT_FORMAT_NO_WARNING
             -DSITARA
             -DGPTP_ENABLED=1
-            -DCPU_mcu2_0
             -DETHAPP_ENABLE_IPERF_SERVER
             -DMCU_PLUS_SDK
             -DSOC_AM62PX
+            -DCPU_mcu2_1
         "
         linkerBuildOptions="
             -i${MCU_PLUS_SDK_PATH}/source/kernel/freertos/lib

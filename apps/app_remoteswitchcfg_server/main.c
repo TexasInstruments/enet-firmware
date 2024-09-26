@@ -83,7 +83,12 @@
 
 #if defined(ETHFW_GPTP_SUPPORT)
 /* Timesync header files */
+#if defined(MCU_PLUS_SDK)
+#include <tsn_buildconf/sitara_buildconf.h>
+#else
 #include <tsn_buildconf/jacinto_buildconf.h>
+#endif
+#include <tsn_combase/combase.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
 #include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
@@ -138,6 +143,7 @@
 
 #if (MCU_PLUS_SDK)
 #include "ti_enet_lwipif.h"
+#include "ti_enet_config.h"
 #endif
 
 /* ========================================================================== */
@@ -1224,7 +1230,9 @@ static int32_t EthApp_initEthFw(void)
         status = ETHAPP_ERROR;
     }
 
+#if !defined(MCU_PLUS_SDK)
     dmaCfg.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
+#endif
     cpswCfg->dmaCfg = (void *)&dmaCfg;
 
     /* Populate MAC address pool */
@@ -1261,7 +1269,11 @@ static int32_t EthApp_initEthFw(void)
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
+#if defined(MCU_PLUS_SDK)
+    gEthAppObj.enablePPS = BFALSE;
+#else
     gEthAppObj.enablePPS = BTRUE;
+#endif
 
     if (gEthAppObj.enablePPS)
     {
@@ -1271,6 +1283,8 @@ static int32_t EthApp_initEthFw(void)
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
         ethFwCfg.ppsConfig.tsrIn = CSLR_TIMESYNC_INTRTR0_IN_CPSW_9XUSSM0_CPTS_GENF0_0;
         ethFwCfg.ppsConfig.tsrOut = ETHAPP_PPS_TIMESYNC_INTR_SYNC3_OUT_PIN;
+#elif defined(SOC_AM62PX)
+        ETHFWTRACE_WARN("PPS via GenF is not supported for this SoC");
 #else
 #error "TSN: Unsupported SoC"
 #endif
@@ -1957,6 +1971,24 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *macAddr,
 #endif
 
 #if defined(ETHFW_GPTP_SUPPORT)
+int32_t EthFwTsn_lldCfgUpdateCb(cb_socket_lldcfg_update_t *update_cfg)
+{
+
+    if (update_cfg->proto == ETH_P_1588)
+    {
+        update_cfg->numRxChannels = 1U;
+#if defined(MCU_PLUS_SDK)
+        update_cfg->dmaTxChId = ENET_DMA_TX_CH_PTP;
+        update_cfg->dmaRxChId[0] = ENET_DMA_RX_CH_PTP;
+        update_cfg->nTxPkts = ENET_DMA_TX_CH_PTP_NUM_PKTS;
+        update_cfg->nRxPkts[0] = ENET_DMA_RX_CH_PTP_NUM_PKTS;
+        update_cfg->pktSize = ENET_MEM_LARGE_POOL_PKT_SIZE;
+#endif
+    }
+
+    return 0;
+}
+
 static void EthApp_configPtpCb(void *arg)
 {
     EthFwTsn_gPTPConfigArg *cbArgs = (EthFwTsn_gPTPConfigArg *)arg;
@@ -1994,8 +2026,12 @@ static void EthApp_initPtp(void)
     }
 #endif
 
+#if !defined(MCU_PLUS_SDK)
     /* Wait for host port MAC address to be allocated during lwIP getHandle */
     EthFwOsal_pendSemaphore(gEthAppObj.hHostMacAllocSem, ETHFWOSAL_WAIT_FOREVER);
+#endif
+
+    cb_socket_set_lldcfg_update_cb(EthFwTsn_lldCfgUpdateCb);
 
     EthFwTsn_initTimeSyncPtp(&gEthAppObj.hostMacAddr[0U], portMask);
 
