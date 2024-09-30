@@ -123,16 +123,6 @@ static int32_t EthFwVlan_setupVlan(Enet_Handle hEnet,
 static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
                                  uint16_t vlanId);
 
-static int32_t EthFwVlan_setupClassifier(Enet_Handle hEnet,
-                                         const uint8_t *macAddr,
-                                         uint32_t vlanId,
-                                         uint32_t flowIdxOffset);
-
-static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
-                                          const uint8_t *macAddr,
-                                          uint32_t vlanId,
-                                          uint32_t flowIdxOffset);
-
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
@@ -270,14 +260,6 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to update VLAN %u in ALE", vlanId);
     }
 
-    /* Setup ALE classifier for remote client's MAC address and VLAN */
-    if (status == ENET_SOK)
-    {
-        status = EthFwVlan_setupClassifier(hEnet, macAddr, vlanId, flowIdx);
-        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                          "Failed to setup VLAN %u classifier for virtual port %u", vlanId, virtPort);
-    }
-
     /* Mark virtual port as active in the VLAN */
     if (status == ENET_SOK)
     {
@@ -354,14 +336,6 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
                                          vlan->untagMask & ~CPSW_ALE_HOST_PORT_MASK);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup VLANs in ALE");
         }
-    }
-
-    /* Delete the classifier, but keep the ALE VLAN entries */
-    if (status == ENET_SOK)
-    {
-        status = EthFwVlan_deleteClassifier(hEnet, macAddr, vlanId, flowIdx);
-        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                          "Failed to delete classifier for VLAN %u flowIdx %u", vlanId, flowIdx);
     }
 
     EthFwOsal_unlockMutex(gEthFwVlanObj.hMutex);
@@ -593,94 +567,5 @@ static void EthFwVlan_deleteVlan(Enet_Handle hEnet,
 
     ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_VLAN, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ALE VLAN %u entry", vlanId);
-}
-
-static int32_t EthFwVlan_setupClassifier(Enet_Handle hEnet,
-                                         const uint8_t *macAddr,
-                                         uint32_t vlanId,
-                                         uint32_t flowIdxOffset)
-{
-    CpswAle_SetPolicerEntryInArgs polInArgs;
-    CpswAle_SetPolicerEntryOutArgs polOutArgs;
-    Enet_IoctlPrms prms;
-    uint32_t coreId;
-    int32_t status = ENET_SOK;
-
-    coreId = EnetSoc_getCoreId();
-
-    /* MAC destination + VLAN match */
-    polInArgs.policerMatch.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
-    polInArgs.policerMatch.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
-    polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlanId;
-    EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0U], macAddr);
-
-    /* Route to remote clients flow */
-    polInArgs.threadIdEn = BTRUE;
-    polInArgs.threadId   = flowIdxOffset;
-    polInArgs.peakRateInBitsPerSec   = 0U;
-    polInArgs.commitRateInBitsPerSec = 0U;
-
-    ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
-
-    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms, status);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to setup ALE classifier VLAN %u", vlanId);
-
-    return status;
-}
-
-static int32_t EthFwVlan_deleteClassifier(Enet_Handle hEnet,
-                                          const uint8_t *macAddr,
-                                          uint32_t vlanId,
-                                          uint32_t flowIdxOffset)
-{
-    CpswAle_PolicerMatchParams polMatchInArgs;
-    CpswAle_PolicerEntryOutArgs polOutArgs;
-    CpswAle_DelPolicerEntryInArgs delPolInArgs;
-    Enet_IoctlPrms prms;
-    uint32_t coreId;
-    int32_t status = ENET_SOK;
-
-    coreId = EnetSoc_getCoreId();
-
-    /* Get policer for MAC destination + VLAN match */
-    polMatchInArgs.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
-    polMatchInArgs.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
-    polMatchInArgs.dstMacAddrInfo.addr.vlanId = vlanId;
-    EnetUtils_copyMacAddr(&polMatchInArgs.dstMacAddrInfo.addr.addr[0U], macAddr);
-
-    ENET_IOCTL_SET_INOUT_ARGS(&prms, &polMatchInArgs, &polOutArgs);
-
-    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_GET_POLICER, &prms, status);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                      "Failed to find ALE classifier for VLAN %u macAdd=%02x:%02x:%02x:%02x:%02x:%02x",
-                      vlanId,
-                      macAddr[0U], macAddr[1U], macAddr[2U],
-                      macAddr[3U], macAddr[4U], macAddr[5U]);
-
-    /* Check if classifier was routing packets to client's flow */
-    if (status == ENET_SOK)
-    {
-        if ((polOutArgs.threadIdEn != BTRUE) ||
-            (polOutArgs.threadId != flowIdxOffset))
-        {
-            status = ETHFW_EUNEXPECTED;
-            ETHFWTRACE_ERR(status, "Invalid VLAN %u policer thread cfg (threadIdEn=%u threadId=%u)",
-                           vlanId, polOutArgs.threadIdEn, polOutArgs.threadId);
-        }
-    }
-
-    /* Delete classifier and its VLAN/MAC entry */
-    if (status == ENET_SOK)
-    {
-        delPolInArgs.policerMatch = polMatchInArgs;
-        delPolInArgs.aleEntryMask = CPSW_ALE_POLICER_TABLEENTRY_DELETE_ALL;
-
-        ENET_IOCTL_SET_IN_ARGS(&prms, &delPolInArgs);
-
-        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Invalid VLAN %u policer", vlanId);
-    }
-
-    return status;
 }
 

@@ -419,7 +419,7 @@ static void EthFw_initAleCfg(CpswAle_Cfg *aleCfg)
     aleCfg->vlanCfg.cpswVlanAwareMode          = BTRUE;
     aleCfg->vlanCfg.unknownUnregMcastFloodMask = 0U;
     aleCfg->vlanCfg.unknownRegMcastFloodMask   = 0U;
-    aleCfg->vlanCfg.unknownVlanMemberListMask  = CPSW_ALE_ALL_PORTS_MASK;
+    aleCfg->vlanCfg.unknownVlanMemberListMask  = CPSW_ALE_ALL_MACPORTS_MASK;
     aleCfg->vlanCfg.autoLearnWithVlan          = BFALSE;
 
     /* ALE policer configuration */
