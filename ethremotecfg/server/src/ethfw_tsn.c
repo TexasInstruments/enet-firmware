@@ -821,7 +821,7 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
                 ethdevs[j].macport = macPort;
                 memcpy(&ethdevs[j].srcmac, hostMacAddr, ENET_MAC_ADDR_LEN);
 
-                ETHFWTRACE_INFO("ETHFW: Enable gPTP on MAC port %u (%s)",
+                ETHFWTRACE_INFO("Enable gPTP on MAC port %u (%s)",
                                 ENET_MACPORT_ID(macPort), gEthFwTsnObj.netDevInfo.gPtpNetDevs[j]);
                 j++;
             }
@@ -847,14 +847,14 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
             if (ETHFW_SOK != status)
             {
                 status = ETHFW_EFAIL;
-                ETHFWTRACE_ERR(status, "ETHFW: Failed to int devs table");
+                ETHFWTRACE_ERR(status, "Failed to int devs table");
             }
         }
 
         if (ETHFW_SOK == status)
         {
             status = EthFwTsn_startMod();
-            ETHFWTRACE_INFO_IF((ETHFW_SOK == status), "ETHFW: TimeSync PTP enabled");
+            ETHFWTRACE_INFO_IF((ETHFW_SOK == status), "TimeSync PTP enabled");
         }
     }
 
@@ -876,7 +876,7 @@ static int32_t EthFwTsn_uniconfInit(EthFwTsn_dbArgs *dbArgs)
                                         YANG_DB_ONHW_NOACTION);
 
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, 
-                          "ETHFW: yang_db_runtime_put_oneline failed");
+                          "yang_db_runtime_put_oneline failed");
     }
 
     return status;
@@ -896,7 +896,7 @@ static int32_t EthFwTsn_gptpDbInit(EthFwTsn_dbArgs *dbArgs)
                                              gGptpOpt.domains[i]);
 
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                                  "ETHFW: Failed to set gptp run time config");
+                                  "Failed to set gptp run time config");
         }
     }
 
@@ -1074,7 +1074,7 @@ static int32_t EthFwTsn_startMod(void)
     if (CB_SEM_INIT(&gEthFwTsnObj.ucCfg.ucReadySem, 0U, 0U) != ETHFW_SOK)
     {
         status = ETHFW_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW: Failed to initialize ucReadySem semaphore!");
+        ETHFWTRACE_ERR(status, "Failed to initialize ucReadySem semaphore!");
     }
 
     if (gEthFwTsnObj.tsnInit)
@@ -1086,7 +1086,7 @@ static int32_t EthFwTsn_startMod(void)
             {
                 status = EthFwTsn_startModTask(mod, i);
                 ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, 
-                                  "ETHFW: Failed to start Task for moduleIdx %u", i);
+                                  "Failed to start Task for moduleIdx %u", i);
             }
         }
     }
@@ -1110,7 +1110,7 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
         if (ETHFW_SOK != status)
         {
             status = ETHFW_EFAIL;
-            ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", modCfg->taskName);
+            ETHFWTRACE_ERR(status, "Failed to create %s task!\n", modCfg->taskName);
             EnetAppUtils_assert(BFALSE);
         }
 
@@ -1129,7 +1129,7 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
     else
     {
         status = ETHFW_EFAIL;
-        ETHFWTRACE_ERR(status, "ETHFW: Failed to create %s task!\n", modCfg->taskName);
+        ETHFWTRACE_ERR(status, "Failed to create %s task!\n", modCfg->taskName);
         EnetAppUtils_assert(BFALSE);
     }
 
@@ -1152,14 +1152,14 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
         status = CB_SEM_WAIT(&ucCfg->ucReadySem);
         if (ETHFW_SOK != status)
         {
-            ETHFWTRACE_ERR(status, "ETHFW: Failed to wait for the uniconf");
+            ETHFWTRACE_ERR(status, "Failed to wait for the uniconf");
             break;
         }
 
         status = uniconf_ready(ucCfg->dbName, UC_CALLMODE_THREAD, timeout_ms);
         if (status)
         {
-            ETHFWTRACE_ERR(status, "ETHFW: The uniconf must be run first!");
+            ETHFWTRACE_ERR(status, "The uniconf must be run first!");
             break;
         }
 
@@ -1167,14 +1167,14 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
         if (!dbArgs.dbald)
         {
             status = ETHFW_EFAIL;
-            ETHFWTRACE_ERR(status, "ETHFW: Failed to open DB!\n");
+            ETHFWTRACE_ERR(status, "Failed to open DB!\n");
             break;
         }
         dbArgs.ydrd = yang_db_runtime_init(dbArgs.dbald, NULL);
         if (!dbArgs.ydrd)
         {
             status = ETHFW_EFAIL;
-            ETHFWTRACE_ERR(status, "ETHFW: Failed to init yang db runtime");
+            ETHFWTRACE_ERR(status, "Failed to init yang db runtime");
             break;
         }
 
@@ -1186,7 +1186,7 @@ static int32_t EthFwTsn_initDb(EthFwTsn_UniconfCfg *ucCfg)
                 status = mod->onModuleDBInit(&dbArgs);
                 if (ETHFW_SOK != status)
                 {
-                    ETHFWTRACE_ERR(ETHFW_EFAIL, "ETHFW: Module DB Init failed for ModuleIdx %u", i);
+                    ETHFWTRACE_ERR(ETHFW_EFAIL, "Module DB Init failed for ModuleIdx %u", i);
                     break;
                 }
             }
