@@ -76,6 +76,7 @@
 #include <ti/osal/osal.h>
 #include <utils/ethfw_common/include/ethfw_types.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
+#include <utils/ethfw_common/include/ethfw_utils.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 
 /* ========================================================================== */
@@ -143,6 +144,8 @@ EthFwOsal_TaskHandle EthFwOsal_createTask(void (*func)(void*), EthFwOsal_TaskPar
     EthFwOsal_TaskObj *taskObj;
 
     taskObj = malloc(sizeof(EthFwOsal_TaskObj));
+    EthFw_assert(taskObj != NULL);
+
     memset(taskObj, 0, sizeof(EthFwOsal_TaskObj));
 
     TaskP_Params_init(&taskParams);
