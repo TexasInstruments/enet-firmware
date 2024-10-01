@@ -138,7 +138,8 @@ static int32_t EthFwMcast_getSharedMcastCfg(const EthFwMcast_SharedMcastCfg *cfg
 
 static int32_t EthFwMcast_getRsvdMcastCfg(const EthFwMcast_RsvdMcastCfg *cfg);
 
-static bool EthFwMcast_isRsvdMcast(const uint8_t *macAddr);
+static bool EthFwMcast_isRsvdMcast(const uint8_t *macAddr,
+                                   uint16_t vlanId);
 
 static EthFwMcast_SharedMcastInfo *EthFwMcast_getSharedMcastInfo(const uint8_t *macAddr,
                                                                  uint16_t vlanId);
@@ -233,7 +234,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
     bool isRsvd;
     int32_t status = ETHFW_SOK;
 
-    isRsvd = EthFwMcast_isRsvdMcast(macAddr);
+    isRsvd = EthFwMcast_isRsvdMcast(macAddr, vlanId);
     if (!isRsvd)
     {
         mcastInfo = EthFwMcast_getSharedMcastInfo(macAddr, vlanId);
@@ -290,7 +291,7 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
     bool isRsvd;
     int32_t status = ETHFW_SOK;
 
-    isRsvd = EthFwMcast_isRsvdMcast(macAddr);
+    isRsvd = EthFwMcast_isRsvdMcast(macAddr, vlanId);
     if (!isRsvd)
     {
         mcastInfo = EthFwMcast_getSharedMcastInfo(macAddr, vlanId);
@@ -458,14 +459,19 @@ static int32_t EthFwMcast_getRsvdMcastCfg(const EthFwMcast_RsvdMcastCfg *cfg)
     return status;
 }
 
-static bool EthFwMcast_isRsvdMcast(const uint8_t *macAddr)
+static bool EthFwMcast_isRsvdMcast(const uint8_t *macAddr,
+                                   uint16_t vlanId)
 {
+    EthFwMcast_RsvdMcast *entry = NULL;
     bool isRsvd = BFALSE;
     uint32_t i;
 
     for (i = 0U; i < gEthFwMcastObj.rsvdMcastTable.len; i++)
     {
-        if (EnetUtils_cmpMacAddr(&gEthFwMcastObj.rsvdMcastTable.table[i].macAddr[0U], macAddr))
+        entry = &gEthFwMcastObj.rsvdMcastTable.table[i];
+
+        if ((entry->vlanId == vlanId) &&
+            EnetUtils_cmpMacAddr(&entry->macAddr[0U], macAddr))
         {
             isRsvd = BTRUE;
             break;
