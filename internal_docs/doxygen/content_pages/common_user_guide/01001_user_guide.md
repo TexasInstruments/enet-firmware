@@ -1357,6 +1357,15 @@ join the VLAN.  The virtual port membership is set through `virtMemberMask` para
 in the [VLAN configuration](../api_guide/structEthFwVlan__VlanCfg.html) at
 VLAN creation time on Ethernet Firmware server side.
 
+**Note:** When multiple remote clients join different VLAN and we send a unicast packet 
+of client_1's mac address say M1 with another client_2's VLAN say V2, then still packet will
+be forwarded to client_1. This has been taken as a known limitation so
+that we use less number of ALE and Classifier entires out of box.
+Note that not all VLAN tagged packets will be received by remote clients.
+Unicast packets with a VLAN registered by any client will be received by remote clients.
+Unknown VLAN tagged packets will still not be received by remote clients.
+Customer can add their own logic on top of current implementation for tighter packet forwarding.
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 
