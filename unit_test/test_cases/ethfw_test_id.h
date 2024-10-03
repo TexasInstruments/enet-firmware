@@ -103,6 +103,7 @@ extern "C" {
 #define ETHFW_UT_SWITCH_UNREGISTER_MAC_TEST_ID                   (2650U)
 #define ETHFW_UT_SWITCH_UNREGISTER_MAC_NEGTEST_ID                (2649U)
 #define ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID                    (2648U)
+#define ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID                      (2881U)
 
 /* Virtual MAC port Jira test case id */
 #define ETHFW_UT_MAC_ATTACH_TEST1_ID                             (2690U)
@@ -124,6 +125,7 @@ extern "C" {
 #define ETHFW_UT_MAC_REGISTER_MAC_NEGTEST_ID                     (2706U)
 #define ETHFW_UT_MAC_UNREGISTER_MAC_TEST_ID                      (2707U)
 #define ETHFW_UT_MAC_UNREGISTER_MAC_NEGTEST_ID                   (2708U)
+#define ETHFW_UT_MAC_DETACH_ONLY_TEST_ID                         (2883U)
 
 /* Server test case id*/
 #define ETHFW_UT_SERVER_INIT_TEST_ID                             (2737U)
@@ -153,6 +155,7 @@ extern "C" {
 #define ETHFW_UT_SWITCH_UNREGISTER_MAC_TEST_ID                   (2642U)
 #define ETHFW_UT_SWITCH_UNREGISTER_MAC_NEGTEST_ID                (2643U)
 #define ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID                    (2644U)
+#define ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID                      (2882U)
 
 /* Virtual MAC port Jira test case id */
 #define ETHFW_UT_MAC_ATTACH_TEST1_ID                             (2671U)
@@ -174,6 +177,7 @@ extern "C" {
 #define ETHFW_UT_MAC_REGISTER_MAC_NEGTEST_ID                     (2687U)
 #define ETHFW_UT_MAC_UNREGISTER_MAC_TEST_ID                      (2688U)
 #define ETHFW_UT_MAC_UNREGISTER_MAC_NEGTEST_ID                   (2689U)
+#define ETHFW_UT_MAC_DETACH_ONLY_TEST_ID                         (2884U)
 
 /* Server test case id*/
 #define ETHFW_UT_SERVER_INIT_TEST_ID                             (2725U)

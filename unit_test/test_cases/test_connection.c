@@ -242,6 +242,26 @@ end:
         TEST_FAIL();
 }
 
+
+void EthFwUT_detachOnly(void)
+{
+    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_StatusRes res;
+    int32_t status;
+
+    memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    /* We will try and detach without attaching first */
+    /* Send request to server and wait for response */
+    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DETACH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));                          
+    if (status == CPSWPROXY_EINVALIDPARAMS)
+        TEST_PASS();
+    else
+        TEST_FAIL();
+}
+
 void EthFwUT_testSwitchConnection(void *arg1, void * arg2)
 {
     int32_t status;
@@ -268,6 +288,9 @@ void EthFwUT_testSwitchConnection(void *arg1, void * arg2)
 
     /* ETHFW-ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
     RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID);
+    
+    /* ETHFW-ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID: Test DETACH without ATTACH with invalid parameters. */
+    RUN_TEST(EthFwUT_detachOnly,  ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID);
 
     UnityEnd();
 }
@@ -298,6 +321,10 @@ void EthFwUT_testMacConnection(void *arg1, void * arg2)
 
     /* ETHFW-ETHFW_UT_MAC_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
     RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_MAC_ATTACH_NEGTEST_ID);
+
+    /* ETHFW-ETHFW_UT_MAC_DETACH_ONLY_TEST_ID: Test DETACH without ATTACH with invalid parameters. */
+    RUN_TEST(EthFwUT_detachOnly,  ETHFW_UT_MAC_DETACH_ONLY_TEST_ID);
+
 
     UnityEnd();
 }
