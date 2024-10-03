@@ -428,8 +428,11 @@ int32_t CpswProxy_attachExtended(CpswProxy_Handle hProxy,
  *
  * \param hProxy    Handle to Cpsw Proxy.
  *
- * \returns \ref CPSWPROXY_SOK if client has been detached, or negative error in
- *          case of a failure, see \ref CpswProxy_ErrorCodes.
+ * \returns \ref CPSWPROXY_SOK if client has been detached, 
+ *          \ref CPSWPROXY_EINVALIDPARAMS error in case a client
+ *          makes a detach call before attaching itself,
+ *          or negative error in case of a failure, 
+ *          see \ref CpswProxy_ErrorCodes.
  */
 int32_t CpswProxy_detach(CpswProxy_Handle hProxy);
 

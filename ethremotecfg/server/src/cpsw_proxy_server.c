@@ -2901,7 +2901,9 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
+            
+            /* Raise error for invalid detach request */
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EINVALIDPARAMS);
 
             if (ETHREMOTECFG_SOK == status)
             {
