@@ -163,15 +163,11 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
 static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
                                            Enet_Handle hEnet,
                                            const uint8_t *macAddr,
-                                           uint16_t vlanId,
-                                           uint16_t hwVlanId,
                                            uint32_t flowIdxOffset);
 
 static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
                                            Enet_Handle hEnet,
-                                           const uint8_t *macAddr,
-                                           uint16_t vlanId,
-                                           uint16_t hwVlanId);
+                                           const uint8_t *macAddr);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -257,7 +253,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
         }
         else
         {
-            status = EthFwMcast_filterAddMacExcl(virtPort, hEnet, macAddr, vlanId, hwVlanId, flowIdxOffset);
+            status = EthFwMcast_filterAddMacExcl(virtPort, hEnet, macAddr, flowIdxOffset);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to add exclusive mcast address");
         }
     }
@@ -315,7 +311,7 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
         }
         else
         {
-            status = EthFwMcast_filterDelMacExcl(virtPort, hEnet, macAddr, vlanId, hwVlanId);
+            status = EthFwMcast_filterDelMacExcl(virtPort, hEnet, macAddr);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                "Failed to delete exclusive mcast address");
         }
@@ -627,8 +623,6 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
 static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
                                            Enet_Handle hEnet,
                                            const uint8_t *macAddr,
-                                           uint16_t vlanId,
-                                           uint16_t hwVlanId,
                                            uint32_t flowIdxOffset)
 {
     Enet_IoctlPrms prms;
@@ -644,8 +638,8 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
     uint32_t aleEntry;
     int32_t status = ETHFW_EFAIL;
 
-    /* Lookup for multicast address */
-    lookupInArgs.addr.vlanId = hwVlanId;
+    /* Lookup for multicast address (irrespective of VLAN) */
+    lookupInArgs.addr.vlanId = 0U;
     EnetUtils_copyMacAddr(&lookupInArgs.addr.addr[0], macAddr);
     lookupInArgs.numIgnBits = 0U;
 
@@ -669,39 +663,16 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
         ETHFWTRACE_ERR(status, "Failed to lookup mcast entry");
     }
 
-    /* Add multicast entry in ALE
-     * Ensures that exclusive multicast from external ports reaches host port */
+    /* Add multicast entry in ALE */
     if (status == ETHFW_SOK)
     {
-        mcastInArgs.addr.vlanId = hwVlanId;
+        mcastInArgs.addr.vlanId = 0U;
         EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], macAddr);
 
         mcastInArgs.info.super    = BFALSE;
         mcastInArgs.info.fwdState = CPSW_ALE_FWDSTLVL_FWD;
         mcastInArgs.info.portMask = CPSW_ALE_HOST_PORT_MASK;
         mcastInArgs.info.numIgnBits = 0U;
-
-        if (isMacPort)
-        {
-            mcastInArgs.info.portMask |= CPSW_ALE_MACPORT_TO_PORTMASK(macPort);
-        }
-        else
-        {
-            mcastInArgs.info.portMask |= aleSwitchPortMask;
-        }
-
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
-
-        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add mcast entry");
-    }
-
-    /* Add multicast entry with host port vlan id
-     * Ensures that exclusive multicast from host port reaches external ports */
-    if (status == ETHFW_SOK)
-    {
-        mcastInArgs.addr.vlanId = gEthFwMcastObj.hostPortVlanId;
-        mcastInArgs.info.portMask = CPSW_ALE_HOST_PORT_MASK;
 
         if (isMacPort)
         {
@@ -726,7 +697,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
         /* Multicast MAC address as match criteria */
         polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
         polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
-        polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = hwVlanId;
+        polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
         EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], macAddr);
 
         /* Ingress port as match criteria to fully qualify the classifier for
@@ -754,9 +725,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
 
 static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
                                            Enet_Handle hEnet,
-                                           const uint8_t *macAddr,
-                                           uint16_t vlanId,
-                                           uint16_t hwVlanId)
+                                           const uint8_t *macAddr)
 {
     Enet_IoctlPrms prms;
     CpswAle_DelPolicerEntryInArgs polInArgs;
@@ -771,7 +740,7 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
     /* Multicast MAC address as match criteria */
     polInArgs.policerMatch.policerMatchEnMask |= CPSW_ALE_POLICER_MATCH_MACDST;
     polInArgs.policerMatch.dstMacAddrInfo.portNum = CPSW_ALE_HOST_PORT_NUM;
-    polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = hwVlanId;
+    polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = 0U;
     EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], macAddr);
 
     /* Ingress port as match criteria to fully qualify the classifier for
@@ -789,15 +758,6 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
 
     ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ALE classifier");
-
-    /* Removes ALE entry of multicast address with host port vlan id */
-    macAddrInfo.vlanId = gEthFwMcastObj.hostPortVlanId;
-    EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], macAddr);
-
-    ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
-
-    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
 
     return status;
 }
