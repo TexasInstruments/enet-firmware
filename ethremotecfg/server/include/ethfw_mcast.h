@@ -78,11 +78,9 @@ extern "C" {
  * a shared multicast address to the filter.
  *
  * \param macAddr    Multicast address being added
- * \param vlanId     VLAN id
  * \param coreId     Remote core id which originated the multicast 'add' request
  */
 typedef void (*EthFwMcast_FilterAddMacSharedCb)(const uint8_t *macAddr,
-                                                uint16_t vlanId,
                                                 uint8_t coreId);
 
 /*!
@@ -92,25 +90,20 @@ typedef void (*EthFwMcast_FilterAddMacSharedCb)(const uint8_t *macAddr,
  * a shared multicast address from the filter.
  *
  * \param macAddr    Multicast address being added
- * \param vlanId     VLAN id
  * \param coreId     Remote core id which originated the multicast 'remove' request
  */
 typedef void (*EthFwMcast_FilterDelMacSharedCb)(const uint8_t *macAddr,
-                                                uint16_t vlanId,
                                                 uint8_t coreId);
 
 /*!
  * \brief Multicast configuration params.
  *
- * Multicast params composed of the multicast address, VLAN id and the port mask.
+ * Multicast params composed of the multicast address, port mask and the virtual port mask.
  */
 typedef struct EthFwMcast_McastCfg_s
 {
     /*! Multicast address */
     uint8_t macAddr[ENET_MAC_ADDR_LEN];
-
-    /*! VLAN id */
-    uint16_t vlanId;
 
     /*! Hardware port mask (Ethernet port and host port):
      *  - Use `CPSW_ALE_MACPORT_TO_ALEPORT()` to set the MAC port bitmask

@@ -75,7 +75,6 @@
 
 /* Enet LLD header files */
 #include <enet.h>
-#include <include/per/cpsw.h>
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
@@ -136,21 +135,13 @@ static int32_t EthFwVepa_getVirtPortMask(struct eth_addr *hwAddr,
                                          uint16_t vlanId,
                                          uint16_t *virtPortMask);
 
-static int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
-                                         uint32_t coreId,
-                                         uint32_t vlanId,
-                                         uint8_t *mcastAddr,
-                                         uint32_t flowIdx,
-                                         CpswAle_PolicerPartLevel policerPartLevel);
 
-static int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
-                                         uint32_t coreId,
-                                         uint32_t vlanId,
-                                         uint8_t *mcastAddr,
-                                         uint32_t aleEntryMask);
 
 static int32_t EthFwVepa_getPrivateVlanId(EthRemoteCfg_VirtPort virtPort,
                                           uint16_t *privVlanId);
+
+static EthFwVepa_AddrEntry *EthFwVepa_getMcastInfo(struct eth_addr *hwAddr,
+                                                   uint16_t vlanId);
 
 /* ========================================================================== */
 /*                            Global Variables                                */
@@ -306,45 +297,77 @@ static int32_t EthFwVepa_getPrivateVlanId(EthRemoteCfg_VirtPort virtPort,
     return status;
 }
 
-/* Adds a multicast address in ALE Policer table */
-static int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
-                                         uint32_t coreId,
-                                         uint32_t vlanId,
-                                         uint8_t* mcastAddr,
-                                         uint32_t flowIdx,
-                                         CpswAle_PolicerPartLevel policerPartLevel)
+/* Returns the corresponding entry from VEPA table */
+static EthFwVepa_AddrEntry *EthFwVepa_getMcastInfo(struct eth_addr *hwAddr,
+                                                   uint16_t vlanId)
+{
+    EthFwVepa_AddrEntry *entry;
+    bool found = BFALSE;
+    uint32_t i;
+
+    /* Check if VEPA table already has a corresponding entry */
+    for (i = 0U; i < ETHFW_VEPA_TABLE_SIZE; i++)
+    {
+        entry = &gEthFwVepaObj.remoteCoreVepaTable[i];
+
+        /* Check if MAC address matches and VLAN id matches */
+        if (!entry->isFree &&
+            (entry->vlanId == vlanId) &&
+            EnetUtils_cmpMacAddr(entry->hwAddr.addr, hwAddr->addr))
+        {
+            found = BTRUE;
+            break;
+        }
+    }
+
+    return found ? entry : NULL;;
+}
+
+int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
+                                  uint32_t coreId,
+                                  uint32_t vlanId,
+                                  const uint8_t *mcastAddr,
+                                  CpswAle_PolicerPartLevel policerPartLevel)
 {
     CpswAle_SetPolicerEntryInPartitionInArgs polInArgs;
     CpswAle_SetPolicerEntryOutArgs polOutArgs;
     Enet_IoctlPrms prms;
-    int32_t status = ETHFW_EFAIL;
+    int32_t status = ETHFW_SOK;
 
-    polInArgs.policerMatch.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
-    polInArgs.policerMatch.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
-    polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlanId;
-    polInArgs.policerMatch.portIsTrunk                = BFALSE;
-    polInArgs.threadIdEn                              = BTRUE;
-    polInArgs.threadId                                = flowIdx;
-    polInArgs.peakRateInBitsPerSec                    = 0U;
-    polInArgs.commitRateInBitsPerSec                  = 0U;
-    polInArgs.policerPartLevel                        = policerPartLevel;
-    EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], mcastAddr);
+    if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
+    {
+        status = ETHFW_EFAIL;
+        ETHFWTRACE_ERR(status, "Failed to get flow index of packet duplication flow");
+    }
 
-    ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
+    if (status == ETHFW_SOK)
+    {
+        polInArgs.policerMatch.policerMatchEnMask         = CPSW_ALE_POLICER_MATCH_MACDST;
+        polInArgs.policerMatch.dstMacAddrInfo.portNum     = CPSW_ALE_HOST_PORT_NUM;
+        polInArgs.policerMatch.dstMacAddrInfo.addr.vlanId = vlanId;
+        polInArgs.policerMatch.portIsTrunk                = BFALSE;
+        polInArgs.threadIdEn                              = BTRUE;
+        polInArgs.threadId                                = gEthFwVepaObj.packetDuplicationFlowIdx;
+        polInArgs.peakRateInBitsPerSec                    = 0U;
+        polInArgs.commitRateInBitsPerSec                  = 0U;
+        polInArgs.policerPartLevel                        = policerPartLevel;
+        EnetUtils_copyMacAddr(&polInArgs.policerMatch.dstMacAddrInfo.addr.addr[0], mcastAddr);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
-    ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
-                      "Failed to add policer for mcast addr in partition %u", (uint32_t)policerPartLevel);
+        ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
+
+        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER_IN_PARTITION, &prms);
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
+                        "Failed to add policer for mcast addr in partition %u", (uint32_t)policerPartLevel);
+    }
 
     return status;
 }
 
-/* Deletes a multicast address in ALE Policer table, deletes ALE entry as well based on value in aleEntryMask */
-static int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
-                                         uint32_t coreId,
-                                         uint32_t vlanId,
-                                         uint8_t* mcastAddr,
-                                         uint32_t aleEntryMask)
+int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
+                                  uint32_t coreId,
+                                  uint32_t vlanId,
+                                  const uint8_t *mcastAddr,
+                                  uint32_t aleEntryMask)
 {
     CpswAle_DelPolicerEntryInArgs polInArgs;
     Enet_IoctlPrms prms;
@@ -366,13 +389,9 @@ static int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
     return status;
 }
 
-int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
-                          struct eth_addr *hwAddr,
+int32_t EthFwVepa_addAddr(struct eth_addr *hwAddr,
                           uint16_t vlanId,
-                          uint16_t hwVlanId,
-                          uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort,
-                          bool addClassifier)
+                          EthRemoteCfg_VirtPort virtPort)
 {
     EthFwVepa_AddrEntry *entry;
     CpswAle_PolicerPartLevel policerPartLevel = CPSW_ALE_POLICER_PARTITION_DEFAULT;
@@ -381,12 +400,6 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
     bool done = BFALSE;
 
     EthFwOsal_lockMutex(gEthFwVepaObj.hMutex);
-
-    if (gEthFwVepaObj.packetDuplicationFlowIdx == ETHFW_VEPA_PKT_DUP_FLOW_IDX_UNDEFINED)
-    {
-        status = ETHFW_EFAIL;
-        ETHFWTRACE_ERR(status, "Failed to get flow index of packet duplication flow");
-    }
 
     if (status == ETHFW_SOK)
     {
@@ -420,14 +433,6 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
             /* Take the first free entry */
             if (entry->isFree)
             {
-                if (addClassifier)
-                {
-                    status = EthFwVepa_addMcastPolicer(hEnet, hostId,
-                                                       hwVlanId, hwAddr->addr,
-                                                       gEthFwVepaObj.packetDuplicationFlowIdx,
-                                                       policerPartLevel);
-                }
-                
                 if (status == ETHFW_SOK)
                 {
                     SMEMCPY(&entry->hwAddr, hwAddr, ETH_HWADDR_LEN);
@@ -449,13 +454,9 @@ int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
     return status;
 }
 
-int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
-                          struct eth_addr *hwAddr,
+int32_t EthFwVepa_delAddr(struct eth_addr *hwAddr,
                           uint16_t vlanId,
-                          uint16_t hwVlanId,
-                          uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort,
-                          bool delClassifier)
+                          EthRemoteCfg_VirtPort virtPort)
 {
     EthFwVepa_AddrEntry *entry;
     /* ALE entry mask == 0 means do not delete any ale entry, just delete the policer entry */
@@ -483,15 +484,6 @@ int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
              * remove the policer */
             if (entry->virtPortMask == 0U)
             {
-                if (delClassifier)
-                {
-                    /* Put entry mask to CPSW_ALE_POLICER_TABLEENTRY_DELETE_IVLAN,
-                     * if you want to delete the ale entry as well */
-                    status = EthFwVepa_delMcastPolicer(hEnet, hostId,
-                                                       hwVlanId, hwAddr->addr,
-                                                       aleEntryMask);
-                }
-                
                 if (status == ETHFW_SOK)
                 {
                     entry->isFree = BTRUE;
@@ -592,6 +584,8 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
     uint32_t entryIdx;
     uint32_t privVlanId;
     int32_t status = ETHFW_EFAIL;
+    CpswAle_PolicerPartLevel policerPartLevel = CPSW_ALE_POLICER_PARTITION_DEFAULT;
+    EthFwVepa_AddrEntry *mcastInfo;
 
     privVlanId = gEthFwVepaObj.privVlanCfg[virtPort];
 
@@ -636,10 +630,19 @@ int32_t EthFwVepa_registerClient(Enet_Handle hEnet,
         /* Set MAC address for the registered virtual switch port */
         SMEMCPY(&gEthFwVepaObj.virtPortToMacAddr[virtPort], srcAddr, ETH_HWADDR_LEN);
 
-        /* Add broadcast entry in VEPA table (does not add any ALE entry)
-         * Add policer: All broadcast packet (irrespective of vlan) should go to packet duplication flow
-         * at the same time reaches all ports (including host port) */
-        status = EthFwVepa_addAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort, BTRUE);
+        /* If no client has registered before */
+        mcastInfo = EthFwVepa_getMcastInfo(&gEthFwBcastAddr, 0U); 
+        if(mcastInfo == NULL)
+        {
+            /* Add policer: All broadcast packet (irrespective of vlan) should go to packet duplication flow
+             * at the same time reaches all ports (including host port) */
+            status = EthFwVepa_addMcastPolicer(hEnet, coreId,
+                                               0U, gEthFwBcastAddr.addr,
+                                               policerPartLevel);
+        }
+
+        /* Add broadcast entry in VEPA table */
+        status = EthFwVepa_addAddr(&gEthFwBcastAddr, 0U, virtPort);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                           "Failed to add bcast addr for VLAN %u into VEPA table", vlanId);
     }
@@ -659,6 +662,9 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
     uint32_t privVlanId;
     uint32_t i;
     int32_t status = ETHFW_EFAIL;
+    EthFwVepa_AddrEntry *mcastInfo;
+    /* ALE entry mask == 0 means do not delete any ale entry, just delete the policer entry */
+    uint32_t aleEntryMask = 0U;
 
     privVlanId = gEthFwVepaObj.privVlanCfg[virtPort];
 
@@ -679,11 +685,20 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
         /* Remove MAC address for the registered virtual switch port */
         memset(&gEthFwVepaObj.virtPortToMacAddr[virtPort], 0U, sizeof(struct eth_addr));
 
-        /* Remove broadcast entry from VEPA table for the virtual switch port (does not remove any ALE entry)
-         * Remove policer: broadcast packet of (irrespective of vlan) should not go to packet duplication flow */
-        status = EthFwVepa_delAddr(hEnet, &gEthFwBcastAddr, 0U, 0U, coreId, virtPort, BTRUE);
+        /* Remove broadcast entry from VEPA table for the virtual switch port */
+        status = EthFwVepa_delAddr(&gEthFwBcastAddr, 0U, virtPort);
         ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                           "Failed to delete bcast addr for VLAN %u from VEPA table", vlanId);
+
+        /* If last client has de-registered */
+        mcastInfo = EthFwVepa_getMcastInfo(&gEthFwBcastAddr, 0U); 
+        if(mcastInfo == NULL)
+        {
+            /* Remove policer: broadcast packet of (irrespective of vlan) should not go to packet duplication flow */
+            status = EthFwVepa_delMcastPolicer(hEnet, coreId,
+                                               0U, gEthFwBcastAddr.addr,
+                                               aleEntryMask);
+        }
     }
 
     return status;

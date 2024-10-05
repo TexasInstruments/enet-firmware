@@ -72,9 +72,6 @@ typedef struct EthFwMcast_SharedMcastInfo_s
     /* Multicast address */
     uint8_t macAddr[ENET_MAC_ADDR_LEN];
 
-    /* VLAN id */
-    uint16_t vlanId;
-
     /* Hardware port mask */
     uint32_t portMask;
 
@@ -125,9 +122,6 @@ typedef struct EthFwMcast_Obj_s
 
     /* ALE MAC-only port mask */
     uint32_t macOnlyPortMask;
-
-    /*! VLAN id used for host port */
-    uint32_t hostPortVlanId;
 } EthFwMcast_Obj;
 
 /* ========================================================================== */
@@ -148,16 +142,12 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
                                              Enet_Handle hEnet,
                                              EthFwMcast_SharedMcastInfo *mcastInfo,
                                              const uint8_t *macAddr,
-                                             uint16_t vlanId,
-                                             uint16_t hwVlanId,
                                              uint8_t coreId);
 
 static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
                                              Enet_Handle hEnet,
                                              EthFwMcast_SharedMcastInfo *mcastInfo,
                                              const uint8_t *macAddr,
-                                             uint16_t vlanId,
-                                             uint16_t hwVlanId,
                                              uint8_t coreId);
 
 static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
@@ -182,8 +172,7 @@ static EthFwMcast_Obj gEthFwMcastObj;
 
 int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
                         uint32_t switchPortMask,
-                        uint32_t macOnlyPortMask,
-                        uint32_t hostPortVlanId)
+                        uint32_t macOnlyPortMask)
 {
     int32_t status = ETHFW_EFAIL;
 
@@ -204,7 +193,6 @@ int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
     {
         gEthFwMcastObj.switchPortMask = switchPortMask;
         gEthFwMcastObj.macOnlyPortMask = macOnlyPortMask;
-        gEthFwMcastObj.hostPortVlanId = hostPortVlanId;
     }
 
     return status;
@@ -237,7 +225,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
         if (mcastInfo != NULL)
         {
             status = EthFwMcast_filterAddMacShared(virtPort, hEnet, mcastInfo,
-                                                   macAddr, vlanId, hwVlanId, hostId);
+                                                   macAddr, hostId);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                "Failed to add shared mcast address");
 
@@ -245,7 +233,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
             if (status == ETHFW_SOK)
             {
                 SMEMCPY(&hwAddr, macAddr, ETH_HWADDR_LEN);
-                status = EthFwVepa_addAddr(hEnet, &hwAddr, vlanId, hwVlanId, hostId, virtPort, BTRUE);
+                status = EthFwVepa_addAddr(&hwAddr, vlanId, virtPort);
                 ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                   "Failed to add shared mcast for core %u into VEPA table", hostId);
             }
@@ -296,14 +284,14 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
 #if defined(ETHFW_VEPA_SUPPORT)
             SMEMCPY(&hwAddr, mcastInfo->macAddr, ETH_HWADDR_LEN);
 
-            status = EthFwVepa_delAddr(hEnet, &hwAddr, vlanId, hwVlanId, hostId, virtPort, BTRUE);
+            status = EthFwVepa_delAddr(&hwAddr, vlanId, virtPort);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                               "Failed to delete shared mcast for core %u from VEPA table", hostId);
 #endif
             if (status == ETHFW_SOK)
             {
                 status = EthFwMcast_filterDelMacShared(virtPort, hEnet, mcastInfo,
-                                                       macAddr, vlanId, hwVlanId, hostId);
+                                                       macAddr, hostId);
                 ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                    "Failed to delete shared mcast address");
             }
@@ -365,7 +353,6 @@ static int32_t EthFwMcast_getSharedMcastCfg(const EthFwMcast_SharedMcastCfg *cfg
                                 macAddr[3U], macAddr[4U], macAddr[5U]);
 
                 EnetUtils_copyMacAddr(&entry->macAddr[0U], macAddr);
-                entry->vlanId       = mcastCfg->vlanId;
                 entry->portMask     = mcastCfg->portMask;
                 entry->virtPortMask = mcastCfg->virtPortMask;
                 entry->refCnt       = 0U;
@@ -488,8 +475,7 @@ static EthFwMcast_SharedMcastInfo *EthFwMcast_getSharedMcastInfo(const uint8_t *
     {
         entry = &gEthFwMcastObj.sharedMcastTable.table[i];
 
-        if ((entry->vlanId == vlanId) &&
-            EnetUtils_cmpMacAddr(&entry->macAddr[0U], macAddr))
+        if (EnetUtils_cmpMacAddr(&entry->macAddr[0U], macAddr))
         {
             found = BTRUE;
             break;
@@ -503,8 +489,6 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
                                              Enet_Handle hEnet,
                                              EthFwMcast_SharedMcastInfo *mcastInfo,
                                              const uint8_t *macAddr,
-                                             uint16_t vlanId,
-                                             uint16_t hwVlanId,
                                              uint8_t coreId)
 {
     Enet_IoctlPrms prms;
@@ -512,19 +496,11 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
     uint32_t aleEntry;
     int32_t status = ETHFW_SOK;
 
-    /* Add multicast entry in ALE table
-     * Ensures that shared multicast from external ports reaches host port and other external ports */
+    /* Add multicast entry in ALE table */
     if (mcastInfo->refCnt == 0U)
     {
-        /* Multicast address without VLAN, otherwise as many ALE entries
-         * will be needed for each private VLAN when using VEPA mode */
-#if defined(ETHFW_VEPA_SUPPORT)
         mcastInArgs.addr.vlanId = 0U;
-#else
-        mcastInArgs.addr.vlanId = hwVlanId;
-#endif
         EnetUtils_copyMacAddr(&mcastInArgs.addr.addr[0], macAddr);
-
         mcastInArgs.info.super    = BFALSE;
         mcastInArgs.info.fwdState = CPSW_ALE_FWDSTLVL_FWD;
         mcastInArgs.info.portMask = mcastInfo->portMask;
@@ -535,15 +511,17 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
         ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add shared mcast entry in ALE");
 
-        /* Add shared multicast entry with host port vlan id
-         * Ensures that shared multicast from host port reaches external ports */
-        mcastInArgs.addr.vlanId = gEthFwMcastObj.hostPortVlanId;
-        mcastInArgs.info.portMask = mcastInfo->portMask;
-
-        ENET_IOCTL_SET_INOUT_ARGS(&prms, &mcastInArgs, &aleEntry);
-
-        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_ADD_MCAST, &prms, status);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add shared mcast entry in ALE");
+#if defined(ETHFW_VEPA_SUPPORT)
+        if (status == ETHFW_SOK)
+        {
+            /* Multicast address (irrespective of VLAN) should come to pkt duplication flow */
+            status = EthFwVepa_addMcastPolicer(hEnet, coreId,
+                                               0U, macAddr,
+                                               CPSW_ALE_POLICER_PARTITION_DEFAULT);
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                               "Failed to add policer for shared mcast for core %u for packet duplication", coreId);
+        }
+#endif
     }
 
     /* Increase reference counter and call 'add' callback */
@@ -552,7 +530,7 @@ static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
         mcastInfo->refCnt++;
         if (gEthFwMcastObj.filterAddMacSharedCb != NULL)
         {
-            gEthFwMcastObj.filterAddMacSharedCb(macAddr, vlanId, coreId);
+            gEthFwMcastObj.filterAddMacSharedCb(macAddr, coreId);
         }
     }
 
@@ -563,44 +541,38 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
                                              Enet_Handle hEnet,
                                              EthFwMcast_SharedMcastInfo *mcastInfo,
                                              const uint8_t *macAddr,
-                                             uint16_t vlanId,
-                                             uint16_t hwVlanId,
                                              uint8_t coreId)
 {
     Enet_IoctlPrms prms;
     CpswAle_MacAddrInfo macAddrInfo;
-    int32_t status = ETHFW_EFAIL;
+    int32_t status = ETHFW_SOK;
+#if defined(ETHFW_VEPA_SUPPORT)
+    /* ALE entry mask == 0 means do not delete any ale entry, just delete the policer entry */
+    uint32_t aleEntryMask = 0U;
+#endif
 
     /* Remove mcast address from ALE table */
     if (mcastInfo->refCnt == 1U)
     {
-        EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], macAddr);
-
-        /* When deleting ALE addresses with VLAN, there can be a corner case with using VLAN entry 0U.
-         * If two vlan entries (0U and 1U) are deleted one after another, the ALE has a special check for vlan 0U 
-         * and may give false positive and delete entry for vlan 1U instead.
-         * When 1U is deleted afterwards, since that entry is deleted above, it returns error saying Entry not found. 
-         * So as a work around delete 0U entry at the last. */
-        /* Removes ALE entry of multicast address with host port vlan id */
-        macAddrInfo.vlanId = gEthFwMcastObj.hostPortVlanId;
-
-        ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
-
-        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
-
-        /* Multicast address without VLAN, otherwise as many ALE entries
-         * will be needed for each private VLAN when using VEPA mode */
-#if defined(ETHFW_VEPA_SUPPORT)
-        macAddrInfo.vlanId = 0U;
-#else
-        macAddrInfo.vlanId = hwVlanId;
+#if defined(ETHFW_VEPA_SUPPORT)        
+        /* Multicast address (irrespective of VLAN) should not come to pkt duplication flow */
+        status = EthFwVepa_delMcastPolicer(hEnet, coreId,
+                                            0U, macAddr,
+                                            aleEntryMask);
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                            "Failed to remove policer for shared mcast for core %u for packet duplication", coreId);
 #endif
+        if (status == ETHFW_SOK)
+        {
+            EnetUtils_copyMacAddr(&macAddrInfo.addr[0U], macAddr);
+            /* Multicast address without VLAN */
+            macAddrInfo.vlanId = 0U;
 
-        ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
+            ENET_IOCTL_SET_IN_ARGS(&prms, &macAddrInfo);
 
-        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
+            ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_REMOVE_ADDR, &prms, status);
+            ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to remove shared mcast entry in ALE");
+        }
     }
     else if (mcastInfo->refCnt == 0U)
     {
@@ -613,7 +585,7 @@ static int32_t EthFwMcast_filterDelMacShared(EthRemoteCfg_VirtPort virtPort,
         mcastInfo->refCnt--;
         if (gEthFwMcastObj.filterDelMacSharedCb != NULL)
         {
-            gEthFwMcastObj.filterDelMacSharedCb(macAddr, vlanId, coreId);
+            gEthFwMcastObj.filterDelMacSharedCb(macAddr, coreId);
         }
     }
 
@@ -768,16 +740,16 @@ void EthFwMcast_printTable(void)
     uint32_t i;
 
     ETHFWTRACE_INFO("");
-    ETHFWTRACE_INFO(" SNo.      MAC Address      VLAN id   Port Mask   Virt Port Mask  RefCnt");
-    ETHFWTRACE_INFO("------  -----------------  ---------  ----------  --------------  ------");
+    ETHFWTRACE_INFO(" SNo.      MAC Address     Port Mask   Virt Port Mask  RefCnt");
+    ETHFWTRACE_INFO("------  -----------------  ----------  --------------  ------");
 
     for (i = 0U; i <= gEthFwMcastObj.sharedMcastTable.len; i++)
     {
         entry = &gEthFwMcastObj.sharedMcastTable.table[i];
-        ETHFWTRACE_INFO(" %3d    %02x:%02x:%02x:%02x:%02x:%02x    %5d      0x%04x       0x%04x         %d",
+        ETHFWTRACE_INFO(" %3d    %02x:%02x:%02x:%02x:%02x:%02x      0x%04x       0x%04x         %d",
                         i + 1,
                         entry->macAddr[0], entry->macAddr[1], entry->macAddr[2],
                         entry->macAddr[3], entry->macAddr[4], entry->macAddr[5],
-                        entry->vlanId, entry->portMask, entry->virtPortMask, entry->refCnt);
+                        entry->portMask, entry->virtPortMask, entry->refCnt);
     }
 }

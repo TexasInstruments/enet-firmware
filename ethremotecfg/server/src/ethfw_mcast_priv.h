@@ -75,8 +75,7 @@ extern "C" {
 
 int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
                         uint32_t switchPortMask,
-                        uint32_t macOnlyPortMask,
-                        uint32_t hostPortVlanId);
+                        uint32_t macOnlyPortMask);
 
 void EthFwMcast_deinit(void);
 

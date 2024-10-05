@@ -76,6 +76,7 @@
 /* ========================================================================== */
 
 #include <enet.h>
+#include <include/per/cpsw.h>
 #include <ethremotecfg/server/include/ethfw_vepa.h>
 
 #ifdef __cplusplus
@@ -135,64 +136,44 @@ void EthFwVepa_deinit(void);
 /*!
  * \brief Add a multicast entry in VEPA table for client
  *
- * Adds policer for multicast packets to go to packet duplication flow.
- *
  * Untagged traffic received on any MAC port in switch mode gets the port's
  * default VLAN at ingress, is processed by ALE with that VLAN id and finally
- * untagged on egress.  In this case, `vlanId` argument will be 0 and `hwVlanId`
- * argument will be the switch port default VLAN id.
+ * untagged on egress.  In this case, `vlanId` argument will be 0, otherwise
+ * argument value will be the VLAN id of client.
  *
  * For VLAN tagged traffic, both `vlanId` and `hwVlanId` will both be the same.
  *
- * \param hEnet          Handle to CPSW
  * \param hwAddr         MAC address to add in VEPA table
- * \param vlanId         VLAN id (apparent)
- * \param hwVlanId       VLAN id (used in ALE)
- * \param hostId         Remote core IPC core id
+ * \param vlanId         VLAN id (client VLAN)
  * \param virtPort       Remote core virtual port id
- * \param addClassifier  Flag to create policer during address addition
  *
  * \returns ETHFW_SOK if multicast entry addition was successful, or a
  *          negative error code if failed.
  */
-int32_t EthFwVepa_addAddr(Enet_Handle hEnet,
-                          struct eth_addr *hwAddr,
+int32_t EthFwVepa_addAddr(struct eth_addr *hwAddr,
                           uint16_t vlanId,
-                          uint16_t hwVlanId,
-                          uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort,
-                          bool addClassifier);
+                          EthRemoteCfg_VirtPort virtPort);
 
 /*!
  * \brief Removes an entry in VEPA table for client
  *
- * Removes policer which allowed multicast packets to go to packet duplication flow.
- *
  * Untagged traffic received on any MAC port in switch mode gets the port's
  * default VLAN at ingress, is processed by ALE with that VLAN id and finally
- * untagged on egress.  In this case, `vlanId` argument will be 0 and `hwVlanId`
- * argument will be the switch port default VLAN id.
+ * untagged on egress.  In this case, `vlanId` argument will be 0 otherwise
+ * argument value will be the VLAN id of client.
  *
  * For VLAN tagged traffic, both `vlanId` and `hwVlanId` will both be the same.
  *
- * \param hEnet          Handle to CPSW
  * \param hwAddr         MAC address to add in VEPA table
- * \param vlanId         VLAN id (apparent)
- * \param hwVlanId       VLAN id (used in ALE)
- * \param hostId         Remote core IPC core id
+ * \param vlanId         VLAN id (client VLAN)
  * \param virtPort       Remote core virtual port id
- * \param delClassifier  Flag to delete policer during address deletion
  *
  * \returns ETHFW_SOK if multicast entry deletion was successful, or a
  *          negative error code if failed.
  */
-int32_t EthFwVepa_delAddr(Enet_Handle hEnet,
-                          struct eth_addr *hwAddr,
+int32_t EthFwVepa_delAddr(struct eth_addr *hwAddr,
                           uint16_t vlanId,
-                          uint16_t hwVlanId,
-                          uint16_t hostId,
-                          EthRemoteCfg_VirtPort virtPort,
-                          bool delClassifier);
+                          EthRemoteCfg_VirtPort virtPort);
 
 /*!
  * \brief Print VEPA table with private VLAN associated to each virtual port.
@@ -249,6 +230,42 @@ int32_t EthFwVepa_unregisterClient(Enet_Handle hEnet,
  * \returns Number of entries used in VEPA Table.
  */
 uint32_t EthFwVepa_getUseCnt(void);
+
+/*!
+ * \brief Adds a multicast address in ALE Policer table
+ *
+ * \param hEnet               Handle to CPSW
+ * \param coreId              Remote core IPC core id
+ * \param vlanId              VLAN id
+ * \param mcastAddr           MAC address to add in policer table
+ * \param policerPartLevel    Partition level to add policer
+ *
+ * \returns ETHFW_SOK if policer created successfully, or a
+ *          negative error code if failed.
+ */
+int32_t EthFwVepa_addMcastPolicer(Enet_Handle hEnet,
+                                  uint32_t coreId,
+                                  uint32_t vlanId,
+                                  const uint8_t *mcastAddr,
+                                  CpswAle_PolicerPartLevel policerPartLevel);
+
+/*!
+ * \brief Deletes a multicast address in ALE Policer table
+ *
+ * \param hEnet               Handle to CPSW
+ * \param coreId              Remote core IPC core id
+ * \param vlanId              VLAN id
+ * \param mcastAddr           MAC address to add in policer table
+ * \param aleEntryMask        Deletes ALE entry as well based on aleEntryMask (value of 0 means do not delete corresponding ALE)
+ * 
+ * \returns ETHFW_SOK if policer deleted successfully, or a
+ *          negative error code if failed.
+ */
+int32_t EthFwVepa_delMcastPolicer(Enet_Handle hEnet,
+                                  uint32_t coreId,
+                                  uint32_t vlanId,
+                                  const uint8_t *mcastAddr,
+                                  uint32_t aleEntryMask);
 
 #ifdef __cplusplus
 }

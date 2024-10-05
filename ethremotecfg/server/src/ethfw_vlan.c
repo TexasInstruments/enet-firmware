@@ -279,11 +279,8 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         coreId = EnetSoc_getCoreId();
-        /* Add broadcast entry with vlanId in VEPA table (does not add any ALE entry)
-         * Add policer: All broadcast packet with vlanId should go to packet duplication flow
-         * No need of policer creation, all broadcast will go to packet duplication flow
-         * irrespective of VLAN id */
-        status = EthFwVepa_addAddr(hEnet, &bcastAddr, vlanId, vlanId, coreId, virtPort, BFALSE);
+        /* Add broadcast entry with vlanId in VEPA table */
+        status = EthFwVepa_addAddr(&bcastAddr, vlanId, virtPort);
     }
 #endif
 
@@ -366,10 +363,8 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         coreId = EnetSoc_getCoreId();
-        /* Remove broadcast entry with vlanId in VEPA table (does not delete any ALE entry)
-         * Remove policer: All broadcast packet with vlanId should not go to packet duplication flow
-         * No need of policer deletion as we did not create any VLAN specific broadcast + VLAN policer */
-        status = EthFwVepa_delAddr(hEnet, &bcastAddr, vlanId, vlanId, coreId, virtPort, BFALSE);
+        /* Remove broadcast entry with vlanId from VEPA table */
+        status = EthFwVepa_delAddr(&bcastAddr, vlanId, virtPort);
     }
 #endif
 
