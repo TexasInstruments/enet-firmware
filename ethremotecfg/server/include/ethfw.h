@@ -217,8 +217,17 @@ typedef struct EthFw_Config_s
     /*! VLAN configuration */
     EthFwVlan_VlanCfg *vlanCfg;
 
-    /*! Number of VLANs supported for virtual ports */
-    uint32_t numVlans;
+    /*! Number of static VLANs configured. */
+    uint32_t numStaticVlans;
+
+    /*! Default port mask for all ports in switch mode */
+    uint32_t defaultPortMask;
+
+    /*! Default virtual port mask for all ports in switch mode */
+    uint32_t defaultVirtPortMask;
+
+    /*! Whether forwarding to all Switch ports for dynamic VLANs is enabled */
+    bool dVlanSwtFwdEn;
 
     /*! Multicast configuration. */
     EthFwMcast_Cfg mcastCfg;

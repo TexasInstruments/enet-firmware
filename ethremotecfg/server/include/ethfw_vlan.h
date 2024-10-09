@@ -107,7 +107,7 @@ typedef struct EthFwVlan_Cfg_s
     const EthFwVlan_VlanCfg *vlanCfg;
 
     /*! Number of static VLANs in \ref EthFwVlan_Cfg::vlanCfg */
-    uint32_t numVlans;
+    uint32_t numStaticVlans;
 
     /*! Default VLAN id used by Ethernet Firmware for switch ports
       * (non MAC-only) */
@@ -121,6 +121,15 @@ typedef struct EthFwVlan_Cfg_s
 
     /*! Port mask of ports in MAC-only mode */
     uint32_t macOnlyPortMask;
+
+    /*! Default port mask for all ports in switch mode */
+    uint32_t defaultPortMask;
+
+    /*! Default virtual port mask for all ports in switch mode */
+    uint32_t defaultVirtPortMask;
+
+    /*! Whether forwarding to all Switch ports for dynamic VLANs is enabled */
+    bool dVlanSwtFwdEn;
 } EthFwVlan_Cfg;
 
 /* ========================================================================== */

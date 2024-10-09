@@ -631,12 +631,15 @@ static int32_t EthFw_setupVlan(const EthFw_Config *config)
     EthFwVlan_Cfg vlanCfg;
     int32_t status = ENET_SOK;
 
-    vlanCfg.vlanCfg  = config->vlanCfg;
-    vlanCfg.numVlans = config->numVlans;
+    vlanCfg.vlanCfg                = config->vlanCfg;
+    vlanCfg.numStaticVlans         = config->numStaticVlans;
     vlanCfg.dfltVlanIdSwitchPorts  = gEthFwObj.dfltVlanIdSwitchPorts;
     vlanCfg.dfltVlanIdMacOnlyPorts = gEthFwObj.dfltVlanIdMacOnlyPorts;
-    vlanCfg.switchPortMask  = gEthFwObj.switchPortMask;
-    vlanCfg.macOnlyPortMask = gEthFwObj.macOnlyPortMask;
+    vlanCfg.switchPortMask         = gEthFwObj.switchPortMask;
+    vlanCfg.macOnlyPortMask        = gEthFwObj.macOnlyPortMask;
+    vlanCfg.defaultPortMask        = config->defaultPortMask;
+    vlanCfg.defaultVirtPortMask    = config->defaultVirtPortMask;
+    vlanCfg.dVlanSwtFwdEn          = config->dVlanSwtFwdEn;
 
     if (gEthFwObj.hEnet != NULL)
     {
@@ -874,7 +877,8 @@ void EthFw_initConfigParams(Enet_Type enetType,
 
     /* VLAN configuration */
     config->vlanCfg = NULL;
-    config->numVlans = 0U;
+    config->numStaticVlans = 0U;
+    config->dVlanSwtFwdEn  = BFALSE;
 
     /* Multicast configuration */
     config->mcastCfg.sharedMcastCfg.filterAddMacSharedCb = NULL;

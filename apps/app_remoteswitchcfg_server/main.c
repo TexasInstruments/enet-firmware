@@ -1255,8 +1255,11 @@ static int32_t EthApp_initEthFw(void)
     ethFwCfg.isStaticTxChanAllocated = BTRUE;
 
     /* Set static VLAN configuration parameters */
-    ethFwCfg.vlanCfg  = &gEthApp_vlanCfg[0];
-    ethFwCfg.numVlans = ARRAY_SIZE(gEthApp_vlanCfg);
+    ethFwCfg.vlanCfg             = &gEthApp_vlanCfg[0];
+    ethFwCfg.numStaticVlans      = ARRAY_SIZE(gEthApp_vlanCfg);
+    ethFwCfg.defaultPortMask     = ETHAPP_DFLT_PORT_MASK;
+    ethFwCfg.defaultVirtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK;
+    ethFwCfg.dVlanSwtFwdEn       = BTRUE;
 
     /* CPTS_RFT_CLK is sourced from MAIN_SYSCLK0 (500MHz) */
     cpswCfg->cptsCfg.cptsRftClkFreq = CPSW_CPTS_RFTCLK_FREQ_500MHZ;

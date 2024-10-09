@@ -51,6 +51,7 @@
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
+#include <ethremotecfg/server/include/ethfw_virtport.h>
 #include "ethfw_vlan_priv.h"
 
 #if defined(ETHFW_VEPA_SUPPORT)
@@ -92,6 +93,12 @@ typedef struct EthFwVlan_Vlan_s
 
     /* Member mask of virtual ports that have joined the VLAN */
     uint32_t virtActiveMask;
+
+    /* Whether this entry is free or not */
+    bool isFree;
+
+    /* Whether this entry is statically allocated */
+    bool isStatic;
 } EthFwVlan_Vlan;
 
 /* ETHFW VLAN object */
@@ -102,6 +109,15 @@ typedef struct EthFwVlan_Obj_s
 
     /* Number of valid VLAN configuration entries */
     uint32_t numVlans;
+
+    /* Default port mask for all ports in switch mode */
+    uint32_t defaultPortMask;
+
+    /* Default virtual port mask for all ports in switch mode */
+    uint32_t defaultVirtPortMask;
+
+    /* Whether forwarding to all Switch ports for dynamic VLANs is enabled */
+    bool dVlanSwtFwdEn;
 
     /*! Mutex handle used to protect VLAN configuration table */
     EthFwOsal_MutexHandle hMutex;
@@ -150,12 +166,26 @@ int32_t EthFwVlan_init(Enet_Handle hEnet,
     uint32_t i;
     int32_t status = ENET_SOK;
 
+    gEthFwVlanObj.defaultPortMask     = cfg->defaultPortMask;
+    gEthFwVlanObj.defaultVirtPortMask = cfg->defaultVirtPortMask;
+    gEthFwVlanObj.dVlanSwtFwdEn       = cfg->dVlanSwtFwdEn;
+
     /* Create mutex to protect VLAN configuration table */
     gEthFwVlanObj.hMutex = EthFwOsal_createMutex();
     if (gEthFwVlanObj.hMutex == NULL)
     {
         status = ENET_EFAIL;
         ETHFWTRACE_ERR(status, "Failed to create mutex");
+    }
+
+    /* Mark all entries in table as free and dynamic. */
+    if (status == ETHFW_SOK)
+    {
+        for (i = 0U; i < ETHFWVLAN_VLANS_MAX; i++)
+        {
+            gEthFwVlanObj.vlan[i].isFree = BTRUE;
+            gEthFwVlanObj.vlan[i].isStatic = BFALSE;
+        }
     }
 
     /* Check config params and save VLAN configuration */
@@ -165,21 +195,24 @@ int32_t EthFwVlan_init(Enet_Handle hEnet,
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Incorrect static VLAN params");
     }
 
-    /* Add VLAN and broadcast entries in ALE */
+    /* Add VLAN entry for static VLANs in ALE */
     if (status == ENET_SOK)
     {
         for (i = 0U; i < gEthFwVlanObj.numVlans; i++)
         {
             vlan = &gEthFwVlanObj.vlan[i];
 
-            /* Exclude host post from the VLAN, will be added when virtual port(s) join */
-            status = EthFwVlan_setupVlan(hEnet,
-                                         vlan->vlanId,
-                                         vlan->memberMask & ~CPSW_ALE_HOST_PORT_MASK,
-                                         vlan->regMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
-                                         vlan->unregMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
-                                         vlan->untagMask & ~CPSW_ALE_HOST_PORT_MASK);
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup VLANs in ALE");
+            if (vlan->isFree == BFALSE)
+            {
+                /* Exclude host post from the VLAN, will be added when virtual port(s) join */
+                status = EthFwVlan_setupVlan(hEnet,
+                                            vlan->vlanId,
+                                            vlan->memberMask & ~CPSW_ALE_HOST_PORT_MASK,
+                                            vlan->regMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
+                                            vlan->unregMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
+                                            vlan->untagMask & ~CPSW_ALE_HOST_PORT_MASK);
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup VLANs in ALE");
+            }
         }
 
         ETHFWTRACE_INFO_IF((status == ETHFW_SOK), "%u VLAN entries added in ALE table", i);
@@ -220,6 +253,9 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
 {
     EthFwVlan_Vlan *vlan = NULL;
     int32_t status = ENET_SOK;
+    Enet_MacPort macPort = EthFwVirtPort_getMacPort(virtPort);
+    bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
+    uint32_t i;
 #if defined(ETHFW_VEPA_SUPPORT)
     uint32_t coreId;
 #endif
@@ -240,49 +276,121 @@ int32_t EthFwVlan_join(Enet_Handle hEnet,
     if (status == ENET_SOK)
     {
         vlan = EthFwVlan_getVlan(vlanId);
-        if (vlan == NULL)
+
+        /* Found a matching entry. */
+        if (vlan != NULL)
         {
-            status = ENET_EINVALIDPARAMS;
-            ETHFWTRACE_ERR(status, "VLAN %u is not registered, virtual port %u cannot join", vlanId, virtPort);
-        }
-    }
+            /* Check if the virtual port is allowed in the VLAN */
+            if (!ENET_IS_BIT_SET(vlan->virtMemberMask, virtPort))
+            {
+                status = ENET_EPERM;
+                ETHFWTRACE_ERR(status, "Virtual port %u is not allowed in VLAN %u", virtPort, vlanId);
+            }
 
-    /* Check if the virtual port is allowed in the VLAN */
-    if (status == ENET_SOK)
-    {
-        if (!ENET_IS_BIT_SET(vlan->virtMemberMask, virtPort))
-        {
-            status = ENET_EPERM;
-            ETHFWTRACE_ERR(status, "Virtual port %u is not allowed in VLAN %u", virtPort, vlanId);
-        }
-    }
+            /* Update VLAN and broadcast entries in ALE table with host port added */
+            if (status == ENET_SOK)
+            {
+                status = EthFwVlan_setupVlan(hEnet,
+                                            vlan->vlanId,
+                                            vlan->memberMask,
+                                            vlan->regMcastFloodMask,
+                                            vlan->unregMcastFloodMask,
+                                            vlan->untagMask);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to update VLAN %u in ALE", vlanId);
+            }
 
-    /* Update VLAN and broadcast entries in ALE table with host port added */
-    if (status == ENET_SOK)
-    {
-        status = EthFwVlan_setupVlan(hEnet,
-                                     vlan->vlanId,
-                                     vlan->memberMask,
-                                     vlan->regMcastFloodMask,
-                                     vlan->unregMcastFloodMask,
-                                     vlan->untagMask);
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to update VLAN %u in ALE", vlanId);
-    }
-
-    /* Mark virtual port as active in the VLAN */
-    if (status == ENET_SOK)
-    {
-        vlan->virtActiveMask |= ENET_BIT(virtPort);
-    }
+            /* Mark virtual port as active in the VLAN */
+            if (status == ENET_SOK)
+            {
+                vlan->virtActiveMask |= ENET_BIT(virtPort);
+            }
 
 #if defined(ETHFW_VEPA_SUPPORT)
-    if (status == ENET_SOK)
-    {
-        coreId = EnetSoc_getCoreId();
-        /* Add broadcast entry with vlanId in VEPA table */
-        status = EthFwVepa_addAddr(&bcastAddr, vlanId, virtPort);
-    }
+            if (status == ENET_SOK)
+            {
+                coreId = EnetSoc_getCoreId();
+                /* Add broadcast entry with vlanId in VEPA table */
+                status = EthFwVepa_addAddr(&bcastAddr, vlanId, virtPort);
+            }
 #endif
+        }
+        else
+        {
+            /* Allocate a new entry in the table and set up the vlan. */
+            for (i = 0U; i < ETHFWVLAN_VLANS_MAX; i++)
+            {
+                vlan = &gEthFwVlanObj.vlan[i];
+
+                if (vlan->isFree == BTRUE)
+                {
+                    break;
+                }
+            }
+
+            if ((vlan != NULL) && (vlan->isFree == BTRUE))
+            {
+                vlan->vlanId              = vlanId;
+                vlan->isFree              = BFALSE;
+
+                if (isMacPort)
+                {
+                    vlan->memberMask  = CPSW_ALE_HOST_PORT_MASK;
+                    vlan->memberMask |= CPSW_ALE_MACPORT_TO_PORTMASK(macPort);
+                    vlan->regMcastFloodMask   = vlan->memberMask;
+                    vlan->unregMcastFloodMask = vlan->memberMask;
+                    vlan->virtMemberMask      = virtPort;
+                }
+                else
+                {
+                    if (gEthFwVlanObj.dVlanSwtFwdEn == BTRUE)
+                    {
+                        vlan->memberMask          = gEthFwVlanObj.defaultPortMask;
+                        vlan->virtMemberMask      = gEthFwVlanObj.defaultVirtPortMask;
+                        vlan->regMcastFloodMask   = gEthFwVlanObj.defaultPortMask;
+                        vlan->unregMcastFloodMask = gEthFwVlanObj.defaultPortMask;
+                    }
+                    else
+                    {
+                        vlan->memberMask          = CPSW_ALE_HOST_PORT_MASK;
+                        vlan->virtMemberMask      = 0U;
+                        vlan->regMcastFloodMask   = CPSW_ALE_HOST_PORT_MASK;
+                        vlan->unregMcastFloodMask = CPSW_ALE_HOST_PORT_MASK;
+                    }
+                }
+                vlan->untagMask           = 0U;
+                vlan->virtActiveMask      = 0U;
+                gEthFwVlanObj.numVlans++;
+
+                status = EthFwVlan_setupVlan(hEnet,
+                                            vlan->vlanId,
+                                            vlan->memberMask,
+                                            vlan->regMcastFloodMask,
+                                            vlan->unregMcastFloodMask,
+                                            vlan->untagMask);
+                ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to update VLAN %u in ALE", vlanId);
+
+                /* Mark virtual port as active in the VLAN */
+                if (status == ENET_SOK)
+                {
+                    vlan->virtActiveMask |= ENET_BIT(virtPort);
+                }
+
+#if defined(ETHFW_VEPA_SUPPORT)
+                if (status == ENET_SOK)
+                {
+                    coreId = EnetSoc_getCoreId();
+                    /* Add broadcast entry with vlanId in VEPA table */
+                    status = EthFwVepa_addAddr(&bcastAddr, vlanId, virtPort);
+                }
+#endif
+            }
+            else
+            {
+                status = ENET_EALLOC;
+                ETHFWTRACE_ERR(status, "Failed to allocate a vlan entry for vlan %u ", vlanId);
+            }
+        }
+    }
 
     EthFwOsal_unlockMutex(gEthFwVlanObj.hMutex);
 
@@ -356,6 +464,13 @@ int32_t EthFwVlan_leave(Enet_Handle hEnet,
                                          vlan->unregMcastFloodMask & ~CPSW_ALE_HOST_PORT_MASK,
                                          vlan->untagMask & ~CPSW_ALE_HOST_PORT_MASK);
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to setup VLANs in ALE");
+
+            /* Delete the dynamic vlan entries */
+            if (vlan->isStatic == BFALSE)
+            {
+                EthFwVlan_deleteVlan(hEnet,
+                                     vlan->vlanId);
+            }
         }
     }
 
@@ -434,16 +549,16 @@ static int32_t EthFwVlan_getCfg(const EthFwVlan_Cfg *cfg)
     aleMacOnlyPortMask = (cfg->macOnlyPortMask << 1U);
 
     /* Check that number of VLAN has not been exceeded (this is a software limitation) */
-    if (cfg->numVlans > ETHFWVLAN_VLANS_MAX)
+    if (cfg->numStaticVlans > ETHFWVLAN_VLANS_MAX)
     {
         status = ENET_EINVALIDPARAMS;
-        ETHFWTRACE_ERR(status, "Too many VLANs (%u), max is %u", cfg->numVlans, ETHFWVLAN_VLANS_MAX);
+        ETHFWTRACE_ERR(status, "Too many VLANs (%u), max is %u", cfg->numStaticVlans, ETHFWVLAN_VLANS_MAX);
     }
 
     /* Check all VLAN config params and add them to local VLAN info table */
     if (status == ENET_SOK)
     {
-        for (i = 0U; i < cfg->numVlans; i++)
+        for (i = 0U; i < cfg->numStaticVlans; i++)
         {
             vlanCfg = &cfg->vlanCfg[i];
 
@@ -493,6 +608,8 @@ static int32_t EthFwVlan_getCfg(const EthFwVlan_Cfg *cfg)
 
                 /* Cap masks to member mask */
                 vlan->vlanId              = vlanCfg->vlanId;
+                vlan->isFree              = BFALSE;
+                vlan->isStatic            = BTRUE;
                 vlan->memberMask          = vlanCfg->memberMask;
                 vlan->virtMemberMask      = vlanCfg->virtMemberMask;
                 vlan->regMcastFloodMask   = vlanCfg->regMcastFloodMask & vlanCfg->memberMask;
