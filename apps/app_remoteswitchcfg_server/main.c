@@ -2043,6 +2043,10 @@ static void EthApp_initPtp(void)
 
     cb_socket_set_lldcfg_update_cb(EthFwTsn_lldCfgUpdateCb);
 
+    /* Due to limitation with the number of MAC addresses provisioned in TI EVMs,
+     * ETHFW MAC address will be used by TSN stack for packets sent on any port.
+     * If there were sufficient addresses in the pool, it's recommended to pass
+     * NULL pointer so TSN stack allocates one MAC address for every port */
     EthFwTsn_initTimeSyncPtp(&gEthAppObj.hostMacAddr[0U], portMask);
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
