@@ -747,7 +747,7 @@ INPUT    = api_guide_main_page.md
 @INCLUDE = ./cfg/ethremotecfg.cfg
 @INCLUDE = ./cfg/ethfwboard.cfg
 @INCLUDE = ./cfg/ethfwcommon.cfg
-
+@INCLUDE = ./cfg/ethfwabstract.cfg
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
