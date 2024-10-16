@@ -512,7 +512,9 @@ void CpswRemoteApp_initTask(void* a0)
     CpswProxy_initParams initParams;
     int32_t status;
 
+#if defined(MCU_PLUS_SDK)
     EthApp_waitForDebugger();
+#endif
 
     EthFwOsal_init();
 
