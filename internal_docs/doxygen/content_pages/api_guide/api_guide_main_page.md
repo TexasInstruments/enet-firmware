@@ -26,15 +26,17 @@ Message types and endpoints supported by ETHFW are mentioned below:
 
 | Endpoint Type | Endpoint Service                                                         | Endpoint Owner     | Core                        | Description                                         |
 |---------------|--------------------------------------------------------------------------|--------------------|-----------------------------|-----------------------------------------------------|
-| Dynamic       | Publishes `"ti.ethfw.ethdevice"` and subscribes `"ti.autosar.ethdevice"` | ETHFW              | Main R5F 0 core 0 (mcu2_0)  | Handles the configurations for the remote clients   |
-| Dynamic       | Publishes `"ti.ethfw.notifyservice"`                                     | ETHFW              | Main R5F 0 core 1 (mcu2_0)  | Sends CPTS HW push events for multi-core Timesync   |
-| Dynamic       | Subscribes `"ti.ethfw.ethdevice"`                                        | Linux client       | A72 (mpu1_0)                | Requests the remote configurations to server        |
-| Dynamic       | Subscribes `"ti.ethfw.ethdevice"`                                        | QNX io-pkt client  | A72 (mpu1_0)                | Requests the remote configurations to server        |
-| Static (30U)  | Subscribes `"ti.ethfw.notifyservice"`                                    | QNX io-pkt client  | A72 (mpu1_0)                | Receives HW push events for QNX client(s)           |
-| Dynamic       | Subscribes `"ti.ethfw.ethdevice"`                                        | RTOS client        | Main R5F 0 core 1 (mcu2_1)  | Requests the remote configurations to server        |
-| Static (30U)  | Subscribes `"ti.ethfw.notifyservice"`                                    | RTOS client        | Main R5F 0 core 1 (mcu2_1)  | Receives HW push events for RTOS client(s)          |
-| Static (28U)  | Publishes `"ti.autosar.ethdevice"`                                       | AUTOSAR client     | Main R5F 0 core 1 (mcu2_1)  | Used to bind AUTOSAR with ETHFW                     |
-| Static (38U)  | Publishes `"ti.autosar.ethdevice"`                                       | AUTOSAR client     | MCU R5F 0 core 0 (mcu1_0)   | Used to bind AUTOSAR with ETHFW                     |
+| Static (34U)  | Publishes `"ti.ethfw.ethdevice"`                                      | ETHFW              | Main R5F 0 core 0 (mcu2_0)  | Handles the configurations for the remote clients   |
+| Static (24U)  | Publishes `"ti.ethfw.notifyservice"`                                 | ETHFW              | Main R5F 0 core 0 (mcu2_0)  | Sends CPTS HW push events for multi-core Timesync   |
+| Static (28U)  | subscribes `"ti.autosar.ethdevice"`                                   | ETHFW              | Main R5F 0 core 0 (mcu2_0)  | Used to bind AUTOSAR (mcu2_1) with ETHFW            |
+| Static (38U)  | subscribes `"ti.autosar.ethdevice"`                                   | ETHFW              | Main R5F 0 core 0 (mcu2_0)  | Used to bind AUTOSAR (mcu1_0) with ETHFW            |
+| Dynamic       | Subscribes `"ti.ethfw.ethdevice"`                                     | Linux client       | A72 (mpu1_0)                | Requests the remote configurations to server        |
+| Dynamic       | Subscribes `"ti.ethfw.ethdevice"`                                     | QNX io-pkt client  | A72 (mpu1_0)                | Requests the remote configurations to server        |
+| Static (30U)  | Subscribes `"ti.ethfw.notifyservice"`                                | QNX io-pkt client  | A72 (mpu1_0)                | Receives HW push events for QNX client(s)           |
+| Static (36U)  | Subscribes `"ti.ethfw.ethdevice"`                                     | RTOS client        | Main R5F 0 core 1 (mcu2_1)  | Requests the remote configurations to server        |
+| Static (30U)  | Subscribes `"ti.ethfw.notifyservice"`                                | RTOS client        | Main R5F 0 core 1 (mcu2_1)  | Receives HW push events for RTOS client(s)          |
+| Static (28U)  | Publishes `"ti.autosar.ethdevice"`                                    | AUTOSAR client     | Main R5F 0 core 1 (mcu2_1)  | Used to bind AUTOSAR with ETHFW                     |
+| Static (38U)  | Publishes `"ti.autosar.ethdevice"`                                    | AUTOSAR client     | MCU R5F 0 core 0 (mcu1_0)   | Used to bind AUTOSAR with ETHFW                     |
 
 This table lists all client types supported by Ethernet Firmware, but no assumptions
 should be made for this table alone regarding remote client concurrency.
