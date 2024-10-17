@@ -16,6 +16,7 @@ const files = {
         "ethfw_monitor.c",
         "ethfw_vlan.c",
         "ethfw_tsn.c",
+        "ethfw_portmirror.c",
 
         /* Utils */
         "ethfw_osal.c",

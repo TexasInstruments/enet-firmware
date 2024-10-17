@@ -25,6 +25,7 @@ FILES_common := \
     ethfw_monitor.c \
     ethfw_vlan.c \
     ethfw_tsn.c \
+    ethfw_portmirror.c \
     ethfw_osal.c \
     ethfw_ipc.c \
     board_am62px_evm.c \

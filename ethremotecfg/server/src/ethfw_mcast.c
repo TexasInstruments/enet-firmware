@@ -705,7 +705,6 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
     bool isMacPort = EthFwVirtPort_isMacPort(virtPort);
     uint8_t coreId = EnetSoc_getCoreId();
     int32_t status = ETHFW_EFAIL;
-    CpswAle_MacAddrInfo macAddrInfo;
 
     polInArgs.policerMatch.policerMatchEnMask = 0U;
 

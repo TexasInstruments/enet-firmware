@@ -74,6 +74,7 @@
 #define ETHFWTRACE_MOD_ID 0x109
 
 #include <stdint.h>
+#include <utils/ethfw_abstract/ethfw_osal.h>
 #include <ethremotecfg/server/include/ethfw_portmirror.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 
@@ -142,7 +143,7 @@ static int32_t EthFwPortMirroring_addDestPortMirror(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &inArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_PORT_MIRROR_CFG, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_PORT_MIRROR_CFG, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to enable Destination Port mirroring");
     return status;
 }
@@ -170,7 +171,7 @@ static int32_t EthFwPortMirroring_addSrcPortMirror(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &inArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_PORT_MIRROR_CFG, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_PORT_MIRROR_CFG, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to enable Source Port mirroring");
     return status;
 }
@@ -199,7 +200,7 @@ static int32_t EthFwPortMirroring_addTblEntryPortMirror(Enet_Handle hEnet,
 
     ENET_IOCTL_SET_IN_ARGS(&prms, &inArgs);
 
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_PORT_MIRROR_CFG, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_PORT_MIRROR_CFG, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to enable Table entry mirroring");
     return status;
 }
@@ -213,7 +214,7 @@ int32_t EthFwPortMirroring_disablePortMirror(Enet_Handle hEnet)
     coreId = EnetSoc_getCoreId();
 
     ENET_IOCTL_SET_NO_ARGS(&prms);
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DISABLE_PORT_MIRROR, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_DISABLE_PORT_MIRROR, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to disable mirroring");
     return status;
 }
