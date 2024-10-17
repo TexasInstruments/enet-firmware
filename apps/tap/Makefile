@@ -21,6 +21,8 @@ else ifeq ($(SOC), J784S4)
   CONFIGS := J784S4_ic.conf
 else ifeq ($(SOC), J742S2)
   CONFIGS := J742S2_ic.conf
+else ifeq ($(SOC), AM62PX)
+  CONFIGS := AM62P_ic.conf  
 endif
 
 SERVICES := launch_tap.service bridge_setup.service
