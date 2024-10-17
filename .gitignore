@@ -10,3 +10,11 @@ internal_docs/*/*/*/output.txt
 apps/tap/tapif
 generated/
 obj/
+*.out
+*.appimage
+*.appimage.*
+*.appimage_hs_fs
+*.appimage_xip
+*.map
+*.rprc
+*.rprc_xip
