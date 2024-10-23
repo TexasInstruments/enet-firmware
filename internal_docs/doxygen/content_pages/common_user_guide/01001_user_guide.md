@@ -72,7 +72,9 @@ This PTP implementation sets up CPSW ALE classifiers with PTP multicast MAC addr
 EtherType classifier as match criteria to have PTP traffic routed to dedicated UDMA RX flow.
 
 The remote configuration infrastructure provided by Ethernet Firmware is built using
-the *ethremotecfg* framework which uses IPC LLD. Ethernet Firmware supports three types of messages namely, 
+the *ethremotecfg* framework which uses ETHFW-IPC (EthFw abstraction layer to support
+IPC LLD on both Jacinto and Sitara based SoCs, please refer utils/ethfw_abstract for more details).
+Ethernet Firmware supports three types of messages namely, 
 requests, responses and notifications. Requests are primarily sent by the remote clients and
 waits for the response from the ETHFW server. The notifications from server to client donot have
 any ACKs where from client to server notifies will be returned with a server ACK.
@@ -158,7 +160,7 @@ The following lwIP netifs are enabled in the RTOS client application:
 The two CPSW virtual port netifs reuse the same Enet LLD based lwIP implementation.
 
 The RTOS core attaches to the Ethernet Firmware server using the *Eth Remote Config Client* 
-library which is built using IPC LLD APIs can be located in */ethfw/ethremotecfg/client/*
+library which is built using ETHFW-IPC APIs can be located in */ethfw/ethremotecfg/client/*
 folder.
 
 The multicore time synchronization mechanism implemented in RTOS client consists

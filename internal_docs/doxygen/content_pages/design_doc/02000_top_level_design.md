@@ -57,6 +57,9 @@ The directory structure of the Ethernet Firmware is shown below::
         ├── console_io                      # Application logging utils
         │   ├── include
         │   └── src
+        ├── ethfw_abstract                  # Abstraction layer for PDK and MCU
+        │   ├── jacinto                     # Jacinto based OSAL and IPC support
+        │   └── sitara                      # Sitara based OSAL and IPC support
         ├── ethfw_callbacks                 # Frequently used lwIP callbacks
         │   ├── include
         │   └── src
@@ -94,10 +97,15 @@ functionality provided by Enet LLD public APIs for control path configuration
 and Rx and Tx data transfers.  The Ethernet Firmware also configures and makes
 use of the TCP/IP stack enabled by Enet LLD by the means of NDK/NIMU.
 
+The *Ethernet Firmware* uses abstraction layers OSAL and IPC APIs to handle
+OS level operations and inter-processor communication support respectively.
+This abstraction layer support can be found in *utils/ethfw_abstract* folder
+and is added to support *EthFw* on both Jacino and Sitara based SoC devices.
+
 The *Ethernet Firmware* on the *master core* interacts with *remote cores*
 running virtual network device interfaces (Linux or FreeRTOS) via *ethremotecfg*
 framework which allows remote cores to communicate with the master
-core via IPC.
+core via ETHFW-IPC.
 
 The *remotes cores* also interact with the *Ethernet Firmware* to setup and
 teardown data paths for Ethernet packet transfer towards CPSW. It's worth noting
