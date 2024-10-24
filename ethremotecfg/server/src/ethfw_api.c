@@ -1056,6 +1056,14 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
         gEthFwObj.version.commitHash[ETHFW_VERSION_COMMITSHALEN] = '\0';
     }
 
+    /* Initialize MCM */
+    if (status == ENET_SOK)
+    {
+        status = EthFw_initMcm();
+        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to init CPSW MCM");
+        EnetAppUtils_assert(status == ENET_SOK);
+    }
+
     /* Initialize multicast support */
     if (status == ENET_SOK)
     {
@@ -1083,14 +1091,6 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     status = EthFwMon_init(&config->monitorCfg, gEthFwObj.enetType, gEthFwObj.instId, gEthFwObj.numPorts);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init Monitor");
 #endif
-
-    /* Initialize MCM */
-    if (status == ENET_SOK)
-    {
-        status = EthFw_initMcm();
-        ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to init CPSW MCM");
-        EnetAppUtils_assert(status == ENET_SOK);
-    }
 
     /* Add ALE entry for broadcast MAC address. Note this is needed as the broadcast
      * is disabled via unknownRegMcastFloodMask and other flags in ALE init config.
@@ -1176,6 +1176,8 @@ void EthFw_deinit(EthFw_Handle hEthFw)
 #endif
 
     EthFwMcast_deinit();
+
+    EthFwVlan_deinit(gEthFwObj.hEnet);
 
 #if defined(ETHFW_MONITOR_SUPPORT)
     /* Stop the Monitor Task */
