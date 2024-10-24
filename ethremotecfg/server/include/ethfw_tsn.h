@@ -200,9 +200,9 @@ typedef enum
  *
  * \param hostMacAddr   Host port MAC address used in packets sent by TSN stack.
  *                      If NULL pointer is passed, TSN stack will allocate a MAC address
- *                      from Enet LLD MAC address pool for every port in the \ref portMask.
+ *                      from Enet LLD MAC address pool for every port in the portMask.
  *                      If valid MAC address is passed, TSN stack will use the same MAC address
- *                      for packets sent on any port in \ref portMask.
+ *                      for packets sent on any port in portMask.
  * \param portMask      Mask of ports used for PTP. The mask is built by or-ing
  *                      ENET_MACPORT_MASK(macPort).
  *
