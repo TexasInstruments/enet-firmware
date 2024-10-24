@@ -190,6 +190,106 @@ void EthFwUT_testEthFwGetVersion(void)
     EthFw_deinit(gTestEthFw);
 }
 
+void EthFwUT_testSrcPortMirroring(void)
+{
+    EthFwPortMirroring_Cfg portMirCfg = 
+    {
+        .mirroringMode =  
+        {
+            .srcPortMirCfg =
+            {
+                .srcPortNumMask = 1 << CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_3),
+                .toPortNum  = CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_1)
+            },
+        },
+        .mirroringType = SRC_PORT_MIRRORING
+    };
+    gTestEthFwCfg->portMirCfg = &portMirCfg;
+
+    gTestEthFw = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    EthFw_deinit(gTestEthFw);
+}
+
+void EthFwUT_testDstPortMirroring(void)
+{
+    EthFwPortMirroring_Cfg portMirCfg = 
+    {
+        .mirroringMode =  
+        {
+            .dstPortMirCfg = 
+            {
+                .dstPortNum = 0U,
+                .toPortNum  = CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_1)
+            },
+        },
+        .mirroringType = DST_PORT_MIRRORING
+    };
+    gTestEthFwCfg->portMirCfg = &portMirCfg;
+
+    gTestEthFw = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    EthFw_deinit(gTestEthFw);
+}
+
+void EthFwUT_testTblEntryPortMirroring(void)
+{
+    EthFwPortMirroring_Cfg portMirCfg = 
+    {
+        .mirroringMode =  
+        {
+            .tblEntryPortMirCfg =
+            {
+                .matchParams =
+                {
+                    .entryType = CPSW_ALE_TABLE_ENTRY_TYPE_ADDR,
+                    .dstMacAddrInfo =
+                    {
+                        .addr =
+                        {
+                            /* Test MAC address */
+                            .addr = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff},
+                            .vlanId = 0U
+                        },
+                        .portNum = 0U
+                    }
+                },
+                .toPortNum  = CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_1)
+            },
+        },
+        .mirroringType = TBL_ENTRY_PORT_MIRRORING
+    };
+    gTestEthFwCfg->portMirCfg = &portMirCfg;
+
+    gTestEthFw = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    EthFw_deinit(gTestEthFw);
+}
+
+void EthFwUT_testDisablePortMirroring(void)
+{
+    EthFwPortMirroring_Cfg portMirCfg = 
+    {
+        .mirroringType = DISABLE_PORT_MIRRORING
+    };
+    gTestEthFwCfg->portMirCfg = &portMirCfg;
+
+    gTestEthFw = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    TEST_ASSERT_NOT_NULL(gTestEthFw);
+    EthFw_deinit(gTestEthFw);
+}
+
+void EthFwUT_testInvalidParamPortMirroring(void)
+{
+    /* EthFw_deinit will assert as EthFw handle returned is NULL
+     * Hence failing this test case by default */
+    TEST_FAIL();
+    // gTestEthFwCfg->portMirCfg = NULL;
+    // gTestEthFw = EthFw_init(gEnetType, gInstId, gTestEthFwCfg);
+    // TEST_ASSERT_NULL(gTestEthFw);
+    // EthFw_deinit(gTestEthFw);
+}
+
 void EthFwUT_dummyOpen(void *args)
 {
 
@@ -282,6 +382,20 @@ void EthFwUT_testEthRemoteCfg(void *arg1)
     /* ETHFW-ETHFW_UT_SERVER_VERSION_TEST_ID: Test ATTACH with valid parameters. */
     RUN_TEST(EthFwUT_testEthFwGetVersion,  ETHFW_UT_SERVER_VERSION_TEST_ID);
 
+    /* ETHFW-ETHFW_UT_SERVER_SRC_PORT_MIRROR_TEST_ID: Test src port mirroring. */
+    RUN_TEST(EthFwUT_testSrcPortMirroring,  ETHFW_UT_SERVER_SRC_PORT_MIRROR_TEST_ID);
+
+    /* ETHFW-ETHFW_UT_SERVER_DST_PORT_MIRROR_TEST_ID: Test dst port mirroring. */
+    RUN_TEST(EthFwUT_testDstPortMirroring,  ETHFW_UT_SERVER_DST_PORT_MIRROR_TEST_ID);
+
+    /* ETHFW-ETHFW_UT_SERVER_TBL_ENTRY_PORT_MIRROR_TEST_ID: Test table entry port mirroring. */
+    RUN_TEST(EthFwUT_testTblEntryPortMirroring,  ETHFW_UT_SERVER_TBL_ENTRY_PORT_MIRROR_TEST_ID);
+
+    /* ETHFW-ETHFW_UT_SERVER_DISABLE_PORT_MIRROR_TEST_ID: Test disable port mirroring. */
+    RUN_TEST(EthFwUT_testDisablePortMirroring,  ETHFW_UT_SERVER_DISABLE_PORT_MIRROR_TEST_ID);
+
+    /* ETHFW-ETHFW_UT_SERVER_INVALID_PARAM_PORT_MIRROR_TEST_ID: Test port mirroring with invalid input params. */
+    RUN_TEST(EthFwUT_testInvalidParamPortMirroring,  ETHFW_UT_SERVER_INVALID_PARAM_PORT_MIRROR_TEST_ID);
 
     UnityEnd();
 }

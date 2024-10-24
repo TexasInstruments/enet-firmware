@@ -133,6 +133,11 @@ extern "C" {
 #define ETHFW_UT_SERVER_MONITOR_TEST_ID                          (2739U)
 #define ETHFW_UT_SERVER_GPTP_TEST_ID                             (2740U)
 #define ETHFW_UT_SERVER_VERSION_TEST_ID                          (2741U)
+#define ETHFW_UT_SERVER_SRC_PORT_MIRROR_TEST_ID                  (2922U)
+#define ETHFW_UT_SERVER_DST_PORT_MIRROR_TEST_ID                  (2921U)
+#define ETHFW_UT_SERVER_TBL_ENTRY_PORT_MIRROR_TEST_ID            (2920U)
+#define ETHFW_UT_SERVER_DISABLE_PORT_MIRROR_TEST_ID              (2919U)
+#define ETHFW_UT_SERVER_INVALID_PARAM_PORT_MIRROR_TEST_ID        (2918U)
 #else
 /* Virtual Switch port Jira test case id */
 #define ETHFW_UT_SWITCH_ATTACH_TEST1_ID                          (2625U)
@@ -185,6 +190,11 @@ extern "C" {
 #define ETHFW_UT_SERVER_MONITOR_TEST_ID                          (2727U)
 #define ETHFW_UT_SERVER_GPTP_TEST_ID                             (2729U)
 #define ETHFW_UT_SERVER_VERSION_TEST_ID                          (2730U)
+#define ETHFW_UT_SERVER_SRC_PORT_MIRROR_TEST_ID                  (2913U)
+#define ETHFW_UT_SERVER_DST_PORT_MIRROR_TEST_ID                  (2914U)
+#define ETHFW_UT_SERVER_TBL_ENTRY_PORT_MIRROR_TEST_ID            (2915U)
+#define ETHFW_UT_SERVER_DISABLE_PORT_MIRROR_TEST_ID              (2916U)
+#define ETHFW_UT_SERVER_INVALID_PARAM_PORT_MIRROR_TEST_ID        (2917U)
 #endif
 
 /* ========================================================================== */
