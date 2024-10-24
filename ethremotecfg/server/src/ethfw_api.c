@@ -861,11 +861,12 @@ void EthFw_initConfigParams(Enet_Type enetType,
     CpswHostPort_Cfg *hostPortCfg = &cpswCfg->hostPortCfg;
     CpswCpts_Cfg *cptsCfg = &cpswCfg->cptsCfg;
     EnetRm_ResCfg *resCfg = &cpswCfg->resCfg;
+    EthFwPortMirroring_Cfg portMirCfg = {.mirroringType = DISABLE_PORT_MIRRORING};
 
     memset(config, 0, sizeof(*config));
 
     /* Port mirroring configuration */
-    config->portMirCfg = NULL;
+    config->portMirCfg = &portMirCfg;
 
     /* MAC port ownership */
     config->ports = NULL;

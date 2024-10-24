@@ -223,41 +223,51 @@ int32_t EthFwPortMirroring_init(Enet_Handle hEnet,
                                 EthFwPortMirroring_Cfg *portMirCfg)
 {
     int32_t status = ETHFW_SOK;
-    switch (portMirCfg->mirroringType)
+
+    if (portMirCfg == NULL)
     {
-        case SRC_PORT_MIRRORING:
-        {
-            status = EthFwPortMirroring_addSrcPortMirror(hEnet,
-                                                         &portMirCfg->mirroringMode.srcPortMirCfg);
-            break;
-        }
+        status = ETHFW_EINVALIDPARAMS;
+        ETHFWTRACE_ERR(status, "Error NULL port mirroring configuration passed");
+    }
 
-        case DST_PORT_MIRRORING:
+    if (status == ETHFW_SOK)
+    {
+        switch (portMirCfg->mirroringType)
         {
-            status = EthFwPortMirroring_addDestPortMirror(hEnet,
-                                                          &portMirCfg->mirroringMode.dstPortMirCfg);
-            break;
-        }
+            case SRC_PORT_MIRRORING:
+            {
+                status = EthFwPortMirroring_addSrcPortMirror(hEnet,
+                                                            &portMirCfg->mirroringMode.srcPortMirCfg);
+                break;
+            }
 
-        case TBL_ENTRY_PORT_MIRRORING:
-        {
-            status = EthFwPortMirroring_addTblEntryPortMirror(hEnet,
-                                                              &portMirCfg->mirroringMode.tblEntryPortMirCfg);
-            break;
-        }
+            case DST_PORT_MIRRORING:
+            {
+                status = EthFwPortMirroring_addDestPortMirror(hEnet,
+                                                            &portMirCfg->mirroringMode.dstPortMirCfg);
+                break;
+            }
 
-        case DISABLE_PORT_MIRRORING:
-        {
-            status = EthFwPortMirroring_disablePortMirror(hEnet);
-            break;
-        }
+            case TBL_ENTRY_PORT_MIRRORING:
+            {
+                status = EthFwPortMirroring_addTblEntryPortMirror(hEnet,
+                                                                &portMirCfg->mirroringMode.tblEntryPortMirCfg);
+                break;
+            }
 
-        default:
-        {
-            status = ETHFW_EINVALIDPARAMS;
-            ETHFWTRACE_ERR(status, "Error invalid parameter passed for port mirroring %u",
-                           portMirCfg->mirroringType);
-            break;
+            case DISABLE_PORT_MIRRORING:
+            {
+                status = EthFwPortMirroring_disablePortMirror(hEnet);
+                break;
+            }
+
+            default:
+            {
+                status = ETHFW_EINVALIDPARAMS;
+                ETHFWTRACE_ERR(status, "Error invalid parameter passed for port mirroring %u",
+                            portMirCfg->mirroringType);
+                break;
+            }
         }
     }
 
