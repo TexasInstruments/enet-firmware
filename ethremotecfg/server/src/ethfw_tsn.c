@@ -845,9 +845,15 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
     {
         if (status == ETHFW_SOK)
         {
+#if defined(MCU_PLUS_SDK)
+            status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
+                                             (Enet_Type) gEthFwTsnObj.enetType,
+                                             gEthFwTsnObj.instId, LLDTSYNC_TS_SOURCE_CPTS);
+#else
             status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
                                              (Enet_Type) gEthFwTsnObj.enetType,
                                              gEthFwTsnObj.instId);
+#endif
             if (ETHFW_SOK != status)
             {
                 status = ETHFW_EFAIL;

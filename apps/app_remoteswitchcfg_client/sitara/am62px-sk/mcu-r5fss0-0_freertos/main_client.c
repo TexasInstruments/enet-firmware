@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2023-2024 Texas Instruments Incorporated
+ *  Copyright (C) 2023-2025 Texas Instruments Incorporated
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -32,28 +32,24 @@
 
 #include <stdlib.h>
 #include <kernel/dpl/DebugP.h>
-#include <kernel/dpl/ClockP.h>
 #include "ti_drivers_config.h"
 #include "ti_board_config.h"
 #include "ti_drivers_open_close.h"
 #include "ti_board_open_close.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include <drivers/device_manager/sciserver/sciserver_init.h>
 
-#define TASK_PRI_MAIN_THREAD  (configMAX_PRIORITIES-1)
+#define MAIN_TASK_PRI  (2)
 
+#define MAIN_TASK_SIZE (16384U/sizeof(configSTACK_DEPTH_TYPE))
+StackType_t gMainTaskStack[MAIN_TASK_SIZE] __attribute__((aligned(32)));
 
-#define TASK_SIZE (16384U/sizeof(configSTACK_DEPTH_TYPE))
-
-StackType_t gMainTaskStack[TASK_SIZE] __attribute__((aligned(32)));
 StaticTask_t gMainTaskObj;
 TaskHandle_t gMainTask;
-DM_LPMData_t gDMLPMData __attribute__((section(".lpm_data"), aligned(4)));
 
-void EthApp_initTaskFxn(void *args);
+void CpswRemoteApp_initTask(void *args);
 
-void main_thread(void *args)
+void freertos_main(void *args)
 {
     int32_t status = SystemP_SUCCESS;
 
@@ -63,12 +59,7 @@ void main_thread(void *args)
     status = Board_driversOpen();
     DebugP_assert(status==SystemP_SUCCESS);
 
-    /* Init LPM specific data */
-    Sciclient_initDeviceManagerLPMData(&gDMLPMData);
-
-    sciServer_init();
-
-    EthApp_initTaskFxn(NULL);
+    CpswRemoteApp_initTask(NULL);
 
     /* Close board and flash drivers */
     Board_driversClose();
@@ -81,16 +72,16 @@ void main_thread(void *args)
 
 int main()
 {
-
     /* init SOC specific modules */
     System_init();
     Board_init();
 
-    gMainTask = xTaskCreateStatic( main_thread,   /* Pointer to the function that implements the task. */
-                                  "main_thread", /* Text name for the task.  This is to facilitate debugging only. */
-                                  TASK_SIZE,  /* Stack depth in units of StackType_t typically uint32_t on 32b CPUs */
+    /* This task is created at highest priority, it should create more tasks and then delete itself */
+    gMainTask = xTaskCreateStatic( freertos_main,   /* Pointer to the function that implements the task. */
+                                  "freertos_main", /* Text name for the task.  This is to facilitate debugging only. */
+                                  MAIN_TASK_SIZE,  /* Stack depth in units of StackType_t typically uint32_t on 32b CPUs */
                                   NULL,            /* We are not using the task parameter. */
-                                  TASK_PRI_MAIN_THREAD,   /* task priority, 0 is lowest priority, configMAX_PRIORITIES-1 is highest */
+                                  MAIN_TASK_PRI,   /* task priority, 0 is lowest priority, configMAX_PRIORITIES-1 is highest */
                                   gMainTaskStack,  /* pointer to stack base */
                                   &gMainTaskObj ); /* pointer to statically allocated task object memory */
     configASSERT(gMainTask != NULL);

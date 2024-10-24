@@ -32,9 +32,18 @@ FILES_common := \
     ethfw_callbacks_lwipif.c \
     ethfw_trace.c \
     enet_mcm.c \
+    bufpool.c \
+    lwip2enet_ic.c \
+    lwip2lwipif_ic.c \
+    ic_queue_data.c \
+    ic_queue.c \
+    pbufQ_ic.c \
+    custom_pbuf_ic.c \
 
 FILES_PATH_common = \
-    ${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/V2 \
+    ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/V2 \
+    ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/src \
+    ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/apps/ipc_cfg \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/server/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/client/src \
@@ -74,9 +83,10 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/drivers \
     -I${MCU_PLUS_SDK_PATH}/source/drivers/udma \
     -I${MCU_PLUS_SDK_PATH}/source/drivers/hw_include \
+    -I${MCU_PLUS_SDK_PATH}/source/board/ethphy/port \
+    -I${MCU_PLUS_SDK_PATH}/source/board/ethphy/enet/rtos_drivers/include \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet \
-    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/include \
-    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/V3 \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/include \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include/core \
@@ -108,6 +118,8 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipif/inc \
     -I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib \
     -I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62px \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/inc \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include \
 
 DEFINES_common := \
     -DSOC_AM62PX \
@@ -127,11 +139,13 @@ DEFINES_common := \
     -DCPU_mcu2_0 \
     -DMCU_PLUS_SDK \
     -DSOC_AM62PX \
+    -DSW_VERSION=$(SW_VERSION)
 
 DEFINES_debug := \
     -DENET_CFG_DEV_ERROR=1 \
     -DLWIPIF_INSTRUMENTATION_ENABLED=1 \
     -DENETDMA_INSTRUMENTATION_ENABLED=1 \
+    -DSW_VERSION=$(SW_VERSION)
 
 CFLAGS_common := \
     -mcpu=cortex-r5 \

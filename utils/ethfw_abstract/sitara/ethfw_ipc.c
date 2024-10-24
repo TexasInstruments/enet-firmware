@@ -75,6 +75,7 @@
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include <utils/ethfw_abstract/ethfw_ipc.h>
 
+#include <kernel/dpl/ClockP.h>
 #include <drivers/ipc_rpmsg.h>
 #include <drivers/ipc_rpmsg/include/ipc_rpmsg_linux_resource_table.h>
 

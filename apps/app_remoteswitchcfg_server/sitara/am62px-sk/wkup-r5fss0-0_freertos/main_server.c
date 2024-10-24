@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2023-2024 Texas Instruments Incorporated
+ *  Copyright (C) 2023-2025 Texas Instruments Incorporated
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -32,24 +32,34 @@
 
 #include <stdlib.h>
 #include <kernel/dpl/DebugP.h>
+#include <kernel/dpl/ClockP.h>
 #include "ti_drivers_config.h"
 #include "ti_board_config.h"
 #include "ti_drivers_open_close.h"
 #include "ti_board_open_close.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include <drivers/device_manager/sciserver/sciserver_init.h>
 
-#define MAIN_TASK_PRI  (2)
+#define TASK_PRI_MAIN_THREAD  (configMAX_PRIORITIES-1)
+#define TASK_PRI_BOOT_THREAD  (configMAX_PRIORITIES-1)
 
-#define MAIN_TASK_SIZE (16384U/sizeof(configSTACK_DEPTH_TYPE))
-StackType_t gMainTaskStack[MAIN_TASK_SIZE] __attribute__((aligned(32)));
 
+#define TASK_SIZE (16384U/sizeof(configSTACK_DEPTH_TYPE))
+
+StackType_t gMainTaskStack[TASK_SIZE] __attribute__((aligned(32)));
 StaticTask_t gMainTaskObj;
 TaskHandle_t gMainTask;
+DM_LPMData_t gDMLPMData __attribute__((section(".lpm_data"), aligned(4)));
 
-void CpswRemoteApp_initTask(void *args);
+StackType_t gBootTaskStack[TASK_SIZE] __attribute__((aligned(32)));
+StaticTask_t gBootTaskObj;
+TaskHandle_t gBootTask;
 
-void freertos_main(void *args)
+void EthApp_initTaskFxn(void *args);
+void sbl_stage2_main(void *args);
+
+void main_thread(void *args)
 {
     int32_t status = SystemP_SUCCESS;
 
@@ -59,12 +69,15 @@ void freertos_main(void *args)
     status = Board_driversOpen();
     DebugP_assert(status==SystemP_SUCCESS);
 
-    CpswRemoteApp_initTask(NULL);
+    /* Init LPM specific data */
+    Sciclient_initDeviceManagerLPMData(&gDMLPMData);
+
+    sciServer_init();
+
+    EthApp_initTaskFxn(NULL);
 
     /* Close board and flash drivers */
     Board_driversClose();
-    /* Close drivers */
-    Drivers_close();
 
     vTaskDelete(NULL);
 }
@@ -72,19 +85,34 @@ void freertos_main(void *args)
 
 int main()
 {
+    Bootloader_profileReset();
+
+
     /* init SOC specific modules */
     System_init();
+    Bootloader_profileAddProfilePoint("System_init");
     Board_init();
+    Bootloader_profileAddProfilePoint("Board_init");
 
-    /* This task is created at highest priority, it should create more tasks and then delete itself */
-    gMainTask = xTaskCreateStatic( freertos_main,   /* Pointer to the function that implements the task. */
-                                  "freertos_main", /* Text name for the task.  This is to facilitate debugging only. */
-                                  MAIN_TASK_SIZE,  /* Stack depth in units of StackType_t typically uint32_t on 32b CPUs */
+    gMainTask = xTaskCreateStatic( main_thread,   /* Pointer to the function that implements the task. */
+                                  "main_thread", /* Text name for the task.  This is to facilitate debugging only. */
+                                  TASK_SIZE,  /* Stack depth in units of StackType_t typically uint32_t on 32b CPUs */
                                   NULL,            /* We are not using the task parameter. */
-                                  MAIN_TASK_PRI,   /* task priority, 0 is lowest priority, configMAX_PRIORITIES-1 is highest */
+                                  TASK_PRI_MAIN_THREAD,   /* task priority, 0 is lowest priority, configMAX_PRIORITIES-1 is highest */
                                   gMainTaskStack,  /* pointer to stack base */
                                   &gMainTaskObj ); /* pointer to statically allocated task object memory */
     configASSERT(gMainTask != NULL);
+
+    gBootTask = xTaskCreateStatic( sbl_stage2_main,   /* Pointer to the function that implements the task. */
+                                  "boot_thread", /* Text name for the task.  This is to facilitate debugging only. */
+                                  TASK_SIZE,  /* Stack depth in units of StackType_t typically uint32_t on 32b CPUs */
+                                  NULL,            /* We are not using the task parameter. */
+                                  TASK_PRI_BOOT_THREAD,   /* task priority, 0 is lowest priority, configMAX_PRIORITIES-1 is highest */
+                                  gBootTaskStack,  /* pointer to stack base */
+                                  &gBootTaskObj ); /* pointer to statically allocated task object memory */
+    configASSERT(gBootTask != NULL);
+
+    Bootloader_profileAddProfilePoint("FreeRtosTask Create");
 
     /* Start the scheduler to start the tasks executing. */
     vTaskStartScheduler();

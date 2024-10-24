@@ -81,6 +81,7 @@
 #include "stdlib.h"
 #include <utils/ethfw_abstract/ethfw_osal.h>
 
+#include <enet_appmemutils.h>
 #include <utils/ethfw_common/include/ethfw_types.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 
@@ -195,6 +196,7 @@ static EthFwOsal_Mailbox gEthFwOsalMailboxfreertosPool[ETHFW_OSAL_FREERTOS_MAX_M
 void EthFwOsal_init(void)
 {
     static bool osalInitDone = BFALSE;
+    int32_t status = SystemP_SUCCESS;
 
     if (!osalInitDone)
     {
@@ -219,6 +221,9 @@ void EthFwOsal_init(void)
         memset(&gEthFwOsalMailboxfreertosPool[0], 0, sizeof(gEthFwOsalMailboxfreertosPool));
 
         osalInitDone = BTRUE;
+
+        status = EnetMem_init();
+        EnetAppUtils_assert(ENET_SOK == status);
     }
 }
 

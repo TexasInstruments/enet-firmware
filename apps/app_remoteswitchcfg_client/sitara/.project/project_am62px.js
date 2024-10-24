@@ -59,10 +59,10 @@ const includes_freertos_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/am62px/r5f",
         "${MCU_PLUS_SDK_PATH}/source/drivers",
         "${MCU_PLUS_SDK_PATH}/source/drivers/udma",
+        "${MCU_PLUS_SDK_PATH}/source/board/ethphy/port",
+        "${MCU_PLUS_SDK_PATH}/source/board/ethphy/enet/rtos_drivers/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/include",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/V3",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include/phy",
@@ -263,6 +263,9 @@ function getComponentProperty() {
     property.type = "executable";
     property.name = "ethfw_client";
     property.isInternal = false;
+    property.isLinuxInSystem = true;
+    property.isLinuxFwGen = true;
+    property.ipcVringRTOS = true;
     property.buildOptionCombos = buildOptionCombos;
 
     return property;
@@ -305,7 +308,13 @@ function getComponentBuildProperty(buildOption) {
     return build_property;
 }
 
+function getSystemProjects(device)
+{
+    return null;
+}
+
 module.exports = {
     getComponentProperty,
     getComponentBuildProperty,
+    getSystemProjects,
 };

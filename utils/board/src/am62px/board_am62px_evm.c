@@ -48,7 +48,8 @@
 #include <stdarg.h>
 
 #include <enet_apputils.h>
-#include <phy/dp83867.h>
+#include <enet_appsoc.h>
+#include <dp83867.h>
 #include <mod/cpsw_macport.h>
 #include <utils/board/include/ethfw_board_utils.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>

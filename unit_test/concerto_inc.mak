@@ -59,6 +59,7 @@ IDIRS += $(PDK_PATH)/packages/ti/csl
 IDIRS += $(PDK_PATH)/packages/ti/drv/enet
 IDIRS += $(PDK_PATH)/packages/ti/drv/enet/examples
 IDIRS += $(PDK_PATH)/packages/ti/drv/enet/lwipif/inc
+IDIRS += $(PDK_PATH)/packages/ti/drv/enet/lwipific/inc
 IDIRS += $(REMOTE_DEVICE_PATH)
 IDIRS += $(ETHFW_PATH)
 IDIRS += ${ETHFW_PATH}/utils/ethfw_abstract/jacinto

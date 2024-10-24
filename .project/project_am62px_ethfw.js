@@ -32,12 +32,25 @@ const files = {
 
         /* MCM */
         "enet_mcm.c",
+        
+        /* LwIP IC */
+        "bufpool.c",
+        "lwip2enet_ic.c",
+        "lwip2lwipif_ic.c",
+        
+        /* Intercore */
+        "ic_queue_data.c",
+        "ic_queue.c",
+        "pbufQ_ic.c",
+        "custom_pbuf_ic.c",
     ],
 };
 
 const filedirs = {
     common: [
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/V2",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/V2",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/src",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/apps/ipc_cfg",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/server/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/client/src",
@@ -80,9 +93,10 @@ const includes = {
         "${MCU_PLUS_SDK_PATH}/source/drivers",
         "${MCU_PLUS_SDK_PATH}/source/drivers/udma",
         "${MCU_PLUS_SDK_PATH}/source/drivers/hw_include",
+        "${MCU_PLUS_SDK_PATH}/source/board/ethphy/port",
+        "${MCU_PLUS_SDK_PATH}/source/board/ethphy/enet/rtos_drivers/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/include",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/V3",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include/core",
@@ -117,6 +131,8 @@ const includes = {
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipif/inc",
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib",
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62px",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/inc",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include",
     ],
 };
 
@@ -159,7 +175,6 @@ const defines_r5f = {
         "FREERTOS",
         "ETHFW_PROXY_ARP_SUPPORT",
         "ETHFW_INTERCORE_ETH_SUPPORT",
-        "ETHAPP_ENABLE_INTERCORE_ETH",
         "ETHFW_IPERF_SERVER_SUPPORT",
         "MCU_PLUS_SDK",
         "SOC_AM62PX"

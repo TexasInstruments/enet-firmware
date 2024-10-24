@@ -73,6 +73,7 @@ extern "C" {
 
 #define RPMSG_VRING_ADDR_ANY (~0U)
 
+#if !(defined MCU_PLUS_SDK)
 const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(".resource_table"), aligned(4096))) =
 {
     { 1,            /* we're the first version that implements this */
@@ -143,10 +144,15 @@ const Ipc_ResourceTable ti_ipc_remoteproc_ResourceTable __attribute__ ((section(
 #endif
     },
 };
+#endif
 
 void *appGetIpcResourceTable(void)
 {
+#if !(defined MCU_PLUS_SDK)
     return (void *)&ti_ipc_remoteproc_ResourceTable;
+#else
+    return NULL;
+#endif
 }
 
 #ifdef __cplusplus

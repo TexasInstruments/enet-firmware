@@ -70,8 +70,8 @@
 /* lwIP core includes */
 #include "lwip/opt.h"
 /* SDK includes */
-#include <networking/enet/utils/include/enet_apputils.h>
-#include <networking/enet/utils/include/enet_board.h>
+#include <networking/enet/core/utils/include/enet_apputils.h>
+#include <networking/enet/core/utils/include/enet_board.h>
 #include <enet.h>
 #include <kernel/dpl/TaskP.h>
 #include <kernel/dpl/ClockP.h>
@@ -81,6 +81,8 @@
 #include "ti_drivers_open_close.h"
 #include "ti_enet_config.h"
 #include "ti_enet_open_close.h"
+#include <tsn_combase/combase.h>
+#include <tsn_combase/combase_link.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -102,6 +104,10 @@ static void EnetApp_portLinkStatusChangeCb(Enet_MacPort macPort,
                                            bool isLinkUp,
                                            void *appArg);
 
+void EthApp_portLinkStatusChangeCb(Enet_MacPort macPort,
+                                          bool isLinkUp,
+                                          void *appArg);
+
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
@@ -109,83 +115,6 @@ static void EnetApp_portLinkStatusChangeCb(Enet_MacPort macPort,
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
-
-void EnetApp_initLinkArgs(Enet_Type enetType,
-                          uint32_t instId,
-                          EnetPer_PortLinkCfg *linkArgs,
-                          Enet_MacPort macPort)
-{
-    EnetPhy_Cfg *phyCfg = &linkArgs->phyCfg;
-    EnetMacPort_LinkCfg *linkCfg = &linkArgs->linkCfg;
-    EnetMacPort_Interface *mii = &linkArgs->mii;
-    EnetBoard_EthPort ethPort;
-    const EnetBoard_PhyCfg *boardPhyCfg;
-    int32_t status;
-
-    /* Setup board for requested Ethernet port */
-    ethPort.enetType = enetType;
-    ethPort.instId   = instId;
-    ethPort.macPort  = macPort;
-    ethPort.boardId  = EnetBoard_getId();
-
-    /* Get the Mii config for Ethernet port */
-    EnetBoard_getMiiConfig(&ethPort.mii);
-
-    status = EnetBoard_setupPorts(&ethPort, 1U);
-    EnetAppUtils_assert(status == ENET_SOK);
-
-    if (Enet_isCpswFamily(ethPort.enetType))
-    {
-        CpswMacPort_Cfg *macCfg = (CpswMacPort_Cfg *)linkArgs->macCfg;
-        if (EnetMacPort_isSgmii(mii) || EnetMacPort_isQsgmii(mii))
-        {
-            macCfg->sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_WITH_PHY;
-        }
-        else
-        {
-            macCfg->sgmiiMode = ENET_MAC_SGMIIMODE_INVALID;
-        }
-    }
-
-    boardPhyCfg = EnetBoard_getPhyCfg(&ethPort);
-    if (boardPhyCfg != NULL)
-    {
-        EnetPhy_initCfg(phyCfg);
-        phyCfg->phyAddr     = boardPhyCfg->phyAddr;
-        phyCfg->isStrapped  = boardPhyCfg->isStrapped;
-        phyCfg->loopbackEn  = false;
-        phyCfg->skipExtendedCfg = boardPhyCfg->skipExtendedCfg;
-        phyCfg->extendedCfgSize = boardPhyCfg->extendedCfgSize;
-        memcpy(phyCfg->extendedCfg, boardPhyCfg->extendedCfg, phyCfg->extendedCfgSize);
-    }
-    else
-    {
-        DebugP_log("No PHY configuration found for MAC port %u\r\n",
-                           ENET_MACPORT_ID(ethPort.macPort));
-        EnetAppUtils_assert(false);
-    }
-
-    mii->layerType     = ethPort.mii.layerType;
-    mii->sublayerType  = ethPort.mii.sublayerType;
-    mii->variantType   = ENET_MAC_VARIANT_FORCED;
-    linkCfg->speed     = ENET_SPEED_AUTO;
-    linkCfg->duplexity = ENET_DUPLEX_AUTO;
-
-    if (Enet_isCpswFamily(ENET_CPSW_3G))
-    {
-        CpswMacPort_Cfg *macCfg = (CpswMacPort_Cfg *)linkArgs->macCfg;
-
-        if (EnetMacPort_isSgmii(mii) || EnetMacPort_isQsgmii(mii))
-        {
-            macCfg->sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_WITH_PHY;
-        }
-        else
-        {
-            macCfg->sgmiiMode = ENET_MAC_SGMIIMODE_INVALID;
-        }
-    }
-}
-
 
 void EnetApp_addMCastEntry(Enet_Type enetType,
                           uint32_t instId,
@@ -241,8 +170,15 @@ void EnetApp_updateCpswInitCfg(Enet_Type enetType, uint32_t instId, Cpsw_Cfg *cp
     cpswCfg->mdioLinkStateChangeCb    = &EnetApp_mdioLinkStatusChange;
     cpswCfg->mdioLinkStateChangeCbArg = NULL;
 #endif
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    /* Link-up timestamp */
+    cpswCfg->portLinkStatusChangeCb    = &EthApp_portLinkStatusChangeCb;
+    cpswCfg->portLinkStatusChangeCbArg = NULL;
+#else
     cpswCfg->portLinkStatusChangeCb = &EnetApp_portLinkStatusChangeCb;
     cpswCfg->portLinkStatusChangeCbArg = NULL;
+#endif
 }
 
 static void EnetApp_mdioLinkStatusChange(Cpsw_MdioLinkStateChangeInfo *info,
@@ -262,4 +198,5 @@ static void EnetApp_portLinkStatusChangeCb(Enet_MacPort macPort,
 {
     EnetAppUtils_print("MAC Port %u: link %s\r\n",
                        ENET_MACPORT_ID(macPort), isLinkUp ? "up" : "down");
+    notify_linkchange();
 }

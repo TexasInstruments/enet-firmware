@@ -4,6 +4,7 @@ let device = "am62px";
 
 const files = {
     common: [
+        "sbl_ospi_linux_stage2.c",
         "main_server.c",
         "main.c",
         "app_cpswconfighandler.c",
@@ -19,6 +20,7 @@ const filedirs = {
         "../../..", /* mcu_2_0 base */
         "../../../..", /* apps base */
         "../../../../..", /* ethfw base */
+        "../../../../../../../../../examples/drivers/boot/common/soc/am62px/", /* 2nd stage bootloader */
     ],
 };
 
@@ -50,6 +52,8 @@ const libdirs_freertos_wkup_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib",
         "${MCU_PLUS_SDK_PATH}/source/networking/tsn/lib",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/lib",
+        "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_lib",
+        "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/license_lib",
     ],
 };
 
@@ -60,10 +64,11 @@ const includes_freertos_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/am62px/r5f",
         "${MCU_PLUS_SDK_PATH}/source/drivers",
         "${MCU_PLUS_SDK_PATH}/source/drivers/udma",
+        "${MCU_PLUS_SDK_PATH}/source/drivers/hw_include",
+        "${MCU_PLUS_SDK_PATH}/source/board/ethphy/port",
+        "${MCU_PLUS_SDK_PATH}/source/board/ethphy/enet/rtos_drivers/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/include",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/utils/V3",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include/phy",
@@ -87,6 +92,8 @@ const includes_freertos_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62px",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/inc",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include",
     ],
 };
 
@@ -130,6 +137,7 @@ const libs_freertos_wkup_r5f = {
         "lwip-freertos.am62px.wkup-r5f.ti-arm-clang.${ConfigName}.lib",
         "lwip-contrib-freertos.am62px.wkup-r5f.ti-arm-clang.${ConfigName}.lib",
         "ethfw.am62px.wkup-r5f.ti-arm-clang.${ConfigName}.lib",
+        "yangemb-freertos.am62px.wkup-r5f.ti-arm-clang.lib",
     ],
 };
 
@@ -151,22 +159,20 @@ const defines_r5f = {
 
 const defines_wkup_r5f = {
     common: [
+        "ENABLE_SCICLIENT_DIRECT",
+        "R5F_CORE",
         "ENET_ENABLE_PER_CPSW=1",
         'PRINT_FORMAT_NO_WARNING',
         'SITARA',
         'GPTP_ENABLED=1',
         "MCU_PLUS_SDK",
-        "ENABLE_SCICLIENT_DIRECT",
         "ETHFW_PROXY_ARP_SUPPORT",
         "ETHFW_INTERCORE_ETH_SUPPORT",
-        "LWIP_CHECKSUM_CTRL_PER_NETIF",
-        "ETHFW_CPSW_MULTIHOST_CHECKSUM_ERRATA",
+        "ETHAPP_ENABLE_INTERCORE_ETH",
         "ENABLE_ETHFW_PROXYARP",
         "CPU_mcu2_0",
         "ETHAPP_ENABLE_IPERF_SERVER",
         "ETHFW_GPTP_SUPPORT",
-        "MCU_PLUS_SDK",
-        "SOC_AM62PX"
     ],
 };
 
@@ -260,8 +266,10 @@ const templates_freertos_wkup_r5f =
             entryFunction: "EthApp_initTaskFxn",
             taskPri : "2",
             stackSize : "16384",
-        },
-    }
+            dmWithBootloader: "true",
+            skipDriversClose: "true",
+        }
+    },
 ];
 
 const buildOptionCombos = [
@@ -275,6 +283,9 @@ function getComponentProperty() {
     property.type = "executable";
     property.name = "ethfw_server";
     property.isInternal = false;
+    property.isLinuxInSystem = true;
+    property.isLinuxFwGen = true;
+    property.ipcVringRTOS = true;
     property.buildOptionCombos = buildOptionCombos;
 
     return property;
@@ -342,7 +353,13 @@ function getComponentBuildProperty(buildOption) {
     return build_property;
 }
 
+function getSystemProjects(device)
+{
+    return null;
+}
+
 module.exports = {
     getComponentProperty,
     getComponentBuildProperty,
+    getSystemProjects,
 };

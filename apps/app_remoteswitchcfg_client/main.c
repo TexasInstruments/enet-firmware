@@ -527,6 +527,7 @@ void CpswRemoteApp_initTask(void* a0)
                            numProc,
                            &gRemoteProc[0],
                            &CpswRemoteApp_ipcPrint);
+#if !defined(MCU_PLUS_SDK)
 #if !defined(A72_QNX_OS)
     if (status == ETHFW_SOK)
     {
@@ -534,6 +535,7 @@ void CpswRemoteApp_initTask(void* a0)
     }
 #else
     ETHFWTRACE_INFO("Skipping Ipc_loadResourceTable for QNX (core : %s)\r\n", Ipc_mpGetSelfName());
+#endif
 #endif
 
     if (status == ETHFW_SOK)

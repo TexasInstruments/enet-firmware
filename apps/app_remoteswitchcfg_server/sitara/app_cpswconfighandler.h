@@ -68,8 +68,8 @@
 #include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
-#include <networking/enet/utils/include/enet_apputils.h>
-#include <networking/enet/utils/include/enet_board.h>
+#include <networking/enet/core/utils/include/enet_apputils.h>
+#include <networking/enet/core/utils/include/enet_board.h>
 
 void EnetApp_addMCastEntry(Enet_Type enetType,
                           uint32_t instId,

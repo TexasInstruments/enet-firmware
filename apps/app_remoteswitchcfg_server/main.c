@@ -119,8 +119,8 @@
 #endif
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
-#include <ti/drv/enet/lwipific/inc/lwip2enet_ic.h>
-#include <ti/drv/enet/lwipific/inc/lwip2lwipif_ic.h>
+#include <lwip2enet_ic.h>
+#include <lwip2lwipif_ic.h>
 #endif
 
 #include <enet.h>
@@ -603,6 +603,7 @@ static Enet_MacPort gEthAppPorts[] =
 };
 
 #if defined(ETHFW_GPTP_SUPPORT)
+#if !(defined(SOC_AM62PX) && defined(ETHFW_BOOT_TIME_PROFILING))
 /* Ethernet ports where gPTP support is enabled, it must be composed of
  * ports in non MAC-only mode */
 static Enet_MacPort gEthAppSwitchPorts[]=
@@ -644,6 +645,7 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 #endif
 };
 #endif
+#endif
 
 /* Custom policers which clients need to provide to add their own policers.
  * Make sure that size of this array is <= ETHFW_UTILS_NUM_CUSTOM_POLICERS */
@@ -662,11 +664,16 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .txCh          = {
                             [0] = ENET_RM_TX_CH_4
                          },
+#elif defined MCU_PLUS_SDK
+         .numTxCh      = 1U,
+         .txCh         = {
+                            [0] = ENET_RM_TX_CH_4,
+                         },
 #else
          .numTxCh      = 2U,
          .txCh         = {
-                            [0] = ENET_RM_TX_CH_4,
-                            [1] = ENET_RM_TX_CH_7
+                             [0] = ENET_RM_TX_CH_4,
+                             [1] = ENET_RM_TX_CH_7
                          },
 #endif
         /* Number of rx flow for this virtual port */
@@ -1117,6 +1124,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
                            numProc,
                            &gEthAppRemoteProc[0],
                            &EthApp_ipcPrint);
+#if !defined(MCU_PLUS_SDK)
 #if !defined(A72_QNX_OS)
     if (status == ETHFW_SOK)
     {
@@ -1124,6 +1132,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
     }
 #else
     ETHFWTRACE_INFO("Skipping Ipc_loadResourceTable for QNX (core : %s)\r\n", Ipc_mpGetSelfName());
+#endif
 #endif
 
     /* Task to flush IPC traceBuf */
@@ -1211,7 +1220,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
 }
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
-static void EthApp_portLinkStatusChangeCb(Enet_MacPort macPort,
+void EthApp_portLinkStatusChangeCb(Enet_MacPort macPort,
                                           bool isLinkUp,
                                           void *appArg)
 {
@@ -1512,6 +1521,7 @@ static void EthApp_initLwip(void *arg)
 static void EthApp_initNetif(void)
 {
     ip4_addr_t ipaddr, netmask, gw;
+    struct netif *pNetif = &netif;
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
     uint32_t chksumFlags = NETIF_CHECKSUM_ENABLE_ALL;
 /* Disable checksum in software if CPSW can do it (i.e. not impacted by errata) */
@@ -1524,6 +1534,11 @@ static void EthApp_initNetif(void)
 #endif
 #if ETHAPP_LWIP_USE_DHCP
     err_t err;
+#endif
+#if defined(MCU_PLUS_SDK)
+    hLwipIfApp = LwipifEnetApp_getHandle();
+    pNetif = LwipifEnetApp_getNetifFromId(hLwipIfApp, 0U);
+    EnetAppUtils_assert(pNetif != NULL);
 #endif
 
     ip4_addr_set_zero(&gw);
@@ -1541,9 +1556,16 @@ static void EthApp_initNetif(void)
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
     /* Create Enet LLD ethernet interface */
-    netif_add(&netif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
+    netif_add(pNetif, NULL, NULL, NULL, NULL, LWIPIF_LWIP_init, tcpip_input);
+#if defined(MCU_PLUS_SDK)
+    LWIPIF_LWIP_start(gEthAppObj.enetType, gEthAppObj.instId, pNetif, ETHAPP_ETHNETIF_0);
+    netif_set_link_callback(pNetif, EthApp_netifLinkChangeCb);
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
+#endif
+#endif
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
-    NETIF_SET_CHECKSUM_CTRL(&netif, chksumFlags);
+    NETIF_SET_CHECKSUM_CTRL(pNetif, chksumFlags);
 #endif
 
 #if defined (ETHFW_RTOS_MCU3_0)
@@ -1569,10 +1591,15 @@ static void EthApp_initNetif(void)
     bridge_initdata.max_fdb_static_entries = ETHAPP_LWIP_BRIDGE_MAX_STATIC_ENTRIES;
     EnetUtils_copyMacAddr(&bridge_initdata.ethaddr.addr[0U], &gEthAppObj.hostMacAddr[0U]);
 
+#if (defined MCU_PLUS_SDK)
+    pNetif->flags |= NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP;
+    netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX].flags |= NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP;
+#endif
+
     netif_add(&netif_bridge, &ipaddr, &netmask, &gw, &bridge_initdata, bridgeif_init, netif_input);
 
     /* Add all netifs to the bridge and create coreId to bridge portId map */
-    bridgeif_add_port(&netif_bridge, &netif);
+    bridgeif_add_port(&netif_bridge, pNetif);
     gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = ETHAPP_BRIDGEIF_CPU_PORT_ID;
 
 #if defined (ETHFW_RTOS_MCU3_0)
@@ -1599,19 +1626,18 @@ static void EthApp_initNetif(void)
     NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX], chksumFlags);
 #endif
 #else
-    netif_add(&netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+    netif_add(pNetif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
 #if defined(MCU_PLUS_SDK)
-    hLwipIfApp = LwipifEnetApp_getHandle();
-    LWIPIF_LWIP_start(gEthAppObj.enetType, gEthAppObj.instId, &netif, ETHAPP_ETHNETIF_0);
-    netif_set_link_callback(&netif, EthApp_netifLinkChangeCb);
+    LWIPIF_LWIP_start(gEthAppObj.enetType, gEthAppObj.instId, pNetif, ETHAPP_ETHNETIF_0);
+    netif_set_link_callback(pNetif, EthApp_netifLinkChangeCb);
 #endif
-    netif_set_default(&netif);
+    netif_set_default(pNetif);
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
-    NETIF_SET_CHECKSUM_CTRL(&netif, chksumFlags);
+    NETIF_SET_CHECKSUM_CTRL(pNetif, chksumFlags);
 #endif
 #endif
 #if defined (MCU_PLUS_SDK)
-    LwipifEnetApp_startSchedule(hLwipIfApp, &netif);
+    LwipifEnetApp_startSchedule(hLwipIfApp, pNetif);
 #endif
 
     netif_set_status_callback(netif_default, EthApp_netifStatusCb);
@@ -1619,7 +1645,7 @@ static void EthApp_initNetif(void)
     dhcp_set_struct(netif_default, &gEthAppObj.dhcpNetif);
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
-    netif_set_up(&netif);
+    netif_set_up(pNetif);
 #if defined (ETHFW_RTOS_MCU3_0)
     netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX]);
 #else
@@ -1885,7 +1911,6 @@ static void EthApp_filterDelMacSharedCb(const uint8_t *mac_address,
                                         uint8_t hostId)
 {
     uint8_t idx = 0;
-    bridgeif_portmask_t bridgePortMask;
     struct eth_addr ethaddr;
     bool matchFound = BFALSE;
     int32_t errVal = 0;
@@ -2033,13 +2058,12 @@ static void EthApp_configPtpCb(void *arg)
 static void EthApp_initPtp(void)
 {
     uint32_t portMask = 0U;
-    uint8_t i;
 
     /* MAC port used for PTP */
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     portMask = ENET_MACPORT_MASK(gEthAppPorts[0U]);
 #else
-    for (i = 0U; i < ENET_ARRAYSIZE(gEthAppSwitchPorts); i++)
+    for (uint32_t i = 0U; i < ENET_ARRAYSIZE(gEthAppSwitchPorts); i++)
     {
         portMask |= ENET_MACPORT_MASK(gEthAppSwitchPorts[i]);
     }
@@ -2108,11 +2132,11 @@ static void EthApp_setBootTs(EthApp_BootTsId tsId)
         gEthAppObj.uartPrintEn = BTRUE;
 
         /* Print all time diffs wrt app's main() once we have hit all boot milestones */
-        EnetAppUtils_print("IPC server  = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(IPC));
-        EnetAppUtils_print("Eth link-up = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(ETH_PORT));
-        EnetAppUtils_print("Host port   = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(HOST_PORT));
-        EnetAppUtils_print("Got IP addr = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(TCPIP));
-        EnetAppUtils_print("PTP stack   = %llu usecs\n", ETHFW_BOOT_PROFILING_TS_DIFF(PTP));
+        EnetAppUtils_print("IPC server  = %llu usecs\r\n", ETHFW_BOOT_PROFILING_TS_DIFF(IPC));
+        EnetAppUtils_print("Eth link-up = %llu usecs\r\n", ETHFW_BOOT_PROFILING_TS_DIFF(ETH_PORT));
+        EnetAppUtils_print("Host port   = %llu usecs\r\n", ETHFW_BOOT_PROFILING_TS_DIFF(HOST_PORT));
+        EnetAppUtils_print("Got IP addr = %llu usecs\r\n", ETHFW_BOOT_PROFILING_TS_DIFF(TCPIP));
+        EnetAppUtils_print("PTP stack   = %llu usecs\r\n", ETHFW_BOOT_PROFILING_TS_DIFF(PTP));
     }
 }
 #endif

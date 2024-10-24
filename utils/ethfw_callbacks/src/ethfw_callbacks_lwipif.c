@@ -186,6 +186,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
                                         LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                         LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
+#if !defined(MCU_PLUS_SDK)
     LwipifEnetAppIf_RxHandleInfo *rxInfo;
     LwipifEnetAppIf_RxConfig *rxCfg;
     EnetMcm_CmdIf mcmCmdIf;
@@ -385,9 +386,10 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
      * will enable one of these two modes. */
     EnetAppUtils_assert(outArgs->rxInfo[0U].disableEvent == outArgs->rxInfo[1U].disableEvent);
 
-
-#if !defined(MCU_PLUS_SDK)
     rxInfo->handleErrPktFxn = EthFwCallbacks_handleRxErrPkt;
+#else
+    /* Sitara devices shouldn't call this function */
+    EnetAppUtils_assert(BFALSE);
 #endif
 }
 
@@ -395,6 +397,7 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(Enet_Type enetType,
                                             uint32_t instId,
                                             LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
 {
+#if !defined(MCU_PLUS_SDK)
     LwipifEnetAppIf_RxHandleInfo *rxInfo;
     Lwip2EnetAppIf_FreePktInfo *freePktInfo;
     EnetMcm_CmdIf mcmCmdIf;
@@ -467,6 +470,10 @@ void EthFwCallbacks_lwipifCpswReleaseHandle(Enet_Type enetType,
     EnetMcm_coreDetach(&mcmCmdIf, releaseInfo->coreId, releaseInfo->coreKey);
     EnetMcm_releaseHandleInfo(&mcmCmdIf);
     EnetMcm_releaseCmdIf(enetType, &mcmCmdIf);
+#else
+    /* Sitara devices shouldn't call this function */
+    EnetAppUtils_assert(BFALSE);
+#endif
 }
 
 #if defined(ETHFW_MONITOR_SUPPORT)
@@ -608,7 +615,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add ARP policer: %d\n", status);
     }
     rxInfo->handlePktFxn = EthFwCallbacks_handleArpRxPktFxn;
@@ -659,7 +666,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
      ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
 
      /* Delete ALE policer */
-     status = Enet_ioctl(hEnet, releaseInfo->coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+     ENET_IOCTL(hEnet, releaseInfo->coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
      ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to delete ARP policer");
 #endif
 
@@ -913,7 +920,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
 
         ENET_IOCTL_SET_INOUT_ARGS(&prms, &polInArgs, &polOutArgs);
 
-        status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms);
+        ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_SET_POLICER, &prms, status);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to add ARP policer");
     }
 
@@ -952,7 +959,7 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
     ENET_IOCTL_SET_IN_ARGS(&prms, &polInArgs);
 
     /* Delete ALE policer */
-    status = Enet_ioctl(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms);
+    ENET_IOCTL(hEnet, coreId, CPSW_ALE_IOCTL_DEL_POLICER, &prms, status);
     ETHFWTRACE_ERR_IF((status != ENET_SOK), status, "Failed to delete ARP policer");
 
     EnetQueue_initQ(&fqPktInfoQ);

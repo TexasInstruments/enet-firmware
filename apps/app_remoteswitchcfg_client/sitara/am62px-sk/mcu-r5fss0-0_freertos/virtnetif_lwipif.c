@@ -200,16 +200,16 @@ __attribute__((aligned(ETHAPP_MONITOR_TASK_STACKSIZE)));
 #define RTOS_CLIENT_ENETLWIP_PACKET_POLL_PERIOD_US (1000U)
 
 /*! \brief RX packet task stack size */
-#define RTOS_CLIENT_LWIPIF_RX_PACKET_TASK_STACK    (1024U)
+#define RTOS_CLIENT_LWIPIF_RX_PACKET_TASK_STACK    (2048U)
 
 /*! \brief TX packet task stack size */
-#define RTOS_CLIENT_LWIPIF_TX_PACKET_TASK_STACK    (1024U)
+#define RTOS_CLIENT_LWIPIF_TX_PACKET_TASK_STACK    (2048U)
 
 /*! \brief Links status poll task stack size */
 #if (_DEBUG_ == 1)
 #define RTOS_CLIENT_LWIPIF_POLL_TASK_STACK         (3072U)
 #else
-#define RTOS_CLIENT_LWIPIF_POLL_TASK_STACK         (1024U)
+#define RTOS_CLIENT_LWIPIF_POLL_TASK_STACK         (2048U)
 #endif
 
 #define RTOS_CLIENT_LWIPIF_NUM_RX_PACKET_TASKS     (1U)
