@@ -519,7 +519,11 @@ static int32_t EthFwTsn_logBuffer(bool flush, const char *str)
     bufSizeLeft = sizeof(gEthFwTsnObj.logBuf)-usedLen;
     if (bufSizeLeft > loglen)
     {
+#if !defined(MCU_PLUS_SDK)
+        snprintf((char *)&gEthFwTsnObj.logBuf[usedLen], bufSizeLeft, "%s", str);
+#else
         snprintf((char *)&gEthFwTsnObj.logBuf[usedLen], bufSizeLeft, "%s" ETHFW_LOG_BUFFER_ENDLINE, str);
+#endif
     }
     else
     {
