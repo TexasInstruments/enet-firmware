@@ -526,8 +526,15 @@ void CpswRemoteApp_initTask(void* a0)
     status = EthFwIpc_init(selfProcId,
                            numProc,
                            &gRemoteProc[0],
-                           &CpswRemoteApp_ipcPrint,
-                           appGetIpcResourceTable());
+                           &CpswRemoteApp_ipcPrint);
+#if !defined(A72_QNX_OS)
+    if (status == ETHFW_SOK)
+    {
+        status = Ipc_loadResourceTable(appGetIpcResourceTable());
+    }
+#else
+    ETHFWTRACE_INFO("Skipping Ipc_loadResourceTable for QNX (core : %s)\r\n", Ipc_mpGetSelfName());
+#endif
 
     if (status == ETHFW_SOK)
     {

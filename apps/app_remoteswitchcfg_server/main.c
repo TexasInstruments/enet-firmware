@@ -1114,8 +1114,15 @@ static void EthApp_initIpcTaskFxn(void* arg0)
     status = EthFwIpc_init(selfProcId,
                            numProc,
                            &gEthAppRemoteProc[0],
-                           &EthApp_ipcPrint,
-                           appGetIpcResourceTable());
+                           &EthApp_ipcPrint);
+#if !defined(A72_QNX_OS)
+    if (status == ETHFW_SOK)
+    {
+        status = Ipc_loadResourceTable(appGetIpcResourceTable());
+    }
+#else
+    ETHFWTRACE_INFO("Skipping Ipc_loadResourceTable for QNX (core : %s)\r\n", Ipc_mpGetSelfName());
+#endif
 
     /* Task to flush IPC traceBuf */
     EthFwOsal_initTaskParams(&taskParams);
@@ -1136,7 +1143,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
 
     if (status == ETHFW_SOK)
     {
-        status = EthFwIpc_initVirtIO(numProc, &gEthAppSysVqBuf, &gEthAppVringMemBuf,
+        status = EthFwIpc_initVirtIO(numProc, &gEthAppSysVqBuf[0], &gEthAppVringMemBuf,
                                      ETHAPP_IPC_VRING_MEM_SIZE);
         if (status != ETHAPP_OK)
         {
@@ -1146,7 +1153,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
 
     if (status == ETHFW_SOK)
     {
-        status = EthFwIpc_initRpmsg(&gEthAppCntrlBuf, &gEthAppCtrlTaskBuf, selfProcId);
+        status = EthFwIpc_initRpmsg(&gEthAppCntrlBuf[0], &gEthAppCtrlTaskBuf[0], selfProcId);
         if (status != ETHAPP_OK)
         {
             appLogPrintf("Failed to initialize RPMessage Module");

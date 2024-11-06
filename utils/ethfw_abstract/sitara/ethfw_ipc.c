@@ -161,8 +161,7 @@ static EthFwOsal_Rpmsg gEthFwOsalRpmsgfreertosPool[ETHFW_IPC_FREERTOS_MAX_ENDPT]
 int32_t EthFwIpc_init(uint32_t selfId,
                       uint16_t numProc,
                       uint32_t procArray[IPC_MAX_PROCS],
-                      void (*func)(const char *str),
-                      void *rscTable)
+                      void (*func)(const char *str))
 {
     int32_t status = SystemP_SUCCESS;
     uint32_t i = 0U;

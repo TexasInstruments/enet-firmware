@@ -120,8 +120,7 @@
 int32_t EthFwIpc_init(uint32_t selfId,
                       uint16_t numProc,
                       uint32_t procArray[IPC_MAX_PROCS],
-                      void (*func)(const char *str),
-                      void *rscTable)
+                      void (*func)(const char *str))
 {
      int32_t status = ETHFW_SOK;
      Ipc_InitPrms initPrms;
@@ -131,15 +130,6 @@ int32_t EthFwIpc_init(uint32_t selfId,
      IpcInitPrms_init(0U, &initPrms);
      initPrms.printFxn = func;
      status = Ipc_init(&initPrms);
-
-#if !defined(A72_QNX_OS)
-    if (status == ETHFW_SOK)
-    {
-        status = Ipc_loadResourceTable(rscTable);
-    }
-#else
-    ETHFWTRACE_INFO("Skipping Ipc_loadResourceTable for QNX (core : %s)\r\n", Ipc_mpGetSelfName());
-#endif
 
      return status;
 }
