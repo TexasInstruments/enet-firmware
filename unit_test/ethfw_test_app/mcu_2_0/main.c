@@ -301,6 +301,11 @@ EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
 #endif
 };
 
+EthFwPortMirroring_Cfg gEthApp_portMirCfg = 
+{
+    .mirroringType = DISABLE_PORT_MIRRORING
+};
+
 void appLogPrintf(const char *format, ...)
 {
     va_list args;
@@ -386,6 +391,7 @@ void setUp(void)
     gEthTestAppObj.hEthFwCfg.virtPortCfg  = &gEthApp_virtPortCfg[0];
     gEthTestAppObj.hEthFwCfg.numVirtPorts = ARRAY_SIZE(gEthApp_virtPortCfg);
     gEthTestAppObj.hEthFwCfg.isStaticTxChanAllocated = BTRUE;
+    gEthTestAppObj.hEthFwCfg.portMirCfg = &gEthApp_portMirCfg;
 
     /* CPTS_RFT_CLK is sourced from MAIN_SYSCLK0 (500MHz) */
     cpswCfg->cptsCfg.cptsRftClkFreq = CPSW_CPTS_RFTCLK_FREQ_500MHZ;
