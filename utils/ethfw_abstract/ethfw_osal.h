@@ -231,11 +231,11 @@ EthFwOsal_MailboxHandle EthFwOsal_createMailbox(EthFwOsal_MailboxParams *params)
 
 int32_t EthFwOsal_deleteMailbox(EthFwOsal_MailboxHandle handle);
 
-int32_t EthFwOsal_postMailbox(MailboxP_Handle handle,
+int32_t EthFwOsal_postMailbox(EthFwOsal_MailboxHandle handle,
                               void *msg,
                               uint32_t timeout);
 
-int32_t EthFwOsal_pendMailbox(MailboxP_Handle handle,
+int32_t EthFwOsal_pendMailbox(EthFwOsal_MailboxHandle handle,
                               void *msg,
                               uint32_t timeout);
 

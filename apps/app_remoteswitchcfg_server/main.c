@@ -1011,7 +1011,9 @@ void EthApp_initTaskFxn(void* arg0)
     EthFwOsal_TaskParams taskParams;
     int32_t status = ETHAPP_OK;
 
+#if defined(MCU_PLUS_SDK)
     EthApp_waitForDebugger();
+#endif
 
     EnetOsal_Cfg *osalPrms = NULL;
     EnetUtils_Cfg *utilsPrms = NULL;

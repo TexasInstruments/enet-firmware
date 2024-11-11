@@ -416,9 +416,8 @@ static void CpswRemoteTestApp_initTask(void* a0)
 
     EthFwUT_testSwitchResources((void *)gProxy, (void *)&gProxyConfig);
 
-    CpswProxy_close(gProxy);
     CpswProxy_deinit();
-    gProxy = NULL;
+    CpswProxy_close(gProxy);
 
     /* Update proxyConfig to MAC only configuration */
     gProxyConfig.virtPort = ETHREMOTECFG_MAC_PORT_4;
@@ -442,9 +441,8 @@ static void CpswRemoteTestApp_initTask(void* a0)
 
     EthFwUT_testMacResources((void *)gProxy, (void *)&gProxyConfig);
 
-    CpswProxy_close(gProxy);
     CpswProxy_deinit();
-    gProxy = NULL;
+    CpswProxy_close(gProxy);
 #endif
 }
 

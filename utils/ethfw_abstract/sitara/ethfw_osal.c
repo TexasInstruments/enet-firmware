@@ -857,25 +857,27 @@ int32_t EthFwOsal_deleteMailbox(EthFwOsal_MailboxHandle handle)
     return status;
 }
 
-int32_t EthFwOsal_postMailbox(MailboxP_Handle handle,
+int32_t EthFwOsal_postMailbox(EthFwOsal_MailboxHandle handle,
                               void *msg,
                               uint32_t timeout)
 {
     int32_t status = SystemP_SUCCESS;
+    MailboxP_Handle hMbx = (MailboxP_Handle)handle;
 
-    status = MailboxP_post(handle, msg, timeout);
+    status = MailboxP_post(hMbx, msg, timeout);
     ETHFWTRACE_ERR_IF((status != SystemP_SUCCESS), status, "Failed to post Mailbox");
 
     return status;
 }
 
-int32_t EthFwOsal_pendMailbox(MailboxP_Handle handle,
+int32_t EthFwOsal_pendMailbox(EthFwOsal_MailboxHandle handle,
                               void *msg,
                               uint32_t timeout)
 {
     int32_t status = SystemP_SUCCESS;
+    MailboxP_Handle hMbx = (MailboxP_Handle)handle;
 
-    status = MailboxP_pend(handle, msg, timeout);
+    status = MailboxP_pend(hMbx, msg, timeout);
     ETHFWTRACE_DBG_IF((status != SystemP_SUCCESS), "Failed to pend Mailbox");
 
     return status;

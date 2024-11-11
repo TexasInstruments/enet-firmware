@@ -485,14 +485,14 @@ void CpswProxy_deinit(void)
     {
         EthFwOsal_deleteTask(&gCpswProxy.hHeartbeatTask);
         gCpswProxy.hHeartbeatTask = NULL;
+
+        /* Stop and delete the clock */
+        EthFwOsal_stopClock(gCpswProxy.hHeartbeatClock);
+        EthFwOsal_deleteClock(gCpswProxy.hHeartbeatClock);
+
+        /* Delete semaphore */
+        EthFwOsal_deleteSemaphore(gCpswProxy.hHeartbeatSem);
     }
-
-    /* Stop and delete the clock */
-    EthFwOsal_stopClock(gCpswProxy.hHeartbeatClock);
-    EthFwOsal_deleteClock(gCpswProxy.hHeartbeatClock);
-
-    /* Delete semaphore */
-    EthFwOsal_deleteSemaphore(gCpswProxy.hHeartbeatSem);
 
     /* Deinitialize command service */
     CpswProxy_deinitCmdSvc(&gCpswProxy.cmdSvc);

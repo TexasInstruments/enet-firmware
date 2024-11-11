@@ -270,7 +270,7 @@ EthFwOsal_SemHandle EthFwOsal_createSemaphore(uint32_t count)
 
     SemaphoreP_Params_init(&semParams);
     semParams.mode = SemaphoreP_Mode_BINARY;
-    handle = SemaphoreP_create(count, &semParams);
+    handle = (EthFwOsal_SemHandle)SemaphoreP_create(count, &semParams);
 
     if (NULL == handle)
     {
@@ -284,8 +284,9 @@ EthFwOsal_SemHandle EthFwOsal_createSemaphore(uint32_t count)
 int32_t EthFwOsal_deleteSemaphore(EthFwOsal_SemHandle handle)
 {
     int32_t status = ETHFW_SOK;
+    SemaphoreP_Handle hSem = (SemaphoreP_Handle)handle;
 
-    status = SemaphoreP_delete(handle);
+    status = SemaphoreP_delete(hSem);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to delete the Semaphore");
 
     return status;
@@ -294,8 +295,9 @@ int32_t EthFwOsal_deleteSemaphore(EthFwOsal_SemHandle handle)
 int32_t EthFwOsal_pendSemaphore(EthFwOsal_SemHandle handle, uint32_t timeout)
 {
     int32_t status = ETHFW_SOK;
+    SemaphoreP_Handle hSem = (SemaphoreP_Handle)handle;
 
-    status = SemaphoreP_pend(handle, timeout);
+    status = SemaphoreP_pend(hSem, timeout);
     ETHFWTRACE_DBG_IF((status != ETHFW_SOK), "Semaphore pend failed");
 
     return status;
@@ -304,8 +306,9 @@ int32_t EthFwOsal_pendSemaphore(EthFwOsal_SemHandle handle, uint32_t timeout)
 int32_t EthFwOsal_postSemaphore(EthFwOsal_SemHandle handle)
 {
     int32_t status = ETHFW_SOK;
+    SemaphoreP_Handle hSem = (SemaphoreP_Handle)handle;
 
-    status = SemaphoreP_post(handle);
+    status = SemaphoreP_post(hSem);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Semaphore post failed");
 
     return status;
@@ -355,7 +358,7 @@ EthFwOsal_ClockHandle EthFwOsal_createClock(void (*func)(void*), EthFwOsal_Clock
     clkParams.runMode   = params->runMode;
     clkParams.arg       = params->arg;
 
-    handle = ClockP_create(func, &clkParams);
+    handle = (EthFwOsal_ClockHandle)ClockP_create(func, &clkParams);
 
     if (NULL == handle)
     {
@@ -369,8 +372,9 @@ EthFwOsal_ClockHandle EthFwOsal_createClock(void (*func)(void*), EthFwOsal_Clock
 int32_t EthFwOsal_startClock(EthFwOsal_ClockHandle handle)
 {
     int32_t status = ETHFW_SOK;
+    ClockP_Handle hClock = (ClockP_Handle)handle;
 
-    status = ClockP_start(handle);
+    status = ClockP_start(hClock);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Clock start failed");
 
     return status;
@@ -379,8 +383,9 @@ int32_t EthFwOsal_startClock(EthFwOsal_ClockHandle handle)
 int32_t EthFwOsal_stopClock(EthFwOsal_ClockHandle handle)
 {
     int32_t status = ETHFW_SOK;
+    ClockP_Handle hClock = (ClockP_Handle)handle;
 
-    status = ClockP_stop(handle);
+    status = ClockP_stop(hClock);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Clock stop failed");
 
     return status;
@@ -389,8 +394,9 @@ int32_t EthFwOsal_stopClock(EthFwOsal_ClockHandle handle)
 int32_t EthFwOsal_deleteClock(EthFwOsal_ClockHandle handle)
 {
     int32_t status = ETHFW_SOK;
+    ClockP_Handle hClock = (ClockP_Handle)handle;
 
-    status = ClockP_delete(handle);
+    status = ClockP_delete(hClock);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Clock delete failed");
 
     return status;
@@ -406,7 +412,7 @@ EthFwOsal_EventHandle EthFwOsal_createEvent(EthFwOsal_EventParams *params)
     EthFwOsal_EventHandle handle;
     int32_t status = ETHFW_SOK;
 
-    handle = EventP_create((EventP_Params *)params);
+    handle = (EthFwOsal_EventHandle)EventP_create((EventP_Params *)params);
 
     if (NULL == handle)
     {
@@ -423,8 +429,9 @@ uint32_t EthFwOsal_waitEvent(EthFwOsal_EventHandle handle,
                             uint32_t timeout)
 {
     int32_t events = 0U;
+    EventP_Handle hEvt = (EventP_Handle)handle;
 
-    events = EventP_wait(handle, eventMask, waitMode, timeout);
+    events = EventP_wait(hEvt, eventMask, waitMode, timeout);
 
     return events;
 }
@@ -432,8 +439,9 @@ uint32_t EthFwOsal_waitEvent(EthFwOsal_EventHandle handle,
 int32_t EthFwOsal_postEvent(EthFwOsal_EventHandle handle, uint32_t eventBits)
 {
     int32_t status = ETHFW_SOK;
+    EventP_Handle hEvt = (EventP_Handle)handle;
 
-    status = EventP_post(handle, eventBits);
+    status = EventP_post(hEvt, eventBits);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to post Event");
 
     return status;
@@ -449,7 +457,7 @@ EthFwOsal_MailboxHandle EthFwOsal_createMailbox(EthFwOsal_MailboxParams *params)
     EthFwOsal_MailboxHandle retHandle = NULL;
     int32_t status = ETHFW_SOK;
 
-    retHandle = MailboxP_create(params);
+    retHandle = (EthFwOsal_MailboxHandle)MailboxP_create(params);
 
     if (NULL == retHandle)
     {
@@ -463,32 +471,35 @@ EthFwOsal_MailboxHandle EthFwOsal_createMailbox(EthFwOsal_MailboxParams *params)
 int32_t EthFwOsal_deleteMailbox(EthFwOsal_MailboxHandle handle)
 {
     int32_t status = MailboxP_OK;
+    MailboxP_Handle hMbx = (MailboxP_Handle)handle;
 
-    status = MailboxP_delete(handle);
+    status = MailboxP_delete(hMbx);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to delete Mailbox");
 
     return status;
 }
 
-int32_t EthFwOsal_postMailbox(MailboxP_Handle handle,
+int32_t EthFwOsal_postMailbox(EthFwOsal_MailboxHandle handle,
                               void *msg,
                               uint32_t timeout)
 {
     int32_t status = MailboxP_OK;
+    MailboxP_Handle hMbx = (MailboxP_Handle)handle;
 
-    status = MailboxP_post(handle, msg, timeout);
+    status = MailboxP_post(hMbx, msg, timeout);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to post Mailbox");
 
     return status;
 }
 
-int32_t EthFwOsal_pendMailbox(MailboxP_Handle handle,
+int32_t EthFwOsal_pendMailbox(EthFwOsal_MailboxHandle handle,
                               void *msg,
                               uint32_t timeout)
 {
     int32_t status = MailboxP_OK;
+    MailboxP_Handle hMbx = (MailboxP_Handle)handle;
 
-    status = MailboxP_pend(handle, msg, timeout);
+    status = MailboxP_pend(hMbx, msg, timeout);
     ETHFWTRACE_DBG_IF((status != ETHFW_SOK), "Failed to pend Mailbox");
 
     return status;
