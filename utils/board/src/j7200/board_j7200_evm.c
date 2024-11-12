@@ -545,13 +545,20 @@ static void EthFwBoard_configTorrentClks(void)
     uint32_t clkParId = TISCI_DEV_SERDES_10G1_CORE_REF_CLK_PARENT_HSDIV4_16FFT_MAIN_2_HSDIVOUT4_CLK;
     uint32_t clkId = TISCI_DEV_SERDES_10G1_CORE_REF_CLK;
     uint32_t clkRateHz = 100000000U;
+    uint32_t origParent = 0U;
     int32_t status;
 
-    status = Sciclient_pmSetModuleClkParent(moduleId, clkId, clkParId, SCICLIENT_SERVICE_WAIT_FOREVER);
-    if (status != CSL_PASS)
+    status = Sciclient_pmGetModuleClkParent(moduleId, clkId, &origParent, SCICLIENT_SERVICE_WAIT_FOREVER);
+
+    /* Read the clock and set it to clkParId only if it is different. */
+    if ((status == CSL_PASS) && (origParent != clkParId ))
     {
-        ETHFWTRACE_ERR(status, "Failed to reparent clk %u", clkId);
-        EnetAppUtils_assert(BFALSE);
+        status = Sciclient_pmSetModuleClkParent(moduleId, clkId, clkParId, SCICLIENT_SERVICE_WAIT_FOREVER);
+        if (status != CSL_PASS)
+        {
+            ETHFWTRACE_ERR(status, "Failed to reparent clk %u", clkId);
+            EnetAppUtils_assert(BFALSE);
+        }
     }
 
     EnetAppUtils_clkRateSet(moduleId, clkId, clkRateHz);
