@@ -79,11 +79,11 @@ in the following table.
 | Boot stage                     |  J721E    |  J7200    | J784S4    |
 |:-------------------------------|:---------:|:---------:|:---------:|
 | main()                         |      0 ms |      0 ms |      0 ms |
-| Layer-2 switching active       | 143.94 ms | 188.96 ms | 112.97 ms |
-| Host port ready for RX/TX      |  58.54 ms | 101.22 ms |  29.91 ms |
-| TCP/IP stack initialized       |  90.71 ms | 127.87 ms |  30.75 ms |
-| gPTP stack initilized          | 230.21 ms | 190.56 ms |  94.39 ms |
-| CPSW Proxy Server initialized  | 307.27 ms | 222.49 ms | 132.32 ms |
+| Layer-2 switching active       | 180.49 ms | 215.69 ms | 139.87 ms |
+| Host port ready for RX/TX      |  93.45 ms | 126.22 ms |  55.15 ms |
+| TCP/IP stack initialized       | 126.17 ms | 153.78 ms |  56.35 ms |
+| gPTP stack initilized          | 260.12 ms | 220.65 ms | 124.51 ms |
+| CPSW Proxy Server initialized  | 339.72 ms | 254.94 ms | 164.28 ms |
 
 This table doesn't take into account the time between power-on reset (POR) and the 
 Firmware image loaded and made ready to run, as it will be bootloader dependent.
