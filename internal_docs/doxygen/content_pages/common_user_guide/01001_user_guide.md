@@ -1294,15 +1294,17 @@ remote clients.
 
 ## VLAN Configuration {#ethfw_vlan_server_cfg}
 
-VLANs are created and configured in a static manner and it's exclusive to Ethernet
-Firmware.  Remote clients cannot create VLANs, they can only *join* or *leave* VLANs.
+VLANs are created and configured in a static or dynamic manner. For static VLANs,
+they are exclusively set by to Ethernet Firmware. Remote clients cannot 
+create again these static VLANs, they can only *join* or *leave* the statically 
+configured VLANs.
 
 Parameters such as VLAN id, member lists (physical and virtual ports), registered
 and unregistered multicast flood mask and untag mask are required in order to set up
-VLANs on the Ethernet Firmware server side.
+static VLANs on the Ethernet Firmware server side.
 
-The code snippet below shows the configuration of VLAN 1024, with MAC ports 2 and 3
-as members of the VLAN, and virtual switch ports 0, 1 and 2 as virtual members.
+The code snippet below shows the static configuration of VLAN 1024, with MAC ports
+2 and 3 as members of the VLAN, and virtual switch ports 0, 1 and 2 as virtual members.
 
 ```C
 /* VLAN member mask: host port + MAC ports 2 and 3 */
@@ -1339,6 +1341,71 @@ void EthApp_myFunc(void)
     ...
 }
 ```
+
+For dynamic VLAN support, remote clients can call directly 
+<b>JOIN_VLAN</b> and <b>LEAVE_VLAN</b> commands without any static configuraton
+done in Ethernet Firmware. - For dynamic VLANs, portmask is set to default
+all switch ports that are enabled, this is done to be compliant with
+a typical linux interface. This also ensure no ABI changes for ethremotecfg.
+For disabling forwarding to all switch ports set *dVlanSwtFwdEn* flag to false.
+
+Clients are requested to still allocate static entries
+when they want to maintain strict behaviour in forwarding rules.
+
+The updated implementation of VLANs handling is done in
+consideration to save more ALE entries and classifiers.
+
+### The below section explains packet handling for each packet type:
+
+#### Unicast handling: 
+
+##### Non-VEPA or VEPA case:
+No BV* to be added in ALE entry, where B - broadcast address and V* is VLAN 
+requested to be joined. Only U1 classifier to be added, no U1V* based classifier,
+where U1 - Unicast address of client, V* VLAN requested to be joined.
+Only V* entry in ALE, where V* is VLAN requested to be joined.
+
+This will allow U1V^ go to all clients, where V^ is registered
+VLAN by other client, unknown VLAN will be dropped. To tightening
+this behaviour got more control of V^, recommended to use classifier.
+
+#### Broadcast handling:
+
+##### Non-VEPA case:
+No BV* entry in ALE, where B - broadcast
+address and V* is VLAN requested to be joined by virtual clients.
+No Classifier for broadcast entry.
+
+##### VEPA case:
+No BV* entry in ALE, where B - broadcast
+address and V* is VLAN requested to be joined by virtual clients.
+Classifier only based on B, not VLAN based.
+
+#### Shared Multicast handling:
+
+##### Non-VEPA case:
+Multicast packets will be routed to EthFw default flow without honouring VLANs
+as lwip bridge cannot differentiate between tagged and untagged packets.
+Packets will  then be re-directed to all clients by the lwip bridge.
+
+##### VEPA case:
+Multicast packets will be routed to VEPA flow where software (VEPA Table) will
+take care of packet forwarding based on VLANs and only the required recipient
+will get VLAN tagged packets.
+
+Post VLAN join, clients are required to update the VEPA table
+with MV* entry by calling <b>ETHREMOTECFG_CMD_ADD_FILTER_MAC</b>
+commands in order to recieve this traffic.
+
+Post VLAN leave, client are required to delete MV* from VEPA table
+by calling <b>ETHREMOTECFG_CMD_DEL_FILTER_MAC</b> command to delete 
+VLAN MV entry from VEPA table and ALE entry for M.
+
+#### Exclusive Multicast handling:
+
+##### Non-VEPA or VEPA case:
+We are stopping multiple clients to join same exclusive multicast
+address M irrespective of VLAN.
 
 For more information about VLAN configuration, please refer to the
 [VLAN API Guide](../api_guide/group__ETHFW__SERVER__VLAN.html).
