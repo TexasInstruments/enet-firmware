@@ -621,7 +621,7 @@ void EthFwTsn_init(EthFwTsn_Config *tsnCfg)
     {
         /*refer to 'ub_logging.h for logging levels*/
         ubb_default_initpara(&params);
-        params.ub_log_initstr    = "4,ubase:45,cbase:45,uconf:34,gptp:45";
+        params.ub_log_initstr    = "4,ubase:45,cbase:34,uconf:34,gptp:34";
         params.cbset.gettime64   = cb_lld_gettime64;
         params.cbset.console_out = EthFwTsn_logBuffer;
         gEthFwTsnObj.logTaskrun = BTRUE;
