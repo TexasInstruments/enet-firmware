@@ -156,6 +156,25 @@ The following ETHFW commands have been discontinued:
 <li> ETHREMOTECFG_CMD_READ_REGISTER and ETHREMOTECFG_CMD_WRITE_REGISTER used to read/write Ethernet device registers. </li>
 <li> ETHREMOTECFG_CMD_IOCTL allowed thin clients to execute Enet LLD IOCTLs remotely. Remote clients should use the dedicated command corresponding to the feature of interest. </li>
 
+<p>
+</p>
+VLAN configuration parameter from static <a href="docs/user_guide/ethfw_c_ug_top.html#ethfw_shared_mcast" target="_blank">
+     shared multicast table</a> has been removed.
+<li>In <a href="docs/user_guide/ethfw_c_ug_top.html#ethfw_intercore_vepa" target="_blank">VEPA</a> 
+    case VLAN is handled based on VLANs joined by client and VEPA table.
+Clients can join a particual VLAN and then can join the shared multicast
+with that VLAN. VEPA table will have reference count based on mac address + VLAN</li>
+<li>In NON-VEPA VLAN is not handled due to lwIP bridge VLAN handling limitation 
+(lwIP bridge does not differentiate tagged and untagged packets).
+Hence this parameter is not required at all.</li>
+
+<p>
+</p>
+<a href="docs/user_guide/ethfw_c_ug_top.html#ethfw_exclusive_mcast" target="_blank">Exclusive multicast address</a>
+ is considered to be exclusive irrespective of VLAN.
+In case when client registers exclusive multicast in a VLAN, VLAN provided will be ignored 
+and it will be registered only based on multicast address.
+Any other client registering the same multicast address (even with different VLAN) will result an error from EthFw.
 
 <p>
 </p><h2><a class="anchor" name="Device_Support"></a>Device Support</h2>
@@ -229,6 +248,48 @@ instructions to install and setup the dependencies.
 
 <p>
 </p><h2><a class="anchor" name="Fixed_Issues"></a>Fixed Issues</h2>
+<table frame="box" rules="all" cellspacing="0" width="100%" border="1" cellpadding="3">
+<tr bgcolor="lightgrey">
+<td align="center"> <b>Issue ID</b> </td>
+<td align="center"><b>Headline</b></td>
+<td align="center"><b>Module</b></td>
+<td align="center"><b>Reported in Release</b></td>
+<td align="center"><b>Affected Platforms</b></td>
+<td align="center"><b>Fixed in Release</b></td>
+</tr>
+<tr>
+<td align="center"> ETHFW-2006 </td>
+<td align="left"> UDP Speed slow down while open 2 ports on EVM
+<td align="center"> EthFw </td>
+<td align="center"> 08.00.00.00 </td>
+<td align="center"> J721E, J7200, J784S4 </td>
+<td align="left"> 10.01.00 </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-2839 </td>
+<td align="left"> VLAN Broadcast packets were not duplicated to clients in VEPA
+<td align="center"> EthFw </td>
+<td align="center"> 09.02.00.00 </td>
+<td align="center"> J784S4 </td>
+<td align="left"> 10.01.00 </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-2840 </td>
+<td align="left"> Deletion of Exclusive Multicast Address return error for removing address
+<td align="center"> EthFw </td>
+<td align="center"> 09.02.00.00 </td>
+<td align="center"> J721E, J7200, J784S4 </td>
+<td align="left"> 10.01.00 </td>
+</tr>
+<tr>
+<td align="center"> ETHFW-2852 </td>
+<td align="left"> Assertion in ENET DMA packet in lwipif layer due to packet state when both polling and interrupt modes are enabled
+<td align="center"> EthFw </td>
+<td align="center"> 09.02.00.00 </td>
+<td align="center"> J721E, J784S4 </td>
+<td align="left"> 10.01.00 </td>
+    </tr>
+</table>
 <p>
 
 </p><h2><a class="anchor" name="Known_Issues"></a>Known Issues and Limitations</h2>
@@ -250,14 +311,6 @@ instructions to install and setup the dependencies.
 <td align="left"> None. </td>
 </tr>
 <tr>
-<td align="center"> ETHFW-2006 </td>
-<td align="left"> UDP Speed slow down while open 2 ports on EVM
-<td align="center"> EthFw </td>
-<td align="center"> 08.00.00.00 </td>
-<td align="center"> J721E, J7200, J784S4 </td>
-<td align="left"> None. </td>
-</tr>
-<tr>
 <td align="center"> ETHFW-2575 </td>
 <td align="left"> CPSW error flags are not getting updated in UDMA host packet descriptor
 <td align="center"> EthFw </td>
@@ -274,21 +327,21 @@ instructions to install and setup the dependencies.
 <td align="left"> None. </td>
 </tr>
 <tr>
-<td align="center"> ETHFW-2839 </td>
-<td align="left"> VLAN Broadcast packets were not duplicated to clients in VEPA
+<td align="center"> ETHFW-2975 </td>
+<td align="left"> ETHFW: REGISTER_MAC request fails post reset recovery with Linux client due to timeout
 <td align="center"> EthFw </td>
-<td align="center"> 09.02.00.00 </td>
-<td align="center"> J784S4 </td>
-<td align="left"> None. </td>
+<td align="center"> 10.01.00.00 </td>
+<td align="center"> J721E, J784S4 </td>
+<td align="left"> Reduce logging level of gPTP and combase untill stack initialization time has been reduced. </td>
 </tr>
 <tr>
-  <td align="center"> ETHFW-2840 </td>
-  <td align="left"> Deletion of Exclusive Multicast Address return error for removing address
-  <td align="center"> EthFw </td>
-  <td align="center"> 09.02.00.00 </td>
-  <td align="center"> J784S4 </td>
-  <td align="left"> None. </td>
-  </tr>
+<td align="center"> ETHFW-2924 </td>
+<td align="left"> ETHFW: Multiple EthFw init and EthFw deinit causes failure
+<td align="center"> EthFw </td>
+<td align="center"> 10.01.00.00 </td>
+<td align="center"> J721E, J7200, J784S4 </td>
+<td align="left"> None. </td>
+</tr>
 </table>
 
 <h3><a class="anchor" name="Limitations"></a>Limitations</h3>

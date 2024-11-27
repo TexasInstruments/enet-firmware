@@ -1202,38 +1202,45 @@ Please refer to the following code in `<ethfw>/apps/app_remoteswitchcfg_server/m
 
 ```C
 /* Must not exceed ETHAPP_MAX_SHARED_MCAST_ADDR entries */
-static EthApp_SharedMcastAddrTable gEthApp_sharedMcastAddrTable[] =
+static EthFwMcast_McastCfg gEthApp_sharedMcastCfgTable[] =
 {
     {
         /* MCast IP ADDR: 224.0.0.1 */
-        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0x01},
-        .portMask= 0U,
+        .macAddr      = {0x01, 0x00, 0x5E, 0x00, 0x00, 0x01},
+        .portMask     = ETHAPP_DFLT_PORT_MASK,
+        .virtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK,
     },
     {
         /* MCast IP ADDR: 224.0.0.251 */
-        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFB},
-        .portMask= 0U,
+        .macAddr      = {0x01, 0x00, 0x5E, 0x00, 0x00, 0xFB},
+        .portMask     = ETHAPP_DFLT_PORT_MASK,
+        .virtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK,
     },
     {
         /* MCast IP ADDR: 224.0.0.252 */
-        .macAddr = {0x01,0x00,0x5E,0x00,0x00,0xFC},
-        .portMask= 0U,
+        .macAddr      = {0x01, 0x00, 0x5E, 0x00, 0x00, 0xFC},
+        .portMask     = ETHAPP_DFLT_PORT_MASK,
+        .virtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK,
     },
     {
-        .macAddr = {0x33,0x33,0x00,0x00,0x00,0x01},
-        .portMask= 0U,
+        .macAddr      = {0x33, 0x33, 0x00, 0x00, 0x00, 0x01},
+        .portMask     = ETHAPP_DFLT_PORT_MASK,
+        .virtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK,
     },
     {
-        .macAddr = {0x33,0x33,0xFF,0x1D,0x92,0xC2},
-        .portMask= 0U,
+        .macAddr      = {0x33, 0x33, 0xFF, 0x1D, 0x92, 0xC2},
+        .portMask     = ETHAPP_DFLT_PORT_MASK,
+        .virtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK,
     },
     {
-        .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x00},
-        .portMask= 0U,
+        .macAddr      = {0x01, 0x80, 0xC2, 0x00, 0x00, 0x00},
+        .portMask     = ETHAPP_DFLT_PORT_MASK,
+        .virtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK,
     },
     {
-        .macAddr = {0x01,0x80,0xC2,0x00,0x00,0x03},
-        .portMask= 0U,
+        .macAddr      = {0x01, 0x80, 0xC2, 0x00, 0x00, 0x03},
+        .portMask     = ETHAPP_DFLT_PORT_MASK,
+        .virtPortMask = ETHAPP_DFLT_VIRT_PORT_MASK,
     },
 };
 ```
