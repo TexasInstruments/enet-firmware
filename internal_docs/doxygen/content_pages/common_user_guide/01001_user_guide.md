@@ -1892,6 +1892,116 @@ For more information, refer to the [EthFwTrace API guide](../api_guide/group__ET
 [Back To Top](@ref ethfw_c_ug_top)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Port Mirroring Support {#ethfw_port_mirroring}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Port mirroring is used to send a copy of network packets seen on one port 
+to another port for debugging or network monitoring purposes. 
+Network engineers or administrators can use port mirroring to analyze and debug data or diagnose errors on a network. 
+It can help to keep a track on network performance and get alert when problems occur.
+
+Port mirroring is disabled by default in EthFw. 
+User will need to modify and rebuild the EthFw binaries if they need to enable port mirroring.
+```C
+static EthFwPortMirroring_Cfg gEthApp_portMirCfg = 
+{
+    .mirroringType = DISABLE_PORT_MIRRORING
+};
+```
+
+CPSW ALE supports three mirroring modes: destination port, source port and table entry.
+Refer to Section 12.2.2.4.6.1.14 for more details in TRM.
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Destination port mirroring {#ethfw_dst_port_mirroring}
+
+Destination port mirroring allows packets from any ingress port or trunk which ends up switching to a
+particular egress destination port or trunk to be mirrored to yet another egress destination port or trunk. For
+example any traffic from any port that is switched to port `A` can be also mirrored to port `B`.
+
+```C
+/* Code to enable destination port mirroring on port MAC_PORT_1 (A) with Host port (B) as mirrored port */
+static EthFwPortMirroring_Cfg gEthApp_portMirCfg = 
+{
+    .mirroringMode =  
+    {
+        .dstPortMirCfg = 
+        {
+            .dstPortNum = 0U,
+            .toPortNum  = CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_1)
+        },
+    },
+    .mirroringType = DST_PORT_MIRRORING
+};
+```
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Source port mirroring {#ethfw_src_port_mirroring}
+
+Source port mirroring allows packets received on any enabled ingress source port or trunk to be switched to
+the mirror egress port as well as the actual egress destination ports. For example traffic received on ingress port
+`A` can be switched to egress port `B` as well as the intended egress destination port.
+
+```C
+/* Code to enable source port mirroring on port MAC_PORT_3 (A) with MAC_PORT_1 (B) as mirrored port */
+static EthFwPortMirroring_Cfg gEthApp_portMirCfg = 
+{
+    .mirroringMode =  
+    {
+        .srcPortMirCfg =
+        {
+            .srcPortNumMask = 1 << CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_3),
+            .toPortNum  = CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_1)
+        },
+        
+    },
+    .mirroringType = SRC_PORT_MIRRORING
+};
+```
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## Table entry port mirroring {#ethfw_tbl_entry_port_mirroring}
+
+Table entry mirroring allows for any ALE entry that
+matches on ingress to be switched to the egress destination as well as the actual egress destination. For
+example all traffic with destination MAC `M` can be mirrored to port `B`. 
+That is any traffic with destination MAC `M` will be mirrored.
+
+```C
+/* Code to match any packet with destination MAC address aa:bb:cc:dd:ee:ff to be mirrored to MAC_PORT_1 */
+static EthFwPortMirroring_Cfg gEthApp_portMirCfg = 
+{
+    .mirroringMode =  
+    {
+        .tblEntryPortMirCfg =
+        {
+            .matchParams =
+            {
+                .entryType = CPSW_ALE_TABLE_ENTRY_TYPE_ADDR,
+                .dstMacAddrInfo =
+                {
+                    .addr =
+                    {
+                        .addr = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff},
+                        .vlanId = 0U
+                    },
+                    .portNum = 0U
+                }
+            },
+            .toPortNum  = CPSW_ALE_MACPORT_TO_ALEPORT(ENET_MAC_PORT_1)
+        },
+    },
+    .mirroringType = TBL_ENTRY_PORT_MIRRORING
+};
+```
+
+**Note:** The mirror port need not be a member of the VLAN ID it is mirroring, 
+the ALE will forward traffic to the mirror port after ingress and egress filters are applied.
+
+[Back To Top](@ref ethfw_c_ug_top)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Heartbeat Mechanism {#ethfw_c_ug_heartbeat_mechanism}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
