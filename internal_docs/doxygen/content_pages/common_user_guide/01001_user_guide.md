@@ -869,6 +869,11 @@ to understand how these netifs are instantiated and added to the bridge:
     netif_set_default(&netif_bridge);
 #else
 ```
+
+**Note:** Checksum offload is enabled by default for all Jacinto devices in both Tx & Rx. In case of Inter-core 
+virtual path (via lwIP bridge) checksum is validated and computed in software, as it will not involve any hardware 
+port for transmission.
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -1152,7 +1157,11 @@ static uint32_t gEthApp_remoteClientPrivVlanIdMap[ETHREMOTECFG_SWITCH_PORT_LAST+
 ```
 
 
-<b>Note</b>: No netif instance creation or TAP application is required on RTOS and Linux client respectively when VEPA is enabled on EthFw.
+**Note:** 
+-# No netif instance creation or TAP application is required on RTOS and Linux client respectively when VEPA is enabled on EthFw.
+
+-# When VEPA is enabled, checksum offload is disabled due to hardware Errata i2444 
+(Multihost Checksum Issue). Checksum is validated and computed in software.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
