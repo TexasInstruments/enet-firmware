@@ -129,21 +129,9 @@
 
 #define ETHAPP_HWRECOVERY_TASK_PRI              (2U)
 
-/* Mailbox used to pass virtual netifs to be closed for recovery */
-#define ETHAPP_VIRTNETIF_MBX_MSGSIZE            (64U)
-#define ETHAPP_VIRTNETIF_MBX_MSGCOUNT           (4U)
-#if defined(SAFERTOS)
-#define ETHAPP_VIRTNETIF_MBX_SIZE               ((ETHAPP_VIRTNETIF_MBX_MSGSIZE * \
-                                                  ETHAPP_VIRTNETIF_MBX_MSGCOUNT) + \
-                                                 safertosapiQUEUE_OVERHEAD_BYTES)
-#else
-#define ETHAPP_VIRTNETIF_MBX_SIZE               (ETHAPP_VIRTNETIF_MBX_MSGSIZE * \
-                                                 ETHAPP_VIRTNETIF_MBX_MSGCOUNT)
-#endif
-
 #if defined(SAFERTOS)
 #define ETHAPP_MONITOR_TASK_STACKSIZE              (16U * 1024U)
-#define ETHAPP_MONITOR_TASK_STACKALIGN             ETHAPP_LWIP_TASK_STACKSIZE
+#define ETHAPP_MONITOR_TASK_STACKALIGN             ETHAPP_MONITOR_TASK_STACKSIZE
 #else
 #define ETHAPP_MONITOR_TASK_STACKSIZE              (16U * 1024U)
 #define ETHAPP_MONITOR_TASK_STACKALIGN             (32U)
@@ -229,6 +217,27 @@ typedef struct CpswRemoteApp_VirtNetif_s
 
 } CpswRemoteApp_VirtNetif;
 
+typedef struct CpswRemoteApp_HwRecoveryMsg_s
+{
+    /* Virtual network interface data */
+    CpswRemoteApp_VirtNetif *virtNetif;
+
+    /* Notify type */
+    uint32_t notifyType;
+} CpswRemoteApp_HwRecoveryMsg;
+
+/* Mailbox used to pass virtual netifs to be closed for recovery */
+#define ETHAPP_VIRTNETIF_MBX_MSGSIZE            (sizeof(CpswRemoteApp_HwRecoveryMsg))
+#define ETHAPP_VIRTNETIF_MBX_MSGCOUNT           (4U)
+#if defined(SAFERTOS)
+#define ETHAPP_VIRTNETIF_MBX_SIZE               ((ETHAPP_VIRTNETIF_MBX_MSGSIZE * \
+                                                  ETHAPP_VIRTNETIF_MBX_MSGCOUNT) + \
+                                                 safertosapiQUEUE_OVERHEAD_BYTES)
+#else
+#define ETHAPP_VIRTNETIF_MBX_SIZE               (ETHAPP_VIRTNETIF_MBX_MSGSIZE * \
+                                                 ETHAPP_VIRTNETIF_MBX_MSGCOUNT)
+#endif
+
 typedef struct CpswRemoteApp_VirtNetifObj_s
 {
     /* Virtual network interface data */
@@ -254,15 +263,6 @@ typedef struct CpswRemoteApp_VirtNetifObj_s
     uint8_t mbxBuf[ETHAPP_VIRTNETIF_MBX_SIZE] __attribute__ ((aligned(32)));
 #endif
 } CpswRemoteApp_VirtNetifObj;
-
-typedef struct CpswRemoteApp_HwRecoveryMsg_s
-{
-    /* Virtual network interface data */
-    CpswRemoteApp_VirtNetif *virtNetif;
-
-    /* Notify type */
-    uint32_t notifyType;
-} CpswRemoteApp_HwRecoveryMsg;
 
 /* Link status on these ports will be used to determine link up on virtual switch port */
 static Enet_MacPort gRemoteAppMacPorts[] =
