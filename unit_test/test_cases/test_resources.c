@@ -160,7 +160,7 @@ void EthFwUT_allocTxCmdTest1(void)
                                 res.txPsilDstId);
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -188,7 +188,7 @@ void EthFwUT_allocTxCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
@@ -224,7 +224,7 @@ void EthFwUT_freeTxCmdTest1(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -252,7 +252,7 @@ void EthFwUT_freeTxCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
@@ -285,7 +285,7 @@ void EthFwUT_allocRxCmdTest1(void)
                                   res.rxFlowIdxOffset);
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -325,7 +325,7 @@ void EthFwUT_freeRxCmdTest1(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -354,7 +354,7 @@ void EthFwUT_allocRxCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
@@ -383,7 +383,7 @@ void EthFwUT_freeRxCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
@@ -414,7 +414,7 @@ void EthFwUT_allocMacCmdTest1(void)
                                res.macAddr);
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -448,7 +448,7 @@ void EthFwUT_freeMacCmdTest1(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -512,7 +512,7 @@ err_alloc:
                                   rxFlowIdOffset);
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -544,7 +544,7 @@ void EthFwUT_registerMacCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
@@ -606,7 +606,7 @@ err_alloc:
                                   rxFlowIdOffset);
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -638,7 +638,7 @@ void EthFwUT_unregisterMacCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
@@ -689,7 +689,7 @@ err_setdef:
                                   rxFlowIdOffset);
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -719,7 +719,7 @@ void EthFwUT_registerDefaultRxFlowCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();
@@ -769,7 +769,7 @@ err_setdef:
                                   rxFlowIdOffset);
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
 end:
     if (status == CPSWPROXY_SOK)
@@ -799,7 +799,7 @@ void EthFwUT_unregisterDefaultRxFlowCmdNegTest(void)
                                &res.hdr, sizeof(res));
 
     /* Detach the client. */
-    //EthFwUT_TestDetach();
+    EthFwUT_TestDetach();
 
     if (status != CPSWPROXY_SOK)
         TEST_PASS();

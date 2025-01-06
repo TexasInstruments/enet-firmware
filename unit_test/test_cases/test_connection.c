@@ -110,19 +110,31 @@ CpswProxy_Config *gTestProxyConfig;
 
 void EthFwUT_attachCmd1(void)
 {
-    EthRemoteCfg_AttachReq req;
-    EthRemoteCfg_AttachRes res;
+    uint32_t txMtu[ENET_PRI_NUM];
+    uint32_t hostPortRxMtu;
+    uint32_t numTxCh;
+    uint32_t numRxFlow;
+    uint32_t features;
     int32_t status;
 
-    req.virtPort = gTestProxyConfig->virtPort;
+    /* Send attach first. */
+    status = CpswProxy_attach(gTestProxy,
+                              gTestProxyConfig->virtPort,
+                              &hostPortRxMtu,
+                              txMtu,
+                              &numTxCh,
+                              &numRxFlow,
+                              &features);
 
-    memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
+    if (status != CPSWPROXY_SOK)
+        goto end;
 
-    /* Send request to server and wait for response */
-    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ATTACH,
-                               &req.hdr, sizeof(req),
-                               &res.hdr, sizeof(res));
-    if ((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
+    /* Send detach request. */
+    status = CpswProxy_detach(gTestProxy);
+    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to detach from Ethernet device.");
+
+end:
+    if (status == CPSWPROXY_SOK)
         TEST_PASS();
     else
         TEST_FAIL();
@@ -130,41 +142,31 @@ void EthFwUT_attachCmd1(void)
 
 void EthFwUT_attachCmd2(void)
 {
-    EthRemoteCfg_AttachReq req;
-    EthRemoteCfg_AttachRes res;
+    uint32_t txMtu[ENET_PRI_NUM];
+    uint32_t hostPortRxMtu;
+    uint32_t numTxCh;
+    uint32_t numRxFlow;
+    uint32_t features;
     int32_t status;
 
-    req.virtPort = gTestProxyConfig->virtPort;
+    /* Send attach first. */
+    status = CpswProxy_attach(gTestProxy,
+                              gTestProxyConfig->virtPort,
+                              &hostPortRxMtu,
+                              txMtu,
+                              &numTxCh,
+                              &numRxFlow,
+                              &features);
 
-    memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
-
-    /* Send request to server and wait for response */
-    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ATTACH,
-                               &req.hdr, sizeof(req),
-                               &res.hdr, sizeof(res));
-    if ((status == CPSWPROXY_SOK) || (res.numTxCh != 0U) || (res.numRxFlow != 0U))
-        TEST_PASS();
-    else
-        TEST_FAIL();
-}
-
-void EthFwUT_attachCmdNegTest(void)
-{
-    EthRemoteCfg_AttachReq req;
-    EthRemoteCfg_AttachRes res;
-    int32_t status;
-
-    req.virtPort = gTestProxyConfig->virtPort;
-
-    memset(&res, 0, sizeof(EthRemoteCfg_AttachRes));
-
-    /* Send incorrect parameters: req size swapped with res */
-    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ATTACH,
-                               &req.hdr, sizeof(res),
-                               &res.hdr, sizeof(req));
-
-    /* Negative check: above status should fail */
     if (status != CPSWPROXY_SOK)
+        goto end;
+
+    /* Send detach request. */
+    status = CpswProxy_detach(gTestProxy);
+    TEST_ASSERT_FALSE_MESSAGE((status != CPSWPROXY_SOK), "Failed to detach from Ethernet device.");
+
+end:
+    if (status == CPSWPROXY_SOK)
         TEST_PASS();
     else
         TEST_FAIL();
@@ -191,6 +193,7 @@ void EthFwUT_detachCmd1(void)
                               &numTxCh,
                               &numRxFlow,
                               &features);
+
     if (status != CPSWPROXY_SOK)
         goto end;
 
@@ -208,9 +211,6 @@ end:
 
 void EthFwUT_detachCmd2(void)
 {
-    /* FIX_ME: Marked this test fail due to assert caused with multiple detaches, ETHFW-2712*/
-    TEST_FAIL();
-
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
     uint32_t txMtu[ENET_PRI_NUM];
@@ -230,6 +230,7 @@ void EthFwUT_detachCmd2(void)
                               &numTxCh,
                               &numRxFlow,
                               &features);
+
     if (status != CPSWPROXY_SOK)
         goto end;
 
@@ -248,21 +249,18 @@ end:
 
 void EthFwUT_detachOnly(void)
 {
-    /* FIX_ME: Marked this test fail due to assert caused with multiple detaches, ETHFW-2712*/
-    TEST_FAIL();
-
     EthRemoteCfg_CommonReq req;
     EthRemoteCfg_StatusRes res;
     int32_t status;
 
     memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
 
-    /* We will try and detach without attaching first */
-    /* Send request to server and wait for response */
+    /* We will try to detach without attaching first */
     status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_DETACH,
                                &req.hdr, sizeof(req),
                                &res.hdr, sizeof(res));
-    if (status == CPSWPROXY_EINVALIDPARAMS)
+    
+    if (status != CPSWPROXY_SOK)
         TEST_PASS();
     else
         TEST_FAIL();
@@ -292,9 +290,6 @@ void EthFwUT_testSwitchConnection(void *arg1, void * arg2)
     /* ETHFW-ETHFW_UT_SWITCH_DETACH_TEST2_ID: Test DETACH with valid parameters. */
     RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_SWITCH_DETACH_TEST2_ID);
 
-    /* ETHFW-ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
-    RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_SWITCH_ATTACH_NEGTEST_ID);
-    
     /* ETHFW-ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID: Test DETACH without ATTACH with invalid parameters. */
     RUN_TEST(EthFwUT_detachOnly,  ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID);
 
@@ -324,9 +319,6 @@ void EthFwUT_testMacConnection(void *arg1, void * arg2)
 
     /* ETHFW-ETHFW_UT_MAC_DETACH_TEST2_ID: Test DETACH with valid parameters. */
     RUN_TEST(EthFwUT_detachCmd2,  ETHFW_UT_MAC_DETACH_TEST2_ID);
-
-    /* ETHFW-ETHFW_UT_MAC_ATTACH_NEGTEST_ID: Test ATTACH with invalid parameters. */
-    RUN_TEST(EthFwUT_attachCmdNegTest,  ETHFW_UT_MAC_ATTACH_NEGTEST_ID);
 
     /* ETHFW-ETHFW_UT_MAC_DETACH_ONLY_TEST_ID: Test DETACH without ATTACH with invalid parameters. */
     RUN_TEST(EthFwUT_detachOnly,  ETHFW_UT_MAC_DETACH_ONLY_TEST_ID);

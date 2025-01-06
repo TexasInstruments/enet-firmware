@@ -472,7 +472,6 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
     CpswProxyServer_Obj *hServer = NULL;
     CpswProxyServer_ClientHandle hClient = NULL;
     int32_t status = ETHREMOTECFG_SOK;
-    bool isAvailable = BFALSE;
     uint32_t i;
 
     status = CpswProxyServer_getHandle(&hServer);
@@ -483,15 +482,8 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
     for (i = 0U; i < ENET_ARRAYSIZE(hServer->coreObj[remoteProcId].clientObj); i++)
     {
         hClient = &hServer->coreObj[remoteProcId].clientObj[i];
-        if ((hClient->inUse) && (hClient->virtPort == virtPort))
+        if (!hClient->inUse)
         {
-            isAvailable = BTRUE;
-            ETHFWTRACE_WARN("client has already been allocated");
-            break;
-        }
-        else if (!hClient->inUse)
-        {
-            isAvailable = BTRUE;
             hClient->inUse = BTRUE;
             hClient->virtPort  = virtPort;
             hClient->token = ETHREMOTECFG_TOKEN_NONE;
@@ -502,13 +494,16 @@ static CpswProxyServer_ClientHandle CpswProxyServer_allocClient(uint32_t remoteP
 #endif
             break;
         }
+        else
+        {
+            hClient = NULL;
+        }
     }
 
     EthFwOsal_unlockMutex(hServer->hMutex);
 
-    if(!isAvailable)
+    if (hClient == NULL)
     {
-        hClient = NULL;
         ETHFWTRACE_ERR(ETHREMOTECFG_EALLOC, "Failed to allocate client");
     }
 
@@ -1106,8 +1101,6 @@ static int32_t CpswProxyServer_detachHandlerCb(CpswProxyServer_ClientHandle hCli
             {
                 EnetMcm_coreDetach(hServer->hMcmCmdIf, hostId, coreKey);
             }
-
-            EnetMcm_releaseHandleInfo(hServer->hMcmCmdIf);
         }
         else
         {
