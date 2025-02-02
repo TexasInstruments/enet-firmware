@@ -279,7 +279,11 @@
 #define ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX   (0U)
 #define ETHAPP_NETIF_IC_MCU2_0_A72_IDX      (1U)
 #define ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX   (2U)
-#define ETHAPP_NETIF_IC_MAX_IDX             (3U)
+
+#define ETHAPP_NETIF_IC_MCU2_1_A72_IDX      (0U)
+#define ETHAPP_NETIF_IC_MCU2_1_MCU3_0_IDX   (1U)
+
+#define ETHAPP_NETIF_IC_MAX_IDX             (5U)
 
 /* Max length of shared mcast address list */
 #define ETHAPP_MAX_SHARED_MCAST_ADDR        (8U)
@@ -716,6 +720,34 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_AUTOSAR),
     },
+    #if defined (ETHFW_RTOS_MCU2_1_SERVER)
+    {
+        /* Virtual switch port for Ethfw, using ETHREMOTECFG_SWITCH_PORT_LAST */
+        .remoteCoreId  = IPC_MCU2_1,
+        .portId        = ETHREMOTECFG_SWITCH_PORT_LAST,
+        /*
+         * When running the demo app, we require two Tx channels one for gPTP and one for EST
+         * and the allocation happens in order, hence gPTP gets 7th channel first and then EST
+         * gets the 6th channel */
+#if defined(ETHFW_EST_DEMO_SUPPORT) || defined(ETHFW_DEMO_SUPPORT)
+        .numTxCh       = 3U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_0,
+                            [1] = ENET_RM_TX_CH_7,
+                            [2] = ENET_RM_TX_CH_6
+                         },
+#else
+        .numTxCh       = 2U,
+        .txCh          = {
+                            [0] = ENET_RM_TX_CH_0,
+                            [1] = ENET_RM_TX_CH_6
+                         },
+#endif
+        .numRxFlow     = 5U,
+        .numMacAddress = 1U,
+        .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_NONE),
+    },
+    #else
     {
         /* Virtual switch port for Ethfw, using ETHREMOTECFG_SWITCH_PORT_LAST */
         .remoteCoreId  = IPC_MCU2_0,
@@ -742,6 +774,8 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_NONE),
     },
+    #endif
+
 #if defined (ETHFW_RTOS_MCU3_0)
     {
         /* SWITCH_PORT_1 is used for RTOS on mcu3_0 */
@@ -857,7 +891,7 @@ static uint8_t gEthAppCntrlBuf[ETHAPP_IPC_DATA_SIZE] __attribute__ ((section("ip
 
 static uint8_t gEthAppVringMemBuf[ETHAPP_IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
-#if defined (ETHFW_RTOS_MCU3_0)
+#if defined (ETHFW_RTOS_MCU3_0) || defined(ETHFW_RTOS_MCU2_1_SERVER)
 static uint32_t gEthAppRemoteProc[] =
 {
 #if defined(SOC_J721E)
@@ -901,6 +935,19 @@ static struct netif netif;
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
 static struct netif netif_ic[ETHAPP_NETIF_IC_MAX_IDX];
 
+#if defined (ETHFW_RTOS_MCU2_1_SERVER)
+static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
+{
+    IC_ETH_IF_MCU2_0_MCU2_1,
+    IC_ETH_IF_MCU2_1_MCU2_0,
+    IC_ETH_IF_MCU2_0_A72,
+    IC_ETH_IF_MCU2_0_MCU3_0,
+    IC_ETH_IF_MCU3_0_MCU2_0,
+    IC_ETH_IF_MCU2_1_A72,
+    IC_ETH_IF_MCU2_1_MCU3_0,
+    IC_ETH_IF_MCU3_0_MCU2_1
+};
+#else
 static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
 {
     IC_ETH_IF_MCU2_0_MCU2_1,
@@ -909,6 +956,7 @@ static uint32_t netif_ic_state[IC_ETH_MAX_VIRTUAL_IF] =
     IC_ETH_IF_MCU2_0_MCU3_0,
     IC_ETH_IF_MCU3_0_MCU2_0
 };
+#endif
 
 static struct netif netif_bridge;
 bridgeif_initdata_t bridge_initdata;
@@ -1622,22 +1670,37 @@ static void EthApp_initNetif(void)
     NETIF_SET_CHECKSUM_CTRL(pNetif, chksumFlags);
 #endif
 
-#if defined (ETHFW_RTOS_MCU3_0)
-    /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU3_0 */
-    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX], NULL, NULL, NULL,
-              (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_MCU3_0],
+#if defined (ETHFW_RTOS_MCU2_1_SERVER)
+    /* Create inter-core virtual ethernet interface: MCU2_1 <-> MCU3_0 */
+    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_1_MCU3_0_IDX], NULL, NULL, NULL,
+              (void*)&netif_ic_state[IC_ETH_IF_MCU2_1_MCU3_0],
               LWIPIF_LWIP_IC_init, tcpip_input);
 #else
-    /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU2_1 */
-    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], NULL, NULL, NULL,
-              (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_MCU2_1],
-              LWIPIF_LWIP_IC_init, tcpip_input);
+
+    #if defined (ETHFW_RTOS_MCU3_0)
+        /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU3_0 */
+        netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX], NULL, NULL, NULL,
+                (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_MCU3_0],
+                LWIPIF_LWIP_IC_init, tcpip_input);
+    #else
+        /* Create inter-core virtual ethernet interface: MCU2_0 <-> MCU2_1 */
+        netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], NULL, NULL, NULL,
+                (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_MCU2_1],
+                LWIPIF_LWIP_IC_init, tcpip_input);
+    #endif
 #endif
 
+#if defined (ETHFW_RTOS_MCU2_1_SERVER)
+    /* Create inter-core virtual ethernet interface: MCU2_1 <-> A72 */
+    netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_1_A72_IDX], NULL, NULL, NULL,
+              (void*)&netif_ic_state[IC_ETH_IF_MCU2_1_A72],
+              LWIPIF_LWIP_IC_init, tcpip_input);
+#else
     /* Create inter-core virtual ethernet interface: MCU2_0 <-> A72 */
     netif_add(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX], NULL, NULL, NULL,
               (void*)&netif_ic_state[IC_ETH_IF_MCU2_0_A72],
               LWIPIF_LWIP_IC_init, tcpip_input);
+#endif
 
     /* Create bridge interface */
     bridge_initdata.max_ports = ETHAPP_LWIP_BRIDGE_MAX_PORTS;
@@ -1654,17 +1717,28 @@ static void EthApp_initNetif(void)
 
     /* Add all netifs to the bridge and create coreId to bridge portId map */
     bridgeif_add_port(&netif_bridge, pNetif);
-    gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = ETHAPP_BRIDGEIF_CPU_PORT_ID;
 
-#if defined (ETHFW_RTOS_MCU3_0)
-    bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX]);
-    gEthApp_lwipBridgePortIdMap[IPC_MCU3_0] = ETHAPP_BRIDGEIF_PORT3_ID;
-#else
-    bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX]);
-    gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = ETHAPP_BRIDGEIF_PORT1_ID;
-#endif
+    #if defined (ETHFW_RTOS_MCU2_1_SERVER)
+        gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = ETHAPP_BRIDGEIF_CPU_PORT_ID;
+    #else
+        gEthApp_lwipBridgePortIdMap[IPC_MCU2_0] = ETHAPP_BRIDGEIF_CPU_PORT_ID;
+    #endif
 
-    bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX]);
+    #if defined (ETHFW_RTOS_MCU2_1_SERVER)
+        bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_1_MCU3_0_IDX]);
+        gEthApp_lwipBridgePortIdMap[IPC_MCU3_0] = ETHAPP_BRIDGEIF_PORT3_ID;
+        bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_1_A72_IDX]);
+    #else
+        #if defined (ETHFW_RTOS_MCU3_0)
+            bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX]);
+            gEthApp_lwipBridgePortIdMap[IPC_MCU3_0] = ETHAPP_BRIDGEIF_PORT3_ID;
+        #else
+            bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX]);
+            gEthApp_lwipBridgePortIdMap[IPC_MCU2_1] = ETHAPP_BRIDGEIF_PORT1_ID;
+        #endif
+        bridgeif_add_port(&netif_bridge, &netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX]);
+    #endif
+
     gEthApp_lwipBridgePortIdMap[IPC_MPU1_0] = ETHAPP_BRIDGEIF_PORT2_ID;
 
     /* Set bridge interface as the default */
@@ -1672,12 +1746,19 @@ static void EthApp_initNetif(void)
 
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
     NETIF_SET_CHECKSUM_CTRL(&netif_bridge, chksumFlags);
-#if defined (ETHFW_RTOS_MCU3_0)
-    NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX], chksumFlags);
-#else
-    NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], chksumFlags);
-#endif
-    NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX], chksumFlags);
+
+    #if defined (ETHFW_RTOS_MCU2_1_SERVER)
+            NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_1_MCU3_0_IDX], chksumFlags);
+            NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_1_A72_IDX], chksumFlags);
+
+    #else
+        #if defined (ETHFW_RTOS_MCU3_0)
+            NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX], chksumFlags);
+        #else
+            NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX], chksumFlags);
+        #endif
+            NETIF_SET_CHECKSUM_CTRL(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX], chksumFlags);
+    #endif
 #endif
 #else
     netif_add(pNetif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
@@ -1701,13 +1782,19 @@ static void EthApp_initNetif(void)
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
     netif_set_up(pNetif);
-#if defined (ETHFW_RTOS_MCU3_0)
-    netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX]);
-#else
-    netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX]);
-#endif
-    netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX]);
-    netif_set_up(&netif_bridge);
+    #if defined (ETHFW_RTOS_MCU2_1_SERVER)
+        netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_1_MCU3_0_IDX]);
+        netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_1_A72_IDX]);
+        netif_set_up(&netif_bridge);
+    #else
+        #if defined (ETHFW_RTOS_MCU3_0)
+            netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU3_0_IDX]);
+        #else
+            netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_MCU2_1_IDX]);
+        #endif
+            netif_set_up(&netif_ic[ETHAPP_NETIF_IC_MCU2_0_A72_IDX]);
+            netif_set_up(&netif_bridge);
+    #endif
 #else
     netif_set_up(netif_default);
 #endif

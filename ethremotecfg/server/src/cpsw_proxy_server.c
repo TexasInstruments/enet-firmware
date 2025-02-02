@@ -2371,7 +2371,7 @@ static int32_t CpswProxyServer_registerRemoteTimerHandlerCb(CpswProxyServer_Clie
     ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
     CPSWPROXY_ERR_CHECK((hClient != NULL), status, ETHREMOTECFG_EFAIL);
 
-    if (hwPushNum >= CPSW_CPTS_HWPUSH_COUNT_MAX)
+    if (hwPushNum > CPSW_CPTS_HWPUSH_COUNT_MAX)
     {
         status = ENET_EBADARGS;
         ETHFWTRACE_ERR(status, "Invalid HW push num %u", hwPushNum);
@@ -2724,8 +2724,13 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
         hServer->initDone = BTRUE;
     }
 
+    #if defined(ETHFW_RTOS_MCU2_1_SERVER)
+    ETHFWTRACE_INFO("CpswProxyServer: initialization %s (core: mcu2_1)",
+                    (status == ETHFW_SOK) ? "completed" : "failed");
+    #else
     ETHFWTRACE_INFO("CpswProxyServer: initialization %s (core: mcu2_0)",
                     (status == ETHFW_SOK) ? "completed" : "failed");
+    #endif
 
     return status;
 }

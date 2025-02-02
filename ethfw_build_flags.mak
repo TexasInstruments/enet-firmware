@@ -20,6 +20,7 @@ BUILD_CPU_C6x_2?=no
 BUILD_CPU_C7x_1?=no
 BUILD_CPU_MCU1_1?=no
 BUILD_CPU_MCU2_1?=yes
+BUILD_CPU_MCU2_1_SERVER?=no
 BUILD_CPU_MCU3_1?=no
 BUILD_SOC_LIST ?= J721E J7200 J784S4 J742S2
 export BUILD_SOC_LIST
@@ -37,7 +38,7 @@ TREAT_WARNINGS_AS_ERROR ?= 1
 BUILD_R5F_THUMB?=yes
 
 # Build a specific CPU type's based on CPU flags status defined above
-ifneq (,$(filter yes,$(BUILD_CPU_MCU1_0) $(BUILD_CPU_MCU1_1) $(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0) $(BUILD_CPU_MCU3_1)))
+ifneq (,$(filter yes,$(BUILD_CPU_MCU1_0) $(BUILD_CPU_MCU1_1) $(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0) $(BUILD_CPU_MCU3_1) $(BUILD_CPU_MCU2_1_SERVER)))
   ifeq ($(BUILD_R5F_THUMB),yes)
     BUILD_ISA_R5F=no
     BUILD_ISA_R5Ft=yes
@@ -80,13 +81,13 @@ endif
 
 # Proxy ARP handling support
 # Supported Values: yes | no
-ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0)))
+ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1_SERVER)))
   ETHFW_PROXY_ARP_SUPPORT=yes
 endif
 
 # Inter-core virtual ethernet support
 # Supported Values: yes | no
-ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0)))
+ifneq (,$(filter yes,$(BUILD_CPU_MCU2_0) $(BUILD_CPU_MCU2_1) $(BUILD_CPU_MCU3_0) $(BUILD_CPU_MCU2_1_SERVER)))
   ETHFW_INTERCORE_ETH_SUPPORT?=yes
 endif
 
@@ -132,6 +133,14 @@ endif
 
 ifeq ($(ETHFW_RTOS_MCU3_0_SUPPORT),yes)
   BUILD_CPU_MCU2_1=no
+  BUILD_CPU_MCU3_0=yes
+endif
+
+# Build EthFw server for MCU2_1
+ifeq ($(ETHFW_RTOS_MCU2_1_SUPPORT),yes)
+  BUILD_CPU_MCU2_1=no
+  BUILD_CPU_MCU2_0=no
+  BUILD_CPU_MCU2_1_SERVER=yes
   BUILD_CPU_MCU3_0=yes
 endif
 

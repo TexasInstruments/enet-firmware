@@ -25,6 +25,9 @@ endif
 ifeq ($(BUILD_CPU_MCU2_0),yes)
   PDK_CORE_LIST_ALL+=mcu2_0
 endif
+ifeq ($(BUILD_CPU_MCU2_1_SERVER),yes)
+  PDK_CORE_LIST_ALL+=mcu2_1
+endif
 ifeq ($(BUILD_CPU_MCU2_1),yes)
   PDK_CORE_LIST_ALL+=mcu2_1
 endif

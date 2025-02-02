@@ -14,8 +14,14 @@ TARGET_OS_LC        := $(call lowercase,$(TARGET_OS))
 DEFS+=CPU_$(CPU_ID)
 
 # gPTP is supported only in ETHFW R5F core
-ifeq ($(ETHFW_GPTP_SUPPORT),yes)
-  ETHFW_GPTP_BUILD_SUPPORT = $(BUILD_CPU_MCU2_0)
+ifeq ($(ETHFW_RTOS_MCU2_1_SUPPORT),yes)
+    ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+        ETHFW_GPTP_BUILD_SUPPORT = $(BUILD_CPU_MCU2_1_SERVER)
+    endif
+else
+    ifeq ($(ETHFW_GPTP_SUPPORT),yes)
+        ETHFW_GPTP_BUILD_SUPPORT = $(BUILD_CPU_MCU2_0)
+    endif
 endif
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)

@@ -98,6 +98,11 @@ ifeq ($(ETHFW_EST_DEMO_SUPPORT),yes)
   endif
 endif
 
+# To check whether server is running on MCU2_1 or MCU2_0
+ifeq ($(ETHFW_RTOS_MCU2_1_SUPPORT),yes)
+  DEFS += ETHFW_RTOS_MCU2_1_SERVER
+endif
+
 ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT := ${shell cd ${ETHFW_PATH};git rev-parse --short=8 HEAD 2>/dev/null}
 DEFS += ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT="\"${ETHREMOTECFG_ETHSWITCH_VERSION_LAST_COMMIT}\""
 

@@ -251,6 +251,14 @@ ifeq ($(ETHFW_RTOS_MCU3_0_SUPPORT),yes)
   DEFS += ETHFW_RTOS_MCU3_0
 endif
 
+ifeq ($(ETHFW_RTOS_MCU2_1_SERVER),yes)
+  DEFS += ETHFW_RTOS_MCU3_0
+endif
+
+ifeq ($(ETHFW_RTOS_MCU2_1_SUPPORT),yes)
+  DEFS += ETHFW_RTOS_MCU2_1_SERVER
+endif
+
 include $(ETHFW_PATH)/apps/concerto_inc.mak
 
 include $(FINALE)
