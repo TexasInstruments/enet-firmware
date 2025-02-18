@@ -279,7 +279,7 @@ EthFw_Obj gEthFwObj;
 /* EthFw RM: TX channel, RX flow and MAC address partitioning */
 static EnetRm_ResPrms gEthFw_rmResPrms =
 {
-    .coreDmaResInfo =
+    .coreResInfo =
     {
         [0] =
         {
@@ -301,6 +301,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numTxCh       = 0U,
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
+            .numHwPush     = 4U,
         },
         [3] =
         {
@@ -308,6 +309,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numTxCh       = 0U,
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
+            .numHwPush     = 4U,
         },
 #if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
         [4] =
@@ -538,7 +540,7 @@ static int32_t EthFw_getPortConfig(const EthFw_Config *config)
     {
         for (j = 0U; j < ENET_CFG_TX_CHANNELS_NUM; j++)
         {
-            gEthFw_rmResPrms.coreDmaResInfo[i].txCh[j] = ENET_RM_TX_CH_ANY;
+            gEthFw_rmResPrms.coreResInfo[i].txCh[j] = ENET_RM_TX_CH_ANY;
         }
     }
 
@@ -769,13 +771,13 @@ static void EthFw_setTxChRmInfo(uint32_t coreIdx,
     /* Populate the tx channel for individual core from virtual port configuration */
     for (i = 0U; i < ENET_CFG_TX_CHANNELS_NUM; i++)
     {
-        if (gEthFw_rmResPrms.coreDmaResInfo[coreIdx].txCh[i] == ENET_RM_TX_CH_ANY)
+        if (gEthFw_rmResPrms.coreResInfo[coreIdx].txCh[i] == ENET_RM_TX_CH_ANY)
         {
-            gEthFw_rmResPrms.coreDmaResInfo[coreIdx].txCh[i] = gEthFwObj.virtPortCfg[virtPortId].txCh[j];
+            gEthFw_rmResPrms.coreResInfo[coreIdx].txCh[i] = gEthFwObj.virtPortCfg[virtPortId].txCh[j];
             j++;
         }
 
-        /* All the tx channels for this virtual port has been added to coreDmaResInfo */
+        /* All the tx channels for this virtual port has been added to coreResInfo */
         if (j == gEthFwObj.virtPortCfg[virtPortId].numTxCh)
         {
             break;
@@ -790,7 +792,7 @@ static uint32_t EthFw_getCoreDmaResIndex(uint32_t coreId)
     for (coreIdx = 0U; coreIdx < gEthFw_rmResPrms.numCores; coreIdx++)
     {
         /* Find the first entry with the same coreId */
-        if (gEthFw_rmResPrms.coreDmaResInfo[coreIdx].coreId == coreId)
+        if (gEthFw_rmResPrms.coreResInfo[coreIdx].coreId == coreId)
         {
             break;
         }
@@ -816,9 +818,9 @@ static void EthFw_updateEnetRm(void)
     for (i = 0U; i < gEthFwObj.numVirtPorts; i++)
     {
         coreIdx = EthFw_getCoreDmaResIndex(gEthFwObj.virtPortCfg[i].remoteCoreId);
-        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numTxCh       += gEthFwObj.virtPortCfg[i].numTxCh;
-        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numRxFlows    += gEthFwObj.virtPortCfg[i].numRxFlow;
-        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numMacAddress += gEthFwObj.virtPortCfg[i].numMacAddress;
+        gEthFw_rmResPrms.coreResInfo[coreIdx].numTxCh       += gEthFwObj.virtPortCfg[i].numTxCh;
+        gEthFw_rmResPrms.coreResInfo[coreIdx].numRxFlows    += gEthFwObj.virtPortCfg[i].numRxFlow;
+        gEthFw_rmResPrms.coreResInfo[coreIdx].numMacAddress += gEthFwObj.virtPortCfg[i].numMacAddress;
         EthFw_setTxChRmInfo(coreIdx, i);
     }
 
@@ -828,7 +830,7 @@ static void EthFw_updateEnetRm(void)
     /* Compute the MAC address pool size for the virtual port allocation */
     for (i = 0U; i < rmPrms->numCores; i++)
     {
-        req += rmPrms->coreDmaResInfo[i].numMacAddress;
+        req += rmPrms->coreResInfo[i].numMacAddress;
     }
 
     /* Limit pool size to the size of MAC address array */
@@ -1202,9 +1204,9 @@ void EthFw_deinit(EthFw_Handle hEthFw)
     for ( i = 0U; i < gEthFwObj.numVirtPorts; i++)
     {
         coreIdx = EthFw_getCoreDmaResIndex(gEthFwObj.virtPortCfg[i].remoteCoreId);
-        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numTxCh       = 0U;
-        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numRxFlows    = 0U;
-        gEthFw_rmResPrms.coreDmaResInfo[coreIdx].numMacAddress = 0U;
+        gEthFw_rmResPrms.coreResInfo[coreIdx].numTxCh       = 0U;
+        gEthFw_rmResPrms.coreResInfo[coreIdx].numRxFlows    = 0U;
+        gEthFw_rmResPrms.coreResInfo[coreIdx].numMacAddress = 0U;
     }
 }
 
