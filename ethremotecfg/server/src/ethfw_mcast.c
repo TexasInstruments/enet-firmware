@@ -92,6 +92,29 @@ typedef struct EthFwMcast_SharedMcastTable_s
     uint32_t len;
 } EthFwMcast_SharedMcastTable;
 
+/* Exclusive multicast info */
+typedef struct EthFwMcast_ExclusiveMcastInfo_s
+{
+    /* Multicast address */
+    uint8_t macAddr[ENET_MAC_ADDR_LEN];
+
+    /* Virtual port */
+    uint32_t virtPort;
+
+    /* Reference count */
+    uint32_t refCnt;
+
+    /* Whether this entry is free or not */
+    bool isFree;
+} EthFwMcast_ExclusiveMcastInfo;
+
+/* Exclusive multicast table */
+typedef struct EthFwMcast_ExclusiveMcastTable_s
+{
+    /* Exclusive multicast info table */
+    EthFwMcast_ExclusiveMcastInfo table[ETHFW_EXCLUSIVE_MCAST_LIST_LEN];
+} EthFwMcast_ExclusiveMcastTable;
+
 /* Reserved multicast table */
 typedef struct EthFwMcast_RsvdMcastTable_s
 {
@@ -110,6 +133,9 @@ typedef struct EthFwMcast_Obj_s
 
     /* Reserved multicast table */
     EthFwMcast_RsvdMcastTable rsvdMcastTable;
+
+    /* Exclusive multicast table */
+    EthFwMcast_ExclusiveMcastTable exclusiveMcastTable;
 
     /* Callback to notify addition of mcast address to filter */
     EthFwMcast_FilterAddMacSharedCb filterAddMacSharedCb;
@@ -159,6 +185,9 @@ static int32_t EthFwMcast_filterDelMacExcl(EthRemoteCfg_VirtPort virtPort,
                                            Enet_Handle hEnet,
                                            const uint8_t *macAddr);
 
+static EthFwMcast_ExclusiveMcastInfo *EthFwMcast_getExclusiveMcastInfo(const uint8_t *macAddr,
+                                                                       uint16_t vlanId);
+
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
@@ -175,6 +204,7 @@ int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
                         uint32_t macOnlyPortMask)
 {
     int32_t status = ETHFW_EFAIL;
+    uint32_t i = 0U;
 
     memset(&gEthFwMcastObj, 0, sizeof(gEthFwMcastObj));
 
@@ -195,6 +225,11 @@ int32_t EthFwMcast_init(const EthFwMcast_Cfg *cfg,
         gEthFwMcastObj.macOnlyPortMask = macOnlyPortMask;
     }
 
+    for (i = 0U; i < ETHFW_EXCLUSIVE_MCAST_LIST_LEN; i++)
+    {
+        gEthFwMcastObj.exclusiveMcastTable.table[i].isFree = BTRUE;
+    }
+
     return status;
 }
 
@@ -212,6 +247,7 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
                                 uint8_t hostId)
 {
     EthFwMcast_SharedMcastInfo *mcastInfo;
+    EthFwMcast_ExclusiveMcastInfo *exclusiveMcastInfo;
 #if defined(ETHFW_VEPA_SUPPORT)
     struct eth_addr hwAddr;
 #endif
@@ -241,8 +277,26 @@ int32_t EthFwMcast_filterAddMac(EthRemoteCfg_VirtPort virtPort,
         }
         else
         {
-            status = EthFwMcast_filterAddMacExcl(virtPort, hEnet, macAddr, flowIdxOffset);
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to add exclusive mcast address");
+            exclusiveMcastInfo = EthFwMcast_getExclusiveMcastInfo(macAddr, vlanId);
+            /* Some virtual port has registered with this exclusive multicast address */
+            if (exclusiveMcastInfo != NULL)
+            {
+                if (exclusiveMcastInfo->virtPort == virtPort)
+                {
+                    exclusiveMcastInfo->refCnt++;
+                }
+                /* Exclusive multicast already registered by other client */
+                else
+                {
+                    status = ETHFW_EFAIL;
+                    ETHFWTRACE_ERR(status, "Exclusive multicast already registered by other client");
+                }
+            }
+            else
+            {
+                status = EthFwMcast_filterAddMacExcl(virtPort, hEnet, macAddr, flowIdxOffset);
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to add exclusive mcast address");   
+            }
         }
     }
     else
@@ -269,6 +323,7 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
                                 uint8_t hostId)
 {
     EthFwMcast_SharedMcastInfo *mcastInfo;
+    EthFwMcast_ExclusiveMcastInfo *exclusiveMcastInfo;
 #if defined(ETHFW_VEPA_SUPPORT)
     struct eth_addr hwAddr;
 #endif
@@ -299,9 +354,42 @@ int32_t EthFwMcast_filterDelMac(EthRemoteCfg_VirtPort virtPort,
         }
         else
         {
-            status = EthFwMcast_filterDelMacExcl(virtPort, hEnet, macAddr);
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                               "Failed to delete exclusive mcast address");
+            exclusiveMcastInfo = EthFwMcast_getExclusiveMcastInfo(macAddr, vlanId);
+            /* Some virtual port has registered with this exclusive multicast address */
+            if ((exclusiveMcastInfo != NULL) && 
+                (exclusiveMcastInfo->virtPort == virtPort))
+            {
+                if (exclusiveMcastInfo->refCnt > 1U)
+                {
+                    exclusiveMcastInfo->refCnt--;
+                }
+                else if (exclusiveMcastInfo->refCnt == 1U)
+                {
+                    exclusiveMcastInfo->refCnt--;
+                    status = EthFwMcast_filterDelMacExcl(virtPort, hEnet, macAddr);
+                    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                    "Failed to delete exclusive mcast address");
+                    if (status == ETHFW_SOK)
+                    {
+                        exclusiveMcastInfo->isFree = BTRUE;
+                        exclusiveMcastInfo->refCnt = 0U;
+                    }
+                    else
+                    {
+                        /* Failed to delete exclusive multicast address, hence putting back the ref count to 1 */
+                        exclusiveMcastInfo->refCnt = 1U;
+                    }
+                }
+                else
+                {
+                    ETHFWTRACE_ERR(status, "Negative reference count failed to delete exclusive mcast address");
+                }
+            }
+            else
+            {
+                status = ETHFW_EFAIL;
+                ETHFWTRACE_ERR(status, "Failed to delete exclusive mcast address, not found");
+            }
         }
     }
     else
@@ -482,7 +570,29 @@ static EthFwMcast_SharedMcastInfo *EthFwMcast_getSharedMcastInfo(const uint8_t *
         }
     }
 
-    return found ? entry : NULL;
+    return (found ? entry : NULL);
+}
+
+static EthFwMcast_ExclusiveMcastInfo *EthFwMcast_getExclusiveMcastInfo(const uint8_t *macAddr,
+                                                                       uint16_t vlanId)
+{
+    EthFwMcast_ExclusiveMcastInfo *entry = NULL;
+    bool found = BFALSE;
+    uint32_t i;
+
+    for (i = 0U; i < ETHFW_EXCLUSIVE_MCAST_LIST_LEN; i++)
+    {
+        entry = &gEthFwMcastObj.exclusiveMcastTable.table[i];
+
+        if ((entry->isFree == BFALSE) && 
+            (EnetUtils_cmpMacAddr(&entry->macAddr[0U], macAddr)))
+        {
+            found = BTRUE;
+            break;
+        }
+    }
+
+    return (found ? entry : NULL);
 }
 
 static int32_t EthFwMcast_filterAddMacShared(EthRemoteCfg_VirtPort virtPort,
@@ -609,6 +719,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
     uint32_t aleSwitchPortMask = gEthFwMcastObj.switchPortMask << 1U;
     uint32_t aleEntry;
     int32_t status = ETHFW_EFAIL;
+    uint32_t i = 0U;
 
     /* Lookup for multicast address (irrespective of VLAN) */
     lookupInArgs.addr.vlanId = 0U;
@@ -633,6 +744,27 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
     else
     {
         ETHFWTRACE_ERR(status, "Failed to lookup mcast entry");
+    }
+
+    if (status == ETHFW_SOK)
+    {
+        for (i = 0U; i < ETHFW_EXCLUSIVE_MCAST_LIST_LEN; i++)
+        {
+            if(gEthFwMcastObj.exclusiveMcastTable.table[i].isFree)
+            {
+                gEthFwMcastObj.exclusiveMcastTable.table[i].isFree = BFALSE;
+                gEthFwMcastObj.exclusiveMcastTable.table[i].refCnt = 1;
+                gEthFwMcastObj.exclusiveMcastTable.table[i].virtPort = virtPort;
+                EnetUtils_copyMacAddr(&gEthFwMcastObj.exclusiveMcastTable.table[i].macAddr[0U], macAddr);
+                break;
+            }
+        }
+        /* Exclusive multicast table full, increase the size of ETHFW_EXCLUSIVE_MCAST_LIST_LEN */
+        if (i == ETHFW_EXCLUSIVE_MCAST_LIST_LEN)
+        {
+            status = ETHFW_EALLOC;
+            ETHFWTRACE_ERR(status, "Error, exclusive multicast table full");
+        }
     }
 
     /* Add multicast entry in ALE */

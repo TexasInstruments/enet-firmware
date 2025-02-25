@@ -67,6 +67,9 @@ extern "C" {
 /*! Size of reserved multicast address table */
 #define ETHFW_RSVD_MCAST_LIST_LEN         (4U)
 
+/*! Size of Exclusive multicast address table */
+#define ETHFW_EXCLUSIVE_MCAST_LIST_LEN       (32U)
+
 /* ========================================================================== */
 /*                         Structures and Enums                               */
 /* ========================================================================== */
