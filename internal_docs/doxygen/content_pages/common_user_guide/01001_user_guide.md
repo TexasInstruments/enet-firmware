@@ -1422,6 +1422,14 @@ VLAN MV entry from VEPA table and ALE entry for M.
 ##### Non-VEPA or VEPA case:
 We are stopping multiple clients to join same exclusive multicast
 address M irrespective of VLAN.
+In case when the same client registers M in a different VLAN,
+we are allowing the same client to register M with different VLANs.
+It is worth noting that M can be registered with different VLAN V1 and V2
+by same client C1 only, if another client C2 tries to register M with V3
+(totally different VLAN) then that request will result an error.
+But this will allow MV^ go same client C1, where V^ is registered
+VLAN by any client (need not same), unknown VLAN will be dropped.
+
 
 For more information about VLAN configuration, please refer to the
 [VLAN API Guide](../api_guide/group__ETHFW__SERVER__VLAN.html).
