@@ -11,11 +11,11 @@
 
 --fill_value=0
 --stack_size=0x8000
---heap_size=0x3E800
+--heap_size=0x10000
 --entry_point=_freertosresetvectors
 
 -stack  0x8000  /* SOFTWARE STACK SIZE */
--heap   0x3E800 /* HEAP AREA SIZE      */
+-heap   0x10000 /* HEAP AREA SIZE      */
 
 /*-------------------------------------------*/
 /*       Stack Sizes for various modes       */
@@ -28,7 +28,7 @@ __SVC_STACK_SIZE   = 0x0100;
 
 SECTIONS
 {
-    .freertosrstvectors : {} palign(8)      > R5F_TCMA
+    .freertosrstvectors : {} palign(8)      > _VEC
     
     .bootCode           : {} palign(8)      > R5F_TCMB0
     .startupCode        : {} palign(8)      > R5F_TCMB0
@@ -66,7 +66,11 @@ SECTIONS
 */
      }     > DDR_MCU2_1
 
-    .text               : {} palign(8)      > DDR_MCU2_1
+    .text_rest{
+       _text_rest_begin = .;
+       *(.text)
+       _text_rest_end = .;
+    } palign(32)    >  DDR_MCU2_1
 
     .const              : {} palign(8)      > DDR_MCU2_1
     .rodata             : {} palign(8)      > DDR_MCU2_1
@@ -75,10 +79,10 @@ SECTIONS
     .bss                : {} align(4)       > DDR_MCU2_1
     .far                : {} align(4)       > DDR_MCU2_1
     .data               : {} palign(128)    > DDR_MCU2_1
-    .sysmem             : {} align(8)       > DDR_MCU2_1
+    .sysmem             : {}                > DDR_MCU2_1
     .data_buffer        : {} palign(128)    > DDR_MCU2_1
-    .bss.devgroup       : {*(.bss.devgroup*)} align(4)   > DDR_MCU2_1
-    .const.devgroup     : {*(.const.devgroup*)} align(4) > DDR_MCU2_1
+    .bss.devgroup       : { *(.bss.devgroup*) } align(4)   > DDR_MCU2_1
+    .const.devgroup     : { *(.const.devgroup*) } align(4) > DDR_MCU2_1
     .boardcfg_data      : {} align(4)       > DDR_MCU2_1
 
     ipc_data_buffer (NOINIT) : {} palign(128)   > DDR_MCU2_1
@@ -96,9 +100,6 @@ SECTIONS
     .bss:ENET_DMA_RING_MEMPOOL  (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
     .bss:ENET_DMA_PKT_MEMPOOL   (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
     .bss:ENET_DMA_OBJ_MEM       (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
-
-    /* Used in Switch configuration tool */
-    .serialContext     (NOLOAD) {} ALIGN (128) > DDR_MCU2_1
 
     .bss:app_log_mem        (NOLOAD) : {} > APP_LOG_MEM
     .bss:ipc_vring_mem      (NOLOAD) : {} > IPC_VRING_MEM
@@ -126,4 +127,3 @@ SECTIONS
     RUN_START(__SVC_STACK_START)
     RUN_END(__SVC_STACK_END)
 }  /* end of SECTIONS */
-

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019-2023 Texas Instruments Incorporated
+ * Copyright (c) 2019-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -283,7 +283,7 @@
 #define ETHAPP_NETIF_IC_MCU2_1_A72_IDX      (0U)
 #define ETHAPP_NETIF_IC_MCU2_1_MCU3_0_IDX   (1U)
 
-#define ETHAPP_NETIF_IC_MAX_IDX             (5U)
+#define ETHAPP_NETIF_IC_MAX_IDX             (3U)
 
 /* Max length of shared mcast address list */
 #define ETHAPP_MAX_SHARED_MCAST_ADDR        (8U)
@@ -720,7 +720,7 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_AUTOSAR),
     },
-    #if defined (ETHFW_RTOS_MCU2_1_SERVER)
+#if defined (ETHFW_RTOS_MCU2_1_SERVER)
     {
         /* Virtual switch port for Ethfw, using ETHREMOTECFG_SWITCH_PORT_LAST */
         .remoteCoreId  = IPC_MCU2_1,
@@ -747,7 +747,7 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_NONE),
     },
-    #else
+#else
     {
         /* Virtual switch port for Ethfw, using ETHREMOTECFG_SWITCH_PORT_LAST */
         .remoteCoreId  = IPC_MCU2_0,
@@ -774,7 +774,7 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_NONE),
     },
-    #endif
+#endif
 
 #if defined (ETHFW_RTOS_MCU3_0)
     {

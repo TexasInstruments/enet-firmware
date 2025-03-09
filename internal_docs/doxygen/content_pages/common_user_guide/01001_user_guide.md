@@ -92,13 +92,15 @@ of ETHFW to manage and distribute the resources among server and the remote clie
 
 ## Resource Utilization {#ethfw_resource_utilization}
 
-The utilization of these resources by Ethernet Firmware on Main R5F 0 Core 0 is as follows:
+The utilization of these resources by Ethernet Firmware on either the Main R5F 0 Core 0 or the Main R5F 0 Core 1 is as follows:
 
-| Resource    | Count  | EthFw Usage (mcu2_0)
+| Resource    | Count  | EthFw Usage (mcu2_0 OR mcu2_1)
 |:------------|:------:|:-----------------------------------
 | TX channel  |   2    | <ul><li>lwIP netif (1)</li><li>gPTP (1)
 | RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4 and J742S2)</li><li>SW interVLAN (1)</li><li>Reserved flow (1)</li></ul>
 | MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
+
+**Note: Before running Ethernet Firmware on the Main R5F 0 Core 1, make sure that you have allocated the appropriate amount of resources to the core.**
 
 UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
 available.  So, there are 6 TX channels to be shared among the differrent remote client cores
@@ -114,7 +116,7 @@ Linux remote client on A72 core.
 | MAC address |   2    | <ul><li>Virtual switch port (1)</li><li>Virtual MAC port (1)</li></ul>
 
 With Ethernet Firmware's default port configuration, the following resources will be used by
-RTOS remote client on Main R5F 0 Core 1.
+RTOS remote client on Main R5F 0 Core 1. The same remote client will run on Main R5f 1 Core 0 if Ethernet Firmware is running on Main R5F 0 Core 1.
 
 | Resource    | Count  | RTOS Client Usage
 |:------------|:------:|:-----------------------------------
@@ -2599,6 +2601,13 @@ compiler through `PSDK_TOOLS_PATH` variable (by default it's set to `../ethfw`):
 
     make ethfw_all BUILD_SOC_LIST=<SOC> PSDK_TOOLS_PATH=$HOME/ti
 
+The above will generate binary for running ethernet firmware on the Main R5F 0 Core 0.
+To run ethernet firmware on Main R5F 0 Core 1, user must provide an additional
+`ETHFW_RTOS_MCU2_1_SUPPORT` flag.
+
+    make ethfw_all BUILD_SOC_LIST=<SOC> PSDK_TOOLS_PATH=$HOME/ti ETHFW_RTOS_MCU2_1_SUPPORT=yes
+
+**Note: Ethernet Firmware support on the Main R5F 0 Core 1 is provided only for J721E and J784S4 SOCs.**
 
 User can run the following command to get the full list of valid targets:
 

@@ -54,9 +54,7 @@ DEFS += ENABLE_QSGMII_PORTS
 DEFS += ENABLE_MAC_ONLY_PORTS
 
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
-  ifeq ($(TARGET_PLATFORM),J7200)
-    ENET_APPUTILS_LIB = enet_example_utils_$(TARGET_OS_LC)
-  else
+  ifneq ($(TARGET_PLATFORM),J7200)
     ENET_APPUTILS_LIB = enet_example_utils_full_$(TARGET_OS_LC)
   endif
 endif

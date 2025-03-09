@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -181,9 +181,6 @@ EthTestAppObj gEthTestAppObj =
 #if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
     .enetType = ENET_CPSW_9G,
     .instId   = 0U,
-#elif defined(SOC_J7200)
-    .enetType = ENET_CPSW_5G,
-    .instId   = 0U,
 #endif
     .hEthFw = NULL,
     .hUdmaDrv = NULL,
@@ -207,13 +204,6 @@ Enet_MacPort gEthAppPorts[] =
     ENET_MAC_PORT_6, /* QSGMII sub */
     ENET_MAC_PORT_7, /* QSGMII sub */
 #endif
-#endif
-
-#if defined(SOC_J7200)
-    ENET_MAC_PORT_1, /* QSGMII main */
-    ENET_MAC_PORT_2, /* QSGMII sub */
-    ENET_MAC_PORT_3, /* QSGMII sub */
-    ENET_MAC_PORT_4, /* QSGMII sub */
 #endif
 
 #if defined(SOC_J784S4) || defined(SOC_J742S2)
@@ -328,13 +318,6 @@ static int32_t EthApp_boardInit(void)
 #endif
 #if defined(ENABLE_QSGMII_PORTS)
     flags |= ETHFW_BOARD_QENET_ENABLE;
-#endif
-#endif
-
-#if defined(SOC_J7200)
-    flags |= (ETHFW_BOARD_QENET_ENABLE | ETHFW_BOARD_SERDES_CONFIG);
-#if defined(ETHFW_CCS)
-    flags |= (ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_I2C_ALLOWED);
 #endif
 #endif
 
