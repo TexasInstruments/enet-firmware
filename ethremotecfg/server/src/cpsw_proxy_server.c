@@ -2766,6 +2766,63 @@ static int32_t CpswProxyServer_dumpStatsCb(CpswProxyServer_ClientHandle hClient,
     return status;
 }
 
+static int32_t CpswProxyServer_allocHwPushCb(CpswProxyServer_ClientHandle hClient,
+                                             uint32_t hostId,
+                                             uint32_t *hwPushNum)
+{
+    int32_t status = ETHREMOTECFG_SOK;
+    CpswProxyServer_Obj *hServer = NULL;
+    uint32_t coreKey;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
+
+    if (ETHREMOTECFG_SOK == status)
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
+        status = EnetAppUtils_allocHwPushInst(hServer->hEnet,
+                                              coreKey,
+                                              hostId,
+                                              hwPushNum);
+        if (ENET_SOK != status)
+        {
+            ETHFWTRACE_ERR(status, "Failed to alloc HW Push Instance");
+        }
+    }
+
+    return status;
+}
+
+static int32_t CpswProxyServer_freeHwPushCb(CpswProxyServer_ClientHandle hClient,
+                                            uint32_t hostId,
+                                            uint32_t hwPushNum)
+{
+    int32_t status = ETHREMOTECFG_SOK;
+    CpswProxyServer_Obj *hServer = NULL;
+    uint32_t coreKey;
+
+    status = CpswProxyServer_getHandle(&hServer);
+    ETHFWTRACE_ERR_IF((status != ETHREMOTECFG_SOK), status, "Failed to get server handle");
+
+    if (ETHREMOTECFG_SOK == status)
+    {
+        coreKey = hServer->coreObj[hostId].attachInfo.coreKey;
+
+        status = EnetAppUtils_freeHwPushInst(hServer->hEnet,
+                                              coreKey,
+                                              hostId,
+                                              hwPushNum);
+        if (ENET_SOK != status)
+        {
+            ETHFWTRACE_ERR(status, "Failed to free HW Push Instance");
+        }
+    }
+
+    return status;
+}
+
+
 static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle,
                                                  const void *reqBuf,
                                                  uint8_t clientId,
@@ -3575,6 +3632,51 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             resLen = sizeof(*res);
 
             ETHFWTRACE_INFO("DUMP | S2C | status=%d", status);
+            break;
+        }
+        case ETHREMOTECFG_CMD_ALLOC_CPTS_HW_PUSH:
+        {
+            EthRemoteCfg_AllocHwPushRes *res = (EthRemoteCfg_AllocHwPushRes *)resBuf;
+
+            ETHFWTRACE_INFO("ALLOC_CPTS_HW_PUSH | C2S | core=%u endpt=%u",
+                            remoteProcId, remoteEndPt);
+
+            /* Get client object for token */
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
+
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_allocHwPushCb(hClient, remoteProcId, &res->hwPushNum);
+            }
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to allocate HW push instance");
+
+            resLen = sizeof(*res);
+
+            ETHFWTRACE_INFO("ALLOC_CPTS_HW_PUSH | S2C | status=%d", status);
+            break;
+        }
+        case ETHREMOTECFG_CMD_FREE_CPTS_HW_PUSH:
+        {
+            EthRemoteCfg_FreeHwPushReq *req = (EthRemoteCfg_FreeHwPushReq *)reqBuf;
+            EthRemoteCfg_StatusRes *res = (EthRemoteCfg_StatusRes *)resBuf;
+
+            ETHFWTRACE_INFO("FREE_CPTS_HW_PUSH | C2S | core=%u endpt=%u",
+                            remoteProcId, remoteEndPt);
+
+            /* Get client object for token */
+            hClient = CpswProxyServer_getClient(remoteProcId, token);
+            CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
+
+            if (ETHREMOTECFG_SOK == status)
+            {
+                status = CpswProxyServer_freeHwPushCb(hClient, remoteProcId, req->hwPushNum);
+            }
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to free HW push instance");
+
+            resLen = sizeof(*res);
+
+            ETHFWTRACE_INFO("FREE_CPTS_HW_PUSH | S2C | status=%d", status);
             break;
         }
         default:

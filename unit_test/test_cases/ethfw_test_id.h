@@ -103,6 +103,7 @@ extern "C" {
 #define ETHFW_UT_SWITCH_UNREGISTER_MAC_NEGTEST_ID                (2649U)
 #define ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID                    (2648U)
 #define ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID                      (2881U)
+#define ETHFW_UT_HW_PUSH_TEST_ID                                 (3037U)
 
 /* Virtual MAC port Jira test case id */
 #define ETHFW_UT_MAC_ATTACH_TEST1_ID                             (2690U)
@@ -158,6 +159,7 @@ extern "C" {
 #define ETHFW_UT_SWITCH_UNREGISTER_MAC_NEGTEST_ID                (2643U)
 #define ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID                    (2644U)
 #define ETHFW_UT_SWITCH_DETACH_ONLY_TEST_ID                      (2882U)
+#define ETHFW_UT_HW_PUSH_TEST_ID                                 (3037U)
 
 /* Virtual MAC port Jira test case id */
 #define ETHFW_UT_MAC_ATTACH_TEST1_ID                             (2671U)

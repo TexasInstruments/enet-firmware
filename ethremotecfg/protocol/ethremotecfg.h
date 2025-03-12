@@ -619,9 +619,29 @@ typedef enum EthRemoteCfg_CmdType_e
     ETHREMOTECFG_CMD_DUMP,
 
     /*!
+     * \brief Command to allocate CPTS HW Push instance.
+     *
+     * Command to allocate CPTS HW Push instance.
+     *
+     * Request (C2S): \ref EthRemoteCfg_CommonReq
+     * Response (S2C): \ref EthRemoteCfg_AllocHwPushRes
+     */
+    ETHREMOTECFG_CMD_ALLOC_CPTS_HW_PUSH,
+
+    /*!
+     * \brief Command to free CPTS HW Push instance.
+     *
+     * Command to free CPTS HW Push instance.
+     *
+     * Request (C2S): \ref EthRemoteCfg_FreeHwPushReq
+     * Response (S2C): \ref EthRemoteCfg_StatusRes
+     */
+    ETHREMOTECFG_CMD_FREE_CPTS_HW_PUSH,
+
+    /*!
      * \brief Last command id.
      */
-    ETHREMOTECFG_CMD_TYPE_LAST = ETHREMOTECFG_CMD_DUMP,
+    ETHREMOTECFG_CMD_TYPE_LAST = ETHREMOTECFG_CMD_FREE_CPTS_HW_PUSH,
 } EthRemoteCfg_CmdType;
 
 /*!
@@ -1410,6 +1430,35 @@ typedef struct EthRemoteCfg_CommonNotify_s
     /*! Notify message common header. */
     EthRemoteCfg_NotifyHdr hdr;
 } __attribute__((packed)) EthRemoteCfg_CommonNotify;
+
+
+/*!
+ * \brief Response params for \ref ETHREMOTECFG_CMD_ALLOC_CPTS_HW_PUSH command.
+ *
+ * This response holds the information of the allocated CPTS HW push instance.
+ */
+typedef struct EthRemoteCfg_AllocHwPushRes_s
+{
+    /*! Response message common header. */
+    EthRemoteCfg_ResHdr hdr;
+
+    /*! CPTS hardware push number. */
+    uint32_t hwPushNum;
+} __attribute__((packed)) EthRemoteCfg_AllocHwPushRes;
+
+/*!
+ * \brief Request params for \ref ETHREMOTECFG_CMD_FREE_CPTS_HW_PUSH command.
+ *
+ * This request structure contains information of the CPTS HW push instance to be freed.
+ */
+typedef struct EthRemoteCfg_FreeHwPushReq_s
+{
+    /*! Request message common header. */
+    EthRemoteCfg_ReqHdr hdr;
+
+    /*! CPTS hardware push number. */
+    uint32_t hwPushNum;
+} __attribute__((packed)) EthRemoteCfg_FreeHwPushReq;
 
 /*!
  * \brief Firmware version info.

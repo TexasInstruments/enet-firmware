@@ -918,6 +918,34 @@ int32_t CpswProxy_unregisterNotifyCb(CpswProxy_Handle hProxy,
                                      uint32_t notifyType);
 
 /*!
+ * \brief Allocate CPTS HW push instance.
+ *
+ * Allocates a CPTS HW push instance from RM.
+ *
+ * \param hProxy     Handle to Cpsw Proxy
+ * \param hwPushNum  Pointer to HW push instance to be allocated.
+ *
+ * \returns \ref CPSWPROXY_SOK if HW push instance has been successfully allocated,
+ *          or negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_allocHwPushInst(CpswProxy_Handle hProxy,
+                                  uint32_t *hwPushNum);
+
+/*!
+ * \brief Free CPTS HW push instance.
+ *
+ * Frees an allocated CPTS HW push instance from RM.
+ *
+ * \param hProxy     Handle to Cpsw Proxy
+ * \param hwPushNum  HW push instance to be freed.
+ *
+ * \returns \ref CPSWPROXY_SOK if HW push instance has been successfully freed,
+ *          or negative error in case of a failure, see \ref CpswProxy_ErrorCodes.
+ */
+int32_t CpswProxy_freeHwPushInst(CpswProxy_Handle hProxy,
+                                 uint32_t hwPushNum);
+
+/*!
  * \brief Send an remote command.
  *
  * Send an command to ETHFW.This function can be used to send any supported 

@@ -1412,6 +1412,55 @@ int32_t CpswProxy_getServerStatus(CpswProxy_Handle hProxy,
     return status;
 }
 
+int32_t CpswProxy_allocHwPushInst(CpswProxy_Handle hProxy,
+                                  uint32_t *hwPushNum)
+{
+    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_AllocHwPushRes res;
+    int32_t status;
+
+    ETHFWTRACE_INFO("ALLOC_CPTS_HW_PUSH | C2S | token=%d", (int32_t)hProxy->token);
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AllocHwPushRes));
+
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_ALLOC_CPTS_HW_PUSH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send ALLOC_CPTS_HW_PUSH cmd");
+
+    if (status == CPSWPROXY_SOK)
+    {
+        *hwPushNum = res.hwPushNum;
+    }
+
+    ETHFWTRACE_INFO("ALLOC_CPTS_HW_PUSH | S2C | token=%d hwPushNum=%d status=%d", (int32_t)hProxy->token, (uint32_t)res.hwPushNum, status);
+
+    return status;
+}
+
+int32_t CpswProxy_freeHwPushInst(CpswProxy_Handle hProxy,
+                                 uint32_t hwPushNum)
+{
+    EthRemoteCfg_FreeHwPushReq req;
+    EthRemoteCfg_StatusRes res;
+    int32_t status;
+
+    ETHFWTRACE_INFO("FREE_CPTS_HW_PUSH | C2S | token=%d", (int32_t)hProxy->token);
+
+    memset(&res, 0, sizeof(EthRemoteCfg_StatusRes));
+
+    req.hwPushNum = hwPushNum;
+
+    status = CpswProxy_sendCmd(hProxy, ETHREMOTECFG_CMD_FREE_CPTS_HW_PUSH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+    ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status, "Failed to send FREE_CPTS_HW_PUSH cmd");
+
+    ETHFWTRACE_INFO("FREE_CPTS_HW_PUSH | S2C | token=%d status=%d", (int32_t)hProxy->token, status);
+
+    return status;
+}
+
 int32_t CpswProxy_registerNotifyCb(CpswProxy_Handle hProxy,
                                    uint32_t notifyType,
                                    CpswProxy_NotifyCbFxn cbFxn,

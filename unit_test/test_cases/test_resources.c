@@ -843,6 +843,37 @@ end:
         TEST_FAIL();
 }
 
+void EthFwUT_hwPushCmdTest(void)
+{
+    EthRemoteCfg_CommonReq req;
+    EthRemoteCfg_AllocHwPushRes res;
+    int32_t status;
+
+    memset(&res, 0, sizeof(EthRemoteCfg_AllocHwPushRes));
+
+    /* Attach the client. */
+    EthFwUT_testAttach();
+
+    /* Send request to server and wait for response */
+    status = CpswProxy_sendCmd(gTestProxy, ETHREMOTECFG_CMD_ALLOC_CPTS_HW_PUSH,
+                               &req.hdr, sizeof(req),
+                               &res.hdr, sizeof(res));
+    if (status != CPSWPROXY_SOK)
+        goto end;
+
+    /* Free the allocated HW push */
+    status = CpswProxy_freeHwPushInst(gTestProxy, res.hwPushNum);
+
+    /* Detach the client. */
+    EthFwUT_TestDetach();
+
+end:
+    if (status == CPSWPROXY_SOK)
+        TEST_PASS();
+    else
+        TEST_FAIL();
+}
+
 void EthFwUT_testSwitchResources(void *arg1, void *arg2)
 {
     gTestProxy = (CpswProxy_Handle)arg1;
@@ -905,6 +936,9 @@ void EthFwUT_testSwitchResources(void *arg1, void *arg2)
 
     /* ETHFW-ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID: Test REGISTER_IPV4 with valid parameters. */
     RUN_TEST(EthFwUT_registerIPV4AddrCmdTest,  ETHFW_UT_SWITCH_REGISTER_IPV4_TEST_ID);
+
+    /* ETHFW-ETHFW_UT_HW_PUSH_TEST_ID: Test HW Push with valid parameters. */
+    RUN_TEST(EthFwUT_hwPushCmdTest,  ETHFW_UT_HW_PUSH_TEST_ID);
     
     UnityEnd();
 }
