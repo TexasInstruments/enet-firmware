@@ -110,9 +110,9 @@
 #endif
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
-#include <enet/core/lwipific/inc/netif_ic.h>
-#include <enet/core/lwipific/inc/lwip2enet_ic.h>
-#include <enet/core/lwipific/inc/lwip2lwipif_ic.h>
+#include <enet/core/lwipific_tap/inc/netif_ic.h>
+#include <enet/core/lwipific_tap/inc/lwip2enet_ic.h>
+#include <enet/core/lwipific_tap/inc/lwip2lwipif_ic.h>
 #endif
 
 #if defined(ENABLE_MAC_ONLY_PORTS)

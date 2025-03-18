@@ -42,7 +42,7 @@ FILES_common := \
 
 FILES_PATH_common = \
     ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/V2 \
-    ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/src \
+    ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/apps/ipc_cfg \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/server/src \
@@ -118,7 +118,7 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipif/inc \
     -I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib \
     -I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62px \
-    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/inc \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include \
 
 DEFINES_common := \

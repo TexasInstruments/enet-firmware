@@ -49,7 +49,7 @@ const files = {
 const filedirs = {
     common: [
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/V2",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/src",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/apps/ipc_cfg",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/server/src",
@@ -131,7 +131,7 @@ const includes = {
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipif/inc",
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib",
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62px",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/inc",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include",
     ],
 };

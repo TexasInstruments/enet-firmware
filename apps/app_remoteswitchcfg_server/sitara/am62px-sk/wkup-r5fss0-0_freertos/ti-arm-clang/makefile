@@ -98,7 +98,7 @@ INCLUDES_common := \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62px \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara \
-	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/inc \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include \
 	-Igenerated \
 

@@ -92,7 +92,7 @@ const includes_freertos_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62px",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara",
-        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific/inc",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include",
     ],
 };
