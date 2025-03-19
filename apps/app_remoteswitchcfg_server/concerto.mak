@@ -78,6 +78,11 @@ ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
 endif
 
+# Feature flags: ETHFW MTS support
+ifeq ($(ETHFW_MTS_SUPPORT),yes)
+  DEFS += ETHFW_MTS_SUPPORT
+endif
+
 # iperf server support
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
@@ -166,6 +171,11 @@ endif
 
 ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
+endif
+
+# Feature flags: ETHFW MTS support
+ifeq ($(ETHFW_MTS_SUPPORT),yes)
+  DEFS += ETHFW_MTS_SUPPORT
 endif
 
 # iperf server support
@@ -264,6 +274,11 @@ endif
 
 ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
+endif
+
+# Feature flags: ETHFW MTS support
+ifeq ($(ETHFW_MTS_SUPPORT),yes)
+  DEFS += ETHFW_MTS_SUPPORT
 endif
 
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)

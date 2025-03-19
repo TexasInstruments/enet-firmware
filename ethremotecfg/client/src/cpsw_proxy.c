@@ -85,6 +85,7 @@
 #include <utils/ethfw_abstract/ethfw_ipc.h>
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
+#include <ethremotecfg/client/include/ts_coupler_client.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_common/include/ethfw_utils.h>
 
@@ -2131,7 +2132,7 @@ static int32_t CpswProxy_notifyHandler(EthRemoteCfg_NotifyHdr *hdr,
                                        uint16_t msgLen)
 {
     CpswProxy_Handle hProxy = NULL;
-    CpswProxy_HwPushNotifyParams hwPushParams;
+    TsCouplerClient_HwPushNotifyParams hwPushParams;
     CpswProxy_NotifyCbFxn cbFxn;
     void *notifyArg = NULL;
     void *cbArg = NULL;

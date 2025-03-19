@@ -257,20 +257,6 @@ typedef struct CpswProxy_initParams_s
  */
 typedef struct CpswProxy_ClientObj_s *CpswProxy_Handle;
 
-/*!
- * \brief CPTS HW push notify params.
- *
- * Parameters passed in \ref ETHREMOTECFG_NOTIFY_HWPUSH notification.
- */
-typedef struct CpswProxy_HwPushNotifyParams_s
-{
-    /* CPTS HW push number */
-    uint8_t hwPushNum;
-
-    /* CPTS timestamp */
-    uint64_t timestamp;
-} CpswProxy_HwPushNotifyParams;
-
 /* ========================================================================== */
 /*                         Global Variables Declarations                      */
 /* ========================================================================== */

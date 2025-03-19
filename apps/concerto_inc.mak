@@ -86,6 +86,7 @@ endif
 LDIRS += $(PDK_PATH)/packages/ti/csl/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/board/lib/${TARGET_BOARD_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/i2c/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
+LDIRS += $(PDK_PATH)/packages/ti/drv/gtc/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/uart/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/gpio/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
 LDIRS += $(PDK_PATH)/packages/ti/drv/enet/lib/${TARGET_SOC_FOLDER}/${TARGET_CPU_FOLDER}/$(TARGET_BUILD)/
@@ -130,6 +131,7 @@ endif
     ADDITIONAL_STATIC_LIBS += ipc.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += sciclient.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.i2c.ae$(TARGET_CPU_SUFFIX)
+    ADDITIONAL_STATIC_LIBS += ti.drv.gtc.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.uart.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.gpio.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += pm_lib.ae$(TARGET_CPU_SUFFIX)
@@ -164,6 +166,7 @@ else
         ADDITIONAL_STATIC_LIBS += ipc.ae$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += sciclient.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += ti.drv.i2c.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
+        ADDITIONAL_STATIC_LIBS += ti.drv.gtc.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += ti.drv.uart.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += ti.drv.gpio.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
         ADDITIONAL_STATIC_LIBS += ti.csl.a$(call lowercase,$(TARGET_CPU))f$(CORTEX_A_LIB_SUFFIX)
@@ -201,6 +204,7 @@ PDK_LIB_RULES += uart
 PDK_LIB_RULES += gpio
 PDK_LIB_RULES += board
 PDK_LIB_RULES += ipc
+PDK_LIB_RULES += gtc
 ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
 PDK_LIB_RULES += tsn_gptp
 PDK_LIB_RULES += tsn_uniconf

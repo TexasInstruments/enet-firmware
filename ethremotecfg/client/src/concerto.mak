@@ -4,6 +4,10 @@ TARGETTYPE  := library
 
 CSOURCES    += cpsw_proxy.c
 
+ifeq ($(ETHFW_MTS_SUPPORT),yes)
+CSOURCES += ts_coupler_client.c
+endif
+
 ifneq ($(filter $(TARGET_OS),FREERTOS SAFERTOS),)
   DEFS += MAKEFILE_BUILD
 endif

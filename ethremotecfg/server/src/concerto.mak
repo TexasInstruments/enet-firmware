@@ -19,6 +19,11 @@ CSOURCES += ethfw_vlan.c
 CSOURCES += ethfw_arp.c
 CSOURCES += ethfw_api.c
 CSOURCES += ethfw_portmirror.c
+
+ifeq ($(ETHFW_MTS_SUPPORT),yes)
+CSOURCES += ts_coupler_server.c
+endif
+
 ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   CSOURCES += ethfw_monitor.c
 endif
@@ -72,6 +77,11 @@ endif
 # Feature flags: ETHFW Monitor
 ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
+endif
+
+# Feature flags: ETHFW MTS support
+ifeq ($(ETHFW_MTS_SUPPORT),yes)
+  DEFS += ETHFW_MTS_SUPPORT
 endif
 
 # Feature flags: ETHFW EST demo - should be supported with gPTP

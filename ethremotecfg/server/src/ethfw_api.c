@@ -287,6 +287,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numTxCh       = 0U,
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
+            .numHwPush     = 2U,
         },
         [1] =
         {
@@ -294,6 +295,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numTxCh       = 0U,
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
+            .numHwPush     = 2U,
         },
         [2] =
         {
@@ -301,7 +303,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numTxCh       = 0U,
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
-            .numHwPush     = 4U,
+            .numHwPush     = 2U,
         },
         [3] =
         {
@@ -309,7 +311,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numTxCh       = 0U,
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
-            .numHwPush     = 4U,
+            .numHwPush     = 1U,
         },
 #if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J742S2)
         [4] =
@@ -318,6 +320,7 @@ static EnetRm_ResPrms gEthFw_rmResPrms =
             .numTxCh       = 0U,
             .numRxFlows    = 0U,
             .numMacAddress = 0U,
+            .numHwPush     = 1U,
         },
         [5] =
         {

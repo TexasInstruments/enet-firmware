@@ -122,7 +122,6 @@
 #endif
 
 #define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
-#define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL   (30U)
 
 /* ToDo: fix this */
 #define UDMA_INST_ID_MAIN_0             (0)
@@ -526,25 +525,28 @@ static void CpswRemoteApp_openCpswProxy(CpswRemoteApp_VirtNetif *virtNetif)
     }
 }
 
-int32_t CpswRemoteApp_registerRemoteTimer(CpswCpts_HwPush hwPushNum)
+int32_t TsCouplerClient_allocHwPushInst(uint32_t *hwPushNum)
 {
     int32_t status = CPSWPROXY_SOK;
     CpswRemoteApp_VirtNetif *virtNetif = &gVirtNetifObj.virtNetif[0];
 
-    /* Make sure GTC is disabled before configuring timesync router*/
-    CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x0U);
+    /* Send request to Ethfw to alloc HW push instance */
+    status = CpswProxy_allocHwPushInst(virtNetif->hCpswProxy,
+                                       hwPushNum);
 
-    /* Configure GTC push event */
-    CSL_REG32_WR(CSL_GTC0_GTC_CFG0_BASE + CSL_GTC_CFG0_PUSHEVT,
-                 CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL);
+    return status;
+}
+
+int32_t TsCouplerClient_registerRemoteTimer(uint32_t hwPushNum,
+                                            uint32_t tsRouterTntrId)
+{
+    int32_t status = CPSWPROXY_SOK;
+    CpswRemoteApp_VirtNetif *virtNetif = &gVirtNetifObj.virtNetif[0];
 
     /* Send request to Ethfw to configure TSR */
     status = CpswProxy_registerRemoteTimer(virtNetif->hCpswProxy,
-                                           CSLR_TIMESYNC_INTRTR0_IN_GTC0_GTC_PUSH_EVENT_0,
+                                           tsRouterTntrId,
                                            hwPushNum);
-
-    /* Enable GTC */
-    CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
 
     return status;
 }

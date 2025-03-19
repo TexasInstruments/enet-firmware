@@ -72,6 +72,7 @@
 #include <apps/ipc_cfg/app_ipc_rsctable.h>
 
 #include <ethremotecfg/client/include/cpsw_proxy.h>
+#include <ethremotecfg/client/include/ts_coupler_client.h>
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include <utils/ethfw_abstract/ethfw_ipc.h>
@@ -97,14 +98,27 @@
 #define System_printf printf
 #define System_vprintf vprintf
 
-#define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
-#define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL   (30U)
-
 /*! Heartbeat poll period for CPSW proxy. */
 #define CPSW_REMOTE_APP_POLL_PERIOD_MS        (2000U)
 
 /*! CPSW proxy command response timeout. */
 #define CPSW_REMOTE_APP_CMD_TIMEOUT_MS        (1000U)
+
+#if defined(SOC_J784S4) || defined(SOC_J7200)
+#define CPSW_REMOTE_APP_TIMESYNC_TIMER_IDX       (14U)
+#elif defined(SOC_J721E)
+/*
+ * The interrupt events of Main domain's DM Timer instance 12  - 19
+ * are directly connected to the MAIN Pulsar VIMs.
+ * This translation matches to sysbios implementation, where id=0 is
+ * for dmTimer12, id =1 is for dmTimer13, id = 2 is for dmTimer14 etc.
+ */
+#define CPSW_REMOTE_APP_TIMESYNC_TIMER_IDX       (2U)
+#endif 
+
+#define CPSW_REMOTE_APP_TIMESYNC_TIMERPERIOD_MS  (1000U) //1 second
+
+#define CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL      (27U) // ~1 second
 
 #define VQ_TIMEOUT              (100)
 #define VQ_BUF_SIZE             (2048)
@@ -212,28 +226,6 @@ static uint32_t gRemoteProc[] =
 
 static uint32_t gNumRemoteProc = sizeof(gRemoteProc) / sizeof(uint32_t);
 
-typedef struct CpswRemoteApp_SyncTimerObj_s
-{
-    uint64_t currLocalTime;
-    uint64_t prevLocalTime;
-    uint64_t currCptsTime;
-    uint64_t prevCptsTime;
-    double rate;
-    double offset;
-} CpswRemoteApp_SyncTimerObj;
-
-typedef struct CpswRemoteApp_HwPushNotifyMsg_s
-{
-    /* Whether CPTS sync timer has been initialized */
-    bool syncTimerInitDone;
-    /* CPTS HWPUSH number used for remote time synchronization. This example
-     * app only supports it on one interface, should be set to CPSW_CPTS_HWPUSH_INVALID
-     * on all other interfaces */
-    CpswCpts_HwPush hwPushNum;
-
-    /* Time synchronization object */
-    CpswRemoteApp_SyncTimerObj syncTimerObj;
-} CpswRemoteApp_HwPushNotifyMsg;
 
 typedef struct CpswRemoteApp_Obj_s
 {
@@ -245,9 +237,6 @@ typedef struct CpswRemoteApp_Obj_s
 
     /* Core id used for Enet LLD APIs */
     uint32_t coreId;
-
-    /* CPTS sync timer object */
-    CpswRemoteApp_HwPushNotifyMsg hwPushNotifyMsg;
 } CpswRemoteApp_Obj;
 
 void appLogPrintf(const char *format, ...);
@@ -272,11 +261,6 @@ CpswRemoteApp_Obj gRemoteAppObj =
     .enetType         = ENET_CPSW_3G,
     .instId           = 0U,
 #endif
-    .hwPushNotifyMsg  =
-    {
-        .syncTimerInitDone = BFALSE,
-        .hwPushNum   = CPSW_CPTS_HWPUSH_2,
-    },
 };
 
 static void EthApp_waitForDebugger(void);
@@ -293,17 +277,12 @@ char *VerStr = "LWIP CPSW Example";
 
 static void EthApp_lwipMain(void *a0);
 
-static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
-                                             void *notifyArg,
-                                             void *cbArg);
 
 void CpswRemoteApp_initTask(void* a0);
 
 extern void CpswRemoteApp_initVirtNetif(Enet_Type enetType, uint32_t instId);
 
 extern void EthApp_initLwip(void *arg);
-
-extern int32_t CpswRemoteApp_registerRemoteTimer(CpswCpts_HwPush hwPushNum);
 
 void localAssert(bool cond)
 {
@@ -329,101 +308,6 @@ static void CpswRemoteApp_ipcPrint(const char *str)
     appLogPrintf("%s", str);
     return;
 }
-
-#if !defined(MCU_PLUS_SDK)
-static uint64_t CpswRemoteApp_getLocalTime(void)
-{
-    uint32_t gtcTimeLo = 0U, gtcTimeHi = 0U;
-    uint64_t gtcTime = 0U;
-
-    gtcTimeLo = *(uint32_t *)(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_LO);
-    gtcTimeHi = *(uint32_t *)(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_HI);
-    gtcTime = (((uint64_t)(gtcTimeHi) << 32U) |
-                (uint64_t)(gtcTimeLo));
-
-    return gtcTime;
-}
-
-static uint64_t CpswRemoteApp_getSynchronizedTime(CpswRemoteApp_SyncTimerObj *hSyncTimerObj)
-{
-    uint64_t gtcTime = 0U, synchronizedTime = 0U;
-
-    /* Get GTC time */
-    gtcTime = CpswRemoteApp_getLocalTime();
-
-    /* Compute synchronized time from GTC time */
-    synchronizedTime = (uint64_t)((hSyncTimerObj->rate * (double)gtcTime) + hSyncTimerObj->offset);
-
-    return synchronizedTime;
-}
-
-
-static void CpswRemoteApp_calcSyncTimeParams(uint32_t notifyType,
-                                             void *notifyArg,
-                                             void *cbArg)
-{
-    CpswRemoteApp_HwPushNotifyMsg *hwPushMsg = (CpswRemoteApp_HwPushNotifyMsg *)cbArg;
-    CpswProxy_HwPushNotifyParams *params = (CpswProxy_HwPushNotifyParams *)notifyArg;
-    CpswCpts_HwPush hwPushNum = (CpswCpts_HwPush)params->hwPushNum;
-    uint64_t syncTime = params->timestamp;
-
-    if (hwPushNum == hwPushMsg->hwPushNum)
-    {
-        uint64_t gtcTime = 0U;
-        uint64_t synchronizedTime = 0U;
-        CpswRemoteApp_SyncTimerObj *hSyncTimerObj = &hwPushMsg->syncTimerObj;
-        double temp1, temp2;
-
-        if(hSyncTimerObj->prevLocalTime == 0U)
-        {
-            /* Disable GTC */
-            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x0U);
-
-            /* Set GTC time */
-            gtcTime = 1U << CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL;
-            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_LO, gtcTime & 0xFFFFFFFF);
-            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCV_HI, gtcTime >> 32U);
-
-            /* Re-enable GTC */
-            CSL_REG32_WR(CSL_GTC0_GTC_CFG1_BASE + CSL_GTC_CFG1_CNTCR, 0x1U);
-        }
-        else
-        {
-            /* Increment GTC time used for computation based on selected bit for event */
-            gtcTime = hSyncTimerObj->prevLocalTime + (1U << CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL);
-        }
-
-        if ((hSyncTimerObj->prevLocalTime != 0U) &&
-            (hSyncTimerObj->prevCptsTime != 0U))
-        {
-            /* Logic:
-             *  T1, T2 - Previous & Current CPTS time
-             *  t1, t2 - Previous & Current local GTC time
-             *  rate = (T2-T1) / (t2-t1)
-             *  offset = (t2T1 - t1T2) / (t2-t1)
-             *  temp1 = t2 * (T1 / (t2-t1))
-             *  temp2 = t1 * (T2 / (t2-t1))
-             *  offset = temp1 - temp2
-             */
-            temp1 = (double)gtcTime *
-                    ((double)hSyncTimerObj->prevCptsTime / (double)(gtcTime - hSyncTimerObj->prevLocalTime));
-            temp2 = (double)hSyncTimerObj->prevLocalTime *
-                    ((double)syncTime / (double)(gtcTime - hSyncTimerObj->prevLocalTime));
-
-            hSyncTimerObj->rate = (double)((double)(syncTime - hSyncTimerObj->prevCptsTime) /
-                                          (double)(gtcTime - hSyncTimerObj->prevLocalTime));
-            hSyncTimerObj->offset = temp1 - temp2;
-
-            synchronizedTime = CpswRemoteApp_getSynchronizedTime(hSyncTimerObj);
-            ETHFWTRACE_INFO("Current synchronized time via HWPUSH_%u in Epoch format: %lld",
-                            hwPushNum, synchronizedTime);
-        }
-
-        hSyncTimerObj->prevLocalTime = gtcTime;
-        hSyncTimerObj->prevCptsTime = syncTime;
-    }
-}
-#endif
 
 static void rpmsg_vdevMonitorFxn(void* arg0)
 {
@@ -506,9 +390,6 @@ void CpswRemoteApp_initTask(void* a0)
     EthFwOsal_TaskParams params;
     uint32_t numProc = gNumRemoteProc;
     uint32_t selfProcId = gRemoteAppObj.coreId;
-#if !defined(MCU_PLUS_SDK)
-    CpswRemoteApp_HwPushNotifyMsg *hwPushNotifyMsg = &gRemoteAppObj.hwPushNotifyMsg;
-#endif
     CpswProxy_initParams initParams;
     int32_t status;
 
@@ -572,10 +453,9 @@ void CpswRemoteApp_initTask(void* a0)
     initParams.cmdTimeoutInMsecs = CPSW_REMOTE_APP_CMD_TIMEOUT_MS;
     initParams.hbNotifyCb.cbFxn = CpswRemoteApp_hbStatus;
 
-#if !defined(MCU_PLUS_SDK)
+#if defined(ETHFW_MTS_SUPPORT)
     /* Update timesync specific callback arguments */
-    initParams.tsNotifyCb.cbFxn = CpswRemoteApp_calcSyncTimeParams;
-    initParams.tsNotifyCb.cbArg = hwPushNotifyMsg;
+    initParams.tsNotifyCb.cbFxn = TsCouplerClient_HwPushNotifyFxn;
 #endif
  
     CpswProxy_init(&initParams);
@@ -589,18 +469,6 @@ void CpswRemoteApp_initTask(void* a0)
 
     CpswRemoteApp_initVirtNetif(gRemoteAppObj.enetType, gRemoteAppObj.instId);
 
-#if !defined(MCU_PLUS_SDK)
-    memset(&hwPushNotifyMsg->syncTimerObj, 0, sizeof(CpswRemoteApp_SyncTimerObj));
-
-    /* Register to Remote Timer to start TimeSync */
-    status = CpswRemoteApp_registerRemoteTimer(hwPushNotifyMsg->hwPushNum);
-
-    if (status == ETHFW_SOK)
-    {
-        hwPushNotifyMsg->syncTimerInitDone =  BTRUE;
-    }
-#endif
-
     /* Step 6: Initialize lwIP */
     EthFwOsal_initTaskParams(&params);
     params.priority  = DEFAULT_THREAD_PRIO;
@@ -612,6 +480,43 @@ void CpswRemoteApp_initTask(void* a0)
 #endif
 
     EthFwOsal_createTask(&EthApp_lwipMain, &params);
+
+#if defined(ETHFW_MTS_SUPPORT)
+    TsCouplerClient_initParams initTsClientParams;
+    TsCouplerClient_Cfg tsClientCfg;
+
+    memset(&tsClientCfg, 0, sizeof(tsClientCfg));
+
+    initTsClientParams.timerType = TS_COUPLER_CLIENT_TIMER_TYPE_GPTIMER;
+    TsCouplerClient_init(&initTsClientParams);
+
+    /* To DO: ETHFW-3048 - There is tight couple of CPSW proxy handle and virtnetif_lwipif.c 
+     * which needs to be cleaned up, main should have handle of CPSW proxy instead 
+     * and should be the one giving it to virtnetif_lwipif.c or other sub modules on 
+     * client side. Delay is needed to get attach being done by virtnetif_lwipif.c
+     * before calling CPSW proxy commands that requires valid handles. */
+    EthFwOsal_sleepTask(2000U);
+
+    /* Alloc the CPTS HW push instance */
+    status = TsCouplerClient_allocHwPushInst(&tsClientCfg.hwPushNum);
+    localAssert(status == ENET_SOK);
+
+    tsClientCfg.timerIdx       = CPSW_REMOTE_APP_TIMESYNC_TIMER_IDX;
+    tsClientCfg.periodinMs     = CPSW_REMOTE_APP_TIMESYNC_TIMERPERIOD_MS;
+
+    /* App must fill the corresponding Timesync interrupt router input for the applicable timerType. */
+    if (initTsClientParams.timerType == TS_COUPLER_CLIENT_TIMER_TYPE_GPTIMER)
+    {
+        tsClientCfg.tsRouterTntrId = CSLR_TIMESYNC_INTRTR0_IN_TIMER14_TIMER_PWM_0;
+    }
+    else
+    {
+        tsClientCfg.pushEvtVal     = CPSW_REMOTE_APP_GTC_PUSHEVT_BIT_SEL;
+        tsClientCfg.tsRouterTntrId = CSLR_TIMESYNC_INTRTR0_IN_GTC0_GTC_PUSH_EVENT_0;
+    }
+
+    TsCouplerClient_start(&tsClientCfg);
+#endif
 }
 
 #if !defined(MCU_PLUS_SDK)
