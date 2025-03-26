@@ -1452,6 +1452,7 @@ bool EthFwCallbacks_isPortLinked(struct netif *netif,
 void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
                                LwipifEnetAppIf_GetHandleOutArgs *outArgs)
 {
+    /* This function is used for jacinto where host mac addr info can be obtained from EthFwCallbacks */
     EthFwCallbacks_lwipifCpswGetHandle(gEthAppObj.enetType, gEthAppObj.instId, inArgs, outArgs);
 
 #if !defined(MCU_PLUS_SDK)
@@ -1459,6 +1460,19 @@ void LwipifEnetAppCb_getHandle(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetUtils_copyMacAddr(&gEthAppObj.hostMacAddr[0U],
                           &outArgs->rxInfo[0U].macAddr[0U]);
 #endif
+
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
+#endif
+#if defined(ETHFW_GPTP_SUPPORT)
+    EthFwOsal_postSemaphore(gEthAppObj.hHostMacAllocSem);
+#endif
+}
+
+void EthApp_getHostMacAddr(struct netif *netif)
+{
+    /* This function is used for sitara where there is no callback to main to fetch host mac addr */
+    EnetUtils_copyMacAddr(&gEthAppObj.hostMacAddr[0U], &netif->hwaddr[0U]);
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
@@ -1560,9 +1574,7 @@ static void EthApp_initNetif(void)
 #if defined(MCU_PLUS_SDK)
     LWIPIF_LWIP_start(gEthAppObj.enetType, gEthAppObj.instId, pNetif, ETHAPP_ETHNETIF_0);
     netif_set_link_callback(pNetif, EthApp_netifLinkChangeCb);
-#if defined(ETHFW_BOOT_TIME_PROFILING)
-    EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_HOST_PORT);
-#endif
+    EthApp_getHostMacAddr(pNetif);
 #endif
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
     NETIF_SET_CHECKSUM_CTRL(pNetif, chksumFlags);
@@ -1630,6 +1642,7 @@ static void EthApp_initNetif(void)
 #if defined(MCU_PLUS_SDK)
     LWIPIF_LWIP_start(gEthAppObj.enetType, gEthAppObj.instId, pNetif, ETHAPP_ETHNETIF_0);
     netif_set_link_callback(pNetif, EthApp_netifLinkChangeCb);
+    EthApp_getHostMacAddr(pNetif);
 #endif
     netif_set_default(pNetif);
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
@@ -2069,10 +2082,8 @@ static void EthApp_initPtp(void)
     }
 #endif
 
-#if !defined(MCU_PLUS_SDK)
     /* Wait for host port MAC address to be allocated during lwIP getHandle */
     EthFwOsal_pendSemaphore(gEthAppObj.hHostMacAllocSem, ETHFWOSAL_WAIT_FOREVER);
-#endif
 
     cb_socket_set_lldcfg_update_cb(EthFwTsn_lldCfgUpdateCb);
 
