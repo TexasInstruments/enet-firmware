@@ -120,17 +120,12 @@ ifeq ($(ETHFW_GPTP_BUILD_SUPPORT),yes)
     ADDITIONAL_STATIC_LIBS += tsn_unibase.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.drv.mmcsd.ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += ti.fs.fatfs.ae$(TARGET_CPU_SUFFIX)
-    ifeq ($(TARGET_PLATFORM),J721E)
-        ADDITIONAL_STATIC_LIBS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/license_lib/yangemb-freertos.j721e_evm.r5f.ti-arm-clang.lib
-    else ifeq ($(TARGET_PLATFORM),J7200)
-        ADDITIONAL_STATIC_LIBS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/license_lib/yangemb-freertos.j7200_evm.r5f.ti-arm-clang.lib
-    else ifeq ($(TARGET_PLATFORM),J784S4)
-        ADDITIONAL_STATIC_LIBS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/license_lib/yangemb-freertos.j784s4_evm.r5f.ti-arm-clang.lib
-    else ifeq ($(TARGET_PLATFORM),J721S2)
-        ADDITIONAL_STATIC_LIBS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/license_lib/yangemb-freertos.j721s2_evm.r5f.ti-arm-clang.lib
-    else ifeq ($(TARGET_PLATFORM),J742S2)
-        ADDITIONAL_STATIC_LIBS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/license_lib/yangemb-freertos.j742s2_evm.r5f.ti-arm-clang.lib
-    endif
+
+    # Following code converts all target platforms to lowercase
+    # so we can use them to add board specific static libraries.
+    LOWERCASE_TARGET_PLATFORM := $(shell echo $(TARGET_PLATFORM) | tr '[:upper:]' '[:lower:]')
+    ADDITIONAL_STATIC_LIBS += $(PDK_PATH)/packages/ti/transport/tsn/tsn-stack/license_lib/yangemb-freertos.$(LOWERCASE_TARGET_PLATFORM)_evm.r5f.ti-arm-clang.lib
+
 endif
     ADDITIONAL_STATIC_LIBS += $(ENET_APPUTILS_LIB).ae$(TARGET_CPU_SUFFIX)
     ADDITIONAL_STATIC_LIBS += enetsoc.ae$(TARGET_CPU_SUFFIX)

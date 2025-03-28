@@ -606,23 +606,19 @@ static void EthFwTsn_startLogTask(void)
 static void *EthFwTsn_gptpTask(void *args)
 {
     int32_t i;
-    int32_t status;
+    int32_t status = ETHFW_SOK;
     const char *netdevs[ETHFW_TSN_IFNAMSIZ];
     EthFwTsn_ModuleCfg *mod = &gModCfgTable[ETHFWTSN_GPTP_TASK_IDX];
-    EthFwTsn_UniconfCfg *ucCfg = &gEthFwTsnObj.ucCfg;
 
     for (i = 0U; i < gEthFwTsnObj.netDevInfo.numNetDevs; i++)
     {
         netdevs[i] = gEthFwTsnObj.netDevInfo.netDevs[i];
     }
 
-    if (ETHFW_SOK == status)
-    {
-        /* This function start gPTP, it has a true loop inside */
-        status = gptpman_run(gGptpOpt.instNum, netdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
-                             NULL, &mod->stopFlag);
-        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "gptpman_run() failed");
-    }
+    /* This function start gPTP, it has a true loop inside */
+    status = gptpman_run(gGptpOpt.instNum, netdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
+                            NULL, &mod->stopFlag);
+    ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "gptpman_run() failed");
 
     gptpgcfg_close(gGptpOpt.instNum);
     return NULL;
@@ -885,7 +881,6 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
      * its MAC port and mac addr (if any) */
     if (gEthFwTsnObj.netDevInfo.numNetDevs > 0U)
     {
-        ETHFWTRACE_INFO_IF((ETHFW_SOK == ETHFW_SOK), "Line 914");
         if (status == ETHFW_SOK)
         {
             status  = cb_lld_init_devs_table(ethdevs, gEthFwTsnObj.netDevInfo.numNetDevs,
@@ -898,14 +893,12 @@ int32_t EthFwTsn_initTimeSyncPtp(const uint8_t *hostMacAddr,
                 ETHFWTRACE_ERR(status, "Failed to int devs table");
             }
         }
-        ETHFWTRACE_INFO_IF((ETHFW_SOK == ETHFW_SOK), "Line 927");
         if (ETHFW_SOK == status)
         {
             status = EthFwTsn_startMod();
             ETHFWTRACE_INFO_IF((ETHFW_SOK == status), "TimeSync PTP enabled");
         }
     }
-    ETHFWTRACE_INFO_IF((ETHFW_SOK == ETHFW_SOK), "Finish");
     return status;
 }
 
@@ -1158,17 +1151,14 @@ static int32_t EthFwTsn_startMod(void)
         status = ETHFW_EFAIL;
         ETHFWTRACE_ERR(status, "Failed to initialize ucReadySem semaphore!");
     }
-    ETHFWTRACE_INFO_IF((ETHFW_SOK == ETHFW_SOK), "EthFwTsn_startMod 1213");
     if (gEthFwTsnObj.tsnInit)
     {
         for (i = ETHFWTSN_UNICONF_TASK_IDX; i < ETHFWTSN_MAX_TASK_IDX; i++)
         {
             mod = &gModCfgTable[i];
             if (mod->enable == BFALSE)
-            {   
-                ETHFWTRACE_INFO_IF((ETHFW_SOK == ETHFW_SOK), "EthFwTsn_startMod 1221");
+            {
                 status = EthFwTsn_startModTask(mod, i);
-                ETHFWTRACE_INFO_IF((ETHFW_SOK == ETHFW_SOK), "EthFwTsn_startMod 1223");
                 ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, 
                                   "Failed to start Task for moduleIdx %u", i);
             }
