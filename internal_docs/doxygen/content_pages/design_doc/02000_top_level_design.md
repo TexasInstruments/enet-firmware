@@ -7,18 +7,21 @@
 
 The directory structure of the Ethernet Firmware is shown below::
 
+
     ethfw                                   # Root folder for Ethernet Firmware
     ├── apps                                # Ethernet firmware applications
     │   ├── app_remoteswitchcfg_client      # Remote core client application
     │   │   ├── j7200
     │   │   ├── j721e
+    │   │   ├── j742s2
     │   │   ├── j784s4
-    |   |   ├── j742s2
+    │   │   └── sitara
     │   ├── app_remoteswitchcfg_server      # Ethernet Firmware server application
     │   │   ├── j7200
     │   │   ├── j721e
+    │   │   ├── j742s2
     │   │   ├── j784s4
-    |   |   ├── j742s2
+    │   │   └── sitara
     │   ├── common                          # Common MPU settings for J721E/J7200
     │   ├── ipc_cfg                         # Common IPC configuration
     │   └── tap                             # Linux user-space demo app for intercore interface
@@ -40,7 +43,7 @@ The directory structure of the Ethernet Firmware is shown below::
     │   └── server                          # Server side of the ethremotecfg framework
     │       ├── include
     │       └── src                         # Server libraries for proxy arp, vlan, vepa and mcast
-    ├── makerules                           # Helper makefiles for NDK, PDK
+    ├── makerules                           # Helper makefiles for PDK
     ├── unit_test                           # Root folder for unit tests
     │   ├── ethfw_test_app                  
     │   │   ├── mcu_2_0                     # Unit test application for server
@@ -95,7 +98,7 @@ The *Ethernet Firmware* running on the *master core* interacts with the Enet LLD
 running natively on the same core.  The Ethernet Firmware has access to all
 functionality provided by Enet LLD public APIs for control path configuration
 and Rx and Tx data transfers.  The Ethernet Firmware also configures and makes
-use of the TCP/IP stack enabled by Enet LLD by the means of NDK/NIMU.
+use of the TCP/IP stack enabled by Enet LLD by the means of lwIP.
 
 The *Ethernet Firmware* uses abstraction layers OSAL and IPC APIs to handle
 OS level operations and inter-processor communication support respectively.

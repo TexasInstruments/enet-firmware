@@ -82,6 +82,8 @@ peripherals like UDMA, UART, etc.
 - QoS and packet priority regeneration
 - Traffic shaping
 - Time synchronization (CPTS APIs)
+- Port mirroring
+- Time sensitive networking
 
 [Back To Top](@ref ethfw_design_top)
 
@@ -93,10 +95,8 @@ The following features are not supported in the current release:
 
 - Time-aware scheduling
 - QNX integration
-- Port mirroring
 - Port trunking
 - Interspersing express traffic
-- Time sensitive networking
 - Switch compliance
 
 [Back To Top](@ref ethfw_design_top)
