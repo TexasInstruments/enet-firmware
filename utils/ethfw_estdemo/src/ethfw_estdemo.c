@@ -82,9 +82,10 @@
 #include <utils/ethfw_common/include/ethfw_types.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 
-#include <tsn_uniconf/yangs/yang_db_runtime.h>
+#include <tsn_uniconf/yangs/ieee1588-ptp-tt_access.h>
 #include <tsn_uniconf/ucman.h>
 #include <tsn_gptp/gptpmasterclock.h>
+#include <tsn_gptp/tilld/lld_gptp_private.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -108,23 +109,12 @@
 
 #define HIGH_CPU_LOAD_THRESHOLD         (15U)
 
-/*! Base path of admin list parameters in yang file of Qbv */
-#define GATE_PARAM_TABLE_NODE "/ietf-interfaces/interfaces/interface|name:%s|" \
-    "/bridge-port/gate-parameter-table"
-#define GATE_CONTROL_ENTRY_NODE GATE_PARAM_TABLE_NODE   \
-    "/admin-control-list/gate-control-entry"
-
-/*! Base path of clock-state node in  yang file for checking PTP synchronized */
-#define IEEE1588_PTP_TT_CLOCKSTATE_NODE  "/ieee1588-ptp-tt/ptp/instances" \
-    "/instance|instance-index:0,0|/clock-state"
-
-/*! Base path of port-state node in  yang file for checking PTP synchronized */
-#define IEE1588_PTP_PORT_STATE_NODE  "/ieee1588-ptp-tt/ptp/instances" \
-    "/instance|instance-index:0,0|/ports/port|port-index:%d|/port-ds"
-
 /* 18: length of layer 2 header */
 #define CALC_BITRATE_KBPS(pl_bytes, interval_us)  \
         (uint32_t)( (((uint64_t)(pl_bytes)+18)*8*UB_SEC_US)/ ((interval_us)*1000ULL) )
+
+extern uint8_t IETF_INTERFACES_func(uc_dbald *dbald);
+#define IETF_INTERFACES_RW IETF_INTERFACES_func(dbald)
 
 static const uint8_t STREAMID_PREFIX[7]= {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
 static uint8_t MCAST_MAC_ADDR[ENET_MAC_ADDR_LEN] = {0x91, 0xE0, 0xF0, 0x00, 0xFE, 0x00};
@@ -165,7 +155,6 @@ typedef struct EthFwEstDemoTestParam_s
 typedef struct EstDemoDbArgs_s
 {
     uc_dbald *dbald;
-    yang_db_runtime_dataq_t *ydrd;
     uc_notice_data_t *ucntd;
 } EstDemoDbArgs;
 
@@ -178,7 +167,7 @@ UB_SD_GETMEM_DEF_EXTERN(YANGINIT_GEN_SMEM);
 void *EthFw_estDemoTask(void *arg1);
 
 int32_t  EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
-                                 const EthFwTsn_NetDevInfo *devInfo,
+                                 EthFwTsn_NetDevInfo *devInfo,
                                  PacketHandlerCb cb);
 
 int32_t  EthFwEstDemo_openDB(EstDemoDbArgs *dbarg,
@@ -302,8 +291,7 @@ static void EthFwEstDemo_printAdminControlList(EnetTas_ControlList *list)
 }
 
 static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
-                                                const char *ifname,
-                                                yang_db_runtime_dataq_t *ydrd,
+                                                char *ifname,
                                                 uc_notice_data_t *ucntd)
 {
     int32_t i;
@@ -312,68 +300,118 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
     char val[MAX_VAL_SIZE];
 
     EthFwEstDemo_printAdminControlList(list);
+        uint8_t kn_traffic_sched[5] = {
+        [0] = IETF_INTERFACES_BRIDGE_PORT,
+        [1] = IETF_INTERFACES_GATE_PARAMETER_TABLE,
+    };
+    uint8_t kn_traffic_sched_size = 0;
 
     if (list->cycleTime > 0U)
     {
         /* Expected unit is mircosecond. */
         uint32_t cycletime_numerator = list->cycleTime/1000U;
         uint32_t cycletime_denominator = 1000000UL;
-        snprintf(buffer, sizeof(buffer),
-                 GATE_PARAM_TABLE_NODE"/admin-cycle-time/numerator",
-                 ifname);
-        snprintf(val, sizeof(val), "%d", cycletime_numerator);
-        YANGDB_RUNTIME_WRITE(buffer, val);
 
-        snprintf(buffer, sizeof(buffer),
-                 GATE_PARAM_TABLE_NODE"/admin-cycle-time/denominator",
-                 ifname);
-        snprintf(val, sizeof(val), "%d", cycletime_denominator);
-        YANGDB_RUNTIME_WRITE(buffer, val);
+        kn_traffic_sched[2]=IETF_INTERFACES_ADMIN_CYCLE_TIME;
+        kn_traffic_sched[3]=IETF_INTERFACES_NUMERATOR;
+        kn_traffic_sched_size = 4;
+        status=YDBI_SET_ITEM(ifknvk0, ifname,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG,
+                (void *)&cycletime_numerator, sizeof(cycletime_numerator), 
+                YDBI_NO_NOTICE);
+        DebugP_assert(status == 0);
+
+        kn_traffic_sched[3]=IETF_INTERFACES_DENOMINATOR;
+        status=YDBI_SET_ITEM(ifknvk0, ifname,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG,
+                (void *)&cycletime_denominator, sizeof(cycletime_denominator), 
+                YDBI_NO_NOTICE);
+        DebugP_assert(status == 0);
     }
 
     uint32_t second = list->baseTime/1000000000ULL;
     uint32_t nanosecond = list->baseTime%1000000000ULL;
-    snprintf(buffer, sizeof(buffer),
-             GATE_PARAM_TABLE_NODE"/admin-base-time/seconds",
-             ifname);
-    snprintf(val, sizeof(val), "%d", second);
-    YANGDB_RUNTIME_WRITE(buffer, val);
+    kn_traffic_sched[2]=IETF_INTERFACES_ADMIN_BASE_TIME;
+    kn_traffic_sched[3]=IETF_INTERFACES_SECONDS;
+    status=YDBI_SET_ITEM(ifknvk0, ifname,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG,
+                (void *)&second, sizeof(second), 
+                YDBI_NO_NOTICE);
+    DebugP_assert(status == 0);
 
-    snprintf(buffer, sizeof(buffer),
-             GATE_PARAM_TABLE_NODE"/admin-base-time/nanoseconds",
-             ifname);
-    snprintf(val, sizeof(val), "%d", nanosecond);
-    YANGDB_RUNTIME_WRITE(buffer, val);
+    kn_traffic_sched[3]=IETF_INTERFACES_NANOSECONDS;
+    status=YDBI_SET_ITEM(ifknvk0, ifname,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG,
+                (void *)&nanosecond, sizeof(nanosecond), 
+                YDBI_NO_NOTICE);
+    DebugP_assert(status == 0);
 
     for (i = 0U; i < list->listLength; i++)
     {
-        snprintf(buffer, sizeof(buffer),
-                 GATE_CONTROL_ENTRY_NODE"|index:%d|/operation-name",
-                 ifname, i);
-        strcpy(val, "set-gate-states");
-        YANGDB_RUNTIME_WRITE(buffer, val);
+        kn_traffic_sched[2]=IETF_INTERFACES_ADMIN_CONTROL_LIST;
+        kn_traffic_sched[3]=IETF_INTERFACES_GATE_CONTROL_ENTRY;
+        kn_traffic_sched[4]=IETF_INTERFACES_OPERATION_NAME;
+        kn_traffic_sched_size=5u;
+        uint32_t gate_operation=0x0; // {"dot1q-types", "set-gate-states"       , 0x0}
+        status=YDBI_SET_ITEM(ifknvk1, ifname, i, 4u,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG, (void*)&gate_operation, sizeof(gate_operation), YDBI_NO_NOTICE);
+        DebugP_assert(status == 0);
 
-        snprintf(buffer, sizeof(buffer),
-                 GATE_CONTROL_ENTRY_NODE"|index:%d|/time-interval-value",
-                 ifname, i);
-        snprintf(val, sizeof(val), "%d",
-                 list->gateCmdList[i].timeInterval);
-        YANGDB_RUNTIME_WRITE(buffer, val);
+        kn_traffic_sched[4]=IETF_INTERFACES_TIME_INTERVAL_VALUE;
+        status=YDBI_SET_ITEM(ifknvk1, ifname, i, 4u,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG, 
+                (void*)&list->gateCmdList[i].timeInterval, sizeof(list->gateCmdList[i].timeInterval),
+                YDBI_NO_NOTICE);
+        DebugP_assert(status == 0);
 
-        snprintf(buffer, sizeof(buffer),
-                 GATE_CONTROL_ENTRY_NODE"|index:%d|/gate-states-value",
-                 ifname, i);
-        snprintf(val, sizeof(val), "%d",
-                 list->gateCmdList[i].gateStateMask);
-        YANGDB_RUNTIME_WRITE(buffer, val);
+        kn_traffic_sched[4]=IETF_INTERFACES_GATE_STATES_VALUE;
+        status=YDBI_SET_ITEM(ifknvk1, ifname, i, 4u,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG, 
+                (void*)&list->gateCmdList[i].gateStateMask, sizeof(list->gateCmdList[i].gateStateMask),
+                YDBI_NO_NOTICE);
+        DebugP_assert(status == 0);
     }
 
-    snprintf(buffer, sizeof(buffer), GATE_PARAM_TABLE_NODE"/gate-enabled", ifname);
-    strcpy(val, "true");
-    YANGDB_RUNTIME_WRITE(buffer, val);
+    kn_traffic_sched[2]=IETF_INTERFACES_GATE_ENABLED;
+    kn_traffic_sched_size=3u;
+    bool enable=1;
+    status=YDBI_SET_ITEM(ifk3vk0, ifname,
+                IETF_INTERFACES_BRIDGE_PORT,
+                IETF_INTERFACES_GATE_PARAMETER_TABLE,
+                IETF_INTERFACES_GATE_ENABLED,
+                YDBI_CONFIG,
+                (void *)&enable, sizeof(enable), 
+                YDBI_NO_NOTICE);
+    DebugP_assert(status == 0);
 
     /* Trigger the uniconf to write parameters from DB to HW */
-    status = yang_db_runtime_askaction(ydrd, ucntd);
+    uc_dbald * dbald = ydbi_access_handle()->dbald;
+    void *kvs[]={(void*)ifname, NULL, NULL};
+    uint8_t kss[]={strlen(ifname)+1, 0};
+    uint8_t aps[]={IETF_INTERFACES_RW,
+        IETF_INTERFACES_INTERFACES,
+        IETF_INTERFACES_INTERFACE,
+        IETF_INTERFACES_BRIDGE_PORT,
+        IETF_INTERFACES_GATE_PARAMETER_TABLE,
+        IETF_INTERFACES_GATE_ENABLED,
+        255u,
+    };
+    status=uc_nc_askaction_push(ucntd, dbald, aps, kvs, kss);
+    if (status!=0)
+    {
+        appLogPrintf("uc_nc_askaction_push failed. status=%d\n", status);
+    } 
+    else 
+    {
+        appLogPrintf("%s: succeeded \n", __func__);
+    }
 
     return status;
 }
@@ -391,76 +429,59 @@ static bool EthFwEstDemo_isPTPClockStateSync(EstDemoAppCtx *ctx,
     {
         appLogPrintf("Failed to open DB!\n");
     }
-    do
+    else
     {
-        char buffer[MAX_KEY_SIZE];
-        void *val = NULL;
-        uint32_t vsize;
-        uint8_t portState = 0U;
-        /* Checks for gPTP sync and enables EST on this port */
-        int8_t portIdx = DEFAULT_INTERFACE_INDEX;
-        DebugP_assert(portIdx >= 0U);
+        do
+        {
+            void *val = NULL;
+            uint8_t portState = 0;
+            uint32_t gmState=0;
+            bool asCapable=false;
+            int8_t portIdx = DEFAULT_INTERFACE_INDEX;
+            DebugP_assert((portIdx >= 0 && portIdx < ctx->netdevSize));
 
-        snprintf(buffer, sizeof(buffer),
-                 IEEE1588_PTP_TT_CLOCKSTATE_NODE"/gmstate");
-        status = yang_db_runtime_get_oneline(dbarg.ydrd, buffer, &val, &vsize);
-        if (status == ETHFW_EFAIL)
-        {
-            appLogPrintf("Failed to read %s from the DB!\n", buffer);
-            break;
-        }
+            int gdi=ydbi_gptpinstdomain2dbinst_pt(ydbi_access_handle(), 0, 0);
+            YDBI_GET_ITEM_INTSUBST(ptk3vk0, gmState, val, gdi,
+            IEEE1588_PTP_TT_CLOCK_STATE, IEEE1588_PTP_TT_GMSTATE, 255,
+            YDBI_STATUS);
 
-        syncFlag = *(uint8_t *)val == EST_DEMO_GPTP_GM_STABLE_SYNC? BTRUE: BFALSE;
-        UB_SD_RELMEM(YANGINIT_GEN_SMEM, val);
-        val  = NULL;
+            syncFlag = (gmState == 1 || gmState==2) ? BTRUE: BFALSE;
+            val = NULL;
+            if (!syncFlag)
+            {
+                break;
+            }
+            syncFlag = false;
+            /* gPTP port index in the DB started from 1 */
+            portIdx+=1;
+            YDBI_GET_ITEM_INTSUBST(ptk4vk1, portState, val, gdi,
+                    IEEE1588_PTP_TT_PORTS, IEEE1588_PTP_TT_PORT,
+                    IEEE1588_PTP_TT_PORT_DS, IEEE1588_PTP_TT_PORT_STATE,
+                    &portIdx, sizeof(uint16_t), YDBI_STATUS);
 
-        if (!syncFlag)
-        {
-            break;
-        }
-        syncFlag = BFALSE;
-        /* gPTP port index in the DB started from 1 */
-        snprintf(buffer, sizeof(buffer),
-                 IEE1588_PTP_PORT_STATE_NODE"/port-state", portIdx+1);
-        status = yang_db_runtime_get_oneline(dbarg.ydrd, buffer, &val, &vsize);
-        if (status == ETHFW_EFAIL)
-        {
-            appLogPrintf("Failed to read %s \n", buffer);
-            break;
-        }
-        portState =  *(uint8_t *)val;
-        UB_SD_RELMEM(YANGINIT_GEN_SMEM, val);
-        val  = NULL;
+            /* check ieee1588-ptp-tt.yang for description of portState */
+            if (portState != EST_DEMO_GPTP_MASTER_PORT
+                && portState != EST_DEMO_GPTP_SLAVE_PORT)
+            {
+                appLogPrintf("Current port-state: %d ", portState);
+                break;
+            }
 
-        /* check ieee1588-ptp-tt.yang for description of portState */
-        if (portState != EST_DEMO_GPTP_MASTER_PORT
-            && portState != EST_DEMO_GPTP_SLAVE_PORT)
-        {
-            appLogPrintf("Current port-state: %d \n", portState);
-            break;
-        }
+            asCapable=ydbi_get_asCapable(ydbi_access_handle(), 0, 0, portIdx);
+            if ((portState == EST_DEMO_GPTP_MASTER_PORT || portState == EST_DEMO_GPTP_SLAVE_PORT) && asCapable)
+            {
+                appLogPrintf("ptpSync-ed: %d ", portState);
+                syncFlag = true;
+            }
+            else if (portState == EST_DEMO_GPTP_SLAVE_PORT && !asCapable)
+            {
+                appLogPrintf("ptpSync-ed: %d ", portState);
+                syncFlag = true;
+            }
+        } while (0);
 
-        snprintf(buffer, sizeof(buffer), IEE1588_PTP_PORT_STATE_NODE"/as-capable", portIdx+1);
-        status = yang_db_runtime_get_oneline(dbarg.ydrd, buffer, &val, &vsize);
-        if (status == ETHFW_EFAIL)
-        {
-            appLogPrintf("Failed to read %s \n", buffer);
-            break;
-        }
-        bool asCapable = *(uint8_t*)val? BTRUE: BFALSE;
-        UB_SD_RELMEM(YANGINIT_GEN_SMEM, val);
-        if ((portState == EST_DEMO_GPTP_MASTER_PORT ||
-             portState == EST_DEMO_GPTP_SLAVE_PORT) && asCapable)
-        {
-            syncFlag = BTRUE;
-        }
-        else if (portState == EST_DEMO_GPTP_SLAVE_PORT && !asCapable)
-        {
-            syncFlag = BTRUE;
-        }
-    } while (0U);
-
-    EthFwEstDemo_closeDB(&dbarg);
+        EthFwEstDemo_closeDB(&dbarg);
+    }
 
     return syncFlag;
 }
@@ -482,7 +503,7 @@ static int32_t EthFwEstDemo_getAdminBaseTime(uint64_t *time)
 
 static int32_t EthFwEstDemo_runSchedule(EstDemoAppCtx *ctx,
                                         EnetTas_ControlList *adminList,
-                                        const char *netdev)
+                                        char *netdev)
 {
     bool openDBSuccess = BFALSE;
     EstDemoDbArgs dbarg;
@@ -533,7 +554,7 @@ static int32_t EthFwEstDemo_runSchedule(EstDemoAppCtx *ctx,
         }
         status = EthFwEstDemo_setAdminControlList(adminList,
                                                   netdev,
-                                                  dbarg.ydrd, dbarg.ucntd);
+                                                  dbarg.ucntd);
         if (status)
         {
             appLogPrintf("Failed to set admin control list for %s\n",
@@ -760,7 +781,7 @@ void *EthFw_estDemoTask(void *arg1)
 #if defined(ETHFW_GPTP_SUPPORT)
     int32_t status;
     char option;
-    const EthFwTsn_NetDevInfo *devInfo = (const EthFwTsn_NetDevInfo *)arg1;
+    EthFwTsn_NetDevInfo *devInfo = (EthFwTsn_NetDevInfo *)arg1;
     EstDemoAppCtx *ctx = (EstDemoAppCtx *)&gEthFwEstDemoCtx;
 
     status = EthFwEstDemo_initialize(ctx, devInfo, EthFwEstDemo_rxPacketHandler);
@@ -876,12 +897,6 @@ int32_t EthFwEstDemo_openDB(EstDemoDbArgs *dbarg, char *dbName, const char *mode
             appLogPrintf("Failed to open uc notice!\n");
             break;
         }
-        dbarg->ydrd = yang_db_runtime_init(dbarg->dbald, NULL);
-        if (!dbarg->ydrd)
-        {
-            appLogPrintf("Failed to init DB runtime!\n");
-            break;
-        }
         status = ETHFW_SOK;
     } while (0U);
     return status;
@@ -890,7 +905,6 @@ int32_t EthFwEstDemo_openDB(EstDemoDbArgs *dbarg, char *dbName, const char *mode
 void EthFwEstDemo_closeDB(EstDemoDbArgs *dbarg)
 {
     uc_notice_close(dbarg->ucntd, 0U);
-    yang_db_runtime_close(dbarg->ydrd);
     uc_dbal_close(dbarg->dbald, UC_CALLMODE_THREAD);
 }
 
@@ -899,50 +913,100 @@ int32_t EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
 {
     int32_t status = ETHFW_SOK;
     uint32_t i = 0U;
-    char buffer[MAX_KEY_SIZE];
-    char val[MAX_VAL_SIZE];
-    yang_db_runtime_dataq_t *ydrd = dbarg->ydrd;
 
     /* Write the num of traffic classes and value of each TC to DB */
-    snprintf(buffer, sizeof(buffer),
-             TRAFFIC_CLASS_TABLE_NODE"/number-of-traffic-classes",
-             prm->netdev);
-    snprintf(val, sizeof(val), "%d", prm->nTCs);
-    YANGDB_RUNTIME_WRITE(buffer, val);
+    uint8_t kn_traffic_sched[5] = {
+        [0] = IETF_INTERFACES_BRIDGE_PORT,
+        [1] = IETF_INTERFACES_TRAFFIC_CLASS,
+    };
+    uint8_t kn_traffic_sched_size = 0;
+
+    kn_traffic_sched[2]=IETF_INTERFACES_TRAFFIC_CLASS_TABLE;
+    kn_traffic_sched[3]=IETF_INTERFACES_NUMBER_OF_TRAFFIC_CLASSES;
+
+    kn_traffic_sched_size = 4;
+    status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
+            kn_traffic_sched, kn_traffic_sched_size,
+            YDBI_CONFIG,
+            (void *)&(prm->nTCs), sizeof(prm->nTCs), 
+            YDBI_NO_NOTICE);
+    DebugP_assert(status == 0);
+
 
     /* Use one-to-one mapping of priority to logical queue */
     for (i = 0U; i < prm->nTCs; i++)
     {
-        snprintf(buffer, sizeof(buffer),
-                 TRAFFIC_CLASS_TABLE_NODE"/priority%d",
-                 prm->netdev, i);
-        snprintf(val, sizeof(val), "%d",
-                 prm->priority2TcMapping[i]);
-        YANGDB_RUNTIME_WRITE(buffer, val);
+        switch(i)
+        {
+            case 0: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY0;
+                    break;
+
+            case 1: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY1;
+                    break;
+
+            case 2: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY2;
+                    break;
+
+            case 3: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY3;
+                    break;
+
+            case 4: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY4;
+                    break;
+
+            case 5: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY5;
+                    break;
+
+            case 6: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY6;
+                    break;
+
+            case 7: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY7;
+                    break;
+
+            default: kn_traffic_sched[3]=IETF_INTERFACES_PRIORITY0;
+                     break;
+
+        }
+        kn_traffic_sched_size = 4;
+        status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG,
+                (void *)&(prm->priority2TcMapping[i]), sizeof(prm->priority2TcMapping[i]), 
+                YDBI_NO_NOTICE);
+        DebugP_assert(status == 0);
 
         /* Map same number of priority to logical queue */
-        snprintf(buffer, sizeof(buffer),
-                 TRAFFIC_CLASS_DATA_NODE"|tc:%d|/lqueue",
-                 prm->netdev, prm->priority2TcMapping[i]);
-        snprintf(val, sizeof(val), "%d", i);
-        YANGDB_RUNTIME_WRITE(buffer, val);
+        kn_traffic_sched[3]=IETF_INTERFACES_LQUEUE;
+        kn_traffic_sched_size = 4;
+        status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG,
+                (void *)&(i), sizeof(i), 
+                YDBI_NO_NOTICE);
+        DebugP_assert(status == 0);
     }
 
-    snprintf(buffer, sizeof(buffer),
-             TRAFFIC_CLASS_NODE"/number-of-pqueues", prm->netdev);
-    snprintf(val, sizeof(val), "%d", prm->nQueues);
-    YANGDB_RUNTIME_WRITE(buffer, val);
+    kn_traffic_sched[2]=IETF_INTERFACES_NUMBER_OF_PQUEUES;
+    kn_traffic_sched_size = 3;
+    status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
+            kn_traffic_sched, kn_traffic_sched_size,
+            YDBI_CONFIG,
+            (void *)&(prm->nQueues), sizeof(prm->nQueues),
+            YDBI_NO_NOTICE);
+    DebugP_assert(status == 0);
 
     /* Use one-to-one mapping of logical queue to HW queue */
     for (i = 0U; i < prm->nQueues; i++)
     {
-        snprintf(buffer, sizeof(buffer),
-                 PHYSICAL_QUEUE_MAP_NODE"|pqueue:%d|/lqueue",
-                 prm->netdev, i);
-        snprintf(val, sizeof(val), "%d", i);
-        YANGDB_RUNTIME_WRITE(buffer, val);
-    }
+        kn_traffic_sched[2]=IETF_INTERFACES_PQUEUE_MAP;
+        kn_traffic_sched[3]=IETF_INTERFACES_LQUEUE;
 
+        kn_traffic_sched_size = 4;
+        status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
+                kn_traffic_sched, kn_traffic_sched_size,
+                YDBI_CONFIG,
+                (void *)&(i), sizeof(i),
+                YDBI_NO_NOTICE);
+    }
     return status;
 }
 
@@ -956,7 +1020,7 @@ static void EthFwEstDemo_rxNotifyCb(void* arg)
 }
 
 int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
-                                const EthFwTsn_NetDevInfo *devInfo,
+                                EthFwTsn_NetDevInfo *devInfo,
                                 PacketHandlerCb cb)
 {
     int32_t status;

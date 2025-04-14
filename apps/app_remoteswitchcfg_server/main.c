@@ -89,6 +89,7 @@
 #include <tsn_buildconf/jacinto_buildconf.h>
 #endif
 #include <tsn_combase/combase.h>
+#include <tsn_combase/combase_link.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
 #include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
@@ -393,6 +394,10 @@ static int32_t EthApp_boardInit(void);
 static int32_t EthApp_initEthFw(void);
 
 static int32_t EthApp_initRemoteServices(void);
+
+static void EnetApp_portLinkStatusChangeCb(Enet_MacPort macPort,
+                                           bool isLinkUp,
+                                           void *appArg);
 
 #if defined(ETHFW_DEMO_SUPPORT)
 static void EthApp_startSwInterVlan(char *recvBuff,
@@ -1219,14 +1224,17 @@ static void EthApp_initIpcTaskFxn(void* arg0)
     EthFwOsal_exitTask();
 }
 
-#if defined(ETHFW_BOOT_TIME_PROFILING)
 void EthApp_portLinkStatusChangeCb(Enet_MacPort macPort,
                                           bool isLinkUp,
                                           void *appArg)
 {
+#if defined(ETHFW_BOOT_TIME_PROFILING)
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_ETH_PORT);
-}
 #endif
+#if defined(ETHFW_GPTP_SUPPORT)
+    notify_linkchange();
+#endif
+}
 
 static int32_t EthApp_initEthFw(void)
 {
@@ -1323,7 +1331,7 @@ static int32_t EthApp_initEthFw(void)
     ethFwCfg.configPtpCbArg = NULL;
 #endif
 
-#if defined(ETHFW_BOOT_TIME_PROFILING)
+#if defined(ETHFW_BOOT_TIME_PROFILING) || defined(ETHFW_GPTP_SUPPORT)
     /* Link-up timestamp */
     cpswCfg->portLinkStatusChangeCb    = &EthApp_portLinkStatusChangeCb;
     cpswCfg->portLinkStatusChangeCbArg = &gEthAppObj;
@@ -1445,7 +1453,6 @@ bool EthFwCallbacks_isPortLinked(struct netif *netif,
                                            gEthAppObj.coreId,
                                            gEthAppPorts[i]);
     }
-
     return linked;
 }
 

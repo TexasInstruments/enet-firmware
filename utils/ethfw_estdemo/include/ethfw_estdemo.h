@@ -119,17 +119,6 @@ extern "C" {
                                            (((dei) & ESTDEMO_VLAN_DEI_MASK)<< ESTDEMO_VLAN_DEI_OFFSET) | \
                                            ((vid) & ESTDEMO_VLAN_VID_MASK) )
 
-#define TRAFFIC_CLASS_NODE              "/ietf-interfaces/interfaces/interface|name:%s|" \
-                                        "/bridge-port/traffic-class"
-#define TRAFFIC_CLASS_TABLE_NODE        TRAFFIC_CLASS_NODE"/traffic-class-table"
-#define TRAFFIC_CLASS_DATA_NODE         TRAFFIC_CLASS_NODE"/tc-data"
-#define PHYSICAL_QUEUE_MAP_NODE         TRAFFIC_CLASS_NODE"/pqueue-map"
-
-#define YANGDB_RUNTIME_WRITE(key,val)   do {                              \
-        status = yang_db_runtime_put_oneline(ydrd, key, val, YANG_DB_ONHW_NOACTION); \
-        DebugP_assert(status == 0);                                        \
-        } while (0)
-
 UB_ABIT32_FIELD(cmsh_sv, 23, 0x1)
 
 /* ========================================================================== */
@@ -139,7 +128,7 @@ UB_ABIT32_FIELD(cmsh_sv, 23, 0x1)
 typedef struct EstDemoCommonParam_s
 {
     /*! Name of network interface */
-    const char *netdev;
+    char *netdev;
     /*! index is priority, value of each index is TC, -1: not used. */
     int8_t priority2TcMapping[ESTDEMO_PRIORITY_MAX];
     uint8_t nTCs;                 /*! Num of traffic classes */
@@ -269,7 +258,7 @@ typedef struct EstDemoAppCtx_s
     /*! A handle of listener of the app */
     EstDemoTaskCtx listener;
     /*! An active network interface used for this app */
-    const char *netdev[MAX_NUMBER_ENET_DEVS];
+    char *netdev[MAX_NUMBER_ENET_DEVS];
     /*! How many network interfaces */
     int32_t netdevSize;
     /*! A delay offset for applying a schedule in microsecond unit */
