@@ -297,6 +297,12 @@
                                                 gEthAppObj.bootTs[ETHFW_BOOT_PROFILING_TS_MAIN])
 #endif
 
+#if defined(ETHFW_IET_ENABLE)
+#define     MIN_FRAG_SIZE                            (1)
+#define     PREMPTIVE_TRAFFIC                        (1)
+#define     EXPRESS_TRAFFIC                          (0)
+#endif
+
 /* TimeSync router SYNC0_OUT source interrupt */
 #define ETHAPP_PPS_TIMESYNC_INTR_SYNC0_OUT_PIN                       (34U)
 /* TimeSync router SYNC1_OUT source interrupt */
@@ -811,6 +817,28 @@ static EthFwPortMirroring_Cfg gEthApp_portMirCfg =
     .mirroringType = DISABLE_PORT_MIRRORING
 };
 
+#if defined(ETHFW_IET_ENABLE)
+static EthFwIET_Config gEthApp_IETCfg = {
+
+/* If enabled does IET verfication before enabling iet*/
+    .mac_verify_enable = BTRUE, 
+/* 0 -> Express Traffic and 1 -> Premptable Traffic*/
+    .queueMode = 
+    {
+    EXPRESS_TRAFFIC,
+    PREMPTIVE_TRAFFIC,
+    EXPRESS_TRAFFIC,
+    PREMPTIVE_TRAFFIC,
+    EXPRESS_TRAFFIC,
+    PREMPTIVE_TRAFFIC,
+    EXPRESS_TRAFFIC,
+    PREMPTIVE_TRAFFIC
+    },
+/* Set minimum fragment size */
+ .minFragSize =  MIN_FRAG_SIZE,
+};
+#endif
+
 #if !defined(MCU_PLUS_SDK)
 static uint8_t gEthAppStackBuf[ETHAPP_INIT_TASK_STACKSIZE] __attribute__ ((section(".bss:taskStackSection"))) __attribute__ ((aligned(ETHAPP_INIT_TASK_STACKALIGN)));
 #endif
@@ -912,7 +940,6 @@ int main(void)
 #endif
 
     OS_init();
-
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
 
@@ -1234,6 +1261,10 @@ void EthApp_portLinkStatusChangeCb(Enet_MacPort macPort,
 #if defined(ETHFW_GPTP_SUPPORT)
     notify_linkchange();
 #endif
+
+#if defined(ETHFW_IET_ENABLE)
+    EthFwIET_notifyLinkChange(macPort,isLinkUp);
+#endif
 }
 
 static int32_t EthApp_initEthFw(void)
@@ -1331,7 +1362,7 @@ static int32_t EthApp_initEthFw(void)
     ethFwCfg.configPtpCbArg = NULL;
 #endif
 
-#if defined(ETHFW_BOOT_TIME_PROFILING) || defined(ETHFW_GPTP_SUPPORT)
+#if defined(ETHFW_BOOT_TIME_PROFILING) || defined(ETHFW_GPTP_SUPPORT) || defined(ETHFW_IET_ENABLE)
     /* Link-up timestamp */
     cpswCfg->portLinkStatusChangeCb    = &EthApp_portLinkStatusChangeCb;
     cpswCfg->portLinkStatusChangeCbArg = &gEthAppObj;
@@ -1377,6 +1408,10 @@ static int32_t EthApp_initEthFw(void)
     memcpy(ethFwCfg.vepaCfg.privVlanId,
            gEthApp_remoteClientPrivVlanIdMap,
            sizeof(gEthApp_remoteClientPrivVlanIdMap));
+#endif
+
+#if defined(ETHFW_IET_ENABLE)
+    ethFwCfg.ietCfg = gEthApp_IETCfg;
 #endif
 
     ethFwCfg.portMirCfg = &gEthApp_portMirCfg;

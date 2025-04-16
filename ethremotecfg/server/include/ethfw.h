@@ -80,6 +80,7 @@
 #include <ethremotecfg/server/include/ethfw_mcast.h>
 #include <ethremotecfg/server/include/ethfw_vlan.h>
 #include <ethremotecfg/server/include/ethfw_vepa.h>
+#include <ethremotecfg/server/include/ethfw_iet.h>
 #include <ethremotecfg/server/include/ethfw_monitor.h>
 #include <ethremotecfg/server/include/ethfw_qos.h>
 #include <ethremotecfg/server/include/ethfw_portmirror.h>
@@ -251,6 +252,9 @@ typedef struct EthFw_Config_s
     /*! VEPA configuration passed from application */
     EthFwVepa_Cfg vepaCfg;
 
+    /*! IET configuration passed from application */
+    EthFwIET_Config ietCfg;
+    
     /*! CPSW monitor and recovery configuration */
     EthFwMon_Cfg monitorCfg;
 

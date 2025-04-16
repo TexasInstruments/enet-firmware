@@ -173,6 +173,10 @@ ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
 endif
 
+ifeq ($(ETHFW_IET_ENABLE),yes)
+  DEFS += ETHFW_IET_ENABLE
+endif
+
 # Feature flags: ETHFW MTS support
 ifeq ($(ETHFW_MTS_SUPPORT),yes)
   DEFS += ETHFW_MTS_SUPPORT

@@ -20,6 +20,9 @@ CSOURCES += ethfw_arp.c
 CSOURCES += ethfw_api.c
 CSOURCES += ethfw_portmirror.c
 
+ifeq ($(ETHFW_IET_ENABLE),yes)
+CSOURCES += ethfw_iet.c
+endif
 ifeq ($(ETHFW_MTS_SUPPORT),yes)
 CSOURCES += ts_coupler_server.c
 endif
@@ -77,6 +80,10 @@ endif
 # Feature flags: ETHFW Monitor
 ifeq ($(ETHFW_MONITOR_SUPPORT),yes)
   DEFS += ETHFW_MONITOR_SUPPORT
+endif
+
+ifeq ($(ETHFW_IET_ENABLE),yes)
+  DEF += ETHFW_IET_ENABLE
 endif
 
 # Feature flags: ETHFW MTS support

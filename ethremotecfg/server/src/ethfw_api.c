@@ -1094,6 +1094,10 @@ EthFw_Handle EthFw_init(Enet_Type enetType,
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init VEPA utils");
 #endif
 
+#if defined(ETHFW_IET_ENABLE)
+    EthFwIET_init(&config->ietCfg, gEthFwObj.hEnet, gEthFwObj.coreId);
+#endif
+
 #if defined(ETHFW_MONITOR_SUPPORT)
     status = EthFwMon_init(&config->monitorCfg, gEthFwObj.enetType, gEthFwObj.instId, gEthFwObj.numPorts);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to init Monitor");
