@@ -69,6 +69,9 @@
 /* ========================================================================== */
 /*                             Include Files                                  */
 /* ========================================================================== */
+/* EthFwTrace id for this module, must be unique within ETHFW */
+#define ETHFWTRACE_MOD_ID 0x202
+#define ETHFWTRACE_MOD_NAME "TS_CouplerClient"
 
 #include <stdint.h>
 #include <stdarg.h>
@@ -110,14 +113,16 @@ typedef struct TSCouplerClient_Obj_s
 
     TimerP_Handle hTimeSyncSysTimer;
 
-    uint32_t syncEventCount;
+    uint64_t syncEventCount;
 
-    uint32_t syncPeriodTicks;
+    uint64_t syncPeriodTicks;
 
     double rate;
 
     double offset;
-
+#if defined(ETHFW_MTS_DEMO_TEST)
+    uint64_t timerIsrCtxLSyncTime;
+#endif
 } TSCouplerClient_Obj;
 
 /* ========================================================================== */
@@ -165,6 +170,13 @@ void TsCouplerClient_start(TsCouplerClient_Cfg *cfg)
     EthFwOsal_createTask(&TsCouplerClient_task, &taskParams);
 }
 
+static void TsCouplerClient_TmrIsr(void* arg)
+{
+#if defined(ETHFW_MTS_DEMO_TEST)
+    gTSCoupCliObj.timerIsrCtxLSyncTime = TsCouplerClient_getSynchronizedTime(TS_COUPLER_CLIENT_TIMER_TYPE_GPTIMER);
+#endif
+}
+
 static void TsCouplerClient_task(void* arg0)
 {
     bool exitTask = BFALSE;
@@ -201,7 +213,7 @@ static void TsCouplerClient_task(void* arg0)
         timerParams.periodType = TimerP_PeriodType_MICROSECS;
         timerParams.period     = (gTSCoupCliObj.tsCfg.periodinMs) * 1000U; //TimerP period takes microseconds.
     
-        gTSCoupCliObj.hTimeSyncSysTimer = TimerP_create(gTSCoupCliObj.tsCfg.timerIdx, NULL, &timerParams);
+        gTSCoupCliObj.hTimeSyncSysTimer = TimerP_create(gTSCoupCliObj.tsCfg.timerIdx, (TimerP_Fxn)&TsCouplerClient_TmrIsr, &timerParams);
         EnetAppUtils_assert(NULL != gTSCoupCliObj.hTimeSyncSysTimer);
 
         status = TimerP_start(gTSCoupCliObj.hTimeSyncSysTimer);
@@ -264,6 +276,24 @@ void TsCouplerClient_HwPushNotifyFxn(uint32_t notifyType,
     }
 
     gTSCoupCliObj.gTsTupleInfo.tupleIndex++;
+
+#if defined(ETHFW_MTS_DEMO_TEST)
+    /* For MTS accuracy test, print the delta between local synchronized time and remote time every 10s. */
+    if ((gTSCoupCliObj.syncEventCount % 10U == 0U) && (gTSCoupCliObj.timerIsrCtxLSyncTime != 0U))
+    {
+        uint64_t deltaTime = 0U;
+        
+        if (tuple->phcTime > gTSCoupCliObj.timerIsrCtxLSyncTime)
+        {
+            deltaTime = (uint64_t)(tuple->phcTime - gTSCoupCliObj.timerIsrCtxLSyncTime);
+        }
+        else
+        {
+            deltaTime = (uint64_t)(gTSCoupCliObj.timerIsrCtxLSyncTime - tuple->phcTime);
+        }
+        ETHFWTRACE_INFO("IsrPhcTime: %lld RemotePhcTime: %lld Delta time: %lld", (uint64_t)(gTSCoupCliObj.timerIsrCtxLSyncTime),(uint64_t)(tuple->phcTime), (uint64_t)(deltaTime));
+    }
+#endif
 
     EthFwOsal_postSemaphore((EthFwOsal_SemHandle)gTSCoupCliObj.hTimeSyncSem);
 }

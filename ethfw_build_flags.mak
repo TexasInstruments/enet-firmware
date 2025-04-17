@@ -119,6 +119,7 @@ ETHFW_EST_DEMO_LISTENER?=no
 # EthFw Mutlicore Timesync support
 ifneq (,$(filter $(BUILD_SOC_LIST),J784S4 J721E J7200))
   ETHFW_MTS_SUPPORT?=yes
+  ETHFW_MTS_DEMO_TEST?=no
 endif
 
 # Disable RTOS client build for mcu2_1 core if enabled for mcu3_0 core

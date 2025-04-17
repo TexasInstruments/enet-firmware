@@ -68,6 +68,10 @@ ifeq ($(ETHFW_MTS_SUPPORT),yes)
   DEFS += ETHFW_MTS_SUPPORT
 endif
 
+ifeq ($(ETHFW_MTS_DEMO_TEST),yes)
+  DEFS += ETHFW_MTS_DEMO_TEST
+endif
+
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)
   DEFS += ETHAPP_ENABLE_IPERF_SERVER
 endif
@@ -142,6 +146,10 @@ endif
 # Feature flags: ETHFW MTS support
 ifeq ($(ETHFW_MTS_SUPPORT),yes)
   DEFS += ETHFW_MTS_SUPPORT
+endif
+
+ifeq ($(ETHFW_MTS_DEMO_TEST),yes)
+  DEFS += ETHFW_MTS_DEMO_TEST
 endif
 
 # iperf server support
@@ -229,6 +237,10 @@ endif
 # Feature flags: ETHFW MTS support
 ifeq ($(ETHFW_MTS_SUPPORT),yes)
   DEFS += ETHFW_MTS_SUPPORT
+endif
+
+ifeq ($(ETHFW_MTS_DEMO_TEST),yes)
+  DEFS += ETHFW_MTS_DEMO_TEST
 endif
 
 ifeq ($(ETHFW_IPERF_SERVER_SUPPORT),yes)

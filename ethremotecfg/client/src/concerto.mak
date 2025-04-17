@@ -4,6 +4,10 @@ TARGETTYPE  := library
 
 CSOURCES    += cpsw_proxy.c
 
+ifeq ($(ETHFW_MTS_DEMO_TEST),yes)
+  DEFS += ETHFW_MTS_DEMO_TEST
+endif
+
 ifeq ($(ETHFW_MTS_SUPPORT),yes)
 CSOURCES += ts_coupler_client.c
 endif
