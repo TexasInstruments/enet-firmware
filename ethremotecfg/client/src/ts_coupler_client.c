@@ -312,7 +312,8 @@ uint64_t TsCouplerClient_getSynchronizedTime(TsCouplerClient_TimerType timerType
     }
     else
     {
-        localTime = TimerP_getCount(gTSCoupCliObj.hTimeSyncSysTimer);
+        localTime = ((uint64_t)gTSCoupCliObj.syncEventCount * (uint64_t)gTSCoupCliObj.syncPeriodTicks) + 
+                    (uint64_t)((TimerP_getCount(gTSCoupCliObj.hTimeSyncSysTimer) - TimerP_getReloadCount(gTSCoupCliObj.hTimeSyncSysTimer)) + 1);
     }
 
     synchronizedTime = (uint64_t)((double)localTime * gTSCoupCliObj.rate + gTSCoupCliObj.offset);
