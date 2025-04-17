@@ -386,6 +386,8 @@ static uint32_t gEthFw_policerTablePartSize[CPSW_ALE_POLICER_TABLE_PART_MAX] =
 };
 /* Note: Sum of partition sizes must be <= Total number of policer entries available */
 
+EthFwPortMirroring_Cfg gPortMirCfg = {.mirroringType = DISABLE_PORT_MIRRORING};
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -866,12 +868,11 @@ void EthFw_initConfigParams(Enet_Type enetType,
     CpswHostPort_Cfg *hostPortCfg = &cpswCfg->hostPortCfg;
     CpswCpts_Cfg *cptsCfg = &cpswCfg->cptsCfg;
     EnetRm_ResCfg *resCfg = &cpswCfg->resCfg;
-    EthFwPortMirroring_Cfg portMirCfg = {.mirroringType = DISABLE_PORT_MIRRORING};
 
     memset(config, 0, sizeof(*config));
 
     /* Port mirroring configuration */
-    config->portMirCfg = &portMirCfg;
+    config->portMirCfg = &gPortMirCfg;
 
     /* MAC port ownership */
     config->ports = NULL;
