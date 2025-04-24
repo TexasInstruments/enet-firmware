@@ -137,7 +137,7 @@
 
 /*! Remote notify service task name */
 #define CPSWPROXY_NOTIFY_SERVICE_TASK_NAME               ("NOTIFY_SERVICE_TASK")
-#define CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY           (2U)
+#define CPSWPROXY_NOTIFY_SERVICE_TASK_PRIORITY           (4U)
 
 #define CPSWPROXY_PRINT_STATS_NONZERO(str, val)          ETHFWTRACE_INFO_IF(((val) != 0ULL), str, val)
 #define CPSWPROXY_PRINT_STATS_IDX_NONZERO(str, idx, val) ETHFWTRACE_INFO_IF(((val) != 0ULL), str, idx, val)

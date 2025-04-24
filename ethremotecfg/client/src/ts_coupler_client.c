@@ -172,6 +172,14 @@ void TsCouplerClient_start(TsCouplerClient_Cfg *cfg)
 
 static void TsCouplerClient_TmrIsr(void* arg)
 {
+    gTSCoupCliObj.syncEventCount++;
+    TsCouplerClient_timeSyncTuple *tuple;
+
+    tuple = &(gTSCoupCliObj.gTsTupleInfo.tuple[gTSCoupCliObj.gTsTupleInfo.tupleIndex % ENET_ARRAYSIZE(gTSCoupCliObj.gTsTupleInfo.tuple)]);
+
+    tuple->systemTime = ((uint64_t)gTSCoupCliObj.syncEventCount * (uint64_t)gTSCoupCliObj.syncPeriodTicks) + 
+                        (uint64_t)((TimerP_getCount(gTSCoupCliObj.hTimeSyncSysTimer) - TimerP_getReloadCount(gTSCoupCliObj.hTimeSyncSysTimer)) + 1);
+
 #if defined(ETHFW_MTS_DEMO_TEST)
     gTSCoupCliObj.timerIsrCtxLSyncTime = TsCouplerClient_getSynchronizedTime(TS_COUPLER_CLIENT_TIMER_TYPE_GPTIMER);
 #endif
@@ -234,7 +242,6 @@ static void TsCouplerClient_task(void* arg0)
     {
         EthFwOsal_pendSemaphore(gTSCoupCliObj.hTimeSyncSem, ETHFWOSAL_WAIT_FOREVER);
 
-        gTSCoupCliObj.syncEventCount++;
 
         /* Calculate rate and offset */
         TsCouplerClient_calculateRateAndOffset(gTSCoupCliObj.gTsTupleInfo.tuple, TS_COUPLER_CLIENT_TUPLES_MAX_TUPLES, &gTSCoupCliObj.rate, &gTSCoupCliObj.offset);
@@ -271,8 +278,7 @@ void TsCouplerClient_HwPushNotifyFxn(uint32_t notifyType,
     else
     {
         tuple->phcTime = params->timestamp;
-        tuple->systemTime = ((uint64_t)gTSCoupCliObj.syncEventCount * (uint64_t)gTSCoupCliObj.syncPeriodTicks) + 
-                            (uint64_t)((TimerP_getCount(gTSCoupCliObj.hTimeSyncSysTimer) - TimerP_getReloadCount(gTSCoupCliObj.hTimeSyncSysTimer)) + 1);
+
     }
 
     gTSCoupCliObj.gTsTupleInfo.tupleIndex++;

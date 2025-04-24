@@ -125,7 +125,7 @@
 /* Notify service task name and priority */
 #define CPSWPROXY_NOTIFY_SERVICE_TASK_NAME              "CpswProxy-NotifyTask"
 #ifndef QNX_OS
-#define CPSWPROXY_NOTIFY_SERVICE_TASK_PRI               (2U)
+#define CPSWPROXY_NOTIFY_SERVICE_TASK_PRI               (4U)
 #else
 #define CPSWPROXY_NOTIFY_SERVICE_TASK_PRI               (22U)
 #endif
