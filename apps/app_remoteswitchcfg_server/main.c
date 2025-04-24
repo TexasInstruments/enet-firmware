@@ -891,20 +891,22 @@ static uint8_t gEthAppCntrlBuf[ETHAPP_IPC_DATA_SIZE] __attribute__ ((section("ip
 
 static uint8_t gEthAppVringMemBuf[ETHAPP_IPC_VRING_MEM_SIZE] __attribute__ ((section(".bss:ipc_vring_mem"), aligned(8192)));
 
-#if defined (ETHFW_RTOS_MCU3_0) || defined(ETHFW_RTOS_MCU2_1_SERVER)
+#if defined(ETHFW_RTOS_MCU2_1_SERVER)
 static uint32_t gEthAppRemoteProc[] =
 {
 #if defined(SOC_J721E)
-    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU3_0,
-    IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2,
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_C66X_1, IPC_C66X_2,
     IPC_C7X_1,
+#elif defined(SOC_J7200)
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
 #elif defined(SOC_J784S4)
-    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU3_0,
-    IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,  IPC_C7X_4,
 #elif defined(SOC_J742S2)
-    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU3_0,
-    IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
+    IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
+    IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
 #endif
 };
