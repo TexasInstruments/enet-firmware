@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2024-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -113,7 +113,7 @@
  * This translation matches to sysbios implementation, where id=0 is
  * for dmTimer12, id =1 is for dmTimer13, id = 2 is for dmTimer14 etc.
  */
-#define CPSW_REMOTE_APP_TIMESYNC_TIMER_IDX       (2U)
+#define CPSW_REMOTE_APP_TIMESYNC_TIMER_IDX       (3U)
 #endif 
 
 #define CPSW_REMOTE_APP_TIMESYNC_TIMERPERIOD_MS  (1000U) //1 second
