@@ -252,7 +252,7 @@ static EnetMacPort_PreemptVerifyStatus EthFwIET_doIetVerification(Enet_Handle hE
     int32_t status = ENET_SOK;
     EnetMacPort_GenericInArgs fpe;
     Enet_IoctlPrms prms;
-    EnetMacPort_PreemptVerifyStatus verifyStatus;
+    EnetMacPort_PreemptVerifyStatus verifyStatus = ENET_MAC_VERIFYSTATUS_FAILED;
 
     fpe.macPort = macPort;
     do{
