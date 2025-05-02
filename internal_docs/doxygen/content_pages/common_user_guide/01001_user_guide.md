@@ -30,6 +30,7 @@ Remote configuration server | Firmware app hosting the IPC server to serve remot
 Resource management library | Resource management library for CPSW resource sharing across cores
 Reset Recovery on CPSW  | Support to reset CPSW and recover it back to a working state from HW lockups.
 QoS             | Support for assignment of multiple TX channels/RX flows for clients
+Multicore Timesync             | Support for multicore Timesync demonstrated between server and RTOS client.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
@@ -2032,6 +2033,132 @@ Remote Clients can implement a mechanism to periodically monitor the status of E
 If EthFw is not responsive and fails to respond to client's commands, a timeout mechanism is implemented on CPSW proxy client which will end the wait loop for response and return `ETHREMOTECFG_SERVERSTATUS_BAD` status to client application via callback function when the configured timeout period for cmd expires. 
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Multicore Timesync {#ethfw_c_ug_mts}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Multocore Timesync is enabled starting SDK 11.0, it demonstrates synchronising a system clock (GTC/GP Timer) with CPTS Clock. The feature is demonstrated between EthFw server and RTOS client. The block diagram of the feature is shown below:
+
+![](MTS_block_diagram.png "Multicore Timesync block diagram.")
+
+The Steps involved in Multicore Timesync:
+-# Initialization of Timesync Coupler Client by Remote client with intented Timer Type(GTC/GP Timer)
+-# Allocation of CPTS HW PUSH instance by Remote client
+-# Registering the Timesync Router for allocated HW Push instance.
+-# Timer Handling by Remote client 
+-# EthFw sending an IPC notification of CPTS time to Remote client.
+-# Software Tuple maintenance by remote client and Rate and Offset calculation to get Synchronized Time.
+
+
+The Remote Client initialises the Timesync Coupler Client module with the choice of Timer intended to be use. A GTC or a GP Timer are the options available.
+
+The Remote Client that needs to allocated a CPTS HW push instance via ETHREMOTECFG_CMD_ALLOC_CPTS_HW_PUSH cmd. The EthFw server maintains the static allocation for CPSW PUSH instances distributed across different cores. On successful allocation, THE CPTS instance is used by Remote client to query CPTS Time.
+
+The Remote Client based on the intended Timer type and allocated CPTS HW Push instance needs to configure the timesync router, this is done via ETHREMOTECFG_CMD_REGISTER_REMOTE_TIMER cmd.
+
+Baased on the selected Timer type. the Remote client will set the GTC push event value for GTC Timer Type. For GP Timer type, the intented Timer handle is created and PWM is triggered.
+
+On trigger of PWM, the EthFw server receives a CPTS notification of the PWM generated time, which is passed to intented Remote clients via IPC messages.
+
+On reception of CPTS Time, Remote client maintains a Software Tuple of Remote Time and System Time and maintains the relationship to calculate the rate and offset needed to get the synchronized time.
+
+There is a demo test showcasing the accuracy on synchronization between local calculated synchronized time vs Remote time. Enable the macro ETHFW_MTS_DEMO_TEST to run the demo test. The log reference of demo test on RTOS client is given below:
+
+
+```C
+=================================================================
+ DMSC Firmware Version 10.1.6--v10.01.06 (Fiery Fox)
+ Firmware revision 0xa
+ ABI revision 4.0
+=================================================================
+Sciclient_ccs_init Passed.
+SCISERVER Board Configuration header population... PASSED
+[MAIN_Cortex_R5_0_1] CpswProxy: Local cmd endpt 36, notify endpt 30
+CpswProxy: ETHFW services found at core 3 endpts 34 (ti.ethfw.ethdevice) and 24 (ti.ethfw.notifyservice)
+: Starting lwIP, local interface IP is dhcp-enabled
+CpswProxy: ATTACH | C2S | virtPort=1
+CpswProxy: ATTACH | S2C | token=100 rxMtu=1522 features=3 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=100 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=100 txPsil=0xca01 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=100
+CpswProxy: ALLOC_RX | S2C | token=100 flow=84,8 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=100
+CpswProxy: ALLOC_MAC | S2C | token=100 macAddr=70:22:33:65:80:cc status=0
+CpswProxy: REGISTER_MAC | C2S | token=100 flowIdx=84,8
+CpswProxy: REGISTER_MAC | S2C | token=100 status=0
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+[LWIPIF_LWIP_IC] Interface started successfully
+[LWIPIF_LWIP_IC] NETIF INIT SUCCESS
+: Added interface 'ti0', IP is 0.0.0.0
+: Added interface 'br2', IP is 0.0.0.0
+: Starting lwIP, local interface IP is dhcp-enabled
+CpswProxy: ATTACH | C2S | virtPort=7
+CpswProxy: ATTACH | S2C | token=700 rxMtu=1522 features=1 numTxCh=1 numRxFlow=1 status=0
+CpswProxy: ALLOC_TX | C2S | token=700 chRelPri=0
+CpswProxy: ALLOC_TX | S2C | token=700 txPsil=0xca02 chRelPri=0 status=0
+CpswProxy: ALLOC_RX | C2S | token=700
+CpswProxy: ALLOC_RX | S2C | token=700 flow=84,9 rxPsil=0x4a00 status=0
+CpswProxy: ALLOC_MAC | C2S | token=700
+CpswProxy: ALLOC_MAC | S2C | token=700 macAddr=70:bd:3b:ce:4b:da status=0
+CpswProxy: REGISTER_MAC | C2S | token=700 flowIdx=84,9
+CpswProxy: REGISTER_MAC | S2C | token=700 status=0
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+: Added interface 'ti3', IP is 0.0.0.0
+CpswProxy: ALLOC_CPTS_HW_PUSH | C2S | token=100
+CpswProxy: ALLOC_CPTS_HW_PUSH | S2C | token=100 hwPushNum=7 status=0
+CpswProxy: REGISTER_REMOTE_TIMER | C2S | token=100 timerId=2 hwPushNum=7
+CpswProxy: REGISTER_REMOTE_TIMER | S2C | token=100 status=0
+TS_CouplerClient: IsrPhcTime: 27365528277 RemotePhcTime: 27365523746 Delta time: 4531
+ad: Added interface 'br2', IP is 172.24.227.172
+TS_CouplerClient: IsrPhcTime: 32365531871 RemotePhcTime: 32365523746 Delta time: 8125
+TS_CouplerClient: IsrPhcTime: 37365535308 RemotePhcTime: 37365523748 Delta time: 11560
+TS_CouplerClient: IsrPhcTime: 42365539683 RemotePhcTime: 42365523748 Delta time: 15935
+TS_CouplerClient: IsrPhcTime: 47365543902 RemotePhcTime: 47365523750 Delta time: 20152
+TS_CouplerClient: IsrPhcTime: 52365547339 RemotePhcTime: 52365523750 Delta time: 23589
+TS_CouplerClient: IsrPhcTime: 57365551714 RemotePhcTime: 57365523752 Delta time: 27962
+TS_CouplerClient: IsrPhcTime: 62365555777 RemotePhcTime: 62365523752 Delta time: 32025
+TS_CouplerClient: IsrPhcTime: 67365559058 RemotePhcTime: 67365523754 Delta time: 35304
+TS_CouplerClient: IsrPhcTime: 72365563277 RemotePhcTime: 72365523754 Delta time: 39523
+TS_CouplerClient: IsrPhcTime: 77365566714 RemotePhcTime: 77365523756 Delta time: 42958
+TS_CouplerClient: IsrPhcTime: 82365570777 RemotePhcTime: 82365523756 Delta time: 47021
+TS_CouplerClient: IsrPhcTime: 87365574683 RemotePhcTime: 87365523758 Delta time: 50925
+TS_CouplerClient: IsrPhcTime: 92365578746 RemotePhcTime: 92365523758 Delta time: 54988
+TS_CouplerClient: IsrPhcTime: 97365582652 RemotePhcTime: 97365523760 Delta time: 58892
+TS_CouplerClient: IsrPhcTime: 102365586558 RemotePhcTime: 102365523760 Delta time: 62798
+TS_CouplerClient: IsrPhcTime: 107365590777 RemotePhcTime: 107365523762 Delta time: 67015
+TS_CouplerClient: IsrPhcTime: 112365594371 RemotePhcTime: 112365523762 Delta time: 70609
+TS_CouplerClient: IsrPhcTime: 117365598433 RemotePhcTime: 117365523764 Delta time: 74669
+TS_CouplerClient: IsrPhcTime: 122365602183 RemotePhcTime: 122365523764 Delta time: 78419
+TS_CouplerClient: IsrPhcTime: 127365526732 RemotePhcTime: 127365523766 Delta time: 2966
+TS_CouplerClient: IsrPhcTime: 132365528139 RemotePhcTime: 132365523766 Delta time: 4373
+TS_CouplerClient: IsrPhcTime: 137365529701 RemotePhcTime: 137365523766 Delta time: 5935
+TS_CouplerClient: IsrPhcTime: 142365531576 RemotePhcTime: 142365523768 Delta time: 7808
+TS_CouplerClient: IsrPhcTime: 147365533295 RemotePhcTime: 147365523768 Delta time: 9527
+TS_CouplerClient: IsrPhcTime: 152365534389 RemotePhcTime: 152365523770 Delta time: 10619
+TS_CouplerClient: IsrPhcTime: 157365535951 RemotePhcTime: 157365523770 Delta time: 12181
+TS_CouplerClient: IsrPhcTime: 162365537514 RemotePhcTime: 162365523772 Delta time: 13742
+TS_CouplerClient: IsrPhcTime: 167365539076 RemotePhcTime: 167365523772 Delta time: 15304
+TS_CouplerClient: IsrPhcTime: 172365540951 RemotePhcTime: 172365523774 Delta time: 17177
+TS_CouplerClient: IsrPhcTime: 177365542201 RemotePhcTime: 177365523774 Delta time: 18427
+TS_CouplerClient: IsrPhcTime: 182365543764 RemotePhcTime: 182365523776 Delta time: 19988
+TS_CouplerClient: IsrPhcTime: 187365545482 RemotePhcTime: 187365523776 Delta time: 21706
+TS_CouplerClient: IsrPhcTime: 192365546732 RemotePhcTime: 192365523778 Delta time: 22954
+TS_CouplerClient: IsrPhcTime: 197365548764 RemotePhcTime: 197365523778 Delta time: 24986
+TS_CouplerClient: IsrPhcTime: 202365550014 RemotePhcTime: 202365523780 Delta time: 26234
+TS_CouplerClient: IsrPhcTime: 207365551732 RemotePhcTime: 207365523780 Delta time: 27952
+TS_CouplerClient: IsrPhcTime: 212365552982 RemotePhcTime: 212365523782 Delta time: 29200
+TS_CouplerClient: IsrPhcTime: 217365555014 RemotePhcTime: 217365523782 Delta time: 31232
+TS_CouplerClient: IsrPhcTime: 222365556576 RemotePhcTime: 222365523784 Delta time: 32792
+TS_CouplerClient: IsrPhcTime: 227365525815 RemotePhcTime: 227365523784 Delta time: 2031
+TS_CouplerClient: IsrPhcTime: 232365525502 RemotePhcTime: 232365523786 Delta time: 1716
+TS_CouplerClient: IsrPhcTime: 237365525815 RemotePhcTime: 237365523786 Delta time: 2029
+TS_CouplerClient: IsrPhcTime: 242365525815 RemotePhcTime: 242365523786 Delta time: 2029
+TS_CouplerClient: IsrPhcTime: 247365525815 RemotePhcTime: 247365523788 Delta time: 2027
+TS_CouplerClient: IsrPhcTime: 252365525659 RemotePhcTime: 252365523788 Delta time: 1871
+TS_CouplerClient: IsrPhcTime: 257365525815 RemotePhcTime: 257365523790 Delta time: 2025
+```
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # EthFw Demos {#ethfw_c_ug_ethfw_demos}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -2822,6 +2949,8 @@ Flag                             | Description
 `-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
 `-D=ETHFW_DEMO_SUPPORT`          | Enable ETHFW demos, such as hardware and software interVLAN, GUI configurator tool, etc.
 `-D=ETHFW_MONITOR_SUPPORT`       | Enable ETHFW Monitor to detect and handle any HW lockups and perform reset recovery.
+`-D=ETHFW_MTS_SUPPORT`           | Enable ETHFW Multicore Timesync support.
+`-D=ETHFW_MTS_DEMO_TEST`         | Enable Multicore Timesync Demo test on RTOS client.
 
 Other common flags:
 
@@ -2864,6 +2993,8 @@ Flag                             | Description
 `-D=ETHFW_BOOT_TIME_PROFILING`   | Enable special ETHFW configuration for boot time profiling (TI internal)
 `-D=ETHFW_DEMO_SUPPORT`          | Enable ETHFW demos, such as hardware and software interVLAN, GUI configurator tool, etc.
 `-D=ETHFW_MONITOR_SUPPORT`       | Enable ETHFW Monitor to detect and handle any HW lockups and perform reset recovery.
+`-D=ETHFW_MTS_SUPPORT`           | Enable ETHFW Multicore Timesync support.
+`-D=ETHFW_MTS_DEMO_TEST`         | Enable Multicore Timesync Demo test on RTOS client.
 
 Other common flags:
 
