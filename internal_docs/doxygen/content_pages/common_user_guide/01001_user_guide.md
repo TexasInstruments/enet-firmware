@@ -1394,18 +1394,33 @@ The updated implementation of VLANs handling is done in
 consideration to save more ALE entries and classifiers.
 
 Presently the default VLAN id for MAC only ports is 0 and for switch ports
-is 3. For host port the default VLAN id is 1. These values are configurable by user
-and can be modified by updating the following macro definitions in the 
-*/ethfw/ethremotecfg/server/src/ethfw_api.c* file:
+is 3. For host port the default VLAN id is 1. The VLAN IDs 0, 1 and 3 
+must be treated as reserved VLANs and no application should use them.
+
+The macros which define these default VLAN IDs must not be edited and any 
+change to the default VLANs must be done by updating the `dfltVlanIdMacOnlyPorts` 
+and `dfltVlanIdSwitchPorts` values declared in the file 
+*ethfw/ethremotecfg/server/include/ethfw.h*. 
+Please refer to *ethfw/ethremotecfg/server/src/ethfw_api.c* to understand usage of both 
+`dfltVlanIdMacOnlyPorts` and `dfltVlanIdSwitchPorts`.
+
+The default VLAN IDs for MAC only, switch and host port are mentioned in the 
+following macro definitions of the */ethfw/ethremotecfg/server/src/ethfw_api.c* file:
 
 ```C
-/*! VLAN id used for host port */
+/* VLAN id used for host port.
+   This macro must not be edited. */
 #define ETHFW_HOST_PORT_VLAN_ID                       (1U)
 
-/*! VLAN id used for all MAC ports in MAC-only mode */
+/* VLAN id used for all MAC ports in MAC-only mode. 
+   This macro must not be edited. We must update 
+   dfltVlanIdMacOnlyPorts value to give a user specific VLAN id. */
 #define ETHFW_MAC_ONLY_PORTS_VLAN_ID                  (0U)
 
-/*! VLAN id used for all MAC ports in switch mode (non MAC-only mode) */
+/* VLAN id used for all MAC ports in switch mode (non MAC-only mode).
+   This macro must not be edited. We must update
+   dfltVlanIdSwitchPorts value to give a user specific
+   VLAN id. */
 #define ETHFW_SWITCH_PORTS_VLAN_ID                    (3U)
 ```
 

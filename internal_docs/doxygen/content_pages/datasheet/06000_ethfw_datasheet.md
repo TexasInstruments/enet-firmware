@@ -24,7 +24,6 @@ status in the TI Processor SDK for J721E/J7200/J784S4.  The test setup is:
     <td>main()</td>
     <td>
         Starting time is when Ethernet Firmware application is ready to run in main().
-
         Using main() as starting point decouples these measurements from the EthFw binary
         loading mechanism.
     </td>
@@ -79,11 +78,11 @@ in the following table.
 | Boot stage                     |  J721E    |  J7200    | J784S4    |
 |:-------------------------------|:---------:|:---------:|:---------:|
 | main()                         |      0 ms |      0 ms |      0 ms |
-| Layer-2 switching active       | 180.49 ms | 215.69 ms | 139.87 ms |
-| Host port ready for RX/TX      |  93.45 ms | 126.22 ms |  55.15 ms |
-| TCP/IP stack initialized       | 126.17 ms | 153.78 ms |  56.35 ms |
-| gPTP stack initilized          | 260.12 ms | 220.65 ms | 124.51 ms |
-| CPSW Proxy Server initialized  | 339.72 ms | 254.94 ms | 164.28 ms |
+| Layer-2 switching active       | 141.80 ms | 136.10 ms | 114.85 ms |
+| Host port ready for RX/TX      |  43.46 ms | 54.280 ms |  29.43 ms |
+| TCP/IP stack initialized       | 52.620 ms | 59.140 ms |  30.64 ms |
+| gPTP stack initilized          | 52.910 ms | 67.340 ms |  36.67 ms |
+| CPSW Proxy Server initialized  | 66.430 ms | 73.490 ms |  41.35 ms |
 
 This table doesn't take into account the time between power-on reset (POR) and the 
 Firmware image loaded and made ready to run, as it will be bootloader dependent.
@@ -120,6 +119,113 @@ PHY configuration being used.
 | Linux client tool version | iperf v2.0.5             |
 
 
+## EthFw Performance Numbers(Standalone) {#ethfw_standalone_numbers}
+
+### TCP Performance
+| Test              | Bandwidth (Mbps)       | CPU Load (%)|
+|:------------------|:----------------------:|:-----------:|
+| TCP RX            | 275                    |    93       |
+| TCP TX            | 13.4                   |    92       |
+| TCP Bidirectional | RX = 160, TX= 179      |    76       |
+
+### UDP Performance
+
+<table style="width:96%;" rules="all" frame="box">
+<tr class="header">
+<th rowspan="2">Test</th>
+<th colspan="3">Datagram Length = 64B</th>
+<th colspan="3">Datagram Length = 256B</th>
+<th colspan="3">Datagram Length = 512B</th>
+<th colspan="3">Datagram Length = 1470B</th>
+</tr>
+<tr class="odd"><th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th><th>
+<p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+<th><p>Bandwidth (Mbps)</p></th>
+<th><p>CPU Load (%)</p></th>
+<th><p>Packet Loss (%)</p></th>
+</tr>
+<tr class="odd">
+<td rowspan="3">UDP RX</td>
+<td align="center">0.5</td>
+<td align="center">14</td>
+<td align="center">0.00</td>
+<td align="center">1.00</td>
+<td align="center">16</td>
+<td align="center">0.00</td>
+<td align="center">2.0</td>
+<td align="center">16</td>
+<td align="center">0.00</td>
+<td align="center">5.00</td>
+<td align="center">18</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="even">
+<td align="center">1</td>
+<td align="center">19</td>
+<td align="center">0.18</td>
+<td align="center">2.00</td>
+<td align="center">21</td>
+<td align="center">0.00</td>
+<td align="center">4.00</td>
+<td align="center">22</td>
+<td align="center">0.00</td>
+<td align="center">8.00</td>
+<td align="center">21</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="odd">
+<td align="center">2</td>
+<td align="center">21</td>
+<td align="center">0.62</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">10.00</td>
+<td align="center">24</td>
+<td align="center">0.00</td>
+</tr>
+<tr class="even">
+<td>UDP RX (Max)</td>
+<td align="center">3.5</td>
+<td align="center">22</td>
+<td align="center">0.88</td>
+<td align="center">9</td>
+<td align="center">22</td>
+<td align="center">0.68</td>
+<td align="center">20</td>
+<td align="center">23</td>
+<td align="center">0.71</td>
+<td align="center">100</td>
+<td align="center">26</td>
+<td align="center">0.57</td>
+</tr>
+<tr class="odd">
+<td>UDP TX (Max)</td>
+<td align="center">15.5</td>
+<td align="center">90</td>
+<td align="center">0.0038</td>
+<td align="center">40</td>
+<td align="center">82</td>
+<td align="center">0.01</td>
+<td align="center">80</td>
+<td align="center">78</td>
+<td align="center">0.003</td>
+<td align="center">231</td>
+<td align="center">80</td>
+<td align="center">0.0023</td>
+</tr>
+</table>
+
 ## Shared Memory transport {#ethfw_shared_mem_transport_datasheet}
 
 Inter-core network interface allows EthFw to communicate with another core using standard TCP/IP protocol suite.
@@ -135,11 +241,11 @@ the A72 Linux and R5_0 (MCU2_0) master core.
 
 #### TCP Performance
 
-| Test              | Bandwidth (Mbps)   | CPU Load (%)|
-|:------------------|:------------------:|:-----------:|
-| TCP RX            | 11.8               |    27       |
-| TCP TX            | 11.7               |    26       |
-| TCP Bidirectional | RX=5.83, TX=5.98   |    32       |
+| Test              | Bandwidth (Mbps)       | CPU Load (%)|
+|:------------------|:----------------------:|:-----------:|
+| TCP RX            | 12.7                   |    28       |
+| TCP TX            | 13.4                   |    24       |
+| TCP Bidirectional | RX = 5.71, TX= 6.29    |    34       |
 
 
 #### UDP Performance
@@ -168,7 +274,7 @@ the A72 Linux and R5_0 (MCU2_0) master core.
 </tr>
 <tr class="odd">
 <td rowspan="3">UDP RX</td>
-<td align="center">0.205</td>
+<td align="center">0.25</td>
 <td align="center">14</td>
 <td align="center">0.00</td>
 <td align="center">1.00</td>
@@ -182,7 +288,7 @@ the A72 Linux and R5_0 (MCU2_0) master core.
 <td align="center">0.00</td>
 </tr>
 <tr class="even">
-<td align="center">0.410</td>
+<td align="center">0.43</td>
 <td align="center">19</td>
 <td align="center">0.00</td>
 <td align="center">2.00</td>
@@ -196,9 +302,9 @@ the A72 Linux and R5_0 (MCU2_0) master core.
 <td align="center">0.00</td>
 </tr>
 <tr class="odd">
-<td align="center">0.511</td>
+<td align="center">0.52</td>
 <td align="center">21</td>
-<td align="center">0.00</td>
+<td align="center">0.62</td>
 <td align="center"></td>
 <td align="center"></td>
 <td align="center"></td>
@@ -211,17 +317,17 @@ the A72 Linux and R5_0 (MCU2_0) master core.
 </tr>
 <tr class="even">
 <td>UDP RX (Max)</td>
-<td align="center">0.512</td>
+<td align="center">0.53</td>
 <td align="center">22</td>
-<td align="center">0.32</td>
-<td align="center">2.05</td>
+<td align="center">0.29</td>
+<td align="center">2.1</td>
 <td align="center">22</td>
-<td align="center">0.34</td>
-<td align="center">4.09</td>
-<td align="center">23</td>
-<td align="center">0.71</td>
-<td align="center">11.8</td>
-<td align="center">26</td>
+<td align="center">0.31</td>
+<td align="center">5</td>
+<td align="center">24</td>
+<td align="center">0.73</td>
+<td align="center">12.5</td>
+<td align="center">27</td>
 <td align="center">0.57</td>
 </tr>
 <tr class="odd">
@@ -229,13 +335,13 @@ the A72 Linux and R5_0 (MCU2_0) master core.
 <td align="center">15.5</td>
 <td align="center">90</td>
 <td align="center">0.0038</td>
-<td align="center">32.0</td>
+<td align="center">36</td>
 <td align="center">82</td>
-<td align="center">0.0064</td>
-<td align="center">41.4</td>
+<td align="center">0.01</td>
+<td align="center">43</td>
 <td align="center">78</td>
 <td align="center">0.003</td>
-<td align="center">51.3</td>
+<td align="center">54</td>
 <td align="center">80</td>
 <td align="center">0.0023</td>
 </tr>
@@ -258,9 +364,9 @@ VEPA or hairpin mode allows the traffic to return to the same port (host port in
 
 | Test              | Bandwidth (Mbps)   | CPU Load (%)|
 |:------------------|:------------------:|:-----------:|
-| TCP RX            | 238                |    93       |
-| TCP TX            | 237                |    92       |
-| TCP Bidirectional | RX=91, TX=106      |    76       |
+| TCP RX            | 245                |    95       |
+| TCP TX            | 249                |    93       |
+| TCP Bidirectional | RX=92, TX=112      |    74       |
 
 
 #### UDP Performance
@@ -292,71 +398,71 @@ VEPA or hairpin mode allows the traffic to return to the same port (host port in
 <td align="center">5.02</td>
 <td align="center">27</td>
 <td align="center">0.00</td>
-<td align="center">25.3</td>
-<td align="center">37</td>
+<td align="center">25.5</td>
+<td align="center">32</td>
 <td align="center">0.00</td>
-<td align="center">25.1</td>
-<td align="center">27</td>
+<td align="center">25.5</td>
+<td align="center">24</td>
 <td align="center">0.00</td>
-<td align="center">25.0</td>
-<td align="center">20</td>
+<td align="center">25.5</td>
+<td align="center">16</td>
 <td align="center">0.00</td>
 </tr>
 <tr class="even">
 <td align="center">10.0</td>
 <td align="center">46</td>
 <td align="center">0.00</td>
-<td align="center">51.1</td>
-<td align="center">79</td>
-<td align="center">0.13</td>
-<td align="center">50.6</td>
-<td align="center">43</td>
-<td align="center">0.006</td>
-<td align="center">50.0</td>
-<td align="center">30</td>
+<td align="center">51.2</td>
+<td align="center">74</td>
+<td align="center">0.056</td>
+<td align="center">51.2</td>
+<td align="center">37</td>
+<td align="center">0.004</td>
+<td align="center">51.2</td>
+<td align="center">26</td>
 <td align="center">0.00</td>
 </tr>
 <tr class="odd">
 <td align="center">15.0</td>
 <td align="center">90</td>
-<td align="center">0.096</td>
+<td align="center">0.082</td>
 <td align="center"></td>
 <td align="center"></td>
 <td align="center"></td>
 <td align="center">102</td>
-<td align="center">87</td>
-<td align="center">0.16</td>
-<td align="center">101</td>
-<td align="center">51</td>
+<td align="center">82</td>
+<td align="center">0.045</td>
+<td align="center">112</td>
+<td align="center">46</td>
 <td align="center">0.00</td>
 </tr>
 <tr class="even">
 <td>UDP RX (Max)</td>
-<td align="center">20.1</td>
+<td align="center">20.5</td>
 <td align="center">91</td>
-<td align="center">0.71</td>
-<td align="center">67.7</td>
+<td align="center">0.75</td>
+<td align="center">70.6</td>
+<td align="center">85</td>
+<td align="center">0.82</td>
+<td align="center">120</td>
+<td align="center">85</td>
+<td align="center">0.21</td>
+<td align="center">203</td>
 <td align="center">91</td>
-<td align="center">0.88</td>
-<td align="center">110</td>
-<td align="center">90</td>
-<td align="center">0.25</td>
-<td align="center">193</td>
-<td align="center">93</td>
-<td align="center">0.11</td>
+<td align="center">0.10</td>
 </tr>
 <tr class="odd">
 <td>UDP TX (Max)</td>
-<td align="center">28.6</td>
+<td align="center">30.1</td>
 <td align="center">100</td>
 <td align="center">0.003</td>
-<td align="center">98.3</td>
+<td align="center">101</td>
 <td align="center">100</td>
 <td align="center">0.02</td>
-<td align="center">169</td>
+<td align="center">174</td>
 <td align="center">100</td>
 <td align="center">0.001</td>
-<td align="center">327</td>
+<td align="center">339</td>
 <td align="center">100</td>
 <td align="center">0.001</td>
 </tr>
