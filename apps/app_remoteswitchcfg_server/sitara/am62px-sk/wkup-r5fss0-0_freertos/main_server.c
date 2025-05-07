@@ -46,13 +46,14 @@
 
 
 #define TASK_SIZE (16384U/sizeof(configSTACK_DEPTH_TYPE))
+#define TASK_BOOTLOADER_SIZE    (8192U)
 
 StackType_t gMainTaskStack[TASK_SIZE] __attribute__((aligned(32)));
 StaticTask_t gMainTaskObj;
 TaskHandle_t gMainTask;
 DM_LPMData_t gDMLPMData __attribute__((section(".lpm_data"), aligned(4)));
 
-StackType_t gBootTaskStack[TASK_SIZE] __attribute__((aligned(32)));
+StackType_t gBootTaskStack[TASK_BOOTLOADER_SIZE] __attribute__((aligned(32)));
 StaticTask_t gBootTaskObj;
 TaskHandle_t gBootTask;
 
