@@ -2512,6 +2512,8 @@ This is Ethernet driver module used to program the CPSW5G or CPSW9G (Switch) IP.
 EthFw receives commands/configuration from application and uses Enet LLD to
 configure CPSW5G/CPSW9G.
 
+For references to the Enet LLD driver, please refer [Enet LLD User Guide](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-jacinto7/10_01_00_04/exports/docs/pdk_jacinto_10_01_00_25/docs/userguide/jacinto/modules/enet/enet.html) and [PHY Integration Guide](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-jacinto7/10_01_00_04/exports/docs/pdk_jacinto_10_01_00_25/docs/apiguide/j721e/html/enetphy_guide_top.html#enetphy_guide_intro)
+
 Enet LLD supports other Ethernet peripherals available in TI SoCs and provides a
 unified interface to program them.
 
