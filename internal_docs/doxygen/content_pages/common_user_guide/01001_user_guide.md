@@ -317,7 +317,7 @@ The default port configuration for J721E and J7200 are shown in \ref ethfw_j721e
 \ref ethfw_j7200_port_cfg, \ref ethfw_j784s4_port_cfg and \ref ethfw_j742s2_port_cfg subsections, respectively.
 
 The port's default VLAN for MAC ports configured in MAC-only mode is `0`, and for MAC ports
-configured in switch mode is `1`. They can be changed via `EthFw_Config::dfltVlanIdMacOnlyPorts`
+configured in switch mode is `3`. They can be changed via `EthFw_Config::dfltVlanIdMacOnlyPorts`
 and `EthFw_Config::dfltVlanIdSwitchPorts`, respectively.
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -1373,6 +1373,22 @@ when they want to maintain strict behaviour in forwarding rules.
 
 The updated implementation of VLANs handling is done in
 consideration to save more ALE entries and classifiers.
+
+Presently the default VLAN id for MAC only ports is 0 and for switch ports
+is 3. For host port the default VLAN id is 1. These values are configurable by user
+and can be modified by updating the following macro definitions in the 
+*/ethfw/ethremotecfg/server/src/ethfw_api.c* file:
+
+```C
+/*! VLAN id used for host port */
+#define ETHFW_HOST_PORT_VLAN_ID                       (1U)
+
+/*! VLAN id used for all MAC ports in MAC-only mode */
+#define ETHFW_MAC_ONLY_PORTS_VLAN_ID                  (0U)
+
+/*! VLAN id used for all MAC ports in switch mode (non MAC-only mode) */
+#define ETHFW_SWITCH_PORTS_VLAN_ID                    (3U)
+```
 
 ### The below section explains packet handling for each packet type:
 
