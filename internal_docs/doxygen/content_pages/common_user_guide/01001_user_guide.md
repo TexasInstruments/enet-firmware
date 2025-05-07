@@ -1192,6 +1192,13 @@ Note that the cores requesting a multicast address do not need to know if a part
 multicast address is shared or exclusive. This accounting is handled by the EthFw server
 and is completely transparent to the requesting client core.
 
+Following are the APIs which the multicast filter commands internally use:
+
+  - ``EthFwMcast_init()``: Initializes multicast support by extracting shared and reserved multicast configurations from the passed configuration parameter. Also populates the port mask for the switch ports and MAC only ports.
+  - ``EthFwMcast_filterAddMac()``: Adds a shared or an exclusive multicast address to ALE table for a client. Will return an error if reserved multicast address is passed. Also returns an error if a client tries to add an exclusive multicast address already in use.
+  - ``EthFwMcast_filterDelMac()``: Will delete an exclusive or a shared multicast entry from the ALE table.
+  - ``EthFwMcast_printTable()``: Prints the ALE table including the MAC address, port mask, vitual port mask and number of clients registered to a particular multicast address(RefCnt).
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -1256,6 +1263,10 @@ static EthFwMcast_McastCfg gEthApp_sharedMcastCfgTable[] =
     },
 };
 ```
+
+While updating the list with more entries, we need to update the value of`ETHFW_SHARED_MCAST_LIST_LEN`
+in the *ethfw/ethremotecfg/server/include/ethfw_mcast.h* file. By default the length is 8.
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -1272,6 +1283,11 @@ it has already been allocated, will get a failure.
 -# Exclusive multicast traffic is routed directly to the allocated core through a dedicated
 hardware flow therefore it is suitable for high bandwidth single-core multicast traffic.
 
+By default the number of exclusive multicast addresses we can have in ALE table is 32. 
+In order to update this value, we need to update the value of macro `ETHFW_EXCLUSIVE_MCAST_LIST_LEN`
+in the *ethfw/ethremotecfg/server/include/ethfw_mcast.h* file. Increasing this number 
+will allow us to change the maximum number of exclusive multicast addresses that can 
+be added to the table.
 [Back To Top](@ref ethfw_c_ug_top)
 
 
@@ -1300,6 +1316,9 @@ static uint8_t gEthApp_rsvdMcastAddrTable[][ENET_MAC_ADDR_LEN] =
     },
 };
 ```
+While updating the list with more entries, we need to update the value of`ETHFW_RSVD_MCAST_LIST_LEN`
+in the *ethfw/ethremotecfg/server/include/ethfw_mcast.h* file. By 
+default the length is 4.
 
 [Back To Top](@ref ethfw_c_ug_top)
 
