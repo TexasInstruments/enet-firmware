@@ -101,7 +101,7 @@ The utilization of these resources by Ethernet Firmware on either the Main R5F 0
 | RX flow     |   5    | <ul><li>lwIP netif (1)</li><li>gPTP (1)</li><li>Proxy ARP (1) or VEPA (1) (only for J784S4 and J742S2)</li><li>SW interVLAN (1)</li><li>Reserved flow (1)</li></ul>
 | MAC address |   1    | <ul><li>lwIP netif (1)</li></ul>
 
-**Note: Before running Ethernet Firmware on the Main R5F 0 Core 1, make sure that you have allocated the appropriate amount of resources to the core.**
+**Note: Before running Ethernet Firmware on the Main R5F 0 Core 1, make sure that you have allocated the appropriate amount of resources to the core. For more details on changing resource allocations using SysConfig tool, please refer to [this e2e](https://e2e.ti.com/support/processors-group/processors/f/processors-forum/1097038/faq-tda4vm-workflow-and-resource-allocation-build-flow-for-sysconfig-tool) for more details.**
 
 UDMA TX channels are a resource especially limited as there is only a total of 8 TX channels
 available.  So, there are 6 TX channels to be shared among the differrent remote client cores

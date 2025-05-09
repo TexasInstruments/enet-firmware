@@ -84,6 +84,7 @@ peripherals like UDMA, UART, etc.
 - Time synchronization (CPTS APIs)
 - Port mirroring
 - Time sensitive networking
+- Multicore Time Synchronization
 
 [Back To Top](@ref ethfw_design_top)
 

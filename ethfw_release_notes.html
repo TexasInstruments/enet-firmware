@@ -250,7 +250,7 @@ instructions to install and setup the dependencies.
 </tr>
 <tr>
 <td align="center"> ETHFW-2593 </td>
-<td align="left"> TSN stack initialization increased
+<td align="left"> TSN stack initialization time increased
 <td align="center"> EthFw </td>
 <td align="center"> 09.02.00.00 </td>
 <td align="center"> J721E, J7200, J784S4 </td>
@@ -302,12 +302,12 @@ instructions to install and setup the dependencies.
 <td align="left"> Reduce logging level of gPTP and combase untill stack initialization time has been reduced. </td>
 </tr>
 <tr>
-<td align="center"> ETHFW-3068 </td>
-<td align="left"> EthFw: TSN Stack fails to initialize post reset recovery
+<td align="center"> <a href="https://sir.ext.ti.com/jira/browse/EXT_EP-12556">ETHFW-3068</a></td>
+<td align="left"> EthFw: gPTP synch is not achieved post reset recovery</td>
 <td align="center"> EthFw </td>
 <td align="center"> 11.00.00.00 </td>
 <td align="center"> J721E, J7200, J784S4 </td>
-<td align="left"> Disable reset recovery out of the box(patch soon to be provided for proper fix). </td>
+<td align="left"> Disable reset recovery out of the box<br>(patch soon to be provided for proper fix). </td>
 </tr>
 </table>
 
@@ -315,7 +315,7 @@ instructions to install and setup the dependencies.
 <p>As J742S2 EVM E1 version does not provide any Enet board/connector, hence no functionality test has been done on J742S2-EVM.
   EthFw (built for J742S2) for CPSW_9G is validated on J784S4-EVM post applying a patch.
   Please refer to <a href="docs/user_guide/ethfw_c_ug_top.html#ethfw_j742s2_testing" target="_blank">ETHFW J742S2 Testing section</a> in ETHFW User's Guide for more details.</p>
-  <p>Reset recovery functionality for Ethernet Firmware has been disabled out of box presently. Ethernet Firmware testing showed an issue wherein TSN stack initialization did not occur post reset recovery. Thus no gPTP synchronization would occur after reset recovery. This issue is being tracked and a patch for its fix will soon be provided on the e2e link provided <a href="https://e2e.ti.com/support/processors-group/processors/f/processors-forum/1510399/faq-tda4vm-how-to-address-the-gptp-sync-failure-post-reset-recovery-of-cpsw-in-ethenret-firmware">here</a>.
+  <p>Reset recovery functionality for Ethernet Firmware has been disabled out of box presently. Ethernet Firmware testing showed an issue wherein gPTP synchronization did not occur post reset recovery. This issue is being tracked and a patch for its fix will soon be provided on the e2e link provided <a href="https://e2e.ti.com/support/processors-group/processors/f/processors-forum/1510399/faq-tda4vm-how-to-address-the-gptp-sync-failure-post-reset-recovery-of-cpsw-in-ethenret-firmware">here</a>.
   
 </p>
 

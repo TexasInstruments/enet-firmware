@@ -11,6 +11,13 @@ In the Ethernet Switch scenario, the Ethernet Firmware is the server running on
 a Cortex-R5F core, the *master core*.  On the other hand, the clients can be
 other *remote cores* like Cortex-A72 or other Cortex-R5F cores.
 
+Before the clients begin communicating with Ethernet Firmware server, the
+server should be initialized and ready to respond to client requests. The
+following sequence diagram shows the initialization sequence for Ethernet
+Firmware server.
+
+![](EthFw_InitSequence.png "EthFw Server Init API Sequence")
+
 The master and remote cores have different privileges with respect to the
 Ethernet Switch functionality they can acccess.  Privileges are assigned per
 core via CPSW Resource Manager software component.  Similarly, DMA resources
