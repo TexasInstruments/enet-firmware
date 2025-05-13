@@ -90,6 +90,7 @@
 #endif
 #include <tsn_combase/combase.h>
 #include <tsn_combase/combase_link.h>
+#include <tsn_combase/tilld/cb_lld_ethernet.h>
 #include <tsn_gptp/gptpconf/gptpgcfg.h>
 #include <tsn_gptp/gptpconf/xl4-extmod-xl4gptp.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
@@ -1309,7 +1310,7 @@ void EthApp_portLinkStatusChangeCb(Enet_MacPort macPort,
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_ETH_PORT);
 #endif
 #if defined(ETHFW_GPTP_SUPPORT)
-    notify_linkchange();
+    cb_lld_notify_linkchange();
 #endif
 
 #if defined(ETHFW_IET_ENABLE)
