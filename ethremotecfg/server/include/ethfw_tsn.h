@@ -236,6 +236,17 @@ void EthFwTsn_deInit(void);
 int32_t EthFwTsn_startModule(uint32_t moduleIdx);
 
 /*!
+ * \brief Restart TSN module
+ *
+ * This API is called whenever a TSN module is stopped and restarted again.
+ * Existing EthFwTsn_startModule cannot be used since restarting TSN module
+ * requires a DB initializaion API call which is handled by this API.
+ * This API takes the TSN module Idx as input and starts that task module.
+ * Returns ETHFW_SOK on successful start else ETHFW_EFAIL.
+ */
+int EthFwTsn_restartTsnModule(int moduleIdx);
+
+/*!
  * \brief Stop any TSN module
  *
  * This API takes the TSN module Idx as input and stops task module

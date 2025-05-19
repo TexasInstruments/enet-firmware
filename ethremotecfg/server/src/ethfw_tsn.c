@@ -800,6 +800,45 @@ void EthFwTsn_deInit(void)
     gEthFwTsnObj.logTaskrun = BFALSE;
 }
 
+int EthFwTsn_restartTsnModule(int moduleIdx)
+{
+    EthFwTsn_ModuleCfg *mod;
+    EthFwTsn_dbArgs dbargs;
+    int res = ETHFW_SOK;
+    int timeout_ms = 500;
+    res = uniconf_ready(gEthFwTsnObj.ucCfg.dbName, UC_CALLMODE_THREAD, timeout_ms);
+    if (res != ETHFW_SOK)
+    {
+        ETHFWTRACE_ERR(res, "The uniconf must be run first !");
+    }
+
+    if (res == ETHFW_SOK)
+    {
+        dbargs.dbald = uc_dbal_open(gEthFwTsnObj.ucCfg.dbName, "w", UC_CALLMODE_THREAD);
+        if (!dbargs.dbald)
+        {
+            ETHFWTRACE_ERR(res, "Failed to open DB!");
+            res = ETHFW_EFAIL;
+        }
+    }
+
+    if (res == ETHFW_SOK)
+    {
+        mod = &gModCfgTable[moduleIdx];
+        if ((mod->enable == BTRUE) && (mod->onModuleDBInit != NULL))
+        {
+            mod->onModuleDBInit(&dbargs);
+            res = EthFwTsn_startModule(moduleIdx);
+        }
+        else
+        {
+            ETHFWTRACE_ERR(ETHFW_EFAIL, "%s: Module %s is not enabled",__func__, mod->taskName);
+            res = ETHFW_EFAIL;
+        }
+    }
+    return res;
+}
+
 void EthFwTsn_stopModule(uint32_t moduleIdx)
 {
     if ((moduleIdx >= 0) && (moduleIdx < ETHFWTSN_MAX_TASK_IDX))

@@ -127,12 +127,6 @@
 /*! Value of seconds in nanoseconds. Useful for calculations */
 #define ETHFW_TIME_SEC_TO_NS                          (1000000000U)
 
-/*! Macro defining whether or not reset recovery is enabled. 
- * By default it is not being enabled here since post reset recovery,
- * TSN Stack fails to initialize and gPTP synchronization does not
- * occur. Changing this to BTRUE will enable reset recovery. */
-#define ETHFW_RESET_RECOVERY_ENABLE                    (BFALSE)
-
 /*! Max number of CPSW MAC ports supported */
 #if defined(SOC_J721E) || defined(SOC_J784S4) || defined(SOC_J784S4)
 #define ETHFW_MON_MAC_PORT_MAX                        (8U)
@@ -249,8 +243,7 @@ int32_t EthFwMon_init(const EthFwMon_Cfg *monCfg,
     gEthFwMonObj.coreId     = EnetSoc_getCoreId();
     gEthFwMonObj.numPorts   = numPorts;
     gEthFwMonObj.recoveryEn = ((monCfg->openLwipDmaCb != NULL) &&
-                              (monCfg->closeLwipDmaCb != NULL) &&
-                              ETHFW_RESET_RECOVERY_ENABLE);
+                              (monCfg->closeLwipDmaCb != NULL));
     ETHFWTRACE_INFO_IF(!gEthFwMonObj.recoveryEn, "CPSW recovery is not enabled");
 
     return status;
@@ -654,7 +647,7 @@ static void EthFwMon_Task(void *a0)
 
 #if defined(ETHFW_GPTP_SUPPORT)
                 /* start the gPTP module */
-                EthFwTsn_startModule(ETHFWTSN_GPTP_TASK_IDX);
+                EthFwTsn_restartTsnModule(ETHFWTSN_GPTP_TASK_IDX);
 #endif
 
                 /* Notify the clients about the HW error recovery completion */
