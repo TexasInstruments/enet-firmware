@@ -582,7 +582,7 @@ static int32_t CpswApp_getRxTxHandle(void)
 
     /* Open the CPSW RX flow for Ingress */
     {
-        EnetDma_initRxChParams(&cpswRxFlowCfg);
+        EnetUdma_initRxFlowParams(&cpswRxFlowCfg);
         EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
 
         cpswRxFlowCfg.notifyCb            = &CpswApp_ingRxIsrFxn;
@@ -628,7 +628,7 @@ static int32_t CpswApp_getRxTxHandle(void)
         hDma = Enet_getDmaHandle(gCpswInterVlanAppObj.hEnet);
         EnetAppUtils_assert(hDma != NULL);
 
-        gCpswInterVlanAppObj.hIngRxFlow = EnetDma_openRxCh(hDma, &cpswRxFlowCfg);
+        gCpswInterVlanAppObj.hIngRxFlow = EnetUdma_openRxFlow(hDma, &cpswRxFlowCfg);
         if (gCpswInterVlanAppObj.hIngRxFlow == NULL)
         {
             EnetAppUtils_freeRxFlow(gCpswInterVlanAppObj.hEnet,
@@ -641,7 +641,7 @@ static int32_t CpswApp_getRxTxHandle(void)
 
     /* Open the CPSW TX channel  */
     {
-        EnetDma_initTxChParams(&cpswTxChCfg);
+        EnetUdma_initTxChParams(&cpswTxChCfg);
         EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
 
         cpswTxChCfg.hUdmaDrv            = gCpswInterVlanAppObj.hUdmaDrv;

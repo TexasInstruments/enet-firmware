@@ -1323,7 +1323,7 @@ static int32_t EthApp_initEthFw(void)
     EthFw_Version ver;
     EthFw_Config ethFwCfg;
     Cpsw_Cfg *cpswCfg = &ethFwCfg.cpswCfg;
-    EnetUdma_Cfg dmaCfg;
+    EnetDma_Cfg dmaCfg;
     EnetRm_MacAddressPool *pool = &cpswCfg->resCfg.macList;
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH) || defined(ETHFW_VEPA_SUPPORT)
     EthFwMcast_SharedMcastCfg *sharedMcastCfg = &ethFwCfg.mcastCfg.sharedMcastCfg;
@@ -1346,7 +1346,7 @@ static int32_t EthApp_initEthFw(void)
 #if !defined(MCU_PLUS_SDK)
     dmaCfg.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
 #endif
-    cpswCfg->dmaCfg = (void *)&dmaCfg;
+    cpswCfg->dmaCfg = &dmaCfg;
 
     /* Populate MAC address pool */
     poolSize = EnetUtils_min(ENET_ARRAYSIZE(pool->macAddress), ETHAPP_MAC_ADDR_POOL_SIZE);

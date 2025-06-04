@@ -217,17 +217,13 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     EnetMcm_coreAttach(&mcmCmdIf, coreId, &attachInfo);
 
     /* Open TX channel */
-    EnetDma_initTxChParams(&cpswTxChCfg);
+    EnetUdma_initTxChParams(&cpswTxChCfg);
     cpswTxChCfg.hUdmaDrv            = handleInfo.hUdmaDrv;
     cpswTxChCfg.numTxPkts           = inArgs->txCfg.numPackets;
     cpswTxChCfg.cbArg               = inArgs->txCfg.cbArg;
     cpswTxChCfg.notifyCb            = inArgs->txCfg.notifyCb;
     cpswTxChCfg.useProxy            = BTRUE;
     cpswTxChCfg.disableCacheOpsFlag = BFALSE;
-    cpswTxChCfg.ringMemAllocFxn     = &EnetMem_allocRingMem;
-    cpswTxChCfg.ringMemFreeFxn      = &EnetMem_freeRingMem;
-    cpswTxChCfg.dmaDescAllocFxn     = &EnetMem_allocDmaDesc;
-    cpswTxChCfg.dmaDescFreeFxn      = &EnetMem_freeDmaDesc;
 
     EnetAppUtils_openTxCh(handleInfo.hEnet,
                           attachInfo.coreKey,
@@ -240,7 +236,7 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
     rxCfg  = &inArgs->rxCfg[0U];
     rxInfo = &outArgs->rxInfo[0U];
 
-    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetUdma_initRxFlowParams(&cpswRxFlowCfg);
     cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
     cpswRxFlowCfg.numRxPkts = rxCfg->numPackets;
     cpswRxFlowCfg.hUdmaDrv  = handleInfo.hUdmaDrv;
@@ -263,10 +259,6 @@ void EthFwCallbacks_lwipifCpswGetHandle(Enet_Type enetType,
 #endif
     cpswRxFlowCfg.disableCacheOpsFlag = BFALSE;
     cpswRxFlowCfg.rxFlowMtu           = attachInfo.rxMtu;
-    cpswRxFlowCfg.ringMemAllocFxn     = &EnetMem_allocRingMem;
-    cpswRxFlowCfg.ringMemFreeFxn      = &EnetMem_freeRingMem;
-    cpswRxFlowCfg.dmaDescAllocFxn     = &EnetMem_allocDmaDesc;
-    cpswRxFlowCfg.dmaDescFreeFxn      = &EnetMem_freeDmaDesc;
 
     EnetAppUtils_openRxFlow(enetType,
                             handleInfo.hEnet,
@@ -503,7 +495,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetAppUtils_assert(hEnet != ENET_SOK);
 
     /* Open TX channel */
-    EnetDma_initTxChParams(&cpswTxChCfg);
+    EnetUdma_initTxChParams(&cpswTxChCfg);
     EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
 
     cpswTxChCfg.hUdmaDrv            = outArgs->hUdmaDrv;
@@ -516,14 +508,14 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     hDma = Enet_getDmaHandle(hEnet);
     EnetAppUtils_assert(hDma != NULL);
 
-    outArgs->txInfo.hTxChannel = EnetDma_openTxCh(hDma, &cpswTxChCfg);
+    outArgs->txInfo.hTxChannel = EnetUdma_openTxCh(hDma, &cpswTxChCfg);
     EnetAppUtils_assert(outArgs->txInfo.hTxChannel != NULL);
 
     /* Open first RX channel/flow */
     rxInfo = &outArgs->rxInfo[0U];
     rxCfg = &inArgs->rxCfg[0U];
 
-    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetUdma_initRxFlowParams(&cpswRxFlowCfg);
     EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
 
     cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
@@ -553,7 +545,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     pFqRingPrms->ringMonCfg.data1 = rxCfg->numPackets;
 #endif
 
-    rxInfo->hRxFlow = EnetDma_openRxCh(hDma, &cpswRxFlowCfg);
+    rxInfo->hRxFlow = EnetUdma_openRxFlow(hDma, &cpswRxFlowCfg);
     EnetAppUtils_assert(rxInfo->hRxFlow != NULL);
 
     status = EnetAppUtils_regDfltRxFlow(hEnet,
@@ -568,7 +560,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     rxCfg  = &inArgs->rxCfg[1U];
     rxInfo = &outArgs->rxInfo[1U];
 
-    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetUdma_initRxFlowParams(&cpswRxFlowCfg);
     EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
 
     cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
@@ -579,7 +571,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
     cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
 
-    rxInfo->hRxFlow = EnetDma_openRxCh(hDma, &cpswRxFlowCfg);
+    rxInfo->hRxFlow = EnetUdma_openRxFlow(hDma, &cpswRxFlowCfg);
     EnetAppUtils_assert(rxInfo->hRxFlow != NULL);
 
 #if defined(ETHFW_VEPA_SUPPORT)
@@ -673,7 +665,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
     EnetQueue_initQ(&fqPktInfoQ);
     EnetQueue_initQ(&cqPktInfoQ);
 
-    status = EnetDma_closeRxCh(rxInfo->hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+    status = EnetUdma_closeRxFlow(rxInfo->hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
     EnetAppUtils_assert(status == ENET_SOK);
 
     freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
@@ -684,7 +676,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
         EnetQueue_initQ(&cqPktInfoQ);
 
         EnetDma_disableTxEvent(releaseInfo->txInfo.hTxChannel);
-        status = EnetDma_closeTxCh(releaseInfo->txInfo.hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
+        status = EnetUdma_closeTxCh(releaseInfo->txInfo.hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
         EnetAppUtils_assert(status == ENET_SOK);
 
         releaseInfo->txFreePkt.cb(releaseInfo->txFreePkt.cbArg, &fqPktInfoQ, &cqPktInfoQ);
@@ -703,7 +695,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
                                           rxInfo->rxFlowIdx);
     EnetAppUtils_assert(status == ENET_SOK);
 
-    status = EnetDma_closeRxCh(rxInfo->hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+    status = EnetUdma_closeRxFlow(rxInfo->hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
     EnetAppUtils_assert(status == ENET_SOK);
 
     freePktInfo->cb(freePktInfo->cbArg, &fqPktInfoQ, &cqPktInfoQ);
@@ -741,7 +733,7 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
     /* Open RX Flow */
     if (status == ENET_SOK)
     {
-        EnetDma_initRxChParams(&rxFlowCfg);
+        EnetUdma_initRxFlowParams(&rxFlowCfg);
         EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
         rxFlowCfg.startIdx  = *rxFlowStartIdx;
         rxFlowCfg.flowIdx   = *flowIdx;
@@ -751,7 +743,7 @@ static int32_t EthFwCallbacks_setupPacketDuplicationRoute(Enet_Handle hEnet,
         rxFlowCfg.hUdmaDrv  = handleInfo->hUdmaDrv;
         rxFlowCfg.useProxy  = BTRUE;
 
-        *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
+        *hRxFlow = EnetUdma_openRxFlow(hDma, &rxFlowCfg);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to open RX flow for packet duplication traffic");
     }
@@ -791,7 +783,7 @@ static void EthFwCallbacks_teardownPacketDuplicationRoute(Enet_Handle hEnet,
         EnetDma_disableRxEvent(hRxFlow);
 
         /* Close RX flow */
-        status = EnetDma_closeRxCh(hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+        status = EnetUdma_closeRxFlow(hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to close RX flow for packet duplication traffic");
 
@@ -879,7 +871,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
     /* Open RX Flow */
     if (status == ENET_SOK)
     {
-        EnetDma_initRxChParams(&rxFlowCfg);
+        EnetUdma_initRxFlowParams(&rxFlowCfg);
         EnetAppUtils_setCommonRxFlowPrms(&rxFlowCfg);
         rxFlowCfg.startIdx  = *rxFlowStartIdx;
         rxFlowCfg.flowIdx   = *flowIdx;
@@ -889,7 +881,7 @@ static int32_t EthFwCallbacks_setupArpRoute(Enet_Handle hEnet,
         rxFlowCfg.hUdmaDrv  = handleInfo->hUdmaDrv;
         rxFlowCfg.useProxy  = BTRUE;
 
-        *hRxFlow = EnetDma_openRxCh(hDma, &rxFlowCfg);
+        *hRxFlow = EnetUdma_openRxFlow(hDma, &rxFlowCfg);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to open RX flow for ARP traffic");
     }
@@ -970,7 +962,7 @@ static void EthFwCallbacks_teardownArpRoute(Enet_Handle hEnet,
         EnetDma_disableRxEvent(hRxFlow);
 
         /* Close RX flow */
-        status = EnetDma_closeRxCh(hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
+        status = EnetUdma_closeRxFlow(hRxFlow, &fqPktInfoQ, &cqPktInfoQ);
         ETHFWTRACE_ERR_IF((status != ENET_SOK), status,
                           "Failed to close RX flow used for ARP traffic");
 

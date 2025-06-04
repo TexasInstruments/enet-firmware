@@ -468,16 +468,11 @@ static void CpswRemoteApp_setRxFlowPrms(EnetUdma_OpenRxFlowPrms *pRxFlowPrms,
 
     pRxFlowPrms->hUdmaDrv = hUdmaDrv;
 
-    pRxFlowPrms->ringMemAllocFxn = &EnetMem_allocRingMem;
-    pRxFlowPrms->ringMemFreeFxn = &EnetMem_freeRingMem;
-
     pRxFlowPrms->notifyCb = eventCb;
 
     pRxFlowPrms->numRxPkts = numRxPackets;
 
     pRxFlowPrms->disableCacheOpsFlag = BFALSE;
-    pRxFlowPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
-    pRxFlowPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
     pRxFlowPrms->cbArg = cbArg;
     pRxFlowPrms->useGlobalEvt = BTRUE;
     pRxFlowPrms->useProxy = BFALSE;
@@ -494,14 +489,8 @@ static void CpswRemoteApp_setTxChPrms(EnetUdma_OpenTxChPrms *pTxChPrms,
     pTxChPrms->chNum = txChNum;
     pTxChPrms->hUdmaDrv = hUdmaDrv;
 
-    pTxChPrms->ringMemAllocFxn = &EnetMem_allocRingMem;
-    pTxChPrms->ringMemFreeFxn = &EnetMem_freeRingMem;
-
     pTxChPrms->numTxPkts = numTxPackets;
     pTxChPrms->disableCacheOpsFlag = BFALSE;
-
-    pTxChPrms->dmaDescAllocFxn = &EnetMem_allocDmaDesc;
-    pTxChPrms->dmaDescFreeFxn = &EnetMem_freeDmaDesc;
 
     pTxChPrms->cbArg = cbArg;
     pTxChPrms->notifyCb = eventCb;
@@ -812,7 +801,7 @@ static void CpswRemoteApp_openLwipRxCh(CpswProxy_Handle hProxy,
     rxHandleInfo->rxFlowIdx = rxFlowIdx;
     ENET_UTILS_ARRAY_COPY(rxHandleInfo->macAddr, macAddress);
 
-    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetUdma_initRxFlowParams(&cpswRxFlowCfg);
 
     CpswRemoteApp_setRxFlowPrms(&cpswRxFlowCfg,
                                 rxHandleInfo->rxFlowStartIdx,
@@ -823,7 +812,7 @@ static void CpswRemoteApp_openLwipRxCh(CpswProxy_Handle hProxy,
                                 rxConfig->notifyCb,
                                 rxFlowMtu);
 
-    rxHandleInfo->hRxFlow = EnetDma_openRxCh(gVirtNetifObj.hEnetDma, &cpswRxFlowCfg);
+    rxHandleInfo->hRxFlow = EnetUdma_openRxFlow(gVirtNetifObj.hEnetDma, &cpswRxFlowCfg);
     EnetAppUtils_assert(rxHandleInfo->hRxFlow != NULL);
 
     if (useDefaultFlow && isSwitchPort)
@@ -878,7 +867,7 @@ static void CpswRemoteApp_closeLwipRxCh(CpswProxy_Handle hProxy,
                                          rxHandleInfo->macAddr);
     }
 
-    status = EnetDma_closeRxCh(rxHandleInfo->hRxFlow,
+    status = EnetUdma_closeRxFlow(rxHandleInfo->hRxFlow,
                                &fqPktInfoQ,
                                &cqPktInfoQ);
     EnetAppUtils_assert(status == ENET_SOK);
@@ -900,7 +889,7 @@ static void CpswRemoteApp_openLwipTxCh(Udma_DrvHandle hUdmaDrv,
     txHandleInfo->txChNum = txPSILId;
 
     /* Set configuration parameters */
-    EnetDma_initTxChParams(&cpswTxChCfg);
+    EnetUdma_initTxChParams(&cpswTxChCfg);
 
     CpswRemoteApp_setTxChPrms(&cpswTxChCfg,
                               txHandleInfo->txChNum,
@@ -909,7 +898,7 @@ static void CpswRemoteApp_openLwipTxCh(Udma_DrvHandle hUdmaDrv,
                               txConfig->cbArg,
                               txConfig->notifyCb);
 
-    txHandleInfo->hTxChannel = EnetDma_openTxCh(gVirtNetifObj.hEnetDma, &cpswTxChCfg);
+    txHandleInfo->hTxChannel = EnetUdma_openTxCh(gVirtNetifObj.hEnetDma, &cpswTxChCfg);
     EnetAppUtils_assert(NULL != txHandleInfo->hTxChannel);
 }
 
@@ -927,7 +916,7 @@ static void CpswRemoteApp_closeLwipTxCh(CpswProxy_Handle hProxy,
     EnetQueue_initQ(&cqPktInfoQ);
 
     EnetDma_disableTxEvent(txHandleInfo->hTxChannel);
-    status = EnetDma_closeTxCh(txHandleInfo->hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
+    status = EnetUdma_closeTxCh(txHandleInfo->hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
     EnetAppUtils_assert(ENET_SOK == status);
 
     CpswProxy_freeTxCh(hProxy,
@@ -1080,7 +1069,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     EnetAppUtils_assert(virtNetif->hCpswProxy != NULL);
 
     /* Set configuration parameters */
-    EnetDma_initTxChParams(&cpswTxChCfg);
+    EnetUdma_initTxChParams(&cpswTxChCfg);
     EnetAppUtils_setCommonTxChPrms(&cpswTxChCfg);
     cpswTxChCfg.hUdmaDrv  = outArgs->hUdmaDrv;
     cpswTxChCfg.useProxy  = BTRUE;
@@ -1089,13 +1078,13 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswTxChCfg.notifyCb  = inArgs->txCfg.notifyCb;
     cpswTxChCfg.chNum     = outArgs->txInfo.txChNum;
 
-    outArgs->txInfo.hTxChannel = EnetDma_openTxCh(gVirtNetifObj.hEnetDma, &cpswTxChCfg);
+    outArgs->txInfo.hTxChannel = EnetUdma_openTxCh(gVirtNetifObj.hEnetDma, &cpswTxChCfg);
     EnetAppUtils_assert(NULL != outArgs->txInfo.hTxChannel);
 
     rxInfo = &outArgs->rxInfo[0U];
     rxCfg = &inArgs->rxCfg[0U];
 
-    EnetDma_initRxChParams(&cpswRxFlowCfg);
+    EnetUdma_initRxFlowParams(&cpswRxFlowCfg);
     EnetAppUtils_setCommonRxFlowPrms(&cpswRxFlowCfg);
 
     cpswRxFlowCfg.notifyCb  = rxCfg->notifyCb;
@@ -1108,7 +1097,7 @@ void LwipifEnetAppCb_openDma(LwipifEnetAppIf_GetHandleInArgs *inArgs,
     cpswRxFlowCfg.startIdx  = rxInfo->rxFlowStartIdx;
     cpswRxFlowCfg.flowIdx   = rxInfo->rxFlowIdx;
 
-    outArgs->rxInfo[0U].hRxFlow = EnetDma_openRxCh(gVirtNetifObj.hEnetDma, &cpswRxFlowCfg);
+    outArgs->rxInfo[0U].hRxFlow = EnetUdma_openRxFlow(gVirtNetifObj.hEnetDma, &cpswRxFlowCfg);
     EnetAppUtils_assert(outArgs->rxInfo[0U].hRxFlow != NULL);
 
     CpswProxy_registerDstMacRxFlow(virtNetif->hCpswProxy,
@@ -1134,7 +1123,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
     EnetAppUtils_assert(NULL != releaseInfo->rxInfo[0U].hRxFlow);
 
     EnetDma_disableTxEvent(releaseInfo->txInfo.hTxChannel);
-    status = EnetDma_closeTxCh(releaseInfo->txInfo.hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
+    status = EnetUdma_closeTxCh(releaseInfo->txInfo.hTxChannel, &fqPktInfoQ, &cqPktInfoQ);
     releaseInfo->txInfo.hTxChannel = NULL;
 
     releaseInfo->txFreePkt.cb(releaseInfo->txFreePkt.cbArg, &fqPktInfoQ, &cqPktInfoQ);
@@ -1149,7 +1138,7 @@ void LwipifEnetAppCb_closeDma(LwipifEnetAppIf_ReleaseHandleInfo *releaseInfo)
                                      releaseInfo->rxInfo[0U].rxFlowIdx,
                                      releaseInfo->rxInfo[0U].macAddr);
 
-    status = EnetDma_closeRxCh(releaseInfo->rxInfo[0U].hRxFlow,
+    status = EnetUdma_closeRxFlow(releaseInfo->rxInfo[0U].hRxFlow,
                                &fqPktInfoQ,
                                &cqPktInfoQ);
 

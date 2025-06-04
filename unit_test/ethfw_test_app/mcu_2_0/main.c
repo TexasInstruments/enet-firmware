@@ -153,7 +153,7 @@ typedef struct
     Udma_DrvHandle hUdmaDrv;
 
     /* UDMA configuration */
-    EnetUdma_Cfg dmaCfg;
+    EnetDma_Cfg dmaCfg;
 
     /* Host MAC address */
     uint8_t hostMacAddr[ENET_MAC_ADDR_LEN];
@@ -376,7 +376,7 @@ void setUp(void)
     /* Set UDMA handle to Enet LLD config */
     gEthTestAppObj.dmaCfg.hUdmaDrv = gEthTestAppObj.hUdmaDrv;
     gEthTestAppObj.dmaCfg.rxChInitPrms.dmaPriority = UDMA_DEFAULT_RX_CH_DMA_PRIORITY;
-    cpswCfg->dmaCfg = (void *)&gEthTestAppObj.dmaCfg;
+    cpswCfg->dmaCfg = &gEthTestAppObj.dmaCfg;
 
     /* Populate MAC address pool */
     poolSize = EnetUtils_min(ENET_ARRAYSIZE(pool->macAddress), ETHAPP_MAC_ADDR_POOL_SIZE);
