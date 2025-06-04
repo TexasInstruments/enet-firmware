@@ -314,26 +314,25 @@ int32_t EthFwOsal_postSemaphore(EthFwOsal_SemHandle handle)
     return status;
 }
 
-void *EthFwOsal_createMutex(void)
+EthFwOsal_MutexHandle EthFwOsal_createMutex(void)
 {
     return EnetOsal_createMutex();
 }
 
-void EthFwOsal_deleteMutex(void *EthFwOsal_MutexHandle)
+void EthFwOsal_deleteMutex(EthFwOsal_MutexHandle hMutex)
 {
-    EnetOsal_deleteMutex(EthFwOsal_MutexHandle);
+    EnetOsal_deleteMutex(hMutex);
 }
 
-void EthFwOsal_lockMutex(void *EthFwOsal_MutexHandle)
+void EthFwOsal_lockMutex(EthFwOsal_MutexHandle hMutex)
 {
-    EnetOsal_lockMutex(EthFwOsal_MutexHandle);
+    EnetOsal_lockMutex(hMutex);
 }
 
-void EthFwOsal_unlockMutex(void *EthFwOsal_MutexHandle)
+void EthFwOsal_unlockMutex(EthFwOsal_MutexHandle hMutex)
 {
-    EnetOsal_unlockMutex(EthFwOsal_MutexHandle);
+    EnetOsal_unlockMutex(hMutex);
 }
-
 
 void EthFwOsal_initClockParams(EthFwOsal_ClockParams *params)
 {

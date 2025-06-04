@@ -1105,10 +1105,9 @@ void EthApp_initTaskFxn(void* arg0)
     EthApp_waitForDebugger();
 #endif
 
-    EnetOsal_Cfg *osalPrms = NULL;
     EnetUtils_Cfg *utilsPrms = NULL;
 
-    Enet_init(osalPrms, utilsPrms);
+    Enet_init(utilsPrms);
 
     EthFwOsal_init();
 

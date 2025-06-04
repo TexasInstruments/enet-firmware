@@ -361,10 +361,9 @@ static EthFwTrace_Cfg gEthApp_traceCfg =
 
 void setUp(void)
 {
-    EnetOsal_Cfg *osalPrms = NULL;
     EnetUtils_Cfg *utilsPrms = NULL;
 
-    Enet_init(osalPrms, utilsPrms);
+    Enet_init(utilsPrms);
     Cpsw_Cfg *cpswCfg = &gEthTestAppObj.hEthFwCfg.cpswCfg;
 
     EnetRm_MacAddressPool *pool = &cpswCfg->resCfg.macList;
@@ -406,10 +405,9 @@ static void EthFwTest_initTask(void* a0)
 {
     EthFw_Version ver;
     int32_t status = ETHAPP_OK;
-    EnetOsal_Cfg *osalPrms = NULL;
     EnetUtils_Cfg *utilsPrms = NULL;
 
-    Enet_init(osalPrms, utilsPrms);
+    Enet_init(utilsPrms);
 
     /* Initialize EthFw trace utils */
     EthFwTrace_init(&gEthApp_traceCfg);

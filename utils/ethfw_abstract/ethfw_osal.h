@@ -164,13 +164,18 @@ typedef void *EthFwOsal_ClockHandle;
 typedef void *EthFwOsal_EventHandle;
 
 /*!
- * \brief ETHFW OSAL Mutex Handle
- */
-typedef void *EthFwOsal_MutexHandle;
-/*!
  * \brief ETHFW OSAL Mailbox Handle
  */
 typedef void *EthFwOsal_MailboxHandle;
+
+/*!
+ * \brief ETHFW OSAL Mutex Handle
+ */
+#if (MCU_PLUS_SDK)
+typedef SemaphoreP_enetOsal *EthFwOsal_MutexHandle;
+#else
+typedef EnetOsalDflt_Mutex *EthFwOsal_MutexHandle;
+#endif
 
 /* ========================================================================== */
 /*                          Function Declarations                             */
@@ -363,26 +368,26 @@ EthFwOsal_MutexHandle EthFwOsal_createMutex(void);
 /*!
  * \brief ETHFW OSAL function to post a mutex.
  *
- * \param EthFwOsal_MutexHandle \ref EthFwOsal_MutexHandle returned from \ref EthFwOsal_createMutex
+ * \param hMutex \ref EthFwOsal_MutexHandle returned from \ref EthFwOsal_createMutex
  * 
  */
-void EthFwOsal_deleteMutex(void *EthFwOsal_MutexHandle);
+void EthFwOsal_deleteMutex(EthFwOsal_MutexHandle hMutex);
 
 /*!
  * \brief ETHFW OSAL function to lock a muex.
  *
- * \param EthFwOsal_MutexHandle \ref EthFwOsal_MutexHandle returned from \ref EthFwOsal_createMutex
+ * \param hMutex \ref EthFwOsal_MutexHandle returned from \ref EthFwOsal_createMutex
  * 
  */
-void EthFwOsal_lockMutex(void *EthFwOsal_MutexHandle);
+void EthFwOsal_lockMutex(EthFwOsal_MutexHandle hMutex);
 
 /*!
  * \brief ETHFW OSAL function to unlock a mutex.
  *
- * \param EthFwOsal_MutexHandle \ref EthFwOsal_MutexHandle returned from \ref EthFwOsal_createMutex
+ * \param hMutex \ref EthFwOsal_MutexHandle returned from \ref EthFwOsal_createMutex
  * 
  */
-void EthFwOsal_unlockMutex(void *EthFwOsal_MutexHandle);
+void EthFwOsal_unlockMutex(EthFwOsal_MutexHandle hMutex);
 
 /* -----------------------ClockP APIs------------------------------------*/
 

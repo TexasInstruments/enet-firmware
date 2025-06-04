@@ -586,16 +586,14 @@ static void *CpswRemoteApp_physToVirtFxn(uint64_t phyAddr,
 
 static int32_t CpswRemoteApp_openEnet(void)
 {
-    EnetOsal_Cfg osalPrms;
     EnetUtils_Cfg utilsPrms;
     int32_t status = ENET_SOK;
 
-    /* Init Enet LLD (OSAL, utils) */
+    /* Init Enet LLD utils */
     utilsPrms.print      = (Enet_Print)System_printf;
     utilsPrms.physToVirt = &CpswRemoteApp_physToVirtFxn;
     utilsPrms.virtToPhys = &CpswRemoteApp_virtToPhysFxn;
-    Enet_initOsalCfg(&osalPrms);
-    Enet_init(&osalPrms, &utilsPrms);
+    Enet_init(&utilsPrms);
 
     gRemoteAppObj.coreId   = EnetSoc_getCoreId();
 
