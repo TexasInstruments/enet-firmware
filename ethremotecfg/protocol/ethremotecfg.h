@@ -168,6 +168,12 @@ extern "C" {
 /*! \brief IPv4 Address length in octets. */
 #define ETHREMOTECFG_IPV4ADDRLEN                          (4U)
 
+/*! Ethernet Port1 ID. */
+#define ETHERNET_PORT1_ID                                 (1U)
+
+/*! Virtual Switch Port1 ID. */
+#define ETHREMOTECFG_SWITCH_PORT_FIRST_ID                 (25U)
+
 /*!
  * Indicates to the Ethernet Firmware to use the default VLAN id for
  * the type of port associated with the caller, i.e. virtual MAC or virtual
@@ -748,26 +754,12 @@ typedef enum EthRemoteCfg_ServerStatus_e
 
 /*!
  * \brief Virtual port id.
+ * Each ETHREMOTECFG_MAC_PORT_i corresponds to ETHERNET PORT i.
  */
 typedef enum EthRemoteCfg_VirtPort_e
 {
-    /*! Virtual switch port 0. */
-    ETHREMOTECFG_SWITCH_PORT_0,
-
-    /*! Virtual switch port 1. */
-    ETHREMOTECFG_SWITCH_PORT_1,
-
-    /*! Virtual switch port 2. */
-    ETHREMOTECFG_SWITCH_PORT_2,
-
-    /*! Virtual switch port 3. */
-    ETHREMOTECFG_SWITCH_PORT_3,
-
-    /*! Last virtual switch port id. */
-    ETHREMOTECFG_SWITCH_PORT_LAST = ETHREMOTECFG_SWITCH_PORT_3,
-
     /*! Virtual MAC port 1. */
-    ETHREMOTECFG_MAC_PORT_1,
+    ETHREMOTECFG_MAC_PORT_1 = ETHERNET_PORT1_ID,
 
     /*! Virtual MAC port 2. */
     ETHREMOTECFG_MAC_PORT_2,
@@ -792,6 +784,25 @@ typedef enum EthRemoteCfg_VirtPort_e
 
     /*! Last virtual MAC port id. */
     ETHREMOTECFG_MAC_PORT_LAST = ETHREMOTECFG_MAC_PORT_8,
+    
+    /*! First virtual switch port id*/
+    ETHREMOTECFG_SWITCH_PORT_FIRST = ETHREMOTECFG_SWITCH_PORT_FIRST_ID,
+
+    /*! Virtual switch port 0. */
+    ETHREMOTECFG_SWITCH_PORT_0 = ETHREMOTECFG_SWITCH_PORT_FIRST,
+
+    /*! Virtual switch port 1. */
+    ETHREMOTECFG_SWITCH_PORT_1,
+
+    /*! Virtual switch port 2. */
+    ETHREMOTECFG_SWITCH_PORT_2,
+
+    /*! Virtual switch port 3. */
+    ETHREMOTECFG_SWITCH_PORT_3,
+
+    /*! Last virtual switch port id. */
+    ETHREMOTECFG_SWITCH_PORT_LAST = ETHREMOTECFG_SWITCH_PORT_3,
+
 } EthRemoteCfg_VirtPort;
 
 /*! @} */
@@ -908,7 +919,22 @@ typedef struct EthRemoteCfg_OfferVirtPortRes_s
     /*! Port mask denoting absolute virtual switch ports allocated. */
     uint32_t switchPortMask;
 
-    /*! Port mask denoting absolute virtual MAC ports allocated. */
+    /*! Port mask indicating which virtual MAC ports are allocated.
+    * Each virtual MAC port directly corresponds to a Ethernet port.
+
+    *   +--------------+----------------------------+---------------+
+    *   | Bit Position |        Virtual Port        | Ethernet Port |
+    *   +--------------+----------------------------+---------------+
+    *   | 0            | Not Defined                | Not Defined   |
+    *   | 1            | ETHREMOTECFG_MAC_PORT_1    | PORT1         |
+    *   | 2            | ETHREMOTECFG_MAC_PORT_2    | PORT2         |
+    *   | 3            | ETHREMOTECFG_MAC_PORT_3    | PORT3         |
+    *   | 4            | ETHREMOTECFG_MAC_PORT_4    | PORT4         |
+    *   | 5            | ETHREMOTECFG_MAC_PORT_5    | PORT5         |
+    *   | N            | ETHREMOTECFG_MAC_PORT_N    | PORTN         |
+    *   +--------------+----------------------------+---------------+
+
+    */
     uint32_t macPortMask;
 } __attribute__((packed)) EthRemoteCfg_OfferVirtPortRes;
 
