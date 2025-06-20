@@ -257,7 +257,7 @@ extern "C" {
  * Macro to denormalize VirtPort number. It takes a zero-based
  * virtport number and converts it to a #EthRemoteCfg_VirtPort enum.
  */
-#define ETHREMOTECFG_VIRTPORT_DENORM(n)                ((EthRemoteCfg_VirtPort)((n) + ETHREMOTECFG_SWITCH_PORT_0))
+#define ETHREMOTECFG_VIRTPORT_DENORM(n)                ((EthRemoteCfg_VirtPort)((n)))
 
 /* ========================================================================== */
 /*                         Structures and Enums                               */
