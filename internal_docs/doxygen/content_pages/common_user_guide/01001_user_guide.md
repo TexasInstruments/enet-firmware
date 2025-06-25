@@ -3007,7 +3007,7 @@ Flag                             | Description
 Other common flags:
 
 ```
--Wno-extra -Wno-exceptions -ferror-limit=100 -Wno-parentheses-equality -Wno-unused-command-line-argument -Wno-gnu-variable-sized-type-not-at-end -Wno-unused-function -Wno-inconsistent-missing-override -Wno-address-of-packed-member -Wno-self-assign -Wno-ignored-attributes -Wno-bitfield-constant-conversion -Wno-unused-const-variable -Wno-unused-variable -Wno-format-security -Wno-excess-initializers -Wno-sometimes-uninitialized -Wno-empty-body -Wno-extern-initializer -Wno-absolute-value -Wno-missing-braces -Wno-ti-macros -Wno-pointer-sign -Wno-macro-redefined -Wno-main-return-type -Werror -O0 -ggdb3 -mfloat-abi=hard -mfpu=vfpv3 -D16 -mcpu=cortex-r5 -march=armv7-r -mthumb -fno-strict-aliasing  -ffunction-sections
+-ferror-limit=100 -Wno-address-of-packed-member
 ```
 
 [Back To Top](@ref ethfw_c_ug_top)
@@ -3051,7 +3051,7 @@ Flag                             | Description
 Other common flags:
 
 ```
--Wno-extra -Wno-exceptions -ferror-limit=100 -Wno-parentheses-equality -Wno-unused-command-line-argument -Wno-gnu-variable-sized-type-not-at-end -Wno-unused-function -Wno-inconsistent-missing-override -Wno-address-of-packed-member -Wno-self-assign -Wno-ignored-attributes -Wno-bitfield-constant-conversion -Wno-unused-const-variable -Wno-unused-variable -Wno-format-security -Wno-excess-initializers -Wno-sometimes-uninitialized -Wno-empty-body -Wno-extern-initializer -Wno-absolute-value -Wno-missing-braces -Wno-ti-macros -Wno-pointer-sign -Wno-macro-redefined -Wno-main-return-type -Werror -O3 -mfloat-abi=hard -mfpu=vfpv3 -D16 -mcpu=cortex-r5 -march=armv7-r -mthumb -fno-strict-aliasing  -ffunction-sections
+-ferror-limit=100 -Wno-address-of-packed-member
 ```
 
 [Back To Top](@ref ethfw_c_ug_top)

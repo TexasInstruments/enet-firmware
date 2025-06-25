@@ -123,9 +123,6 @@
 
 #define CPSW_REMOTE_APP_PACKET_POLL_PERIOD_US (1000U)
 
-/* ToDo: fix this */
-#define UDMA_INST_ID_MAIN_0             (0)
-
 #define ETHAPP_HWRECOVERY_TASK_PRI              (2U)
 
 #if defined(SAFERTOS)
