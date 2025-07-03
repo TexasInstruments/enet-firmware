@@ -602,6 +602,9 @@ EthFwOsal_ClockHandle EthFwOsal_createClock(void (*func)(void*), EthFwOsal_Clock
     EnetAppUtils_assert(handle != NULL);
 
     cbArgs = malloc(sizeof(EthFwOsal_clockCbArgs));
+
+    EnetAppUtils_assert(cbArgs != NULL);
+
     memset(handle, 0, sizeof(EthFwOsal_clockCbArgs));
 
     ClockP_Params_init(&clkParams);

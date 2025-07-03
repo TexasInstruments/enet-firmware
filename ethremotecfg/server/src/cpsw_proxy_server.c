@@ -753,7 +753,7 @@ static int32_t CpswProxyServer_VirtPortAllocCb(uint32_t clientId,
         *switchPortMask = 0U;
         *macPortMask = 0U;
         status = CpswProxyServer_getPortMask(clientId, hostId, switchPortMask, macPortMask);
-        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, 
+        ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                            "Failed to get port mask for clientId: %u", clientId);
     }
     else
@@ -2956,7 +2956,7 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
 
             /* Get client object for token */
             hClient = CpswProxyServer_getClient(remoteProcId, token);
-            
+
             /* Raise error for invalid detach request */
             CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EINVALIDPARAMS);
 
@@ -2964,12 +2964,13 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             {
                 status = CpswProxyServer_detachHandlerCb(hClient,
                                                          remoteProcId);
+
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
+                                    "Failed to detach virtual port %u core %u",
+                                    hClient->virtPort, remoteProcId);
+
                 CpswProxyServer_freeClient(hClient);
             }
-
-            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
-                              "Failed to detach virtual port %u core %u",
-                              hClient->virtPort, remoteProcId);
 
             resLen = sizeof(*res);
 
