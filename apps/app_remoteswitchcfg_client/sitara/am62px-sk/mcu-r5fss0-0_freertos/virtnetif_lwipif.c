@@ -726,12 +726,12 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     if(CpswProxy_isSwitchPort(virtNetif->virtPort))
     {
 #if ETHAPP_LWIP_USE_DHCP
-        EnetAppUtils_print("Starting lwIP, local interface IP is dhcp-enabled");
+        EnetAppUtils_print("Starting lwIP, local interface IP is dhcp-enabled\r\n");
 #else /* ETHAPP_LWIP_USE_DHCP */
         ETHFW_CLIENT_GW_SWITCH_PORT(&gw);
         ETHFW_CLIENT_IPADDR_SWITCH_PORT(&ipaddr);
         ETHFW_CLIENT_NETMASK_SWITCH_PORT(&netmask);
-        EnetAppUtils_print("Starting lwIP, local interface IP is %s", ip4addr_ntoa(&ipaddr));
+        EnetAppUtils_print("Starting lwIP, local interface IP is %s\r\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
@@ -810,12 +810,12 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     else
     {
 #if ETHAPP_LWIP_USE_DHCP
-        EnetAppUtils_print("Starting lwIP, local interface IP is dhcp-enabled");
+        EnetAppUtils_print("Starting lwIP, local interface IP is dhcp-enabled\r\n");
 #else /* ETHAPP_LWIP_USE_DHCP */
         ETHFW_CLIENT_GW_MAC_PORT(&gw);
         ETHFW_CLIENT_IPADDR_MAC_PORT(&ipaddr);
         ETHFW_CLIENT_NETMASK_MAC_PORT(&netmask);
-        ETHFWTRACE_INFO("Starting lwIP, local interface IP is %s", ip4addr_ntoa(&ipaddr));
+        ETHFWTRACE_INFO("Starting lwIP, local interface IP is %s\r\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);

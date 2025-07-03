@@ -697,8 +697,8 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         /* To create custom policers on rx flows clients need to give flow information (i.e. numCustomPolicers and customPolicersInArgs)
          * for each allocated flow.
          * Map the customPolicersInArgs with global custom policer's (i.e. gEthApp_customPolicers) array.
-         * For example if numRxFlow is 1 and we want to create 1 custom policer to match with 2'nd custom policer in global array do this: 
-         * .rxFlowsInfo = {  
+         * For example if numRxFlow is 1 and we want to create 1 custom policer to match with 2'nd custom policer in global array do this:
+         * .rxFlowsInfo = {
          *                  [0] = {
          *                           .numCustomPolicers    = 1U,
          *                           .customPolicersInArgs = {
@@ -847,7 +847,7 @@ static EthFwVlan_VlanCfg gEthApp_vlanCfg[] =
     },
 };
 
-static EthFwPortMirroring_Cfg gEthApp_portMirCfg = 
+static EthFwPortMirroring_Cfg gEthApp_portMirCfg =
 {
     .mirroringType = DISABLE_PORT_MIRRORING
 };
@@ -856,9 +856,9 @@ static EthFwPortMirroring_Cfg gEthApp_portMirCfg =
 static EthFwIET_Config gEthApp_IETCfg = {
 
 /* If enabled does IET verfication before enabling iet*/
-    .mac_verify_enable = BTRUE, 
+    .mac_verify_enable = BTRUE,
 /* 0 -> Express Traffic and 1 -> Premptable Traffic*/
-    .queueMode = 
+    .queueMode =
     {
     EXPRESS_TRAFFIC,
     PREMPTIVE_TRAFFIC,
@@ -1652,12 +1652,12 @@ static void EthApp_initNetif(void)
     ip4_addr_set_zero(&netmask);
 
 #if ETHAPP_LWIP_USE_DHCP
-    appLogPrintf("Starting lwIP, local interface IP is dhcp-enabled\n");
+    appLogPrintf("Starting lwIP, local interface IP is dhcp-enabled\r\n");
 #else /* ETHAPP_LWIP_USE_DHCP */
     ETHFW_SERVER_GW(&gw);
     ETHFW_SERVER_IPADDR(&ipaddr);
     ETHFW_SERVER_NETMASK(&netmask);
-    appLogPrintf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
+    appLogPrintf("Starting lwIP, local interface IP is %s\r\n", ip4addr_ntoa(&ipaddr));
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
 #if defined(ETHAPP_ENABLE_INTERCORE_ETH)
