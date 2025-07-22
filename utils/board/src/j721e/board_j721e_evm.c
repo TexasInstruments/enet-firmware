@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2022
+ *  Copyright (c) Texas Instruments Incorporated 2022-2025
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -450,6 +450,62 @@ int32_t EthFwBoard_init(uint32_t flags)
     EthFwBoard_configCpswClocks();
 
     return boardStatus;
+}
+
+int32_t EthFwBoard_validateMacPorts(Enet_MacPort* enabledMacPortList,
+                                    uint8_t numEnabledMacPortList,
+                                    Enet_MacPort* gptpEnabledPortList,
+                                    uint8_t numGptpEnabledPortList
+                                    )
+{
+    uint8_t gesiPortIndex = 0U;
+    uint8_t enabledPortIndex = 0U;
+    uint8_t gptpEnabledPortIndex = 0U;
+    uint32_t gesiPortMask = 0U;
+    uint32_t enabledMacPortMask = 0U;
+    uint32_t gptpEnabledPortMask = 0U;
+    int32_t status = BOARD_SOK;
+    bool isGesiInUse = gEthFwBoard.gesiEnabled && gEthFwBoard.gesiDetected;
+
+    /* Calculating port mask for the ports defined on GESI Board. */
+    for (gesiPortIndex = 0U; gesiPortIndex < ENET_ARRAYSIZE(gEthFw_gesiMacPortCfg); gesiPortIndex++)
+    {
+        gesiPortMask |= ENET_MACPORT_MASK(gEthFw_gesiMacPortCfg[gesiPortIndex].macPort);
+    }
+
+    for(enabledPortIndex = 0; enabledPortIndex < numEnabledMacPortList; enabledPortIndex++)
+    {
+        /* If Gesi board is not enabled but still GESI board's port is being
+         * used in application, return negative status. */
+        enabledMacPortMask |= ENET_MACPORT_MASK(enabledMacPortList[enabledPortIndex]);
+        if ( (isGesiInUse == BFALSE) && ((enabledMacPortMask & gesiPortMask) != 0) )
+        {
+            status = BOARD_INVALID_PARAM;
+            ETHFWTRACE_ERR_IF((status != BOARD_SOK), status,
+                              "ENET_MAC_PORT_%d cannot be used in gEthAppPorts array. GESI board not enabled/detected.", enabledMacPortList[enabledPortIndex]+1);
+            break;
+        }
+    }
+
+
+    if ((gptpEnabledPortList != NULL) && (status == BOARD_SOK))
+    {
+        for (gptpEnabledPortIndex=0; gptpEnabledPortIndex < numGptpEnabledPortList; gptpEnabledPortIndex++)
+        {
+            gptpEnabledPortMask |= ENET_MACPORT_MASK(gptpEnabledPortList[gptpEnabledPortIndex]);
+        }
+
+        if ((gptpEnabledPortMask & enabledMacPortMask) != gptpEnabledPortMask)
+        {
+            status = BOARD_INVALID_PARAM;
+            ETHFWTRACE_ERR_IF((status != BOARD_SOK),
+                               status,
+                               "MAC ports required for gPTP support are not enabled.");
+        }
+    }
+
+    return status;
+
 }
 
 uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])

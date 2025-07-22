@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2022
+ *  Copyright (c) Texas Instruments Incorporated 2022-2025
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -138,6 +138,27 @@ extern "C" {
  * \return 0 in case of success, error code otherwise.
  */
 int32_t EthFwBoard_init(uint32_t flags);
+
+/*!
+ * \brief Validate whether macport configuration in Ethernet Firmware is correct.
+ *
+ * In the absence of a GESI board, any attempt to use GESI specific
+ * ports will raise an assert for J721E. Also, gPTP enabled ports should be a
+ * subset of total enabled ports.
+ *
+ * \param enabledMacPortList            Array of all macports owned by EthFw.
+ * \param numEnabledMacPortList         Size of enabledMacPortList array.
+ * \param gptpEnabledPortList           Array of ports where gPTP support is enabled.
+ * \param numGptpEnabledPortList        Size of gptpEnabledPortList array.
+ *
+ * \return 0 in case of success, error code otherwise.
+ */
+
+int32_t EthFwBoard_validateMacPorts(Enet_MacPort* enabledMacPortList,
+                                    uint8_t numEnabledMacPortList,
+                                    Enet_MacPort* gptpEnabledPortList,
+                                    uint8_t numGptpEnabledPortList
+                                    );
 
 /*!
  * \brief Get the list of enabled MAC ports.

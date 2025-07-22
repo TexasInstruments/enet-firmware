@@ -2650,6 +2650,7 @@ int32_t CpswProxyServer_init(CpswProxyServer_Config_t *cfg)
     {
         status = ETHFW_EFAIL;
         ETHFWTRACE_ERR(status, "MAC ports required for virtual MAC ports are not enabled");
+        EnetAppUtils_assert(status == ENET_SOK);
     }
 
     hServer->aleSwitchOnlyPortMask = (hServer->alePortMask &

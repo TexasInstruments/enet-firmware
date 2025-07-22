@@ -2468,6 +2468,70 @@ started of J721E EVM.
 port is routed to the CPSW5G in J7200, hence GESI board is not enabled and used
 by default in the Ethernet Firmware for J7200.
 
+In the event that you want to disable GESI board functionality for J721E, please
+make sure to only use the 4 MAC ports defined on the Quad-Port Eth Expansion board
+defined in the next section.
+
+Following changes need to be incorporated in order to disable GESI board while
+running EthFw:
+
+gEthAppPorts stores all MAC ports that EthFw has enabled. It must be modified as 
+shown below:
+
+```C
+static Enet_MacPort gEthAppPorts[] =
+{
+/* ENET_MAC_PORT_1, ENET_MAC_PORT_3, ENET_MAC_PORT_4 and ENET_MAC_PORT_8
+ * must not be used since they're defined for a GESI Board. */
+
+//    ENET_MAC_PORT_1, /* RGMII */
+//    ENET_MAC_PORT_3, /* RGMII */
+//    ENET_MAC_PORT_4, /* RGMII */
+//    ENET_MAC_PORT_8, /* RGMII */
+#if defined(ENABLE_QSGMII_PORTS)
+    ENET_MAC_PORT_2, /* QSGMII main */
+    ENET_MAC_PORT_5, /* QSGMII sub */
+    ENET_MAC_PORT_6, /* QSGMII sub */
+    ENET_MAC_PORT_7, /* QSGMII sub */
+#endif
+};
+```
+gEthAppSwitchPorts which stores MAC ports with gPTP support, must be modified as 
+shown below:
+
+```C
+static Enet_MacPort gEthAppSwitchPorts[]=
+{
+#if defined(SOC_J721E)
+#if defined(ETHFW_BOOT_TIME_PROFILING)
+    ENET_MAC_PORT_2, /* SGMII */
+#else
+
+/* ENET_MAC_PORT_1, ENET_MAC_PORT_3, ENET_MAC_PORT_4 and ENET_MAC_PORT_8
+ * must not be used since they're defined for a GESI Board. */
+
+//    ENET_MAC_PORT_3,
+//    ENET_MAC_PORT_8,
+
+#if defined(ENABLE_QSGMII_PORTS)
+    ENET_MAC_PORT_2,
+    ENET_MAC_PORT_5,
+#endif
+#endif
+#endif
+
+    ...
+```
+
+MAC only ports should also not be configured in **gEthApp_virtPortCfg**
+since it uses **ETHREMOTECFG_MAC_PORT_1** and **ETHREMOTECFG_MAC_PORT_4**
+both of which are mapped to the GESI Board.
+One must comment out/remove the macro **ENABLE_MAC_ONLY_PORTS** to 
+disable MAC Only support. This macro is defined in
+`<ethfw>/apps/app_remoteswitchcfg_server/concerto.mak`
+for EthFw server and in `<ethfw>/apps/app_remoteswitchcfg_client/concerto.mak`
+for RTOS client.
+
 [Back To Top](@ref ethfw_c_ug_top)
 
 

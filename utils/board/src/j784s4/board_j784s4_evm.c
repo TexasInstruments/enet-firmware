@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) Texas Instruments Incorporated 2022
+ *  Copyright (c) Texas Instruments Incorporated 2022-2025
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -319,6 +319,44 @@ int32_t EthFwBoard_init(uint32_t flags)
     }
 
     return boardStatus;
+}
+
+int32_t EthFwBoard_validateMacPorts(Enet_MacPort* enabledMacPortList,
+                                    uint8_t numEnabledMacPortList,
+                                    Enet_MacPort* gptpEnabledPortList,
+                                    uint8_t numGptpEnabledPortList
+                                    )
+{
+    uint8_t gesiPortIndex = 0U;
+    uint8_t enabledPortIndex = 0U;
+    uint8_t gptpEnabledPortIndex = 0U;
+    uint32_t enabledMacPortMask = 0U;
+    uint32_t gptpEnabledPortMask = 0U;
+    int32_t status = BOARD_SOK;
+
+    /* Calculating port mask for the ports enabled by EthFw. */
+    for(enabledPortIndex = 0; enabledPortIndex < numEnabledMacPortList; enabledPortIndex++)
+    {
+        enabledMacPortMask |= ENET_MACPORT_MASK(enabledMacPortList[enabledPortIndex]);
+    }
+
+    if ((gptpEnabledPortList != NULL) && (status == BOARD_SOK))
+    {
+        for (gptpEnabledPortIndex=0; gptpEnabledPortIndex < numGptpEnabledPortList; gptpEnabledPortIndex++)
+        {
+            gptpEnabledPortMask |= ENET_MACPORT_MASK(gptpEnabledPortList[gptpEnabledPortIndex]);
+        }
+
+        if ((gptpEnabledPortMask & enabledMacPortMask) != gptpEnabledPortMask)
+        {
+            status = BOARD_INVALID_PARAM;
+            ETHFWTRACE_ERR_IF((status != BOARD_SOK),
+                               status,
+                               "MAC ports required for gPTP support are not enabled.");
+        }
+    }
+
+    return status;
 }
 
 uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])

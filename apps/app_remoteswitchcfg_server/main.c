@@ -1085,6 +1085,22 @@ static int32_t EthApp_boardInit(void)
     /* Board related initialization */
     status = EthFwBoard_init(flags);
 
+    if (status == ETHFW_SOK)
+    {
+            status = EthFwBoard_validateMacPorts(&gEthAppPorts[0],
+                                             ARRAY_SIZE(gEthAppPorts),
+#if defined(ETHFW_GPTP_SUPPORT)
+                                             &gEthAppSwitchPorts[0],
+                                             ARRAY_SIZE(gEthAppSwitchPorts)
+#else
+                                             NULL,
+                                             0
+#endif
+                                             );
+
+        EnetAppUtils_assert(status == ENET_SOK);
+    }
+
     return status;
 }
 
