@@ -182,10 +182,10 @@ void EthFwUT_testEthFwGetVersion(void)
     TEST_ASSERT_NOT_NULL(gTestEthFw);
 
     EthFw_getVersion(gTestEthFw, &ver);
-    appLogPrintf("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
-    appLogPrintf("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
-    appLogPrintf("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);
-    appLogPrintf("ETHFW Commit SHA: %s\n\n", ver.commitHash);
+    EthFwTrace_print("\nETHFW Version   : %d.%02d.%02d\n", ver.major, ver.minor, ver.rev);
+    EthFwTrace_print("ETHFW Build Date: %s %s, %s\n", ver.month, ver.date, ver.year);
+    EthFwTrace_print("ETHFW Build Time: %s:%s:%s\n", ver.hour, ver.min, ver.sec);
+    EthFwTrace_print("ETHFW Commit SHA: %s\n\n", ver.commitHash);
 
     EthFw_deinit(gTestEthFw);
 }

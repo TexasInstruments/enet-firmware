@@ -361,9 +361,6 @@ static EthFwTrace_Cfg gEthApp_traceCfg =
 
 void setUp(void)
 {
-    EnetUtils_Cfg *utilsPrms = NULL;
-
-    Enet_init(utilsPrms);
     Cpsw_Cfg *cpswCfg = &gEthTestAppObj.hEthFwCfg.cpswCfg;
 
     EnetRm_MacAddressPool *pool = &cpswCfg->resCfg.macList;
@@ -398,7 +395,7 @@ void setUp(void)
 
 void tearDown(void)
 {
-    memset(&gEthTestAppObj.hEthFwCfg, 0, sizeof(EthFw_Config)); 
+    memset(&gEthTestAppObj.hEthFwCfg, 0, sizeof(EthFw_Config));
 }
 
 static void EthFwTest_initTask(void* a0)
