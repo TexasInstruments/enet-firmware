@@ -2525,7 +2525,7 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 
 MAC only ports should also not be configured in **gEthApp_virtPortCfg**
 since it uses **ETHREMOTECFG_MAC_PORT_1** and **ETHREMOTECFG_MAC_PORT_4**
-both of which are mapped to the GESI Board.
+which are mapped to the GESI Board.
 One must comment out/remove the macro **ENABLE_MAC_ONLY_PORTS** to 
 disable MAC Only support. This macro is defined in
 `<ethfw>/apps/app_remoteswitchcfg_server/concerto.mak`
