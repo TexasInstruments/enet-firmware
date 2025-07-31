@@ -213,6 +213,17 @@ int32_t EthFwBoard_init(uint32_t flags)
     return boardStatus;
 }
 
+int32_t EthFwBoard_validateMacPorts(Enet_MacPort* enabledMacPortList,
+                                    uint8_t numEnabledMacPortList,
+                                    Enet_MacPort* gptpEnabledPortList,
+                                    uint8_t numGptpEnabledPortList
+                                    )
+{
+    /* TODO: Add MAC port validation logic later */
+    int32_t status = ENET_SOK;
+    return status;
+}
+
 uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])
 {
     uint32_t num = 0U;
