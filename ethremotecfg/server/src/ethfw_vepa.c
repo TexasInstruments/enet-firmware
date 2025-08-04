@@ -95,7 +95,7 @@
 typedef struct EthFwVepa_AddrEntry_s
 {
     /* Mask of which all virtual switch ports needs to send the packet */
-    uint16_t virtPortMask;
+    uint32_t virtPortMask;
 
     /* Multicast(shared)/broadcast address */
     struct eth_addr hwAddr;
@@ -133,7 +133,7 @@ typedef struct EthFwVepa_Obj_s
 
 static int32_t EthFwVepa_getVirtPortMask(struct eth_addr *hwAddr,
                                          uint16_t vlanId,
-                                         uint16_t *virtPortMask);
+                                         uint32_t *virtPortMask);
 
 
 
@@ -251,7 +251,7 @@ void EthFwVepa_clearPacketDuplicationFlowIdx(void)
  * of clients to which packet will be forwarded */
 static int32_t EthFwVepa_getVirtPortMask(struct eth_addr *hwAddr,
                                          uint16_t vlanId,
-                                         uint16_t *virtPortMask)
+                                         uint32_t *virtPortMask)
 {
     EthFwVepa_AddrEntry *entry;
     int32_t status = ETHFW_EFAIL;
@@ -713,7 +713,7 @@ int32_t EthFwVepa_sendRaw(struct netif *netif,
     struct eth_hdr *ethHdr;
     struct eth_vlan_hdr *vlanhdr;
     uint16_t ethType;
-    uint16_t virtPortMask = 0U;
+    uint32_t virtPortMask = 0U;
     uint16_t i;
     uint16_t privVlanId = 0U;
     uint16_t vlanId = 0U;
