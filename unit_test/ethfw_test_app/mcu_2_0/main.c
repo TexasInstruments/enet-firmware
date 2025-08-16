@@ -402,9 +402,6 @@ static void EthFwTest_initTask(void* a0)
 {
     EthFw_Version ver;
     int32_t status = ETHAPP_OK;
-    EnetUtils_Cfg *utilsPrms = NULL;
-
-    Enet_init(utilsPrms);
 
     /* Initialize EthFw trace utils */
     EthFwTrace_init(&gEthApp_traceCfg);
