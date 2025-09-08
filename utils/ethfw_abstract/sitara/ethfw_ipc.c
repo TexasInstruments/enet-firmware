@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2024-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -61,7 +61,7 @@
  */
 
 /*!
- * \file ethfw_osal.c
+ * \file ethfw_ipc.c
  *
  * \brief Ethernet Firmware IPC abstraction layer for Sitara
  */

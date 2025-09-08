@@ -1121,10 +1121,6 @@ void EthApp_initTaskFxn(void* arg0)
     EthApp_waitForDebugger();
 #endif
 
-    EnetUtils_Cfg *utilsPrms = NULL;
-
-    Enet_init(utilsPrms);
-
     EthFwOsal_init();
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
@@ -1193,7 +1189,7 @@ void EthApp_initTaskFxn(void* arg0)
     if (status == ENET_SOK)
     {
         EthFwOsal_initTaskParams(&taskParams);
-        taskParams.priority = 1;
+        taskParams.priority = 2;
         taskParams.stack = &gEthAppIpcInitStackBuf[0];
         taskParams.stacksize = sizeof(gEthAppIpcInitStackBuf);
         taskParams.name = "EthFw IPC init Task";

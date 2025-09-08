@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2023 Texas Instruments Incorporated
+ * Copyright (c) 2023-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -303,7 +303,7 @@ typedef enum EthRemoteCfg_CmdType_e
      * commands to the Ethernet device.
      *
      * Remote clients that require only a single data path can use a single
-     * single \ref ETHREMOTECFG_CMD_ATTACH_EXT command which will return all
+     * \ref ETHREMOTECFG_CMD_ATTACH_EXT command which will return all
      * the parameters required to establish data path including destination
      * MAC address, Rx flow, Tx channel.
      *
@@ -719,7 +719,7 @@ typedef enum EthRemoteCfg_NotifyType_e
     ETHREMOTECFG_NOTIFY_LAST = ETHREMOTECFG_NOTIFY_CUSTOM
 } EthRemoteCfg_NotifyType;
 
-/*! 
+/*!
  * \brief Message type.
  */
 typedef enum EthRemoteCfg_MsgType_e
@@ -784,7 +784,7 @@ typedef enum EthRemoteCfg_VirtPort_e
 
     /*! Last virtual MAC port id. */
     ETHREMOTECFG_MAC_PORT_LAST = ETHREMOTECFG_MAC_PORT_8,
-    
+
     /*! First virtual switch port id*/
     ETHREMOTECFG_SWITCH_PORT_FIRST = ETHREMOTECFG_SWITCH_PORT_FIRST_ID,
 

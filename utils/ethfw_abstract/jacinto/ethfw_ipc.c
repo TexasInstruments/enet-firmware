@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2024-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -61,7 +61,7 @@
  */
 
 /*!
- * \file ethfw_osal.c
+ * \file ethfw_ipc.c
  *
  * \brief Ethernet Firmware IPC implementation.
  */
@@ -92,8 +92,6 @@
 #define ETHFW_IPC_DATA_SIZE                    (ETHFW_IPC_RPC_MSG_SIZE * \
                                                 ETHFW_IPC_NUM_RPMSG_BUFS + \
                                                 ETHFW_IPC_RPMSG_OBJ_SIZE)
-
-#define ETHFW_IPC_NUM_RPMSG_BUFS               (256U)
 
 /* ========================================================================== */
 /*                         Structure Declarations                             */
