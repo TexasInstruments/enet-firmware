@@ -296,13 +296,25 @@ instructions to install and setup the dependencies.
 <td align="center"> J721E, J7200, J721S2, J784S4 </td>
 <td align="left"> Trigger CPSW ALE read twice before reading value. </td>
 </tr>
+<tr>
+<td align="center"> <a href="https://sir.ext.ti.com/jira/browse/EXT_EP-12928">ETHFW-3415</a></td>
+<td align="left"> EthFw ABI change breaks QNX io-sock driver for versions <= 11.0 </td>
+<td align="center"> QNX Thin Client </td>
+<td align="center"> 11.01.00.00 </td>
+<td align="center"> J721E, J784S4 </td>
+<td align="left"> None. </td>
+</tr>
 </table>
 
 <h3><a class="anchor" name="Limitations"></a>Limitations</h3>
 <p>As J742S2 EVM E1 version does not provide any Enet board/connector, hence no functionality test has been done on J742S2-EVM.
   EthFw (built for J742S2) for CPSW_9G is validated on J784S4-EVM post applying a patch.
   Please refer to <a href="docs/user_guide/ethfw_c_ug_top.html#ethfw_j742s2_testing" target="_blank">ETHFW J742S2 Testing section</a> in ETHFW User's Guide for more details.</p>
-
+  <p> <br><b>Note:</b></br> The EthFW 11.1 release has an interface change that breaks the ABI with 11.0 or earlier versions of the QNX io-sock thin-client driver. For the driver to work 
+	correctly, an update to the ABI interface header file (ethremotecfg.h) is required. <br/> Don't hesitate to contact TI for further details or refer to 
+	<a href="https://e2e.ti.com/support/processors-group/processors/f/processors-forum/1565679/faq-tda4vm-how-to-address-issue-where-ethfw-abi-change-breaks-qnx-io-sock-driver-for-versions-11-0">this</a> e2e thread.
+    Please note that the TI 11.1 io-pkt thin client driver has been updated to accommodate this ABI change.
+  </p>
 <p>
 </p><h2><a class="anchor" name="Dependencies"></a>Dependencies</h2>
 All Ethernet Firmware dependencies are also part of the SDK, please refer to the <a href="docs/user_guide/index.html" target="_blank">User's Guide</a> for details.
