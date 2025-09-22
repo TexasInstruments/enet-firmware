@@ -161,7 +161,7 @@ LIBS_common = \
 	-llwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
-	-lethfw.am62dx.mcu-r5f.ti-arm-clang.${ConfigName}.lib \
+	-lethfw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llibc.a \
 	-llibsysbm.a \
 
@@ -190,7 +190,7 @@ LIBS_NAME = \
 	lwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
-	ethfw.am62dx.mcu-r5f.ti-arm-clang.${ConfigName}.lib \
+	ethfw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	libc.a \
 	libsysbm.a \
 

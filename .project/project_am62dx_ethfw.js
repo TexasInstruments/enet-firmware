@@ -231,7 +231,7 @@ const defines_a53 = {
 
 const buildOptionCombos = [
     { device: device, cpu: "dm-r5f", cgt: "ti-arm-clang"},
-    { device: device, cpu: "mcu-r5f", cgt: "ti-arm-clang"},
+    { device: device, cpu: "r5f", cgt: "ti-arm-clang"},
 ];
 
 function getComponentProperty() {

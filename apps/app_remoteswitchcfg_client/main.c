@@ -114,7 +114,7 @@
  * for dmTimer12, id =1 is for dmTimer13, id = 2 is for dmTimer14 etc.
  */
 #define CPSW_REMOTE_APP_TIMESYNC_TIMER_IDX       (3U)
-#endif 
+#endif
 
 #define CPSW_REMOTE_APP_TIMESYNC_TIMERPERIOD_MS  (1000U) //1 second
 
@@ -129,7 +129,7 @@
 #define IPC_VRING_MEM_SIZE                    (8U * 1024U * 1024U)
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define IPC_VRING_MEM_SIZE                    (48U * 1024U * 1024U)
-#elif defined(SOC_AM62PX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX)
 #define IPC_VRING_MEM_SIZE                    (0x2000U)
 #else
 #error "Unsupported device"
@@ -218,7 +218,7 @@ static uint32_t gRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
     IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
-#elif defined(SOC_AM62PX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX)
     IPC_MCU2_0,
 #endif
 };
@@ -257,7 +257,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
 #elif defined(SOC_J7200)
     .enetType         = ENET_CPSW_5G,
     .instId           = 0U,
-#elif defined(SOC_AM62PX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX)
     .enetType         = ENET_CPSW_3G,
     .instId           = 0U,
 #endif
@@ -457,7 +457,7 @@ void CpswRemoteApp_initTask(void* a0)
     /* Update timesync specific callback arguments */
     initParams.tsNotifyCb.cbFxn = TsCouplerClient_HwPushNotifyFxn;
 #endif
- 
+
     CpswProxy_init(&initParams);
 
     /* Step 5a. Wait for remote_device to be initialized on the server side */
@@ -490,9 +490,9 @@ void CpswRemoteApp_initTask(void* a0)
     initTsClientParams.timerType = TS_COUPLER_CLIENT_TIMER_TYPE_GPTIMER;
     TsCouplerClient_init(&initTsClientParams);
 
-    /* To DO: ETHFW-3048 - There is tight couple of CPSW proxy handle and virtnetif_lwipif.c 
-     * which needs to be cleaned up, main should have handle of CPSW proxy instead 
-     * and should be the one giving it to virtnetif_lwipif.c or other sub modules on 
+    /* To DO: ETHFW-3048 - There is tight couple of CPSW proxy handle and virtnetif_lwipif.c
+     * which needs to be cleaned up, main should have handle of CPSW proxy instead
+     * and should be the one giving it to virtnetif_lwipif.c or other sub modules on
      * client side. Delay is needed to get attach being done by virtnetif_lwipif.c
      * before calling CPSW proxy commands that requires valid handles. */
     EthFwOsal_sleepTask(2000U);

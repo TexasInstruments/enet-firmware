@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2024-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -318,7 +318,7 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
         status=YDBI_SET_ITEM(ifknvk0, ifname,
                 kn_traffic_sched, kn_traffic_sched_size,
                 YDBI_CONFIG,
-                (void *)&cycletime_numerator, sizeof(cycletime_numerator), 
+                (void *)&cycletime_numerator, sizeof(cycletime_numerator),
                 YDBI_NO_NOTICE);
         DebugP_assert(status == 0);
 
@@ -326,7 +326,7 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
         status=YDBI_SET_ITEM(ifknvk0, ifname,
                 kn_traffic_sched, kn_traffic_sched_size,
                 YDBI_CONFIG,
-                (void *)&cycletime_denominator, sizeof(cycletime_denominator), 
+                (void *)&cycletime_denominator, sizeof(cycletime_denominator),
                 YDBI_NO_NOTICE);
         DebugP_assert(status == 0);
     }
@@ -338,7 +338,7 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
     status=YDBI_SET_ITEM(ifknvk0, ifname,
                 kn_traffic_sched, kn_traffic_sched_size,
                 YDBI_CONFIG,
-                (void *)&second, sizeof(second), 
+                (void *)&second, sizeof(second),
                 YDBI_NO_NOTICE);
     DebugP_assert(status == 0);
 
@@ -346,7 +346,7 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
     status=YDBI_SET_ITEM(ifknvk0, ifname,
                 kn_traffic_sched, kn_traffic_sched_size,
                 YDBI_CONFIG,
-                (void *)&nanosecond, sizeof(nanosecond), 
+                (void *)&nanosecond, sizeof(nanosecond),
                 YDBI_NO_NOTICE);
     DebugP_assert(status == 0);
 
@@ -365,7 +365,7 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
         kn_traffic_sched[4]=IETF_INTERFACES_TIME_INTERVAL_VALUE;
         status=YDBI_SET_ITEM(ifknvk1, ifname, i, 4u,
                 kn_traffic_sched, kn_traffic_sched_size,
-                YDBI_CONFIG, 
+                YDBI_CONFIG,
                 (void*)&list->gateCmdList[i].timeInterval, sizeof(list->gateCmdList[i].timeInterval),
                 YDBI_NO_NOTICE);
         DebugP_assert(status == 0);
@@ -373,7 +373,7 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
         kn_traffic_sched[4]=IETF_INTERFACES_GATE_STATES_VALUE;
         status=YDBI_SET_ITEM(ifknvk1, ifname, i, 4u,
                 kn_traffic_sched, kn_traffic_sched_size,
-                YDBI_CONFIG, 
+                YDBI_CONFIG,
                 (void*)&list->gateCmdList[i].gateStateMask, sizeof(list->gateCmdList[i].gateStateMask),
                 YDBI_NO_NOTICE);
         DebugP_assert(status == 0);
@@ -387,7 +387,7 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
                 IETF_INTERFACES_GATE_PARAMETER_TABLE,
                 IETF_INTERFACES_GATE_ENABLED,
                 YDBI_CONFIG,
-                (void *)&enable, sizeof(enable), 
+                (void *)&enable, sizeof(enable),
                 YDBI_NO_NOTICE);
     DebugP_assert(status == 0);
 
@@ -407,8 +407,8 @@ static int32_t EthFwEstDemo_setAdminControlList(EnetTas_ControlList *list,
     if (status!=0)
     {
         appLogPrintf("uc_nc_askaction_push failed. status=%d\n", status);
-    } 
-    else 
+    }
+    else
     {
         appLogPrintf("%s: succeeded \n", __func__);
     }
@@ -928,7 +928,7 @@ int32_t EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
     status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
             kn_traffic_sched, kn_traffic_sched_size,
             YDBI_CONFIG,
-            (void *)&(prm->nTCs), sizeof(prm->nTCs), 
+            (void *)&(prm->nTCs), sizeof(prm->nTCs),
             YDBI_NO_NOTICE);
     DebugP_assert(status == 0);
 
@@ -970,7 +970,7 @@ int32_t EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
         status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
                 kn_traffic_sched, kn_traffic_sched_size,
                 YDBI_CONFIG,
-                (void *)&(prm->priority2TcMapping[i]), sizeof(prm->priority2TcMapping[i]), 
+                (void *)&(prm->priority2TcMapping[i]), sizeof(prm->priority2TcMapping[i]),
                 YDBI_NO_NOTICE);
         DebugP_assert(status == 0);
 
@@ -980,7 +980,7 @@ int32_t EthFwEstDemo_setCommonParam(EstDemoCommonParam *prm,
         status=YDBI_SET_ITEM(ifknvk0, prm->netdev,
                 kn_traffic_sched, kn_traffic_sched_size,
                 YDBI_CONFIG,
-                (void *)&(i), sizeof(i), 
+                (void *)&(i), sizeof(i),
                 YDBI_NO_NOTICE);
         DebugP_assert(status == 0);
     }
@@ -1041,7 +1041,7 @@ int32_t EthFwEstDemo_initialize(EstDemoAppCtx *ctx,
 #elif defined(SOC_J7200)
     enetType = ENET_CPSW_5G,
     instId   = 0U,
-#elif defined(SOC_AM62PX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX)
     enetType = ENET_CPSW_3G,
     instId   = 0U,
 #endif

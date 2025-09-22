@@ -113,7 +113,7 @@ const libs_freertos_r5f = {
         "lwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
         "lwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
         "lwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "ethfw.am62dx.mcu-r5f.ti-arm-clang.${ConfigName}.lib",
+        "ethfw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
     ],
 };
 

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2019-2024 Texas Instruments Incorporated
+ * Copyright (c) 2019-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -94,7 +94,7 @@
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_5)
 #define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_3)
-#elif defined(SOC_AM62PX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX)
 #define CPSW_TEST_INTERVLAN_INGRESS_PORT_NUM            (ENET_MAC_PORT_1)
 #define CPSW_TEST_INTERVLAN_EGRESS_PORT_NUM             (ENET_MAC_PORT_2)
 #else

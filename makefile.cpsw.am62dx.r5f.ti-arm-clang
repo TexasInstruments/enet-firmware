@@ -13,7 +13,7 @@ AR=$(CGT_TI_ARM_CLANG_PATH)/bin/tiarmar
 PROFILE?=release
 ConfigName:=$(PROFILE)
 
-LIBNAME:=ethfw.am62dx.mcu-r5f.ti-arm-clang.$(PROFILE).lib
+LIBNAME:=ethfw.am62dx.r5f.ti-arm-clang.$(PROFILE).lib
 
 FILES_common := \
     ipc_trace.c \
@@ -195,7 +195,7 @@ INCLUDES := $(INCLUDES_common) $(INCLUDE_$(PROFILE))
 ARFLAGS := $(ARFLAGS_common) $(ARFLAGS_$(PROFILE))
 
 LIBDIR := lib
-OBJDIR := obj/am62dx/ti-arm-clang/$(PROFILE)/mcu-r5f/ethfw/
+OBJDIR := obj/am62dx/ti-arm-clang/$(PROFILE)/r5f/ethfw/
 OBJS := $(FILES:%.c=%.obj)
 OBJS += $(ASMFILES:%.S=%.obj)
 DEPS := $(FILES:%.c=%.d)
