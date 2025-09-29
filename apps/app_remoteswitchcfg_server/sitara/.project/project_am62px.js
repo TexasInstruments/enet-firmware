@@ -268,6 +268,7 @@ const templates_freertos_wkup_r5f =
             stackSize : "16384",
             dmWithBootloader: "true",
             skipDriversClose: "true",
+            dmWithEthfw: "true",
         }
     },
 ];

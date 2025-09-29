@@ -346,3 +346,15 @@ int32_t EthFwIpc_deleteRpmsg(EthFwIpc_RpmsgHandle rpmsgHandle)
 
     return status;
 }
+
+void EthFwIpc_resetObj()
+{
+    /* Do nothing */
+}
+
+void EthFwIpc_enableControlEndPt()
+{
+    int32_t status = SystemP_FAILURE;
+
+    ETHFWTRACE_ERR(status, "This API is not supported for Jacinto");
+}

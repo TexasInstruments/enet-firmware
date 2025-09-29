@@ -170,8 +170,6 @@ int32_t EthFwIpc_init(uint32_t selfId,
 
     if (!ipcInitDone)
     {
-        memset(&gEthFwIpcObj, 0, sizeof(EthFwIpc_Obj));
-
         gEthFwIpcObj.hMutex = EthFwOsal_createMutex();
 
         if (gEthFwIpcObj.hMutex != NULL)
@@ -209,6 +207,16 @@ int32_t EthFwIpc_initVirtIO(uint16_t numProc,
     /* Do Nothing */
 
     return status;
+}
+
+void EthFwIpc_resetObj()
+{
+    memset(&gEthFwIpcObj, 0, sizeof(EthFwIpc_Obj));
+}
+
+void EthFwIpc_enableControlEndPt()
+{
+    RPMessage_controlEndPtCallback(EthFwIpc_ctrlEndPtCb, NULL);
 }
 
 int32_t EthFwIpc_initRpmsg(void *rpmsgBuff, void *taskBuff, uint32_t selfCoreId)
