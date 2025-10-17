@@ -36,7 +36,7 @@ SAFERTOS_COMPILER_EXT_r5f = 024_Clang
 #CCS Path needed for CCS project build
 CCS_PATH ?= D:/ccs_v8_3/ccsv8
 TIARMCGT_ROOT = $(PSDK_TOOLS_PATH)/ti-cgt-arm_20.2.0.LTS
-TIARMCGT_LLVM_ROOT = $(PSDK_TOOLS_PATH)/ti-cgt-armllvm_4.0.1.LTS
+TIARMCGT_LLVM_ROOT = $(PSDK_TOOLS_PATH)/ti-cgt-armllvm_4.0.4.LTS
 
 REMOTE_DEVICE_PATH ?= $(PSDK_PATH)/remote_device
 
