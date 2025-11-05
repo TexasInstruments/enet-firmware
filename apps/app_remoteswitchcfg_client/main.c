@@ -129,7 +129,7 @@
 #define IPC_VRING_MEM_SIZE                    (8U * 1024U * 1024U)
 #elif defined(SOC_J784S4) || defined(SOC_J742S2)
 #define IPC_VRING_MEM_SIZE                    (48U * 1024U * 1024U)
-#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX)  || defined(SOC_J722S)
 #define IPC_VRING_MEM_SIZE                    (0x2000U)
 #else
 #error "Unsupported device"
@@ -218,7 +218,7 @@ static uint32_t gRemoteProc[] =
     IPC_MPU1_0, IPC_MCU1_0, IPC_MCU1_1, IPC_MCU2_0,
     IPC_MCU3_0, IPC_MCU3_1, IPC_MCU4_0, IPC_MCU4_1,
     IPC_C7X_1,  IPC_C7X_2,  IPC_C7X_3,
-#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX)  || defined(SOC_J722S)
     IPC_MCU2_0,
 #endif
 };
@@ -257,7 +257,7 @@ CpswRemoteApp_Obj gRemoteAppObj =
 #elif defined(SOC_J7200)
     .enetType         = ENET_CPSW_5G,
     .instId           = 0U,
-#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX)  || defined(SOC_J722S)
     .enetType         = ENET_CPSW_3G,
     .instId           = 0U,
 #endif
