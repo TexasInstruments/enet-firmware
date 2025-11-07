@@ -91,6 +91,7 @@
             -DCPU_mcu2_0
             -DETHAPP_ENABLE_IPERF_SERVER
             -DETHFW_GPTP_SUPPORT
+            -DENABLE_MAC_ONLY_PORTS
         "
         linkerBuildOptions="
             -i${MCU_PLUS_SDK_PATH}/source/kernel/freertos/lib

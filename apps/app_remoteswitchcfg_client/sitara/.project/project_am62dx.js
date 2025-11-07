@@ -99,6 +99,7 @@ const defines_r5f = {
         "MCU_PLUS_SDK",
         "SOC_AM62DX",
         "CPU_mcu2_1",
+        "ENABLE_MAC_ONLY_PORTS",
     ],
 };
 

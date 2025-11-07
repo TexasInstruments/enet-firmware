@@ -3004,6 +3004,19 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc TX channel");
 
             resLen = sizeof(*res);
+
+#if defined(ENABLE_MAC_ONLY_PORTS) && defined(MCU_PLUS_SDK)
+            if (ETHREMOTECFG_SOK == status)
+            {
+                hClient = CpswProxyServer_getClient(remoteProcId, CPSWPROXY_VIRTPORT_2_TOKEN(ETHREMOTECFG_MAC_PORT_2));
+                CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
+
+                if (ETHREMOTECFG_SOK == status)
+                {
+                    hClient->psilDstId = res->txPsilDstId;
+                }
+            }
+#endif
             break;
         }
         case ETHREMOTECFG_CMD_ALLOC_RX:
@@ -3034,6 +3047,22 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to alloc RX flow");
 
             resLen = sizeof(*res);
+
+#if defined(ENABLE_MAC_ONLY_PORTS) && defined(MCU_PLUS_SDK)
+            if (ETHREMOTECFG_SOK == status)
+            {
+                hClient = CpswProxyServer_getClient(remoteProcId, CPSWPROXY_VIRTPORT_2_TOKEN(ETHREMOTECFG_MAC_PORT_2));
+                CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
+
+                if (ETHREMOTECFG_SOK == status)
+                {
+                    hClient->flowIdxBase   = res->rxFlowIdxBase;
+                    hClient->flowIdxOffset = res->rxFlowIdxOffset;
+
+                    CpswProxyServer_saveRxFlowOffset(hClient->virtPort, req->flowIdx, res->rxFlowIdxOffset);
+                }
+            }
+#endif
             break;
         }
         case ETHREMOTECFG_CMD_ALLOC_MAC:

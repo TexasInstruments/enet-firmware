@@ -106,6 +106,7 @@ DEFINES_common := \
 	-DMCU_PLUS_SDK \
 	-DSOC_AM62DX \
 	-DCPU_mcu2_1 \
+	-DENABLE_MAC_ONLY_PORTS \
 
 CFLAGS_common := \
 	-mcpu=cortex-r5 \

@@ -203,9 +203,14 @@
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_5))
 #elif defined(SOC_AM62PX) || defined(SOC_AM62DX)
+#if defined(ENABLE_MAC_ONLY_PORTS)
+#define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
+                                                 CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_1))
+#else
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_1) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_2))
+#endif
 #endif
 
 /* Default virtual port mask for shared multicast addresses: all virtual switch ports */
@@ -657,7 +662,9 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 
 #if defined(SOC_AM62PX) || defined(SOC_AM62DX)
     ENET_MAC_PORT_1,
+#if !defined(ENABLE_MAC_ONLY_PORTS)
     ENET_MAC_PORT_2,
+#endif
 #endif
 };
 #endif
@@ -710,6 +717,7 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_LINUX) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_QNX),
     },
+#if !defined(MCU_PLUS_SDK)
     {
         .remoteCoreId  = IPC_MCU1_0,
         .portId        = ETHREMOTECFG_SWITCH_PORT_2,
@@ -721,6 +729,7 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_AUTOSAR),
     },
+#endif
 #if defined (ETHFW_RTOS_MCU2_1_SERVER)
     {
         /* Virtual switch port for Ethfw, using ETHREMOTECFG_SWITCH_PORT_LAST */
@@ -805,6 +814,7 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
     },
 #endif
 #if defined(ENABLE_MAC_ONLY_PORTS)
+#if !defined(MCU_PLUS_SDK)
     {
         .remoteCoreId  = IPC_MPU1_0,
         .portId        = ETHREMOTECFG_MAC_PORT_1,
@@ -816,13 +826,18 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         .numMacAddress = 1U,
         .clientIdMask  = ETHFW_BIT(ETHREMOTECFG_CLIENTID_LINUX) | ETHFW_BIT(ETHREMOTECFG_CLIENTID_QNX),
     },
+#endif
     {
 #if defined (ETHFW_RTOS_MCU3_0)
         .remoteCoreId  = IPC_MCU3_0,
 #else
         .remoteCoreId  = IPC_MCU2_1,
 #endif
+#if defined (MCU_PLUS_SDK)
+        .portId        = ETHREMOTECFG_MAC_PORT_2,
+#else
         .portId        = ETHREMOTECFG_MAC_PORT_4,
+#endif
         .numTxCh       = 1U,
         .txCh          = {
                             [0] = ENET_RM_TX_CH_2

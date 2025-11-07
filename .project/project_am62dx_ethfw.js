@@ -177,7 +177,8 @@ const defines_r5f = {
         "ETHFW_INTERCORE_ETH_SUPPORT",
         "ETHFW_IPERF_SERVER_SUPPORT",
         "MCU_PLUS_SDK",
-        "SOC_AM62DX"
+        "SOC_AM62DX",
+        "ENABLE_MAC_ONLY_PORTS",
     ],
     debug: [
         "ENET_CFG_DEV_ERROR=1",
@@ -203,7 +204,8 @@ const defines_dm_r5f = {
         "ETHFW_GPTP_SUPPORT",
         "CPU_mcu2_0",
         "MCU_PLUS_SDK",
-        "SOC_AM62DX"
+        "SOC_AM62DX",
+        "ENABLE_MAC_ONLY_PORTS"
     ],
     debug: [
         "ENET_CFG_DEV_ERROR=1",

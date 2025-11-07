@@ -138,6 +138,7 @@ DEFINES_common := \
     -DCPU_mcu2_0 \
     -DMCU_PLUS_SDK \
     -DSOC_AM62DX \
+    -DENABLE_MAC_ONLY_PORTS \
     -DSW_VERSION=$(SW_VERSION)
 
 DEFINES_debug := \

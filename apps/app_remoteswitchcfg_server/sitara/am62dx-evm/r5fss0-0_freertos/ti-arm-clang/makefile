@@ -121,6 +121,7 @@ DEFINES_common := \
 	-DCPU_mcu2_0 \
 	-DETHAPP_ENABLE_IPERF_SERVER \
 	-DETHFW_GPTP_SUPPORT \
+	-DENABLE_MAC_ONLY_PORTS \
 
 CFLAGS_common := \
 	-mcpu=cortex-r5 \

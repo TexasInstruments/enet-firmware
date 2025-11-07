@@ -176,6 +176,7 @@ const defines_dm_r5f = {
         "CPU_mcu2_0",
         "ETHAPP_ENABLE_IPERF_SERVER",
         "ETHFW_GPTP_SUPPORT",
+        "ENABLE_MAC_ONLY_PORTS",
     ],
 };
 
