@@ -354,7 +354,7 @@ void EthFwIpc_resetObj()
 
 void EthFwIpc_enableControlEndPt()
 {
-    int32_t status = SystemP_FAILURE;
+    int32_t status = ETHFW_ENOTSUPPORTED;
 
     ETHFWTRACE_ERR(status, "This API is not supported for Jacinto");
 }
