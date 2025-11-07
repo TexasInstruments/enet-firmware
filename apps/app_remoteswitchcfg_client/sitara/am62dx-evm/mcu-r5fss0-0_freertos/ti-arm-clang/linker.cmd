@@ -58,12 +58,6 @@ SECTIONS
 
     /* this is used only when IPC RPMessage is enabled, else this is not used */
     .bss.ipc_vring_mem   (NOLOAD) : {} > DDR_IPC_VRING_RTOS
-    GROUP {
-        /* This is the resource table used by linux to know where the IPC "VRINGs" are located */
-        .resource_table: {} palign(1024)
-    } > DDR_IPC_RESOURCE_TABLE_LINUX
-    /* This IPC log can be viewed via ROV in CCS and when linux is enabled, this log can also be viewed via linux debugfs */
-    .bss.debug_mem_trace_buf    : {} palign(128)    > DDR_IPC_TRACE_LINUX
 
     /* This is rest of initialized data. This can be placed in DDR if DDR is available and needed */
     GROUP {
@@ -104,14 +98,14 @@ SECTIONS
         .init_array: {} palign(8)   /* Contains function pointers called before main */
         .fini_array: {} palign(8)   /* Contains function pointers called after main */
     } > MSRAM
-    
+
         .enet_dma_mem (NOLOAD) : {
         *(*ENET_DMA_DESC_MEMPOOL)
         *(*ENET_DMA_RING_MEMPOOL)
 #if (ENET_SYSCFG_PKT_POOL_ENABLE == 1)
         *(*ENET_DMA_PKT_MEMPOOL)
 #endif
-    } > DDR    
+    } > DDR
 
 }
 
@@ -122,10 +116,7 @@ MEMORY
     R5F_TCMB0 : ORIGIN = 0x41010000 , LENGTH = 0x00004000
 
     MSRAM     : ORIGIN = 0x79100000 , LENGTH = 0x80000
-    DDR       : ORIGIN = 0x9BA00000 , LENGTH = 0xE00000
-    
-    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9B600000, LENGTH = 0x200000   /* IPC VRING for RTOS/NoRTOS */
-    DDR_IPC_VRING_LINUX           : ORIGIN = 0x9B800000, LENGTH = 0x100000   /* IPC VRING with Linux */
-    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0x9B900000, LENGTH = 0x400      /* For resource table   */
-    DDR_IPC_TRACE_LINUX           : ORIGIN = 0x9B900400, LENGTH = 0xFFC00    /* IPC trace buffer     */
+    DDR       : ORIGIN = 0x9C000000 , LENGTH = 0xE00000
+
+    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9B000000, LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
 }

@@ -12,23 +12,21 @@ scripting.excludeFromBuild("ti_enet_lwipif.h");
 /**
  * Import the modules used in this configuration.
  */
-const eeprom      = scripting.addModule("/board/eeprom/eeprom", {}, false);
-const eeprom1     = eeprom.addInstance();
-const ipc         = scripting.addModule("/drivers/ipc/ipc");
-const debug_log   = scripting.addModule("/kernel/dpl/debug_log");
-const mpu_armv7   = scripting.addModule("/kernel/dpl/mpu_armv7", {}, false);
-const mpu_armv71  = mpu_armv7.addInstance();
-const mpu_armv72  = mpu_armv7.addInstance();
-const mpu_armv73  = mpu_armv7.addInstance();
-const mpu_armv74  = mpu_armv7.addInstance();
-const mpu_armv75  = mpu_armv7.addInstance();
-const mpu_armv76  = mpu_armv7.addInstance();
-const mpu_armv77  = mpu_armv7.addInstance();
-const mpu_armv78  = mpu_armv7.addInstance();
-const mpu_armv79  = mpu_armv7.addInstance();
-const mpu_armv710 = mpu_armv7.addInstance();
-const enet_cpsw   = scripting.addModule("/networking/enet_cpsw/enet_cpsw", {}, false);
-const enet_cpsw1  = enet_cpsw.addInstance();
+const eeprom     = scripting.addModule("/board/eeprom/eeprom", {}, false);
+const eeprom1    = eeprom.addInstance();
+const ipc        = scripting.addModule("/drivers/ipc/ipc");
+const debug_log  = scripting.addModule("/kernel/dpl/debug_log");
+const mpu_armv7  = scripting.addModule("/kernel/dpl/mpu_armv7", {}, false);
+const mpu_armv71 = mpu_armv7.addInstance();
+const mpu_armv72 = mpu_armv7.addInstance();
+const mpu_armv73 = mpu_armv7.addInstance();
+const mpu_armv74 = mpu_armv7.addInstance();
+const mpu_armv75 = mpu_armv7.addInstance();
+const mpu_armv76 = mpu_armv7.addInstance();
+const mpu_armv77 = mpu_armv7.addInstance();
+const mpu_armv78 = mpu_armv7.addInstance();
+const enet_cpsw  = scripting.addModule("/networking/enet_cpsw/enet_cpsw", {}, false);
+const enet_cpsw1 = enet_cpsw.addInstance();
 
 /**
  * Write custom configuration values to the imported modules.
@@ -82,22 +80,10 @@ mpu_armv77.size       = 20;
 mpu_armv77.attributes = "NonCached";
 
 mpu_armv78.$name        = "CONFIG_MPU_RTOS_VRING2";
-mpu_armv78.baseAddr     = 0x9B600000;
-mpu_armv78.size         = 21;
 mpu_armv78.allowExecute = false;
 mpu_armv78.attributes   = "NonCached";
-
-mpu_armv79.$name        = "CONFIG_MPU_LINUX_VRING";
-mpu_armv79.baseAddr     = 0x9B800000;
-mpu_armv79.size         = 20;
-mpu_armv79.attributes   = "NonCached";
-mpu_armv79.allowExecute = false;
-
-mpu_armv710.$name        = "CONFIG_MPU_RESOURCE_TABLE_AND_TRACE";
-mpu_armv710.baseAddr     = 0x9B900000;
-mpu_armv710.size         = 20;
-mpu_armv710.attributes   = "NonCached";
-mpu_armv710.allowExecute = false;
+mpu_armv78.baseAddr     = 0x9B000000;
+mpu_armv78.size         = 24;
 
 enet_cpsw1.$name                  = "CONFIG_ENET_CPSW0";
 enet_cpsw1.PktInfoOnlyEnable      = true;

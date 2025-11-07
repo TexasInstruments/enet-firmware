@@ -65,12 +65,6 @@ SECTIONS
 
     /* this is used only when IPC RPMessage is enabled, else this is not used */
     .bss.ipc_vring_mem   (NOLOAD) : {} > DDR_IPC_VRING_RTOS
-    GROUP {
-        /* This is the resource table used by linux to know where the IPC "VRINGs" are located */
-        .resource_table: {} palign(1024)
-    } > DDR_IPC_RESOURCE_TABLE_LINUX
-    /* This IPC log can be viewed via ROV in CCS and when linux is enabled, this log can also be viewed via linux debugfs */
-    .bss.debug_mem_trace_buf    : {} palign(128)    > DDR_IPC_TRACE_LINUX
 
     .text                   : {} palign(8)      > DDR
     .const                  : {} palign(8)      > DDR
@@ -185,19 +179,16 @@ MEMORY
     R5F_TCMB       (RWIX)      : ORIGIN = 0x41010040 LENGTH = 0x00007FC0
 
     WKUP_SRAM_TRACE_BUFF (RWIX) : ORIGIN = 0x41880000 LENGTH = 0x0000800
-    
+
     HSM_RAM                     : ORIGIN = 0x43C00000 LENGTH = 0x3FF00
 
     /* DDR for DM R5F code/data [ size 27MiB + 416 KB ] */
     DDR                         : ORIGIN = 0x9CAA0000 LENGTH = 0x1B68000
 
-    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9B600000, LENGTH = 0x200000   /* IPC VRING for RTOS/NoRTOS */
-    DDR_IPC_VRING_LINUX           : ORIGIN = 0x9C800000, LENGTH = 0x100000   /* IPC VRING with Linux */
-    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0x9C900000, LENGTH = 0x400      /* For resource table   */
-    DDR_IPC_TRACE_LINUX           : ORIGIN = 0x9C900400, LENGTH = 0xFFC00    /* IPC trace buffer     */
+    DDR_IPC_VRING_RTOS          : ORIGIN = 0x9B000000 LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
     /* This section is used by the SBL to temporarily load the appimage for authentication */
     APPIMAGE  : ORIGIN = 0x84000000 , LENGTH = 0x1900000
-    
+
     /* Inter-core ethernet shared desc queues. MUST be non-cached or cache-coherent [ size 2 MB ] */
     INTERCORE_ETH_DESC_MEM            : ORIGIN = 0xA4000000 , LENGTH = 0x00200000
     /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 14 MB ] */

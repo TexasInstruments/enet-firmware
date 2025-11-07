@@ -46,8 +46,6 @@ const mpu_armv710 = mpu_armv7.addInstance();
 const mpu_armv711 = mpu_armv7.addInstance();
 const mpu_armv712 = mpu_armv7.addInstance();
 const mpu_armv713 = mpu_armv7.addInstance();
-const mpu_armv714 = mpu_armv7.addInstance();
-const mpu_armv715 = mpu_armv7.addInstance();
 const enet_cpsw   = scripting.addModule("/networking/enet_cpsw/enet_cpsw", {}, false);
 const enet_cpsw1  = enet_cpsw.addInstance();
 
@@ -178,46 +176,34 @@ mpu_armv78.baseAddr = 0x43C00000;
 mpu_armv78.size     = 18;
 mpu_armv78.$name    = "HSM_RAM";
 
-mpu_armv79.$name        = "LINUX_VRING";
-mpu_armv79.baseAddr     = 0x9C800000;
+mpu_armv79.$name        = "RTOS_NORTOS_IPC_VRING1";
+mpu_armv79.baseAddr     = 0x9B500000;
 mpu_armv79.size         = 20;
 mpu_armv79.attributes   = "NonCached";
 mpu_armv79.allowExecute = false;
 
-mpu_armv710.$name        = "RESOURCE_TABLE_AND_TRACE";
-mpu_armv710.baseAddr     = 0x9C900000;
-mpu_armv710.size         = 20;
 mpu_armv710.attributes   = "NonCached";
 mpu_armv710.allowExecute = false;
+mpu_armv710.$name        = "RTOS_NORTOS_IPC_VRING2";
+mpu_armv710.baseAddr     = 0x9B000000;
+mpu_armv710.size         = 24;
 
-mpu_armv711.$name        = "RTOS_NORTOS_IPC_VRING1";
-mpu_armv711.baseAddr     = 0x9B500000;
-mpu_armv711.size         = 20;
-mpu_armv711.attributes   = "NonCached";
+mpu_armv711.$name        = "FSS0_OSPI0_CTRL_REG";
+mpu_armv711.baseAddr     = 0xFC40000;
+mpu_armv711.size         = 8;
+mpu_armv711.attributes   = "Device";
 mpu_armv711.allowExecute = false;
 
-mpu_armv712.$name        = "RTOS_NORTOS_IPC_VRING2";
-mpu_armv712.baseAddr     = 0x9B600000;
-mpu_armv712.size         = 21;
-mpu_armv712.attributes   = "NonCached";
+mpu_armv712.$name        = "UART0_REG";
+mpu_armv712.baseAddr     = 0x2800000;
+mpu_armv712.size         = 9;
 mpu_armv712.allowExecute = false;
+mpu_armv712.attributes   = "Device";
 
-mpu_armv713.$name        = "FSS0_OSPI0_CTRL_REG";
-mpu_armv713.baseAddr     = 0xFC40000;
-mpu_armv713.size         = 8;
-mpu_armv713.attributes   = "Device";
-mpu_armv713.allowExecute = false;
-
-mpu_armv714.$name        = "UART0_REG";
-mpu_armv714.baseAddr     = 0x2800000;
-mpu_armv714.size         = 9;
-mpu_armv714.allowExecute = false;
-mpu_armv714.attributes   = "Device";
-
-mpu_armv715.$name      = "INTERCORE_REGION";
-mpu_armv715.baseAddr   = 0xA4000000;
-mpu_armv715.size       = 25;
-mpu_armv715.attributes = "NonCached";
+mpu_armv713.$name      = "INTERCORE_REGION";
+mpu_armv713.baseAddr   = 0xA4000000;
+mpu_armv713.size       = 25;
+mpu_armv713.attributes = "NonCached";
 
 enet_cpsw1.$name                               = "CONFIG_ENET_CPSW0";
 enet_cpsw1.macAddrConfig                       = "Manual Entry";
