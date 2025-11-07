@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2025 Texas Instruments Incorporated
+ * Copyright (c) 2024-25 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -723,6 +723,8 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     ip4_addr_set_zero(&ipaddr);
     ip4_addr_set_zero(&netmask);
 
+    hLwipIfApp = LwipifEnetApp_getHandle();
+
     if(CpswProxy_isSwitchPort(virtNetif->virtPort))
     {
 #if ETHAPP_LWIP_USE_DHCP
@@ -776,7 +778,6 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 #else
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
 
-        hLwipIfApp = LwipifEnetApp_getHandle();
         LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_0);
         netif_set_link_callback(netif, EthApp_netifLinkChangeCb);
 
@@ -801,7 +802,6 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         netif_set_up(&netif_bridge);
 #endif
 
-
 #if ETHAPP_LWIP_USE_DHCP
         err = dhcp_start(netif_default);
         ETHFWTRACE_ERR_IF((err != ERR_OK), err, "Failed to start DHCP");
@@ -819,9 +819,8 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+        LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_1);
 
-        hLwipIfApp = LwipifEnetApp_getHandle();
-        LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_0);
         netif_set_link_callback(netif, EthApp_netifLinkChangeCb);
 
         if (virtNetif->isDfltNetif)
@@ -1184,49 +1183,29 @@ int32_t LwipifEnetApp_getNetifIdx(LwipifEnetApp_Handle handle, struct netif* net
 
 void LwipifEnetApp_getRxChIDs(const Enet_Type enetType, const uint32_t instId, uint32_t netifIdx, uint32_t* pRxChIdCount, uint32_t rxChIdList[LWIPIF_MAX_RX_CHANNELS_PER_PHERIPHERAL])
 {
-    EnetAppUtils_assert(netifIdx < ENET_SYSCFG_NETIF_COUNT);
+    int32_t netif2ChMap[ENET_SYSCFG_NETIF_COUNT][LWIPIF_MAX_RX_CHANNELS_PER_PHERIPHERAL] = {{ENET_DMA_RX_CH0, -1,},{ENET_DMA_RX_CH0, -1,},};
     uint32_t chCount;
 
-    /* verifiy the user params */
-    switch (enetType)
-    {
-    case ENET_ICSSG_DUALMAC:
-    case ENET_CPSW_3G:
-    case ENET_CPSW_2G:
-    {
-        rxChIdList[RTOS_CLIENT_RX_CHANNELID_COUNT] = 0U;
-        *pRxChIdCount = RTOS_CLIENT_RX_CHANNELID_COUNT;
-        for (chCount = 0U; chCount < RTOS_CLIENT_RX_CHANNELID_COUNT; chCount++)
-        {
-            rxChIdList[chCount] = 0U;
-        }
-        break;
-    }
-    default:
-    {
-        EnetAppUtils_assert(false);
-    }
-    }
-}
-
-void LwipifEnetApp_getTxChIDs(const Enet_Type enetType, const uint32_t instId, uint32_t netifIdx, uint32_t* pTxChIdCount, uint32_t txChIdList[LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL])
-{
     EnetAppUtils_assert(netifIdx < ENET_SYSCFG_NETIF_COUNT);
-    uint32_t chCount;
+
+    for (chCount = 0U; (chCount < LWIPIF_MAX_RX_CHANNELS_PER_PHERIPHERAL) && (netif2ChMap[netifIdx][chCount] != -1); chCount++)
+    {
+        rxChIdList[chCount] = netif2ChMap[netifIdx][chCount];
+    }
 
     /* verifiy the user params */
     switch (enetType)
     {
     case ENET_ICSSG_SWITCH:
+    {
+        EnetAppUtils_assert(chCount == 2);
+        break;
+    }
     case ENET_ICSSG_DUALMAC:
     case ENET_CPSW_3G:
     case ENET_CPSW_2G:
     {
-        *pTxChIdCount = RTOS_CLIENT_TX_CHANNELID_COUNT;
-        for (chCount = 0U; chCount < RTOS_CLIENT_TX_CHANNELID_COUNT; chCount++)
-        {
-            txChIdList[chCount] = 0U;
-        }
+        EnetAppUtils_assert(chCount == 1);
         break;
     }
     default:
@@ -1234,6 +1213,41 @@ void LwipifEnetApp_getTxChIDs(const Enet_Type enetType, const uint32_t instId, u
         EnetAppUtils_assert(false);
     }
     }
+    *pRxChIdCount = chCount;
+    return;
+}
+
+void LwipifEnetApp_getTxChIDs(const Enet_Type enetType, const uint32_t instId, uint32_t netifIdx, uint32_t* pTxChIdCount, uint32_t txChIdList[LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL])
+{
+    int32_t netif2ChMap[ENET_SYSCFG_NETIF_COUNT][LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL] = {{ENET_DMA_TX_CH0},};
+    uint32_t chCount;
+
+    EnetAppUtils_assert(netifIdx < ENET_SYSCFG_NETIF_COUNT);
+
+    for (chCount = 0U; (chCount < LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL) && (netif2ChMap[netifIdx][chCount] != -1); chCount++)
+    {
+        txChIdList[chCount] = netif2ChMap[netifIdx][chCount];
+    }
+
+    /* verify the user params */
+    switch (enetType)
+    {
+        case ENET_ICSSG_SWITCH:
+        case ENET_ICSSG_DUALMAC:
+        case ENET_CPSW_3G:
+        case ENET_CPSW_2G:
+        {
+            EnetAppUtils_assert(chCount == 1);
+            break;
+        }
+        default:
+        {
+            EnetAppUtils_assert(false);
+        }
+    }
+
+    *pTxChIdCount = chCount;
+    return;
 }
 
 

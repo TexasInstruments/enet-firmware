@@ -44,12 +44,11 @@
 #define TASK_PRI_MAIN_THREAD  (configMAX_PRIORITIES-1)
 #define TASK_PRI_BOOT_THREAD  (configMAX_PRIORITIES-1)
 
-
 #define TASK_SIZE (16384U/sizeof(configSTACK_DEPTH_TYPE))
 
-/* This buffer needs to be defined for OSPI NOR boot /emmc boot in case of HS device for
+/* This buffer needs to be defined for OSPI NOR boot /EMMC boot in case of HS device for
  * image authentication.
- * The size of the buffer should be large enough to accomodate the appimage
+ * The size of the buffer should be large enough to accommodate the appimage
  */
 uint8_t gAppimage[0x1900000] __attribute__ ((section (".app"), aligned (128)));
 
@@ -71,6 +70,7 @@ void main_thread(void *args)
 
     /* Open drivers */
     Drivers_open();
+
     /* Open flash and board drivers */
     status = Board_driversOpen();
     DebugP_assert(status==SystemP_SUCCESS);
@@ -87,16 +87,16 @@ void main_thread(void *args)
 
 void check_bootMode(void *args)
 {
-    uint32_t bootMode = SOC_getDevStat();
+    uint32_t bootMode = SOC_getPrimaryBootMode();
     void (*sbl_stage2_main)(void*) = NULL;
 
     switch(bootMode)
     {
-        case SOC_BOOTMODE_OSPI:
+        case SOC_PRIMARY_BOOTMODE_OSPI:
             sbl_stage2_main = sbl_ospi_stage2_main;
             break;
 
-        case SOC_BOOTMODE_EMMC:
+        case SOC_PRIMARY_BOOTMODE_EMMC:
             sbl_stage2_main = sbl_emmc_stage2_main;
             break;
 
