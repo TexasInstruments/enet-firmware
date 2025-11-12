@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2024-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -90,6 +90,8 @@ extern "C" {
 /*! Number of MAC ports supported by the gPTP stack */
 #if defined(SOC_J721E) || defined(SOC_J784S4)
 #define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (8U)
+#elif defined(SOC_AM62DX) || defined(SOC_AM62PX)
+#define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (2U)
 #else
 #define ETHFW_TSN_CFG_NUM_MAC_PORTS                                 (4U)
 #endif
@@ -183,6 +185,11 @@ typedef enum
 {
     ETHFWTSN_UNICONF_TASK_IDX,
     ETHFWTSN_GPTP_TASK_IDX,
+#if (AVTP_ENABLED)
+    ETHFWTSN_AVTPD_TASK_IDX,
+    ETHFWTSN_AAF_AUTOAMP_APP_TX_CLASSA_TASK_IDX,
+    ETHFWTSN_AUTOAMP_APP_RX_TASK_IDX,
+#endif
 #if defined(ETHFW_EST_DEMO_SUPPORT)
     ETHFWTSN_EST_TASK_IDX,
 #endif

@@ -133,6 +133,8 @@ const includes = {
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62dx",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include",
+
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/apps/app_remoteswitchcfg_server",
     ],
 };
 
@@ -205,7 +207,8 @@ const defines_dm_r5f = {
         "CPU_mcu2_0",
         "MCU_PLUS_SDK",
         "SOC_AM62DX",
-        "ENABLE_MAC_ONLY_PORTS"
+        "ENABLE_MAC_ONLY_PORTS",
+        "AVTP_ENABLED=1",
     ],
     debug: [
         "ENET_CFG_DEV_ERROR=1",

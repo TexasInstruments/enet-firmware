@@ -120,6 +120,7 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62dx \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/apps/app_remoteswitchcfg_server \
 
 DEFINES_common := \
     -DMAKEFILE_BUILD \

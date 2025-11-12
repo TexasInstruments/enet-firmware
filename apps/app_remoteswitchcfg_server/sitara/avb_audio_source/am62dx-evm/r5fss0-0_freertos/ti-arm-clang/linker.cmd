@@ -199,4 +199,6 @@ MEMORY
     INTERCORE_ETH_DESC_MEM      : ORIGIN = 0xA4000000 , LENGTH = 0x00200000
     /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 14 MB ] */
     INTERCORE_ETH_DATA_MEM      : ORIGIN = 0xA4200000 , LENGTH = 0x01E00000
+
+    AVB_SHM_MEM                 : ORIGIN = 0xA3000000 , LENGTH = 0x00080000
 }

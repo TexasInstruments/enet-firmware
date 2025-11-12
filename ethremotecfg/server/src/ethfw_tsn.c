@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2024-2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -89,15 +89,19 @@
 #include <tsn_gptp/gptpman.h>
 #include <tsn_unibase/unibase_binding.h>
 
+#if defined(AVTP_ENABLED) && defined(SOC_AM62DX)
+#include <sitara/ethfw_avtp.h>
+#endif
+
 /* Enet LLD header files */
 #include <enet.h>
 #include <utils/include/enet_apputils.h>
+#include <include/mod/cpsw_cpts.h>
 
 /* EthFw header files */
 #include <utils/ethfw_common/include/ethfw_trace.h>
 #include <utils/ethfw_abstract/ethfw_osal.h>
 #include <ethremotecfg/server/include/ethfw_tsn.h>
-#include <include/mod/cpsw_cpts.h>
 
 /* ========================================================================== */
 /*                           Macros & Typedefs                                */
@@ -156,7 +160,6 @@
 /* Log Buffer end line macro */
 #define ETHFW_LOG_BUFFER_ENDLINE                                    "\r"
 
-extern uint8_t IEEE1588_PTP_TT_func(uc_dbald *dbald);
 #define IEEE1588_PTP_TT_RW_Y IEEE1588_PTP_TT_func(ydbia->dbald)
 
 /* ========================================================================== */
@@ -323,6 +326,8 @@ static void EthFwTsn_gptpUpdateDomainMap(int instance, int domain);
 /*                          Extern variables                                  */
 /* ========================================================================== */
 
+extern uint8_t IEEE1588_PTP_TT_func(uc_dbald *dbald);
+
 #if defined(ETHFW_EST_DEMO_SUPPORT)
 extern void *EthFw_estDemoTask(void *arg1);
 #endif
@@ -436,9 +441,9 @@ static EthFwTsn_DbIntVal gGptpNonYangDs[] =
 #else
     {"SKIP_FREQADJ_COUNT_MAX", XL4_EXTMOD_XL4GPTP_SKIP_FREQADJ_COUNT_MAX, 0},
     {"CLOCK_COMPUTE_INTERVAL_MSEC", XL4_EXTMOD_XL4GPTP_CLOCK_COMPUTE_INTERVAL_MSEC, 100},
-    // If the phase offset between the GM and the local clock exceeds the threshold PHASE_OFFSET_ADJUST_BY_FREQ, 
+    // If the phase offset between the GM and the local clock exceeds the threshold PHASE_OFFSET_ADJUST_BY_FREQ,
     // phase offset will be applied; otherwise, the clock rate is adjusted to match the phase.
-    #ifdef ENET_ENABLE_PER_ICSSG 
+    #ifdef ENET_ENABLE_PER_ICSSG
     /* Increase this value to 10E6 for ICSSG because Nudge API is not supported. */
     {"PHASE_OFFSET_ADJUST_BY_FREQ", XL4_EXTMOD_XL4GPTP_PHASE_OFFSET_ADJUST_BY_FREQ, 1000000}, // in ns
     #else
@@ -478,6 +483,41 @@ EthFwTsn_ModuleCfg gModCfgTable[ETHFWTSN_MAX_TASK_IDX] =
             .onModuleRunner = EthFwTsn_uniconfTask,
             .onModuleRunnerArgs = NULL,
         },
+#if (AVTP_ENABLED)
+        [ETHFWTSN_AVTPD_TASK_IDX]={
+            .enable = BTRUE,
+            .stopFlag = BTRUE,
+            .taskPriority = ETHFW_TSN_AVTPD_TASK_PRIORITY,
+            .taskName = "avtpd_task",
+            .stackBuffer = gAvtpdStackBuf,
+            .stackSize = sizeof(gAvtpdStackBuf),
+            .onModuleDBInit = NULL,
+            .onModuleRunner = EnetApp_avtpdTask,
+        },
+        /* Autoamp Apps */
+        /* TX apps */
+        [ETHFWTSN_AAF_AUTOAMP_APP_TX_CLASSA_TASK_IDX]={
+            .enable = BFALSE,
+            .stopFlag = BTRUE,
+            .taskPriority = ETHFW_TSN_AUTOAMP_APP_TASK_PRIORITY,
+            .taskName = "autoAmpApp_TxTask",
+            .stackBuffer = gTxStackBuf,
+            .stackSize = sizeof(gTxStackBuf),
+            .onModuleDBInit = EnetApp_autoAmpAppInit,
+            .onModuleRunner = EnetApp_talkerTask,
+        },
+        /* RX apps */
+        [ETHFWTSN_AUTOAMP_APP_RX_TASK_IDX]={
+            .enable = BFALSE,
+            .stopFlag = BTRUE,
+            .taskPriority = ETHFW_TSN_AUTOAMP_APP_RX_TASK_PRIORITY,
+            .taskName = "autoAmpApp_Rx",
+            .stackBuffer = gRx1StackBuf,
+            .stackSize = sizeof(gRx1StackBuf),
+            .onModuleDBInit = NULL,
+            .onModuleRunner = EnetApp_ListenerTask,
+        },
+#endif
 #if defined(ETHFW_EST_DEMO_SUPPORT)
         [ETHFWTSN_EST_TASK_IDX] =
         {
@@ -997,7 +1037,7 @@ static void EthFwTsn_gptpUpdateDomainMap(int instance, int domain)
         uint16_t dmap;
         uint8_t aps[]={IEEE1588_PTP_TT_RW_Y, IEEE1588_PTP_TT_PTP,
 		IEEE1588_PTP_TT_INSTANCE_DOMAIN_MAP, 255};
-	    yang_db_access_para_t dbpara={((instance | domain) != 0) ? YANG_DB_ACTION_APPEND:YANG_DB_ACTION_CREATE, 
+	    yang_db_access_para_t dbpara={((instance | domain) != 0) ? YANG_DB_ACTION_APPEND:YANG_DB_ACTION_CREATE,
                                         YANG_DB_ONHW_NOACTION,
 		                                NULL, aps, NULL, NULL, &dmap, sizeof(uint16_t)};
         dmap=instance<<8|domain;
@@ -1029,13 +1069,13 @@ static int32_t EthFwTsn_gptpNonYangConfig(uint8_t instance)
                                    sizeof(gGptpNonYangDs[i].val));
 
         ETHFWTRACE_DBG_IF(status == ETHFW_SOK,"%s:XL4_EXTMOD_XL4GPTP_%s=%d\n", __func__,
-                               gGptpNonYangDs[i].name, gGptpNonYangDs[i].val); 
+                               gGptpNonYangDs[i].name, gGptpNonYangDs[i].val);
 
         if ((status != ETHFW_SOK))
         {
             ETHFWTRACE_ERR(ETHFW_EFAIL,"%s: failed to set nonyang param: %s\n",
                             __func__, gGptpNonYangDs[i].name);
-            break;  
+            break;
         }
     }
     return status;
@@ -1108,8 +1148,8 @@ static void EthFwTsn_cfgGptpDefaultDs(uint32_t instance,
                                                  gGptpDefaultDsInt[i].sz,
                                                  YDBI_NO_NOTICE);
             }
-        } 
-        else 
+        }
+        else
         {
             gptpgcfg_set_yang_defaultds_item(instance,
                                              gGptpDefaultDsInt[i].key,
@@ -1136,7 +1176,7 @@ static void EthFwTsn_cfgGptpDefaultDs(uint32_t instance,
                                              YDBI_NO_NOTICE);
         }
     }
-    
+
 }
 
 static void EthFwTsn_cfgGptpPortDs(uint32_t instance,
@@ -1157,8 +1197,8 @@ static void EthFwTsn_cfgGptpPortDs(uint32_t instance,
                                         &gGptpPortDsInt[i].val, gGptpPortDsInt[i].sz,
                                         YDBI_NO_NOTICE);
             }
-        } 
-        else 
+        }
+        else
         {
             gptpgcfg_set_yang_port_item(instance, IEEE1588_PTP_TT_PORT_DS,
                                         gGptpPortDsInt[i].key, portIndex,
@@ -1198,7 +1238,7 @@ static int32_t EthFwTsn_startMod(void)
             if (mod->enable == BFALSE)
             {
                 status = EthFwTsn_startModTask(mod, i);
-                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, 
+                ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status,
                                   "Failed to start Task for moduleIdx %u", i);
             }
         }

@@ -96,6 +96,10 @@
 #include <ethremotecfg/server/include/ethfw_tsn.h>
 #endif
 
+#if defined(AVTP_ENABLED) && defined(SOC_AM62DX)
+#include "sitara/ethfw_avtp.h"
+#endif
+
 #define System_printf  Ipc_Trace_printf
 #define System_vprintf Ipc_Trace_vprintf
 
@@ -738,8 +742,10 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
         /*
          * When running the demo app, we require two Tx channels one for gPTP and one for EST
          * and the allocation happens in order, hence gPTP gets 7th channel first and then EST
-         * gets the 6th channel */
-#if defined(ETHFW_EST_DEMO_SUPPORT) || defined(ETHFW_DEMO_SUPPORT)
+         * gets the 6th channel
+         * For AM62Dx, 6th channel is allocated for AVTP and 7th channel is allocated for GPTP
+         */
+#if defined(ETHFW_EST_DEMO_SUPPORT) || defined(ETHFW_DEMO_SUPPORT) || defined(AVTP_ENABLED)
         .numTxCh       = 3U,
         .txCh          = {
                             [0] = ENET_RM_TX_CH_0,
@@ -766,7 +772,7 @@ static EthFwVirtPort_VirtPortCfg gEthApp_virtPortCfg[] =
          * When running the demo app, we require two Tx channels one for gPTP and one for EST
          * and the allocation happens in order, hence gPTP gets 7th channel first and then EST
          * gets the 6th channel */
-#if defined(ETHFW_EST_DEMO_SUPPORT) || defined(ETHFW_DEMO_SUPPORT)
+#if defined(ETHFW_EST_DEMO_SUPPORT) || defined(ETHFW_DEMO_SUPPORT) || defined(AVTP_ENABLED)
         .numTxCh       = 3U,
         .txCh          = {
                             [0] = ENET_RM_TX_CH_0,
@@ -991,6 +997,14 @@ static uint32_t gEthApp_remoteClientPrivVlanIdMap[ETHREMOTECFG_SWITCH_PORT_LAST+
 };
 #endif
 
+/* Trace configuration */
+static EthFwTrace_Cfg gEthApp_traceCfg =
+{
+    .print        = appLogPrintf,
+    .traceTsFunc  = NULL,
+    .extTraceFunc = NULL,
+};
+
 /* ========================================================================== */
 /*                          Function Definitions                              */
 /* ========================================================================== */
@@ -1119,14 +1133,6 @@ static int32_t EthApp_boardInit(void)
     return status;
 }
 
-/* Trace configuration */
-static EthFwTrace_Cfg gEthApp_traceCfg =
-{
-    .print        = appLogPrintf,
-    .traceTsFunc  = NULL,
-    .extTraceFunc = NULL,
-};
-
 void EthApp_initTaskFxn(void* arg0)
 {
     EthFwOsal_TaskParams taskParams;
@@ -1212,6 +1218,12 @@ void EthApp_initTaskFxn(void* arg0)
         EthFwOsal_createTask(&EthApp_initIpcTaskFxn, &taskParams);
     }
 
+#if defined(AVTP_ENABLED)
+    EnetApp_enableTsSync(gEthAppObj.enetType, gEthAppObj.instId);
+
+    EnetApp_avtpInit();
+#endif
+
 #if defined(ETHFW_GPTP_SUPPORT)
     /* Initialize gPTP stack */
     if (status == ENET_SOK)
@@ -1290,7 +1302,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     EthApp_setBootTs(ETHFW_BOOT_PROFILING_TS_IPC);
 #endif
-
+#if !defined(SOC_AM62DX)
     /* Wait for Linux VDev ready... */
     if (status == ENET_SOK)
     {
@@ -1312,7 +1324,7 @@ static void EthApp_initIpcTaskFxn(void* arg0)
             appLogPrintf("EthApp_initIpcTask: late announcement failed: %d\n", status);
         }
     }
-
+#endif
 #if !defined(MCU_PLUS_SDK)
     /* Init EthFw services: task/CPU statistics and Ethernet statistics */
     if (status == ETHFW_SOK)
@@ -2200,6 +2212,18 @@ int32_t EthFwTsn_lldCfgUpdateCb(cb_socket_lldcfg_update_t *update_cfg)
         update_cfg->pktSize = ENET_MEM_LARGE_POOL_PKT_SIZE;
 #endif
     }
+#if defined(AVTP_ENABLED)
+    else if (update_cfg->proto == ETH_P_TSN)
+    {
+        update_cfg->numRxChannels = 1U;
+        update_cfg->dmaTxChId = ENET_DMA_TX_CH_AVTP;
+        update_cfg->dmaRxChId[0] = ENET_DMA_RX_CH_AVTP;
+        update_cfg->nTxPkts = ENET_DMA_TX_CH_AVTP_NUM_PKTS;
+        update_cfg->nRxPkts[0] = ENET_DMA_RX_CH_AVTP_NUM_PKTS;
+        update_cfg->pktSize = ENET_MEM_LARGE_POOL_PKT_SIZE;
+        update_cfg->dmaTxShared = BTRUE;
+    }
+#endif
 
     return 0;
 }
