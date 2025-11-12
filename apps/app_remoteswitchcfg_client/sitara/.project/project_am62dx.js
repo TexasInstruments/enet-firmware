@@ -166,8 +166,8 @@ function getComponentProperty() {
     property.type = "executable";
     property.name = "ethfw_client";
     property.isInternal = false;
-    property.isLinuxInSystem = true;
-    property.isLinuxFwGen = true;
+    property.isLinuxInSystem = false;
+    property.isLinuxFwGen = false;
     property.ipcVringRTOS = true;
     property.buildOptionCombos = buildOptionCombos;
 

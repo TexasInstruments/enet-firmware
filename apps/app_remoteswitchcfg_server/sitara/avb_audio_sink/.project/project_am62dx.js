@@ -10,18 +10,35 @@ const files = {
         "main_server.c",
         "main.c",
         "app_cpswconfighandler.c",
+        "ethfw_avtp.c",
+        "shm_cirbuf.c",
     ],
 };
 
+const remote_files = {
+    common: [
+        "main.c",
+        "shm_cirbuf.c",
+        "remote_main.c"
+    ],
+};
 /* Relative to where the makefile will be generated
  * Typically at <example_folder>/<BOARD>/<core_os_combo>/<compiler>
  */
 const filedirs = {
     common: [
-        "..",       /* core_os_combo base */
-        "../../..", /* sitara base */
-        "../../../..", /* server app base */
-        "../../../../../../../../../examples/drivers/boot/common/soc/am62dx/", /* 2nd stage bootloader */
+        "..",             /* core_os_combo base */
+        "../../../..",    /* sitara base */
+        "../../../../..", /* server app base */
+        "../../../../../../../../../../examples/drivers/boot/common/soc/am62dx", /* 2nd stage bootloader */
+    ],
+};
+
+const remote_filedirs = {
+    common: [
+        "..",          /* core_os_combo base */
+        "../../..",    /* example base */
+        "../../../..", /* sitara base */
     ],
 };
 
@@ -77,8 +94,10 @@ const includes_freertos_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/soc/k3/am62dx",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/mdio/V4",
-        "${MCU_PLUS_SDK_PATH}/examples/networking/tsn",
         "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack",
+        "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc",
+        "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc/tsn_l2",
+        "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_unibase",
         "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp",
         "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp/tilld",
         "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_combase/tilld/sitara",
@@ -98,22 +117,12 @@ const includes_freertos_r5f = {
     ],
 };
 
-const libs_freertos_r5f = {
+const includes_freertos_c75 = {
     common: [
-        "freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "drivers.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "enet-cpsw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "board.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "libc.a",
-        "libsysbm.a",
-        "tsn_combase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "tsn_unibase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "tsn_gptp-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "tsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "lwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "lwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "lwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
-        "ethfw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
+        "${MCU_PLUS_SDK_PATH}/source/kernel/freertos/FreeRTOS-Kernel/include",
+        "${MCU_PLUS_SDK_PATH}/source/kernel/freertos/portable/TI_CGT/DSP_C75X",
+        "${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/am62dx/c75x",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/apps/app_remoteswitchcfg_server/sitara",
     ],
 };
 
@@ -134,11 +143,19 @@ const libs_freertos_dm_r5f = {
         "tsn_unibase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
         "tsn_gptp-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
         "tsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
+        "tsn_l2-freertos.am62dx.r5f.ti-arm-clang.lib",
         "lwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
         "lwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
         "lwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib",
         "ethfw.am62dx.dm-r5f.ti-arm-clang.${ConfigName}.lib",
         "yangemb-freertos.am62dx.r5f.ti-arm-clang.lib",
+    ],
+};
+
+const libs_freertos_c75 = {
+    common: [
+        "freertos.am62dx.c75x.ti-c7000.${ConfigName}.lib",
+        "drivers.am62dx.c75x.ti-c7000.${ConfigName}.lib",
     ],
 };
 
@@ -148,26 +165,16 @@ const linker_includePath_freertos = {
     ],
 };
 
-const defines_r5f = {
-    common: [
-        "SOC_AM62DX",
-        "ENET_ENABLE_PER_CPSW=1",
-        'PRINT_FORMAT_NO_WARNING',
-        'SITARA',
-        'GPTP_ENABLED=1',
-        'ETHAPP_ENABLE_IPERF_SERVER',
-    ],
-};
-
 const defines_dm_r5f = {
     common: [
+        "UB_LOGCAT=5",
         "SOC_AM62DX",
         "ENABLE_SCICLIENT_DIRECT",
         "R5F_CORE",
         "ENET_ENABLE_PER_CPSW=1",
-        'PRINT_FORMAT_NO_WARNING',
-        'SITARA',
-        'GPTP_ENABLED=1',
+        "PRINT_FORMAT_NO_WARNING",
+        "SITARA",
+        "GPTP_ENABLED=1",
         "MCU_PLUS_SDK",
         "ETHFW_PROXY_ARP_SUPPORT",
         "ETHFW_INTERCORE_ETH_SUPPORT",
@@ -177,16 +184,18 @@ const defines_dm_r5f = {
         "ETHAPP_ENABLE_IPERF_SERVER",
         "ETHFW_GPTP_SUPPORT",
         "ENABLE_MAC_ONLY_PORTS",
+        "AVTP_ENABLED=1",
+        "AVTP_LISTENER_MODE",
+        "NO_GETOPT_LONG=1",
+        "AVTP_HAVE_NO_SIGNAL=1",
+        "AVTP_DIRECT_MODE=1",
+        "AUTOAMP_APP_ENABLED=1",
     ],
 };
 
-const cflags_r5f = {
+const defines_c75 = {
     common: [
-        "--include tsn_buildconf/sitara_buildconf.h",
-    ],
-    release: [
-        "-Oz",
-        "-flto",
+        "SOC_AM62DX",
     ],
 };
 
@@ -200,30 +209,11 @@ const cflags_dm_r5f = {
     ],
 };
 
-const lflags_r5f = {
-    common: [
-        "--zero_init=on",
-        "--use_memset=fast",
-        "--use_memcpy=fast"
-    ],
-};
-
 const lflags_dm_r5f = {
     common: [
         "--zero_init=on",
         "--use_memset=fast",
         "--use_memcpy=fast"
-    ],
-};
-
-const loptflags_r5f = {
-    release: [
-        "-mcpu=cortex-r5",
-        "-mfloat-abi=hard",
-        "-mfpu=vfpv3-d16",
-        "-mthumb",
-        "-Oz",
-        "-flto"
     ],
 };
 
@@ -248,26 +238,26 @@ const syscfgfile = "../example.syscfg";
 
 const readmeDoxygenPageTag = "EXAMPLES_ENET_CPSW_TSN_LWIP_GPTP";
 
-const templates_freertos_r5f =
-[
-    {
-        input: ".project/templates/am62dx/freertos/main_freertos.c.xdt",
-        output: "../main.c",
-        options: {
-            entryFunction: "EthApp_initTaskFxn",
-            taskPri : "2",
-            stackSize : "16384",
-        },
-    },
-];
-
 const templates_freertos_dm_r5f =
 [
 
 ];
 
+const templates_freertos_c75 =
+[
+    {
+        input: "source/networking/enet/core/sysconfig/.project/templates/freertos/main_freertos.c.xdt",
+        output: "../main.c",
+        options: {
+            entryFunction: "RemoteApp_mainTask",
+            stackSize: 64*1024,
+        },
+    }
+];
+
 const buildOptionCombos = [
     { device: device, cpu: "r5fss0-0", cgt: "ti-arm-clang", board: "am62dx-evm", os: "freertos"},
+    { device: device, cpu: "c75ss0-0", cgt: "ti-c7000",     board: "am62dx-evm", os: "freertos"},
 ];
 
 function getComponentProperty() {
@@ -275,10 +265,10 @@ function getComponentProperty() {
 
     property.dirPath = path.resolve(__dirname, "..");
     property.type = "executable";
-    property.name = "ethfw_server";
+    property.name = "ethfw_server_audio_sink";
     property.isInternal = false;
-    property.isLinuxInSystem = true;
-    property.isLinuxFwGen = true;
+    property.isLinuxInSystem = false;
+    property.isLinuxFwGen = false;
     property.ipcVringRTOS = true;
     property.buildOptionCombos = buildOptionCombos;
 
@@ -288,36 +278,21 @@ function getComponentProperty() {
 function getComponentBuildProperty(buildOption) {
     let build_property = {};
 
-    build_property.files = files;
-    build_property.filedirs = filedirs;
+    if(buildOption.cpu.match(/r5f*/))
+    {
+        build_property.files = files;
+        build_property.filedirs = filedirs;
+    }
+    else if(buildOption.cpu.match(/c75*/))
+    {
+        build_property.files = remote_files;
+        build_property.filedirs = remote_filedirs;
+    }
+
     build_property.lnkfiles = lnkfiles;
     build_property.syscfgfile = syscfgfile;
     build_property.projecspecFileAction = "link";
     build_property.readmeDoxygenPageTag = readmeDoxygenPageTag;
-    if(buildOption.cpu.match(/r5f*/)) {
-        if(buildOption.os.match(/freertos*/) )
-        {
-            const _ = require('lodash');
-            let libdirs_freertos_cpy = _.cloneDeep(libdirs_freertos);
-            /* Logic to remove generated/ from libdirs_freertos, it generates warning for ccs build */
-            if (buildOption.isProjectSpecBuild === true)
-            {
-                var delIndex = libdirs_freertos_cpy.common.indexOf('generated');
-                if (delIndex !== -1) {
-                    libdirs_freertos_cpy.common.splice(delIndex, 1);
-                }
-            }
-            build_property.includes = includes_freertos_r5f;
-            build_property.libdirs = libdirs_freertos_cpy;
-            build_property.libs = libs_freertos_r5f;
-            build_property.templates = templates_freertos_r5f;
-            build_property.defines = defines_r5f;
-            build_property.cflags = cflags_r5f;
-            build_property.lflags = lflags_r5f;
-            build_property.projectspecLnkPath = linker_includePath_freertos;
-            build_property.loptflags = loptflags_r5f;
-        }
-    }
 
     if(buildOption.cpu.match(/r5fss0-0/)) {
         if(buildOption.os.match(/freertos*/) )
@@ -342,6 +317,14 @@ function getComponentBuildProperty(buildOption) {
             build_property.projectspecLnkPath = linker_includePath_freertos;
             build_property.loptflags = loptflags_dm_r5f;
         }
+    }
+    if (buildOption.cpu.match(/c75*/))
+    {
+        build_property.defines = defines_c75;
+        build_property.includes = includes_freertos_c75;
+        build_property.libdirs = libdirs_freertos;
+        build_property.libs = libs_freertos_c75;
+        build_property.templates = templates_freertos_c75;
     }
 
     return build_property;

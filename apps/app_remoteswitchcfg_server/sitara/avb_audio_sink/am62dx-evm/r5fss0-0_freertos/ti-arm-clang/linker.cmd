@@ -65,6 +65,12 @@ SECTIONS
 
     /* this is used only when IPC RPMessage is enabled, else this is not used */
     .bss.ipc_vring_mem   (NOLOAD) : {} > DDR_IPC_VRING_RTOS
+    ipc_data_buffer (NOINIT)      : {} palign(128) > DDR
+
+    GROUP {
+        /* This is the resource table used by linux to know where the IPC "VRINGs" are located */
+        .resource_table: {} palign(1024)
+    } > DDR_IPC_RESOURCE_TABLE_LINUX
 
     .text                   : {} palign(8)      > DDR
     .const                  : {} palign(8)      > DDR
@@ -185,12 +191,13 @@ MEMORY
     /* DDR for DM R5F code/data [ size 27MiB + 416 KB ] */
     DDR                         : ORIGIN = 0x9CAA0000 LENGTH = 0x1B68000
 
-    DDR_IPC_VRING_RTOS          : ORIGIN = 0x9B000000 LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
+    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9B000000 , LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
+    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0x9C000000 , LENGTH = 0x400     /* For resource table */
     /* This section is used by the SBL to temporarily load the appimage for authentication */
-    APPIMAGE  : ORIGIN = 0x84000000 , LENGTH = 0x1900000
+    APPIMAGE                    : ORIGIN = 0x84000000 , LENGTH = 0x1900000
 
     /* Inter-core ethernet shared desc queues. MUST be non-cached or cache-coherent [ size 2 MB ] */
-    INTERCORE_ETH_DESC_MEM            : ORIGIN = 0xA4000000 , LENGTH = 0x00200000
+    INTERCORE_ETH_DESC_MEM      : ORIGIN = 0xA4000000 , LENGTH = 0x00200000
     /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 14 MB ] */
-    INTERCORE_ETH_DATA_MEM            : ORIGIN = 0xA4200000 , LENGTH = 0x01E00000
+    INTERCORE_ETH_DATA_MEM      : ORIGIN = 0xA4200000 , LENGTH = 0x01E00000
 }

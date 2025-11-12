@@ -2,7 +2,7 @@
 # Auto generated makefile
 #
 
-export MCU_PLUS_SDK_PATH?=$(abspath ../../../../../../../../..)
+export MCU_PLUS_SDK_PATH?=$(abspath ../../../../../../../../../..)
 include $(MCU_PLUS_SDK_PATH)/imports.mak
 include $(MCU_PLUS_SDK_PATH)/devconfig/devconfig.mak
 
@@ -21,26 +21,31 @@ endif
 PROFILE?=release
 ConfigName:=$(PROFILE)
 
-OUTNAME:=ethfw_client.$(PROFILE).out
+OUTNAME:=ethfw_server_audio_source.$(PROFILE).out
 
 BOOTIMAGE_PATH=$(abspath .)
-BOOTIMAGE_NAME:=ethfw_client.$(PROFILE).appimage
-BOOTIMAGE_NAME_XIP:=ethfw_client.$(PROFILE).appimage_xip
-BOOTIMAGE_NAME_SIGNED:=ethfw_client.$(PROFILE).appimage.signed
-BOOTIMAGE_RPRC_NAME:=ethfw_client.$(PROFILE).rprc
-BOOTIMAGE_RPRC_NAME_XIP:=ethfw_client.$(PROFILE).rprc_xip
-BOOTIMAGE_RPRC_NAME_TMP:=ethfw_client.$(PROFILE).rprc_tmp
-BOOTIMAGE_NAME_HS:=ethfw_client.$(PROFILE).appimage.hs
-BOOTIMAGE_NAME_HS_FS:=ethfw_client.$(PROFILE).appimage.hs_fs
+BOOTIMAGE_NAME:=ethfw_server_audio_source.$(PROFILE).appimage
+BOOTIMAGE_NAME_XIP:=ethfw_server_audio_source.$(PROFILE).appimage_xip
+BOOTIMAGE_NAME_SIGNED:=ethfw_server_audio_source.$(PROFILE).appimage.signed
+BOOTIMAGE_RPRC_NAME:=ethfw_server_audio_source.$(PROFILE).rprc
+BOOTIMAGE_RPRC_NAME_XIP:=ethfw_server_audio_source.$(PROFILE).rprc_xip
+BOOTIMAGE_RPRC_NAME_TMP:=ethfw_server_audio_source.$(PROFILE).rprc_tmp
+BOOTIMAGE_NAME_HS:=ethfw_server_audio_source.$(PROFILE).appimage.hs
+BOOTIMAGE_NAME_HS_FS:=ethfw_server_audio_source.$(PROFILE).appimage.hs_fs
 TARGETS := $(BOOTIMAGE_NAME)
 ifeq ($(DEVICE_TYPE), HS)
    TARGETS += $(BOOTIMAGE_NAME_HS)
 endif
 
 FILES_common := \
-	main_client.c \
-	virtnetif_lwipif.c \
+	sbl_ospi_stage2.c \
+	sbl_emmc_stage2.c \
+	sbl_stage2_common.c \
+	main_server.c \
 	main.c \
+	app_cpswconfighandler.c \
+	ethfw_avtp.c \
+	shm_cirbuf.c \
 	ti_drivers_config.c \
 	ti_drivers_open_close.c \
 	ti_board_config.c \
@@ -58,6 +63,8 @@ FILES_common := \
 FILES_PATH_common = \
 	.. \
 	../../../.. \
+	../../../../.. \
+	../../../../../../../../../../examples/drivers/boot/common/soc/am62dx \
 	generated \
 
 INCLUDES_common := \
@@ -68,6 +75,7 @@ INCLUDES_common := \
 	-I${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/am62dx/r5f \
 	-I${MCU_PLUS_SDK_PATH}/source/drivers \
 	-I${MCU_PLUS_SDK_PATH}/source/drivers/udma \
+	-I${MCU_PLUS_SDK_PATH}/source/drivers/hw_include \
 	-I${MCU_PLUS_SDK_PATH}/source/board/ethphy/port \
 	-I${MCU_PLUS_SDK_PATH}/source/board/ethphy/enet/rtos_drivers/include \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet \
@@ -79,8 +87,10 @@ INCLUDES_common := \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/soc/k3/am62dx \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/mdio/V4 \
-	-I${MCU_PLUS_SDK_PATH}/examples/networking/tsn \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc/tsn_l2 \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_unibase \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp/tilld \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_combase/tilld/sitara \
@@ -95,18 +105,34 @@ INCLUDES_common := \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am62dx \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include \
 	-Igenerated \
 
 DEFINES_common := \
+	-DUB_LOGCAT=5 \
+	-DSOC_AM62DX \
+	-DENABLE_SCICLIENT_DIRECT \
+	-DR5F_CORE \
 	-DENET_ENABLE_PER_CPSW=1 \
 	-DPRINT_FORMAT_NO_WARNING \
 	-DSITARA \
 	-DGPTP_ENABLED=1 \
-	-DETHAPP_ENABLE_IPERF_SERVER \
 	-DMCU_PLUS_SDK \
-	-DSOC_AM62DX \
-	-DCPU_mcu2_1 \
+	-DETHFW_PROXY_ARP_SUPPORT \
+	-DETHFW_INTERCORE_ETH_SUPPORT \
+	-DETHAPP_ENABLE_INTERCORE_ETH \
+	-DENABLE_ETHFW_PROXYARP \
+	-DCPU_mcu2_0 \
+	-DETHAPP_ENABLE_IPERF_SERVER \
+	-DETHFW_GPTP_SUPPORT \
 	-DENABLE_MAC_ONLY_PORTS \
+	-DAVTP_ENABLED=1 \
+	-DAVTP_TALKER_MODE \
+	-DNO_GETOPT_LONG=1 \
+	-DAVTP_HAVE_NO_SIGNAL=1 \
+	-DAVTP_DIRECT_MODE=1 \
+	-DAUTOAMP_APP_ENABLED=1 \
 
 CFLAGS_common := \
 	-mcpu=cortex-r5 \
@@ -147,22 +173,42 @@ LIBS_PATH_common = \
 	-Wl,-igenerated \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/kernel/freertos/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/drivers/lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/sciserver/lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/rm_pm_hal/lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/sciclient_direct/lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/self_reset/lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/dm_stub/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/board/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/enet/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/tsn/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/ethfw/lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/license_lib \
 	-Wl,-i${CG_TOOL_ROOT}/lib \
 
 LIBS_common = \
+	-lrm_pm_hal.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-lsciclient_direct.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-lself_reset.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-lsciserver.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-lfreertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
-	-ldrivers.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ldrivers.am62dx.dm-r5f.ti-arm-clang.${ConfigName}.lib \
 	-lboard.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ldm_stub.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-lenet-cpsw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-llibc.a \
+	-llibsysbm.a \
+	-ltsn_combase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ltsn_unibase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ltsn_gptp-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ltsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ltsn_l2-freertos.am62dx.r5f.ti-arm-clang.lib \
 	-llwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
-	-lethfw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-lethfw.am62dx.dm-r5f.ti-arm-clang.${ConfigName}.lib \
+	-lyangemb-freertos.am62dx.r5f.ti-arm-clang.lib \
 	-llibc.a \
 	-llibsysbm.a \
 
@@ -184,27 +230,51 @@ LNKOPTFLAGS_release = \
 	       -flto \
 
 LIBS_NAME = \
+	rm_pm_hal.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	sciclient_direct.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	self_reset.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	sciserver.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
-	drivers.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	drivers.am62dx.dm-r5f.ti-arm-clang.${ConfigName}.lib \
 	board.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	dm_stub.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	enet-cpsw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	libc.a \
+	libsysbm.a \
+	tsn_combase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	tsn_unibase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	tsn_gptp-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	tsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	tsn_l2-freertos.am62dx.r5f.ti-arm-clang.lib \
 	lwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
-	ethfw.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	ethfw.am62dx.dm-r5f.ti-arm-clang.${ConfigName}.lib \
+	yangemb-freertos.am62dx.r5f.ti-arm-clang.lib \
 	libc.a \
 	libsysbm.a \
+
+LIBS_PREBUILD_NAME = \
 
 LIBS_PATH_NAME = \
 	generated \
 	${MCU_PLUS_SDK_PATH}/source/kernel/freertos/lib \
 	${MCU_PLUS_SDK_PATH}/source/drivers/lib \
+	${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/sciserver/lib \
+	${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/rm_pm_hal/lib \
+	${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/sciclient_direct/lib \
+	${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/self_reset/lib \
+	${MCU_PLUS_SDK_PATH}/source/drivers/device_manager/dm_stub/lib \
 	${MCU_PLUS_SDK_PATH}/source/board/lib \
 	${MCU_PLUS_SDK_PATH}/source/networking/enet/lib \
 	${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib \
 	${MCU_PLUS_SDK_PATH}/source/networking/tsn/lib \
 	${MCU_PLUS_SDK_PATH}/source/networking/ethfw/lib \
+	${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_lib \
+	${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/license_lib \
 	${CG_TOOL_ROOT}/lib \
+
+LIBS_PREBUILD_PATH_NAME = \
 
 FILES := $(FILES_common) $(FILES_$(PROFILE))
 ASMFILES := $(ASMFILES_common) $(ASMFILES_$(PROFILE))
@@ -213,7 +283,9 @@ CFLAGS := $(CFLAGS_common) $(CFLAGS_$(PROFILE))
 DEFINES := $(DEFINES_common) $(DEFINES_$(PROFILE))
 INCLUDES := $(INCLUDES_common) $(INCLUDE_$(PROFILE))
 LIBS := $(LIBS_common) $(LIBS_$(PROFILE))
+LIBS_PREBUILD := $(LIBS_PREBUILD_common) $(LIBS_PREBUILD_$(PROFILE))
 LIBS_PATH := $(LIBS_PATH_common) $(LIBS_PATH_$(PROFILE))
+LIBS_PREBUILD_PATH := $(LIBS_PREBUILD_PATH_common) $(LIBS_PREBUILD_PATH_$(PROFILE))
 LFLAGS := $(LFLAGS_common) $(LFLAGS_$(PROFILE))
 LNKOPTFLAGS := $(LNKOPTFLAGS_common) $(LNKOPTFLAGS_$(PROFILE))
 LNK_FILES := $(LNK_FILES_common) $(LNK_FILES_$(PROFILE))
@@ -230,11 +302,11 @@ vpath %.lib $(LIBS_PATH_NAME)
 vpath %.a $(LIBS_PATH_NAME)
 
 $(OBJDIR)/%.obj %.obj: %.c
-	@echo  Compiling: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $(OUTNAME): $<
+	@echo  Compiling: am62dx:r5fss0-0:freertos:ti-arm-clang $(OUTNAME): $<
 	$(CC) -c $(CFLAGS) $(INCLUDES) $(DEFINES) -MMD -o $(OBJDIR)/$@ $<
 
 $(OBJDIR)/%.obj %.obj: %.S
-	@echo  Compiling: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $(LIBNAME): $<
+	@echo  Compiling: am62dx:r5fss0-0:freertos:ti-arm-clang $(LIBNAME): $<
 	$(CC) -c $(CFLAGS) -o $(OBJDIR)/$@ $<
 
 all: $(TARGETS)
@@ -254,13 +326,13 @@ SYSCFG_GEN_FILES+=generated/ti_enet_lwipif.c generated/ti_enet_lwipif.h
 
 $(OUTNAME): syscfg $(SYSCFG_GEN_FILES) $(OBJS) $(LNK_FILES) $(LIBS_NAME)
 	@echo  .
-	@echo  Linking: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $@ ...
-	$(LNK) $(LNKOPTFLAGS) $(LFLAGS) $(LIBS_PATH) -Wl,-m=$(basename $@).map -o $@ $(addprefix $(OBJDIR), $(OBJS)) $(LIBS) $(LNK_FILES)
-	@echo  Linking: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $@ Done !!!
+	@echo  Linking: am62dx:r5fss0-0:freertos:ti-arm-clang $@ ...
+	$(LNK) $(LNKOPTFLAGS) $(LFLAGS) $(LIBS_PREBUILD_PATH) $(LIBS_PATH) -Wl,-m=$(basename $@).map -o $@ $(addprefix $(OBJDIR), $(OBJS)) $(LIBS_PREBUILD) $(LIBS) $(LNK_FILES)
+	@echo  Linking: am62dx:r5fss0-0:freertos:ti-arm-clang $@ Done !!!
 	@echo  .
 
 clean:
-	@echo  Cleaning: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $(OUTNAME) ...
+	@echo  Cleaning: am62dx:r5fss0-0:freertos:ti-arm-clang $(OUTNAME) ...
 	$(RMDIR) $(OBJDIR)
 	$(RM) $(OUTNAME)
 	$(RM) $(BOOTIMAGE_NAME)
@@ -273,7 +345,7 @@ clean:
 	$(RMDIR) generated/
 
 scrub:
-	@echo  Scrubing: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang ethfw_client ...
+	@echo  Scrubing: am62dx:r5fss0-0:freertos:ti-arm-clang ethfw_server_audio_source ...
 	$(RMDIR) obj
 ifeq ($(OS),Windows_NT)
 	$(RM) \*.out
@@ -304,10 +376,10 @@ $(SYSCFG_GEN_FILES): syscfg
 
 syscfg: ../example.syscfg
 	@echo Generating SysConfig files ...
-	$(SYSCFG_NODE) $(SYSCFG_CLI_PATH)/dist/cli.js --product $(SYSCFG_SDKPRODUCT) --device AM62Dx --context mcu-r5fss0-0 --part AM62D24-G --package ANF --output generated/ ../example.syscfg
+	$(SYSCFG_NODE) $(SYSCFG_CLI_PATH)/dist/cli.js --product $(SYSCFG_SDKPRODUCT) --device AM62Dx --context r5fss0-0 --part AM62D24-G --package ANF --output generated/ ../example.syscfg
 
 syscfg-gui:
-	$(SYSCFG_NWJS) $(SYSCFG_PATH) --product $(SYSCFG_SDKPRODUCT) --device AM62Dx --context mcu-r5fss0-0 --part AM62D24-G --package ANF --output generated/  ../example.syscfg
+	$(SYSCFG_NWJS) $(SYSCFG_PATH) --product $(SYSCFG_SDKPRODUCT) --device AM62Dx --context r5fss0-0 --part AM62D24-G --package ANF --output generated/  ../example.syscfg
 
 #
 # Generation of boot image which can be loaded by Secondary Boot Loader (SBL)
@@ -346,13 +418,13 @@ else
 endif
 
 MULTI_CORE_IMAGE_PARAMS = \
-	$(BOOTIMAGE_RPRC_NAME)@$(BOOTIMAGE_CORE_ID_mcu-r5fss0-0) \
+	$(BOOTIMAGE_RPRC_NAME)@$(BOOTIMAGE_CORE_ID_r5fss0-0) \
 
 MULTI_CORE_IMAGE_PARAMS_XIP = \
-	$(BOOTIMAGE_RPRC_NAME_XIP)@$(BOOTIMAGE_CORE_ID_mcu-r5fss0-0) \
+	$(BOOTIMAGE_RPRC_NAME_XIP)@$(BOOTIMAGE_CORE_ID_r5fss0-0) \
 
 $(BOOTIMAGE_NAME): $(OUTNAME)
-	@echo  Boot image: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ ...
+	@echo  Boot image: am62dx:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ ...
 ifneq ($(OS),Windows_NT)
 	$(CHMOD) a+x $(XIPGEN_CMD)
 endif
@@ -369,9 +441,9 @@ endif
 	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 0  --loadaddr 84000000 --key $(APP_SIGNING_KEY) --output $(BOOTIMAGE_NAME_HS_FS) --keyversion $(VERSION)
 	$(RM) $(BOOTIMAGE_RPRC_NAME_TMP)
 	$(RM) $(BOOTIMAGE_TEMP_OUT_FILE)
-	@echo  Boot image: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ Done !!!
+	@echo  Boot image: am62dx:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ Done !!!
 	@echo  .
-	@echo  Boot image: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS_FS) Done !!!
+	@echo  Boot image: am62dx:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS_FS) Done !!!
 	@echo  .
 
 $(BOOTIMAGE_NAME_HS): $(BOOTIMAGE_NAME)
@@ -391,7 +463,7 @@ else
 	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 0  --loadaddr 84000000 --key $(APP_SIGNING_KEY) --enc y --enckey $(APP_ENCRYPTION_KEY) --output $(BOOTIMAGE_NAME_HS) --keyversion $(VERSION)
 	$(RM) $(BOOTIMAGE_NAME)-enc
 endif
-	@echo  Boot image: am62dx:mcu-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS) Done !!!
+	@echo  Boot image: am62dx:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS) Done !!!
 	@echo  .
 endif
 -include $(addprefix $(OBJDIR)/, $(DEPS))

@@ -206,7 +206,6 @@ mpu_armv713.size       = 25;
 mpu_armv713.attributes = "NonCached";
 
 enet_cpsw1.$name                                   = "CONFIG_ENET_CPSW0";
-enet_cpsw1.IsEthFw_macOnlyEn                       = true;
 enet_cpsw1.macAddrConfig                           = "Manual Entry";
 enet_cpsw1.macAddrList                             = "70:ff:76:1d:ec:f2,70:ff:76:1d:ec:e3,70:ff:76:1d:ec:e4,70:ff:76:1d:ec:e6,70:ff:76:1d:ec:e7";
 enet_cpsw1.LargePoolPktCount                       = 64;

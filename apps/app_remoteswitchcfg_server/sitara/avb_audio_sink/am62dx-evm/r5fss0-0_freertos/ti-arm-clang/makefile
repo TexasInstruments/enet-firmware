@@ -2,7 +2,7 @@
 # Auto generated makefile
 #
 
-export MCU_PLUS_SDK_PATH?=$(abspath ../../../../../../../../..)
+export MCU_PLUS_SDK_PATH?=$(abspath ../../../../../../../../../..)
 include $(MCU_PLUS_SDK_PATH)/imports.mak
 include $(MCU_PLUS_SDK_PATH)/devconfig/devconfig.mak
 
@@ -21,17 +21,17 @@ endif
 PROFILE?=release
 ConfigName:=$(PROFILE)
 
-OUTNAME:=ethfw_server.$(PROFILE).out
+OUTNAME:=ethfw_server_audio_sink.$(PROFILE).out
 
 BOOTIMAGE_PATH=$(abspath .)
-BOOTIMAGE_NAME:=ethfw_server.$(PROFILE).appimage
-BOOTIMAGE_NAME_XIP:=ethfw_server.$(PROFILE).appimage_xip
-BOOTIMAGE_NAME_SIGNED:=ethfw_server.$(PROFILE).appimage.signed
-BOOTIMAGE_RPRC_NAME:=ethfw_server.$(PROFILE).rprc
-BOOTIMAGE_RPRC_NAME_XIP:=ethfw_server.$(PROFILE).rprc_xip
-BOOTIMAGE_RPRC_NAME_TMP:=ethfw_server.$(PROFILE).rprc_tmp
-BOOTIMAGE_NAME_HS:=ethfw_server.$(PROFILE).appimage.hs
-BOOTIMAGE_NAME_HS_FS:=ethfw_server.$(PROFILE).appimage.hs_fs
+BOOTIMAGE_NAME:=ethfw_server_audio_sink.$(PROFILE).appimage
+BOOTIMAGE_NAME_XIP:=ethfw_server_audio_sink.$(PROFILE).appimage_xip
+BOOTIMAGE_NAME_SIGNED:=ethfw_server_audio_sink.$(PROFILE).appimage.signed
+BOOTIMAGE_RPRC_NAME:=ethfw_server_audio_sink.$(PROFILE).rprc
+BOOTIMAGE_RPRC_NAME_XIP:=ethfw_server_audio_sink.$(PROFILE).rprc_xip
+BOOTIMAGE_RPRC_NAME_TMP:=ethfw_server_audio_sink.$(PROFILE).rprc_tmp
+BOOTIMAGE_NAME_HS:=ethfw_server_audio_sink.$(PROFILE).appimage.hs
+BOOTIMAGE_NAME_HS_FS:=ethfw_server_audio_sink.$(PROFILE).appimage.hs_fs
 TARGETS := $(BOOTIMAGE_NAME)
 ifeq ($(DEVICE_TYPE), HS)
    TARGETS += $(BOOTIMAGE_NAME_HS)
@@ -44,6 +44,8 @@ FILES_common := \
 	main_server.c \
 	main.c \
 	app_cpswconfighandler.c \
+	ethfw_avtp.c \
+	shm_cirbuf.c \
 	ti_drivers_config.c \
 	ti_drivers_open_close.c \
 	ti_board_config.c \
@@ -60,9 +62,9 @@ FILES_common := \
 
 FILES_PATH_common = \
 	.. \
-	../../.. \
 	../../../.. \
-	../../../../../../../../../examples/drivers/boot/common/soc/am62dx/ \
+	../../../../.. \
+	../../../../../../../../../../examples/drivers/boot/common/soc/am62dx \
 	generated \
 
 INCLUDES_common := \
@@ -85,8 +87,10 @@ INCLUDES_common := \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/soc/k3/am62dx \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/mdio/V4 \
-	-I${MCU_PLUS_SDK_PATH}/examples/networking/tsn \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc/tsn_l2 \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_unibase \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp/tilld \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_combase/tilld/sitara \
@@ -106,6 +110,7 @@ INCLUDES_common := \
 	-Igenerated \
 
 DEFINES_common := \
+	-DUB_LOGCAT=5 \
 	-DSOC_AM62DX \
 	-DENABLE_SCICLIENT_DIRECT \
 	-DR5F_CORE \
@@ -122,6 +127,12 @@ DEFINES_common := \
 	-DETHAPP_ENABLE_IPERF_SERVER \
 	-DETHFW_GPTP_SUPPORT \
 	-DENABLE_MAC_ONLY_PORTS \
+	-DAVTP_ENABLED=1 \
+	-DAVTP_LISTENER_MODE \
+	-DNO_GETOPT_LONG=1 \
+	-DAVTP_HAVE_NO_SIGNAL=1 \
+	-DAVTP_DIRECT_MODE=1 \
+	-DAUTOAMP_APP_ENABLED=1 \
 
 CFLAGS_common := \
 	-mcpu=cortex-r5 \
@@ -192,6 +203,7 @@ LIBS_common = \
 	-ltsn_unibase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-ltsn_gptp-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-ltsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ltsn_l2-freertos.am62dx.r5f.ti-arm-clang.lib \
 	-llwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
@@ -233,6 +245,7 @@ LIBS_NAME = \
 	tsn_unibase-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	tsn_gptp-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	tsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
+	tsn_l2-freertos.am62dx.r5f.ti-arm-clang.lib \
 	lwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-contrib-freertos.am62dx.r5f.ti-arm-clang.${ConfigName}.lib \
@@ -315,8 +328,6 @@ $(OUTNAME): syscfg $(SYSCFG_GEN_FILES) $(OBJS) $(LNK_FILES) $(LIBS_NAME)
 	@echo  .
 	@echo  Linking: am62dx:r5fss0-0:freertos:ti-arm-clang $@ ...
 	$(LNK) $(LNKOPTFLAGS) $(LFLAGS) $(LIBS_PREBUILD_PATH) $(LIBS_PATH) -Wl,-m=$(basename $@).map -o $@ $(addprefix $(OBJDIR), $(OBJS)) $(LIBS_PREBUILD) $(LIBS) $(LNK_FILES)
-	$(RM) ethfw_server.wkup-r5f0_0.${ConfigName}.strip.out
-	$(STRIP) -p $@ -o=ethfw_server.wkup-r5f0_0.${ConfigName}.strip.out
 	@echo  Linking: am62dx:r5fss0-0:freertos:ti-arm-clang $@ Done !!!
 	@echo  .
 
@@ -324,7 +335,6 @@ clean:
 	@echo  Cleaning: am62dx:r5fss0-0:freertos:ti-arm-clang $(OUTNAME) ...
 	$(RMDIR) $(OBJDIR)
 	$(RM) $(OUTNAME)
-	$(RM) ethfw_server.wkup-r5f0_0.${ConfigName}.strip.out
 	$(RM) $(BOOTIMAGE_NAME)
 	$(RM) $(BOOTIMAGE_NAME_XIP)
 	$(RM) $(BOOTIMAGE_NAME_SIGNED)
@@ -335,7 +345,7 @@ clean:
 	$(RMDIR) generated/
 
 scrub:
-	@echo  Scrubing: am62dx:r5fss0-0:freertos:ti-arm-clang ethfw_server ...
+	@echo  Scrubing: am62dx:r5fss0-0:freertos:ti-arm-clang ethfw_server_audio_sink ...
 	$(RMDIR) obj
 ifeq ($(OS),Windows_NT)
 	$(RM) \*.out

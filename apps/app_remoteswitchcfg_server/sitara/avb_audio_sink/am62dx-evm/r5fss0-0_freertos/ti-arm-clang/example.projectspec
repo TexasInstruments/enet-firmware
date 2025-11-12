@@ -10,8 +10,8 @@
     </applicability>
 
     <project
-        title="Ethfw Server"
-        name = "ethfw_server_am62dx-evm_r5fss0-0_freertos_ti-arm-clang"
+        title="Ethfw Server Audio Sink"
+        name = "ethfw_server_audio_sink_am62dx-evm_r5fss0-0_freertos_ti-arm-clang"
         products="sysconfig;com.ti.MCU_PLUS_SDK_AMXXX"
         configurations="
             Debug,
@@ -48,8 +48,10 @@
             -I${MCU_PLUS_SDK_PATH}/source/networking/enet/soc/k3/am62dx
             -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include
             -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/mdio/V4
-            -I${MCU_PLUS_SDK_PATH}/examples/networking/tsn
             -I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack
+            -I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc
+            -I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_inc/tsn_l2
+            -I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_unibase
             -I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp
             -I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_gptp/tilld
             -I${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/tsn_combase/tilld/sitara
@@ -76,6 +78,7 @@
             -Wno-gnu-variable-sized-type-not-at-end
             -Wno-unused-function
             --include tsn_buildconf/sitara_buildconf.h
+            -DUB_LOGCAT=5
             -DSOC_AM62DX
             -DENABLE_SCICLIENT_DIRECT
             -DR5F_CORE
@@ -92,6 +95,12 @@
             -DETHAPP_ENABLE_IPERF_SERVER
             -DETHFW_GPTP_SUPPORT
             -DENABLE_MAC_ONLY_PORTS
+            -DAVTP_ENABLED=1
+            -DAVTP_LISTENER_MODE
+            -DNO_GETOPT_LONG=1
+            -DAVTP_HAVE_NO_SIGNAL=1
+            -DAVTP_DIRECT_MODE=1
+            -DAUTOAMP_APP_ENABLED=1
         "
         linkerBuildOptions="
             -i${MCU_PLUS_SDK_PATH}/source/kernel/freertos/lib
@@ -110,7 +119,7 @@
             -i${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/license_lib
             -i${CG_TOOL_ROOT}/lib
             -i${PROJECT_BUILD_DIR}/syscfg
-            -m=ethfw_server.${ConfigName}.map
+            -m=ethfw_server_audio_sink.${ConfigName}.map
             --diag_suppress=10063
             --priority
             --ram_model
@@ -127,7 +136,7 @@
             --context r5fss0-0 --part AM62D24-G --package ANF
         "
 
-        description="A Ethfw Server FREERTOS project">
+        description="A Ethfw Server Audio Sink FREERTOS project">
 
         <configuration name="Debug"
             compilerBuildOptions="
@@ -149,6 +158,7 @@
                 -ltsn_unibase-freertos.am62dx.r5f.ti-arm-clang.debug.lib
                 -ltsn_gptp-freertos.am62dx.r5f.ti-arm-clang.debug.lib
                 -ltsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.debug.lib
+                -ltsn_l2-freertos.am62dx.r5f.ti-arm-clang.lib
                 -llwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.debug.lib
                 -llwip-freertos.am62dx.r5f.ti-arm-clang.debug.lib
                 -llwip-contrib-freertos.am62dx.r5f.ti-arm-clang.debug.lib
@@ -180,6 +190,7 @@
                 -ltsn_unibase-freertos.am62dx.r5f.ti-arm-clang.release.lib
                 -ltsn_gptp-freertos.am62dx.r5f.ti-arm-clang.release.lib
                 -ltsn_uniconf-freertos.am62dx.r5f.ti-arm-clang.release.lib
+                -ltsn_l2-freertos.am62dx.r5f.ti-arm-clang.lib
                 -llwipif-cpsw-freertos.am62dx.r5f.ti-arm-clang.release.lib
                 -llwip-freertos.am62dx.r5f.ti-arm-clang.release.lib
                 -llwip-contrib-freertos.am62dx.r5f.ti-arm-clang.release.lib
@@ -190,17 +201,21 @@
             "
         ></configuration>
         <pathVariable name="MCU_PLUS_SDK_PATH" path="${COM_TI_MCU_PLUS_SDK_AMXXX_INSTALL_DIR}" scope="project" />
-        <file path="../../../../../../../../../examples/drivers/boot/common/soc/am62dx//sbl_ospi_stage2.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        <file path="../../../../../../../../../../examples/drivers/boot/common/soc/am62dx/sbl_ospi_stage2.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
-        <file path="../../../../../../../../../examples/drivers/boot/common/soc/am62dx//sbl_emmc_stage2.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        <file path="../../../../../../../../../../examples/drivers/boot/common/soc/am62dx/sbl_emmc_stage2.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
-        <file path="../../../../../../../../../examples/drivers/boot/common/soc/am62dx//sbl_stage2_common.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        <file path="../../../../../../../../../../examples/drivers/boot/common/soc/am62dx/sbl_stage2_common.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
         <file path="../main_server.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
-        <file path="../../../../main.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        <file path="../../../../../main.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
-        <file path="../../../app_cpswconfighandler.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        <file path="../../../../app_cpswconfighandler.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        </file>
+        <file path="../../../../ethfw_avtp.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        </file>
+        <file path="../../../../shm_cirbuf.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
         <file path="linker.cmd" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>

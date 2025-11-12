@@ -58,6 +58,11 @@ SECTIONS
 
     /* this is used only when IPC RPMessage is enabled, else this is not used */
     .bss.ipc_vring_mem   (NOLOAD) : {} > DDR_IPC_VRING_RTOS
+    ipc_data_buffer (NOINIT)      : {} palign(128) > DDR
+    GROUP {
+        /* This is the resource table used by linux to know where the IPC "VRINGs" are located */
+        .resource_table: {} palign(1024)
+    } > DDR_IPC_RESOURCE_TABLE_LINUX
 
     /* This is rest of initialized data. This can be placed in DDR if DDR is available and needed */
     GROUP {
@@ -116,7 +121,8 @@ MEMORY
     R5F_TCMB0 : ORIGIN = 0x41010000 , LENGTH = 0x00004000
 
     MSRAM     : ORIGIN = 0x79100000 , LENGTH = 0x80000
-    DDR       : ORIGIN = 0x9C000000 , LENGTH = 0xE00000
+    DDR       : ORIGIN = 0x9C100000 , LENGTH = 0xE00000
 
-    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9B000000, LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
+    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9B000000 , LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
+    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0x9C000000 , LENGTH = 0x400       /* For resource table   */
 }
