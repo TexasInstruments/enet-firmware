@@ -86,7 +86,7 @@ mpu_armv78.baseAddr     = 0x9B000000;
 mpu_armv78.size         = 24;
 
 enet_cpsw1.$name                        = "CONFIG_ENET_CPSW0";
-enet_cpsw1.IsEthFw_macOnlyEn            = true;
+enet_cpsw1.IsEthFw                      = true;
 enet_cpsw1.PktInfoOnlyEnable            = true;
 enet_cpsw1.LargePoolPktCount            = 64;
 enet_cpsw1.macOnlyEn_macPort2           = true;
