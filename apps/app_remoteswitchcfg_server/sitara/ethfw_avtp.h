@@ -59,7 +59,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
 /*!
  * \file ethfw_avtp.h
  *
@@ -67,15 +66,14 @@
  *        required for Ethernet Firmware AVTP support.
  */
 
-#ifndef ETHFW_AVTP_PRIV_H_
-#define ETHFW_AVTP_PRIV_H_
+#ifndef ETHFW_AVTP_H_
+#define ETHFW_AVTP_H_
 
 /* ========================================================================== */
 /*                             Include Files                                  */
 /* ========================================================================== */
 
 #include <stdint.h>
-// ------------ shm_cirbuh.h -----------------
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -89,9 +87,9 @@ extern "C" {
 /*                           Macros & Typedefs                                */
 /* ========================================================================== */
 
-#define ETHFW_TSN_AVTPD_TASK_PRIORITY                               (2)
-#define ETHFW_TSN_AUTOAMP_APP_TASK_PRIORITY                         (31)
-#define ETHFW_TSN_AUTOAMP_APP_RX_TASK_PRIORITY                      (10)
+#define ETHFW_TSN_AVTPD_TASK_PRIORITY              (2)
+#define ETHFW_TSN_AUTOAMP_APP_TASK_PRIORITY        (31)
+#define ETHFW_TSN_AUTOAMP_APP_RX_TASK_PRIORITY     (10)
 
 #if defined(SAFERTOS)
 #define TSN_TSK_STACK_SIZE                         (16U * 1024U)
@@ -143,4 +141,4 @@ int EnetApp_avtpInit();
 }
 #endif
 
-#endif /* ETHFW_AVTP_PRIV_H_ */
+#endif /* ETHFW_AVTP_H_ */

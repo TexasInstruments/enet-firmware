@@ -33,8 +33,8 @@
 /*!
  * \file  remote_main.c
  *
- * \brief This file contains the implementation of the client example entry
- *        point
+ * \brief This file contains the implementation of the C7x application
+ *        entry point
  */
 
 /* ========================================================================== */
