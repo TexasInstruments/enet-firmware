@@ -3642,7 +3642,12 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             hClient = CpswProxyServer_getClient(remoteProcId, token);
             CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            hClient->isIdle = BTRUE;
+            if (ETHREMOTECFG_SOK == status)
+            {
+                hClient->isIdle = BTRUE;
+            }
+            ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to set client as idle");
+
             resLen = sizeof(*res);
 
             ETHFWTRACE_INFO("TEARDOWN_COMPLETION | S2C | status=%d", status);
@@ -3659,7 +3664,6 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             hClient = CpswProxyServer_getClient(remoteProcId, token);
             CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
-            if (ETHREMOTECFG_SOK == status)
             {
                 status = CpswProxyServer_dumpStatsCb(hClient, remoteProcId);
             }
