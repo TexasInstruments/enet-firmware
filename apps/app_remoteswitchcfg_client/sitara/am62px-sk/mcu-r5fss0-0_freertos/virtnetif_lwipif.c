@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2024 Texas Instruments Incorporated
+ * Copyright (c) 2024-25 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -291,6 +291,9 @@ typedef struct CpswRemoteApp_VirtNetif_s
     /* Whether this netif should be set as the default netif */
     bool isDfltNetif;
 
+    /* Whether the initialization of this netif is complete or not */
+    bool isInitDone;
+
 } CpswRemoteApp_VirtNetif;
 
 typedef struct CpswRemoteApp_VirtNetifObj_s
@@ -404,14 +407,14 @@ typedef struct LwipifEnetApp_Object_s
 /* Link status on these ports will be used to determine link up on virtual switch port */
 static Enet_MacPort gRemoteAppMacPorts[] =
 {
-    ENET_MAC_PORT_3,
+    ENET_MAC_PORT_1,
 };
 
 #if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2)  && defined(ENABLE_MAC_ONLY_PORTS)
 /* Link status on these ports will be used to determine link up on virtual MAC port */
 static Enet_MacPort gRemoteApp_virtualMacPorts[] =
 {
-    ENET_MAC_PORT_4,
+    ENET_MAC_PORT_2,
 };
 #endif
 
@@ -429,14 +432,16 @@ CpswRemoteApp_VirtNetifObj gVirtNetifObj =
             .macPorts    = gRemoteAppMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteAppMacPorts),
             .isDfltNetif = BTRUE,
+            .isInitDone  = BFALSE,
         },
 #if (CPSW_REMOTE_APP_REMOTE_NETIF_MAX >= 2) && defined(ENABLE_MAC_ONLY_PORTS)
         {
             .hCpswProxy  = NULL,
-            .virtPort    = ETHREMOTECFG_MAC_PORT_4,
+            .virtPort    = ETHREMOTECFG_MAC_PORT_2,
             .macPorts    = gRemoteApp_virtualMacPorts,
             .numMacPorts = ENET_ARRAYSIZE(gRemoteApp_virtualMacPorts),
             .isDfltNetif = BFALSE,
+            .isInitDone  = BFALSE,
         },
 #endif
     },
@@ -723,6 +728,8 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
     ip4_addr_set_zero(&ipaddr);
     ip4_addr_set_zero(&netmask);
 
+    hLwipIfApp = LwipifEnetApp_getHandle();
+
     if(CpswProxy_isSwitchPort(virtNetif->virtPort))
     {
 #if ETHAPP_LWIP_USE_DHCP
@@ -776,7 +783,6 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 #else
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
 
-        hLwipIfApp = LwipifEnetApp_getHandle();
         LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_0);
         netif_set_link_callback(netif, EthApp_netifLinkChangeCb);
 
@@ -801,7 +807,6 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         netif_set_up(&netif_bridge);
 #endif
 
-
 #if ETHAPP_LWIP_USE_DHCP
         err = dhcp_start(netif_default);
         ETHFWTRACE_ERR_IF((err != ERR_OK), err, "Failed to start DHCP");
@@ -819,9 +824,8 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
 #endif /* ETHAPP_LWIP_USE_DHCP */
 
         netif_add(netif, &ipaddr, &netmask, &gw, NULL, LWIPIF_LWIP_init, tcpip_input);
+        LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_1);
 
-        hLwipIfApp = LwipifEnetApp_getHandle();
-        LWIPIF_LWIP_start(gVirtNetifObj.enetType, gVirtNetifObj.instId, netif, ETHAPP_ETHNETIF_0);
         netif_set_link_callback(netif, EthApp_netifLinkChangeCb);
 
         if (virtNetif->isDfltNetif)
@@ -847,6 +851,8 @@ static void EthApp_initNetif(CpswRemoteApp_VirtNetif *virtNetif)
         }
 #endif /* ETHAPP_LWIP_USE_DHCP */
     }
+
+    virtNetif->isInitDone = BTRUE;
 }
 
 static void EthApp_virtNetifStatusCb(struct netif *netif)
@@ -924,37 +930,34 @@ static bool LwipifEnetAppCb_isPortLinked(Enet_Handle hEnet)
 
 void LwipifEnetAppCb_getEnetLwipIfInstInfo(Enet_Type enetType, uint32_t instId, LwipifEnetAppIf_GetEnetLwipIfInstInfo *outArgs)
 {
-	CpswRemoteApp_VirtNetif *virtNetif = &gVirtNetifObj.virtNetif[0];
+    CpswRemoteApp_VirtNetif *virtNetif = NULL;
     uint32_t numTxCh;
     uint32_t numRxFlow;
-    bool csumOffloadFlg;
 
-    CpswProxy_attach(virtNetif->hCpswProxy,
-                     virtNetif->virtPort,
-                     &outArgs->hostPortRxMtu,
-                     &outArgs->txMtu[0],
-                     &numTxCh,
-                     &numRxFlow,
-                     &virtNetif->features);
+    for (uint32_t i = 0; i < ENET_ARRAYSIZE(gVirtNetifObj.virtNetif); i++)
+    {
+        virtNetif = &gVirtNetifObj.virtNetif[i];
 
+        CpswProxy_attach(virtNetif->hCpswProxy,
+                         virtNetif->virtPort,
+                         &outArgs->hostPortRxMtu,
+                         &outArgs->txMtu[0],
+                         &numTxCh,
+                         &numRxFlow,
+                         &virtNetif->features);
 
-    EnetAppUtils_assert(numTxCh != 0U);
-    EnetAppUtils_assert(numRxFlow != 0U);
+        EnetAppUtils_assert(numTxCh != 0U);
+        EnetAppUtils_assert(numRxFlow != 0U);
+
+        virtNetif->hostPortRxMtu = outArgs->hostPortRxMtu;
+        virtNetif->txMtu = outArgs->txMtu[0];
+    }
 
     outArgs->isPortLinkedFxn = &LwipifEnetAppCb_isPortLinked;
     outArgs->timerPeriodUs   = RTOS_CLIENT_ENETLWIP_PACKET_POLL_PERIOD_US;
     outArgs->pPbufInfo = gFreePbufArr;
     outArgs->pPbufInfoSize = sizeof(gFreePbufArr)/sizeof(pbufNode);
     LWIP_MEMPOOL_INIT(RX_POOL);
-
-    virtNetif->hostPortRxMtu = outArgs->hostPortRxMtu;
-    virtNetif->txMtu = outArgs->txMtu[0];
-
-    if (virtNetif->features & ETHREMOTECFG_FEATURE_TXCSUM)
-    {
-        csumOffloadFlg = true;
-        EnetAppUtils_assert(true == csumOffloadFlg);
-    }
 }
 
 void LwipifEnetAppCb_getTxHandleInfo(LwipifEnetAppIf_GetTxHandleInArgs *inArgs,
@@ -988,8 +991,11 @@ void LwipifEnetAppCb_getTxHandleInfo(LwipifEnetAppIf_GetTxHandleInArgs *inArgs,
     outArgs->numPackets = ENET_SYSCFG_TOTAL_NUM_TX_PKT;
     outArgs->disableEvent = true;
 
-    virtNetif->hTxChannel = outArgs->hTxChannel;
-    virtNetif->txChNum = txPSILId;
+    for(uint32_t i = 0; i< ENET_ARRAYSIZE(gVirtNetifObj.virtNetif); i++)
+    {
+        gVirtNetifObj.virtNetif[i].hTxChannel = outArgs->hTxChannel;
+        gVirtNetifObj.virtNetif[i].txChNum = txPSILId;
+    }
 
     /* Initialize the DMA free queue */
     EnetQueue_initQ(inArgs->pktInfoQ);
@@ -1011,6 +1017,9 @@ void LwipifEnetAppCb_getRxHandleInfo(LwipifEnetAppIf_GetRxHandleInArgs *inArgs,
                                      LwipifEnetAppIf_RxHandleInfo *outArgs)
 {
 	CpswRemoteApp_VirtNetif *virtNetif = &gVirtNetifObj.virtNetif[0];
+#if defined(ENABLE_MAC_ONLY_PORTS)
+    CpswRemoteApp_VirtNetif *virtNetifMac = &gVirtNetifObj.virtNetif[1];
+#endif
 	EnetUdma_OpenRxFlowPrms cpswRxFlowCfg;
     uint32_t flowIdx = 0U;
     uint32_t i;
@@ -1027,6 +1036,12 @@ void LwipifEnetAppCb_getRxHandleInfo(LwipifEnetAppIf_GetRxHandleInArgs *inArgs,
                           &virtNetif->rxFlowStartIdx,
                           &virtNetif->rxFlowIdx,
                           flowIdx);
+
+#if defined(ENABLE_MAC_ONLY_PORTS)
+    virtNetifMac->rxFlowStartIdx = virtNetif->rxFlowStartIdx;
+    virtNetifMac->rxFlowIdx = virtNetif->rxFlowIdx;
+#endif
+
     CpswProxy_allocMac(virtNetif->hCpswProxy,
                        virtNetif->macAddr);
 
@@ -1034,6 +1049,15 @@ void LwipifEnetAppCb_getRxHandleInfo(LwipifEnetAppIf_GetRxHandleInArgs *inArgs,
                                    virtNetif->rxFlowStartIdx,
                                    virtNetif->rxFlowIdx,
                                    virtNetif->macAddr);
+
+#if defined(ENABLE_MAC_ONLY_PORTS)
+    CpswProxy_allocMac(virtNetifMac->hCpswProxy,
+                       virtNetifMac->macAddr);
+    CpswProxy_registerDstMacRxFlow(virtNetifMac->hCpswProxy,
+                                   virtNetifMac->rxFlowStartIdx,
+                                   virtNetifMac->rxFlowIdx,
+                                   virtNetifMac->macAddr);
+#endif
 
     EnetUdma_initRxFlowParams(&cpswRxFlowCfg);
 
@@ -1062,6 +1086,9 @@ void LwipifEnetAppCb_getRxHandleInfo(LwipifEnetAppIf_GetRxHandleInArgs *inArgs,
 #endif
 
     virtNetif->hRxFlow = outArgs->hRxFlow;
+#if defined(ENABLE_MAC_ONLY_PORTS)
+    virtNetifMac->hRxFlow = outArgs->hRxFlow;
+#endif
 
     /* Initialize the DMA free queue */
     EnetQueue_initQ(inArgs->pReadyRxPktQ);
@@ -1103,12 +1130,13 @@ void LwipifEnetAppCb_getRxHandleInfo(LwipifEnetAppIf_GetRxHandleInArgs *inArgs,
 void EnetApp_getMacAddress(uint32_t enetRxDmaChId,
                            EnetApp_GetMacAddrOutArgs *outArgs)
 {
-	CpswRemoteApp_VirtNetif *virtNetif = &gVirtNetifObj.virtNetif[0];
+    CpswRemoteApp_VirtNetif *virtNetif = NULL;
+	outArgs->macAddressCnt = ENET_ARRAYSIZE(gVirtNetifObj.virtNetif);
 
-	outArgs->macAddressCnt = 1U;
     for (uint32_t i = 0; i < outArgs->macAddressCnt; i++)
     {
-        EnetUtils_copyMacAddr(outArgs->macAddr[i], &virtNetif->macAddr[i]);
+        virtNetif = &gVirtNetifObj.virtNetif[i];
+        EnetUtils_copyMacAddr(outArgs->macAddr[i], &virtNetif->macAddr[0]);
     }
 }
 
@@ -1184,49 +1212,33 @@ int32_t LwipifEnetApp_getNetifIdx(LwipifEnetApp_Handle handle, struct netif* net
 
 void LwipifEnetApp_getRxChIDs(const Enet_Type enetType, const uint32_t instId, uint32_t netifIdx, uint32_t* pRxChIdCount, uint32_t rxChIdList[LWIPIF_MAX_RX_CHANNELS_PER_PHERIPHERAL])
 {
-    EnetAppUtils_assert(netifIdx < ENET_SYSCFG_NETIF_COUNT);
+#if defined(ENABLE_MAC_ONLY_PORTS)
+    int32_t netif2ChMap[ENET_SYSCFG_NETIF_COUNT][LWIPIF_MAX_RX_CHANNELS_PER_PHERIPHERAL] = {{ENET_DMA_RX_CH0, -1,},{ENET_DMA_RX_CH0, -1,},};
+#else
+    int32_t netif2ChMap[ENET_SYSCFG_NETIF_COUNT][LWIPIF_MAX_RX_CHANNELS_PER_PHERIPHERAL] = {{ENET_DMA_RX_CH0, -1,},};
+#endif
     uint32_t chCount;
 
-    /* verifiy the user params */
-    switch (enetType)
-    {
-    case ENET_ICSSG_DUALMAC:
-    case ENET_CPSW_3G:
-    case ENET_CPSW_2G:
-    {
-        rxChIdList[RTOS_CLIENT_RX_CHANNELID_COUNT] = 0U;
-        *pRxChIdCount = RTOS_CLIENT_RX_CHANNELID_COUNT;
-        for (chCount = 0U; chCount < RTOS_CLIENT_RX_CHANNELID_COUNT; chCount++)
-        {
-            rxChIdList[chCount] = 0U;
-        }
-        break;
-    }
-    default:
-    {
-        EnetAppUtils_assert(false);
-    }
-    }
-}
-
-void LwipifEnetApp_getTxChIDs(const Enet_Type enetType, const uint32_t instId, uint32_t netifIdx, uint32_t* pTxChIdCount, uint32_t txChIdList[LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL])
-{
     EnetAppUtils_assert(netifIdx < ENET_SYSCFG_NETIF_COUNT);
-    uint32_t chCount;
+
+    for (chCount = 0U; (chCount < LWIPIF_MAX_RX_CHANNELS_PER_PHERIPHERAL) && (netif2ChMap[netifIdx][chCount] != -1); chCount++)
+    {
+        rxChIdList[chCount] = netif2ChMap[netifIdx][chCount];
+    }
 
     /* verifiy the user params */
     switch (enetType)
     {
     case ENET_ICSSG_SWITCH:
+    {
+        EnetAppUtils_assert(chCount == 2);
+        break;
+    }
     case ENET_ICSSG_DUALMAC:
     case ENET_CPSW_3G:
     case ENET_CPSW_2G:
     {
-        *pTxChIdCount = RTOS_CLIENT_TX_CHANNELID_COUNT;
-        for (chCount = 0U; chCount < RTOS_CLIENT_TX_CHANNELID_COUNT; chCount++)
-        {
-            txChIdList[chCount] = 0U;
-        }
+        EnetAppUtils_assert(chCount == 1);
         break;
     }
     default:
@@ -1234,6 +1246,45 @@ void LwipifEnetApp_getTxChIDs(const Enet_Type enetType, const uint32_t instId, u
         EnetAppUtils_assert(false);
     }
     }
+    *pRxChIdCount = chCount;
+    return;
+}
+
+void LwipifEnetApp_getTxChIDs(const Enet_Type enetType, const uint32_t instId, uint32_t netifIdx, uint32_t* pTxChIdCount, uint32_t txChIdList[LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL])
+{
+#if defined(ENABLE_MAC_ONLY_PORTS)
+    int32_t netif2ChMap[ENET_SYSCFG_NETIF_COUNT][LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL] = {{ENET_DMA_TX_CH0},{ENET_DMA_TX_CH0},};
+#else
+    int32_t netif2ChMap[ENET_SYSCFG_NETIF_COUNT][LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL] = {{ENET_DMA_TX_CH0},};
+#endif
+    uint32_t chCount;
+
+    EnetAppUtils_assert(netifIdx < ENET_SYSCFG_NETIF_COUNT);
+
+    for (chCount = 0U; (chCount < LWIPIF_MAX_TX_CHANNELS_PER_PHERIPHERAL) && (netif2ChMap[netifIdx][chCount] != -1); chCount++)
+    {
+        txChIdList[chCount] = netif2ChMap[netifIdx][chCount];
+    }
+
+    /* verify the user params */
+    switch (enetType)
+    {
+        case ENET_ICSSG_SWITCH:
+        case ENET_ICSSG_DUALMAC:
+        case ENET_CPSW_3G:
+        case ENET_CPSW_2G:
+        {
+            EnetAppUtils_assert(chCount == 1);
+            break;
+        }
+        default:
+        {
+            EnetAppUtils_assert(false);
+        }
+    }
+
+    *pTxChIdCount = chCount;
+    return;
 }
 
 
@@ -1561,15 +1612,22 @@ void LwipifEnetApp_startSchedule(LwipifEnetApp_Handle handle, struct netif *neti
 
 Lwip2Enet_RxMode_t LwipifEnetAppCb_getRxMode(Enet_Type enetType, uint32_t instId)
 {
-    const bool hasSwitchModeEnabled = true;
     Lwip2Enet_RxMode_t rxMode = Lwip2Enet_RxMode_SwitchSharedChannel;
-    if (hasSwitchModeEnabled)
+
+    for (uint32_t i=0; i< ENET_ARRAYSIZE(gVirtNetifObj.virtNetif); i++)
     {
-        rxMode = Lwip2Enet_RxMode_SwitchSharedChannel;
-    }
-    else
-    {
-        rxMode = Lwip2Enet_RxMode_MacSharedChannel;
+        if(gVirtNetifObj.virtNetif[i].isInitDone == BFALSE)
+        {
+            if(CpswProxy_isSwitchPort(gVirtNetifObj.virtNetif[i].virtPort))
+            {
+                rxMode = Lwip2Enet_RxMode_SwitchSharedChannel;
+            }
+            else
+            {
+                rxMode = Lwip2Enet_RxMode_MacSharedChannel;
+            }
+            break;
+        }
     }
     return rxMode;
 }
@@ -1662,9 +1720,10 @@ static void LwipifEnetApp_poll(void *arg)
         sys_lock_tcpip_core();
         for (uint32_t i = 0; i < CPSW_REMOTE_APP_REMOTE_NETIF_MAX; i++)
         {
-            if (&pTaskInfo->netif[i] != NULL)
+            struct netif *netif = &gVirtNetifObj.virtNetif[i].netif;
+            if (netif != NULL)
             {
-                LWIPIF_LWIP_periodic_polling(&pTaskInfo->netif[i]);
+                LWIPIF_LWIP_periodic_polling(netif);
             }
         }
         sys_unlock_tcpip_core();
@@ -1693,6 +1752,3 @@ void LwipifEnetApp_setupProxyArphandler(const Enet_Type enetType, const uint32_t
     /* For ETHFW use case, clients don't support reception for ARP packets, hence returns NULL */
     hRx->handlePktFxn = NULL;
 }
-
-
-
