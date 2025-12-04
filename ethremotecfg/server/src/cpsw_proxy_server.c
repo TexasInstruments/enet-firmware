@@ -3664,6 +3664,7 @@ static void CpswProxyServer_clientRequestHandler(EthFwIpc_RpmsgHandle hMsgHandle
             hClient = CpswProxyServer_getClient(remoteProcId, token);
             CPSWPROXY_ERR_CHECK((hClient == NULL), status, ETHREMOTECFG_EFAIL);
 
+            if (ETHREMOTECFG_SOK == status)
             {
                 status = CpswProxyServer_dumpStatsCb(hClient, remoteProcId);
             }
