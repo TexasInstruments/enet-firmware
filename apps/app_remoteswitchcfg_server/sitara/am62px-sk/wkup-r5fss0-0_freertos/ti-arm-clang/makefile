@@ -61,7 +61,7 @@ FILES_PATH_common = \
 	../../.. \
 	../../../.. \
 	../../../../.. \
-	../../../../../../../../../examples/drivers/boot/common/soc/am62px/ \
+	$(MCU_PLUS_SDK_PATH)/examples/drivers/boot/common/soc/am62px \
 	generated \
 
 INCLUDES_common := \

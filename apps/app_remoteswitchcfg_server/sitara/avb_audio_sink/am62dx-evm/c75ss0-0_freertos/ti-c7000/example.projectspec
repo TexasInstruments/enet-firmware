@@ -111,7 +111,7 @@
         </file>
         <file path="../../../../shm_cirbuf.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
-        <file path="../../../remote_main.c" openOnCreation="false" excludeFromBuild="false" action="link">
+        <file path="../../../../avb_audio_source/remote_main.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
         <file path="linker.cmd" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>

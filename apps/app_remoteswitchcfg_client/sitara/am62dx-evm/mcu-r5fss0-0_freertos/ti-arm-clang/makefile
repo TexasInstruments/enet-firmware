@@ -57,7 +57,7 @@ FILES_common := \
 
 FILES_PATH_common = \
 	.. \
-	../../../.. \
+	$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_client \
 	generated \
 
 INCLUDES_common := \

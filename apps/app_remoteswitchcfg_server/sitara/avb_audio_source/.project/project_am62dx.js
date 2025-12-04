@@ -28,17 +28,17 @@ const remote_files = {
 const filedirs = {
     common: [
         "..",             /* core_os_combo base */
-        "../../../..",    /* sitara base */
-        "../../../../..", /* server app base */
-        "../../../../../../../../../../examples/drivers/boot/common/soc/am62dx", /* 2nd stage bootloader */
+        "$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server/sitara",
+        "$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server",
+        "$(MCU_PLUS_SDK_PATH)/examples/drivers/boot/common/soc/am62dx", /* 2nd stage bootloader */
     ],
 };
 
 const remote_filedirs = {
     common: [
         "..",          /* core_os_combo base */
-        "../../..",    /* example base */
-        "../../../..", /* sitara base */
+        "$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server/sitara/avb_audio_source",
+        "$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server/sitara",
     ],
 };
 

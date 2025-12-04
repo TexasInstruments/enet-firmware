@@ -62,9 +62,9 @@ FILES_common := \
 
 FILES_PATH_common = \
 	.. \
-	../../../.. \
-	../../../../.. \
-	../../../../../../../../../../examples/drivers/boot/common/soc/am62dx \
+	$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server/sitara \
+	$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server \
+	$(MCU_PLUS_SDK_PATH)/examples/drivers/boot/common/soc/am62dx \
 	generated \
 
 INCLUDES_common := \

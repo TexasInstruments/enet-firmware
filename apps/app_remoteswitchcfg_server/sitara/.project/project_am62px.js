@@ -20,7 +20,7 @@ const filedirs = {
         "../../..", /* mcu_2_0 base */
         "../../../..", /* apps base */
         "../../../../..", /* ethfw base */
-        "../../../../../../../../../examples/drivers/boot/common/soc/am62px/", /* 2nd stage bootloader */
+        "$(MCU_PLUS_SDK_PATH)/examples/drivers/boot/common/soc/am62px", /* 2nd stage bootloader */
     ],
 };
 

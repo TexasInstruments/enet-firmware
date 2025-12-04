@@ -16,7 +16,7 @@ const files = {
 const filedirs = {
     common: [
         "..",       /* core_os_combo base */
-        "../../../..", /* client app base */
+        "$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_client", /* client app base */
     ],
 };
 

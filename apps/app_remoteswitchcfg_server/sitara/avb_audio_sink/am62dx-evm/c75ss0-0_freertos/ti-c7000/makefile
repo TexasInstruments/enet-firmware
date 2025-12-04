@@ -51,8 +51,8 @@ FILES_common := \
 
 FILES_PATH_common = \
 	.. \
-	../../.. \
-	../../../.. \
+	$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server/sitara \
+	$(MCU_PLUS_SDK_PATH)/source/networking/ethfw/apps/app_remoteswitchcfg_server/sitara/avb_audio_source \
 	generated \
 
 INCLUDES_common := \
