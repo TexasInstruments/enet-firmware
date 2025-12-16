@@ -828,16 +828,130 @@ settings suggested in \ref demo_ethfw_ptp_stack section.
 **gPTP master logs**
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-domain=0, offset=0nsec, hw-adjrate=0ppb
-        gmsync=true, last_setts64=0nsec
-domain=0, offset=0nsec, hw-adjrate=0ppb
-        gmsync=true, last_setts64=0nsec
-domain=0, offset=0nsec, hw-adjrate=0ppb
-        gmsync=true, last_setts64=0nsec
-domain=0, offset=0nsec, hw-adjrate=0ppb
-        gmsync=true, last_setts64=0nsec
-domain=0, offset=0nsec, hw-adjrate=0ppb
-        gmsync=true, last_setts64=0nsec
+ETHFW: Detected boards: GESI QSGMII
+=======================================================
+            CPSW Ethernet Firmware                     
+=======================================================
+EnetMcm: CPSW_9G on MAIN NAVSS
+Mdio_open: MDIO manual mode enabled
+PHY 0 is alive
+PHY 3 is alive
+PHY 12 is alive
+PHY 15 is alive
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
+PHY 23 is alive
+EnetPhy_bindDriver: PHY 12: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 0: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 3: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 15: OUI:080028 Model:23 Ver:01 <-> 'dp83867' : OK
+EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 17: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 18: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 19: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+ETHFW: Shared multicasts:
+ETHFW:   01:00:5e:00:00:01
+ETHFW:   01:00:5e:00:00:fb
+ETHFW:   01:00:5e:00:00:fc
+ETHFW:   33:33:00:00:00:01
+ETHFW:   33:33:ff:1d:92:c2
+ETHFW:   01:80:c2:00:00:00
+ETHFW:   01:80:c2:00:00:03
+ETHFW: Reserved multicasts:
+ETHFW:   01:80:c2:00:00:0e
+ETHFW:   01:1b:19:00:00:00
+ETHFW: VLAN 1024 member=0x1ed virtMember=0xe000000 regMcastFlood=0x1ed unregMcastFlood=0x1ed untag=0x0
+ETHFW: 1 VLAN entries added in ALE table
+
+ETHFW Version   : 0.05.00
+ETHFW Build Date: Dec 16, 2025
+ETHFW Build Time: 16:22:05
+ETHFW Commit SHA: 591be983
+
+unibase-1.1.7
+Starting lwIP, local interface IP is dhcp-enabled
+ETHFW: Virtual port configuration:
+ETHFW: Host MAC address: 70:ff:76:1d:85:13
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+[LWIPIF_LWIP_IC] Interface started successfully
+[LWIPIF_LWIP_IC] NETIF INIT SUCCESS
+[LWIPIF_LWIP_IC] Interface started successfully
+[LWIPIF_LWIP_IC] NETIF INIT SUCCESS
+Added interface 'br3', IP is 0.0.0.0
+ETHFW: CpswProxyServer: initialization completed (core: mcu2_0)
+ETHFW: Enable gPTP on MAC port 2 (tilld2)
+ETHFW: Enable gPTP on MAC port 3 (tilld3)
+ETHFW: Enable gPTP on MAC port 5 (tilld5)
+ETHFW: Enable gPTP on MAC port 8 (tilld8)
+ETHFW: TimeSync PTP enabled
+INF:cbase:tilld2: has mac: 70:FF:76:1D:85:13
+INF:cbase:tilld3: has mac: 70:FF:76:1D:85:13
+INF:cbase:tilld5: has mac: 70:FF:76:1D:85:13
+INF:cbase:tilld8: has mac: 70:FF:76:1D:85:13
+INF:cbase:cb_lld_task_create: Uniconf Task stack_size=16384
+INF:cbasecb_rawsock_open:combase-1.1.8
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannels=0 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:cbl_query_response:tilld2 link DOWN !!!!
+INF:cbase:cbl_query_response:tilld3 link DOWN !!!!
+INF:cbase:cbl_queryresponse:tilld5 link DOWN !!!!
+INF:cbase:cbl_query_response:tilld8 link DOWN !!!!
+INF:cbase:cb_lld_task_create: gPTP Task stack_size=16384
+INF:gptp:gptpman_run:max_domains=1, max_ports=4
+INF:cbase:cb_rawsock_open:combase-1.1.8
+INF:cbase:cb_rawsock_oen:dmaTxChId=-1 numRxChannels=1 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:DmaOpen: TxChNum -1
+INF:cbase:DmaOpen: Rx startIdx 172 flowId 6
+INF:cbase:LLDEnetFilter:destmac:01:80:C2:00:00:0E, vlanId:0, ethType:0x88f7
+INF:gptp:dev:tilld2 opensuccess
+INF:gptp:dev:tilld3 open success
+INF:gptp:dev:tilld5 open success
+INF:gptp:dev:tilld8 open success
+INF:gptp:gptpnet_init:supportRtNotice=0 tout_interval=125000000Ns
+INF:gptp:gptpnet_init:Open lldtsync OK!
+INF:gptp:IEEE1588-2019 performance mCpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+nitoring disabled.
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 initial-log-gptp-cap-interval=3
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 initial-og-gptp-cap-interval=3
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 initial-log-gptp-cap-interval=3
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 inital-log-gptp-cap-interval=3
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 initial-log-gptp-cap-interval=3
+INF:gptp:static_domains_init: instance=0, di=0, pi=1, currentToutIntervalNs=125000000
+INF:gptp:yncIntervalNs=125000000, announceInterval=0,pdelayReqInterval=1000000000,gPtpCapableMessageInterval=0
+INF:gptp:static_domains_init: instance=0, di=0, pi=2, currentToutIntervalNs=125000000
+INF:gptp:syncIntervalNs=125000000, announceInterval=0,pdelayRqInterval=1000000000,gPtpCapableMessageInterval=0
+INF:gptp:static_domains_init: instance=0, di=0, pi=3, currentToutIntervalNs=125000000
+INF:gptp:syncIntervalNs=125000000, announceInterval=0,pdelayReqInterval=1000000000,gPtpCapableMessageInterval=0
+IF:gptp:static_domains_init: instance=0, di=0, pi=4, currentToutIntervalNs=125000000
+INF:gptp:syncIntervalNs=125000000, announceInterval=0,pdelayReqInterval=1000000000,gPtpCapableMessageInterval=0
+INF:gptp:onenet_activate:tilld2 status=0, duplex=1, seed=0Mbps
+INF:gptp:onenet_activate:tilld3 status=0, duplex=1, speed=0Mbps
+INF:gptp:onenet_activate:tilld5 status=0, duplex=1, speed=0Mbps
+INF:gptp:onenet_activate:tilld8 status=0, duplex=1, speed=0Mbps
+INF:ubase:GPTP_MEDIUM_ALLOC: fragsize=16 fragusd/fragnum=1322/1453 (90
+INF:ubase:GPTP_SMALL_ALLOC: fragsize=4 fragused/fragnum=31/102 (30
+INF:ubase:SM_DATA_INST: fragsize=8 fragused/fragnum=3866/3866 (100
+INF:gptp:000003-501420:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70:FF:76:FF:FE:1D:85:13
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate=2
+INF:cbase:000004-834705:cbl_query_response:tilld3: link UP, speed=100, duplex=1 !!!! (1255us since link change event)
+INF:gptp:index=2 speed=1000, duplex=full
+INF:gptp:set neighborGptpCapable, domainIndex=0, portIndex=2 wtout=24000000000
+WRN:gptp:000005-001477:waiting_for_pdelay_interval_timer_proc:portIndex=2, soucePortIdentity=70:FF:76:FF:FE:1E:AB:E7, thisClock=70:FF:76:FF:FE:1D:85:13, neighborPropDelay=531
+INF:gptp:waiting_for_pdelay_interval_timer_proc:portIndex=2, not asCapable
+INF:gptp:waiting_for_pdelay_interval_timer_proc:set asCapableAcrossDomains, prtIndex=2
+INF:gptp:set asCapable for domainIndex=0, portIndex=2
+INF:gptp:000006-001518:gptpgcfg_set_asCapable:domainInde=0, portIndex=2, ascapable=1
+INF:gptp:000006-125537:setSyncTwoStep_txSync:domainIndex=0, portIndex=2, sync gap=6125msec, tsync_tsthreshold=175msec
+INF:gptp:000006-125755:gm_stable:gm_unstable_proc:domainIndex=0
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate=1
+INF:gptp:000006-126347:gm_stable:gm_unstable_proc:domainIndex=0
+INF:gptp:000006-126647:setFllowUp_txFollowUp:domainIndex=0, portIndex=2, fup gap=6125msec tsync_ts_threshold=175msec
 domain=0, offset=0nsec, hw-adjrate=0ppb
         gmsync=true, last_setts64=0nsec
 domain=0, offset=0nsec, hw-adjrate=0ppb
@@ -854,30 +968,236 @@ on the *slave* device.  This can give an indication of the synchronization accur
 achieved in this demo.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2099ppb, GMdiff=-5nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2090ppb, GMdiff=-3nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2084ppb, GMdiff=-3nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2097ppb, GMdiff=-6nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2106ppb, GMdiff=-2nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2062ppb, GMdiff=-5nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2081ppb, GMdiff=0nsec
-domain=0, offset=0nsec, hw-adjrate=2080ppb
+ETHFW: Detected boards: QSGMII
+=======================================================
+            CPSW Ethernet Firmware                     
+=======================================================
+ETHFW: Warning: Using 2 random MAC address(es)
+ETHFW: Warning: Using 2 MAC address(es) from static pool
+EnetMcm: CPSW_9G on MAIN NAVSS
+PHY 16 is alive
+PHY 17 is alive
+PHY 18 is alive
+PHY 19 is alive
+EnetPhy_bindDriver: PHY 16: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 17: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 18: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+EnetPhy_bindDriver: PHY 19: OUI:0001c1 Model:27 Ver:00 <-> 'vsc8514' : OK
+ETHFW: Shared multicasts:
+ETHFW:   01:00:5e:00:00:01
+ETHFW:   01:00:5e:00:00:fb
+ETHFW:   01:00:5e:00:00:fc
+ETHFW:   33:33:00:00:00:01
+ETHFW:   33:33:ff:1d:92:c2
+ETHFW:   01:80:c2:00:00:00
+ETHFW:   01:80:c2:00:00:03
+ETHFW: Reserved multicasts:
+ETHFW:   01:80:c2:00:00:0e
+ETHFW:   01:1b:19:00:00:00
+ETHFW: VLAN 1024 member=0x29 virtMember=0xe000000 regMcastFlood=0x29 unregMcastFlood=0x29 untag=0x0
+ETHFW: 1 VLAN entries added in ALE table
+
+ETHFW Version   : 0.05.00
+ETHFW Build Date: Dec 16, 2025
+ETHFW Build Time: 16:22:06
+ETHFW Commit SHA: 591be983
+
+unibase-1.1.7
+Starting lwIP, local interface IP is dhcp-enabled
+ETHFW: Virtual port configuration:
+ETHFW: Host MAC address: 70:ff:76:1e:ab:e7
+[LWIPIF_LWIP] Enet LLD netif initialized successfully
+Added interface 'ti0', IP is 0.0.0.0
+ETHFW: CpswProxyServer: initialization completed (core: mcu2_0)
+ETHFW: Enable gPTP on MAC port 3 (tilld3)
+ETHFW: Enable gPTP on MAC port 5 (tilld5)
+ETHFW: TimeSync PTP enabled
+INF:cbase:tilld3: has mac: 70:FF:76:1E:AB:E7
+INF:cbase:tilld5: has mac: 70:FF:76:1E:AB:E7
+INF:cbase:cb_lld_task_create: Uniconf Task stack_size=16384
+INF:cbase:cb_rawsock_open:combase-1.1.8
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannels=0 dmaRChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:cb_lld_task_create: gPTP Task stack_size=16384
+INF:cbase:cbl_query_response:tilld3 link DOWN !!!!
+INF:cbase:cbl_query_response:tilld5 link DOWN !!!!
+INF:gptp:gptpman_run:max_domains=1, max_ports=2
+INF:base:cb_rawsock_open:combase-1.1.8
+INF:cbase:cb_rawsock_open:dmaTxChId=-1 numRxChannels=1 dmaRxChId=-1 nTxPkts=0 nRxPkts=0 pktSize=0
+INF:cbase:DmaOpen: TxChNum -1
+INF:cbase:DmaOpen: Rx startIdx 114 flowId 6
+INF:cbase:LLDEnetFilter:destmac:01:80:C2:0:00:0E, vlanId:0, ethType:0x88f7
+INF:gptp:dev:tilld3 open success
+INF:gptp:dev:tilld5 open success
+INF:gptp:gptpnet_init:supportRtNotice=0 tout_interval=125000000Ns
+INF:gptp:gptpnet_init:Open lldtsync OK!
+INF:gptp:IEEE1588-2019 performance monitorin disabled.
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 initial-log-gptp-cap-interval=3
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 initial-log-gptpcap-interval=3
+INF:gptp:pp_glb_init: use-mgt-log-gptp-cap-interval=0
+INF:gptp:current-log-gptp-cap-interval=3 initial-log-gptp-cap-interval=3
+INF:gptp:static_domains_init: instance=0, di=0, pi=1, currentToutIntervalNs=125000000
+INF:gptp:syncIntervalCpswMacPort_checkSgmiiStatus: MAC 3: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+s=125000000, announceInterval=0,pdelayReqInterval=1000000000,gPtpCapableMessageInterval=0
+INF:gptp:static_domains_init: instance=0, di=0, pi=2, currentToutIntervalNs=125000000
+INF:gptp:syncIntervalNs=125000000, announceInterval=0,pdelayReqInterval=100000000,gPtpCapableMessageInterval=0
+INF:gptp:onenet_activate:tilld3 status=0, duplex=1, speed=0Mbps
+INF:gptp:onenet_activate:tilld5 status=0, duplex=1, speed=0Mbps
+INF:ubase:GPTP_MEDIUM_ALLOC: fragsize=16 fragused/fragnum=853/1453 (58
+INF:ubase:PTP_SMALL_ALLOC: fragsize=4 fragused/fragnum=19/102 (18
+INF:ubase:SM_DATA_INST: fragsize=8 fragused/fragnum=2032/3866 (52
+INF:gptp:000002-875687:domainIndex=0, GM changed old=00:00:00:00:00:00:00:00, new=70:FF:76:FF:FE:1E:AB:E7
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate=2
+INF:cbase:000004-565892:cbl_query_response:tilld3: link UP, speed=100, duplex=1 !!!! (715us since link change event)
+INF:gptp:index=1 speed=1000, duplex=full
+Cpsw_handleLinkDown: Port 3: Link down
+INF:cbase:cbl_query_response:tilld3 link DOWN !!!!
+INF:gptp:gptpnet_cb_devdown:portIndex=1
+domain=0, offset=0nsec, hw-adjrate=0ppb
         gmsync=true, last_setts64=0nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2052ppb, GMdiff=-8nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2084ppb, GMdiff=-2nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2072ppb, GMdiff=-4nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2075ppb, GMdiff=-5nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2085ppb, GMdiff=-2nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2053ppb, GMdiff=-6nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2076ppb, GMdiff=0nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2053ppb, GMdiff=0nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2083ppb, GMdiff=6nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2074ppb, GMdiff=-2nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2102ppb, GMdiff=4nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2091ppb, GMdiff=1nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058ppb, GMdiff=-6nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2075ppb, GMdiff=2nsec
-IFV:gptp:domainNumber=0, clock_master_sync_receive:the master clock rate to 2058ppb, GMdiff=-2nsec
+CpswMacPort_checkSgmiiStatus: MAC 3: SGMII link parter config port: link up: 1-Gbps Full-Duplex
+Cpsw_handleLinkUp: Port 3: Link up: 1-Gbps Full-Duplex
+INF:cbase:000010-528427:cbl_query_response:tilld3: link UP, speed=1000, duplex=1 !!!! (247us since link change event)
+INF:gptp:index=1 speed=1000, duplex=full
+WRN:gptp:000010-626114:waiting_for_pdelay_interval_timer_proc:portIndex=1, sourcePortIdentity=70:FF:76:FF:FE:1D:85:13, thisClock=70:FF:76:FF:FE:1E:AB:E7, neighborPropDelay=531
+INF:gptp:waiting_for_pdelay_interval_timer_proc:portIndex=1, not asCapabl
+INF:gptp:set neighborGptpCapable, domainIndex=0, portIndex=1 wtout=24000000000
+INF:gptp:waiting_for_pdelay_interval_timer_proc:set asCapableAcrossDomains, portIndex=1
+INF:gptp:set asCapable for domainIndex=0, portIndex=1
+INF:gptp:000011-625826:gptpgcfg_set_asCapable:domainInde=0, portIndex=1, ascapable=1
+INF:gptp:000011-750408:gm_stable:gm_unstable_proc:domainIndex=0
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate=1
+INF:gptp:000011-750634:gm_stable:gm_unstable_proc:domainIndex=0
+INF:gptp:000011-751145:domainIndex=0, GM chaned old=70:FF:76:FF:FE:1E:AB:E7, new=70:FF:76:FF:FE:1D:85:13
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate=0
+INF:gptp:000011-751352:gm_stable:gm_unstable_proc:domainIndex=0
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0 domainIndex=0, gmstate=1
+INF:gptp:set_phase_offsetGM:domainIndex=0, New adjustment(New GM?)
+INF:gptp:set_phase_offsetGM:domainIndex=0, offset adjustment, diff=-5697519107
+IFV:gptp:000012-115259:domainIndex=0, clock_master_sync_receive:the master clock rate to 3853ppb, GMdiff=6268nsec
+INF:gptp:set_phase_offsetGM:domainIndex=0, stable
+IFV:gptp:000012-240298:domainIndex=0, clock_master_sync_receive:the master clock rateto 5226ppb, GMdiff=5724nsec
+IFV:gptp:000012-365264:domainIndex=0, clock_master_sync_receive:the master clock rate to 1378ppb, GMdiff=5084nsec
+IFV:gptp:000012-490270:domainIndex=0, clock_master_sync_receive:the master clock rate to -602ppb, GMdiff=460nsec
+IFV:gptp:000012-615248:domainIndex=0, clock_master_sync_receive:the master clock rate to -1657ppb, GMdiff=4420nsec
+IFV:gptp:000012-740472:domainIndex=0, clock_master_sync_receive:the master clock rate to -2165ppb, GMdiff=4224nsec
+IFV:gptp:000012-865242:domainIndex=0, clock_master_sync_receive:the master clock rate to -2563ppb, GMdiff=4048nsec
+IFV:gptp:000012-990230:domainIndex=0, clock_master_sync_receive:the master clock rate to -2756ppb, GMdiff=3902nsec
+IFV:gptp:000013-11540:domainIndex=0, clock_master_sync_receive:the master clock rate to -2885ppb, GMdiff=3768nsec
+IFV:gptp:000013-240237:domainIndex=0, clock_master_sync_receive:the master clock rate to -3048ppb, GMdiff=3634nsec
+IFV:gptp:000013-365244:domainIndex=0, cock_master_sync_receive:the master clock rate to -3088ppb, GMdiff=3519nsec
+IFV:gptp:000013-490248:domainIndex=0, clock_master_sync_receive:the master clock rate to -3141ppb, GMdiff=3406nsec
+IFV:gptp:000013-615226:domainIndex=0, clock_master_sync_receive:the master clock rate to -3197ppb, GMdiff=3296nsec
+IFV:gptp:000013-740494:domainIndex=0, clock_master_sync_receive:the master clock rate to -3287ppb, GMdiff=3185nsec
+IFV:gptp:000013-99049:domainIndex=0, clock_master_sync_receive:the master clock rate to -3389ppb, GMdiff=2982nsec
+IFV:gptp:000014-115230:domainIndex=0, clock_master_sync_receive:the master clock rate to -3428ppb, GMdiff=2887nsec
+IFV:gptp:000014-240246:domainIndex=0, cock_master_sync_receive:the master clock rate to -3440ppb, GMdiff=2798nsec
+IFV:gptp:000014-365247:domainIndex=0, clock_master_sync_receive:the master clock rate to -3540ppb, GMdiff=2701nsec
+IFV:gptp:000014-615229:domainIndex=0, clock_master_sync_receive:the master clock rate to -3637ppb, GMdiff=2527nsec
+IFV:gptp:000014-865252:domainIndex=0, clock_master_sync_receive:the master clock rate to -3711ppb, GMdiff=2366nsec
+IFV:gptp:000015-11564:domainIndex=0, clock_master_sync_receive:the master clock rate to -3789ppb, GMdiff=2215nsec
+IFV:gptp:000015-240257:domainIndex=0, clock_master_sync_receive:the master clock rate to -3871ppb, GMdiff=2138nsec
+IFV:gptp:000015-365227:domainIndex=0, clock_master_sync_receive:the master clock rate to -3848ppb, GMdiff=2076nsec
+IFV:gptp:000015-49037:domainIndex=0, clock_master_sync_receive:the master clock rate to -3898ppb, GMdiff=2007nsec
+IFV:gptp:000015-615248:domainIndex=0, clock_master_sync_receive:the master clock rate to -3948ppb, GMdiff=1940nsec
+IFV:gptp:000015-740493:domainIndex=0, clock_master_sync_receive:the master clock rate to -3998ppb, GMdiff=1875nsec
+IFV:gptp:000015-990260:domainIndex=0, clock_master_sync_receive:the master clock rate to -4039ppb, GMdiff=1759nsec
+IFV:gptp:000016-11548:domainIndex=0, clock_master_sync_receive:the master clock rate to -4078ppb, GMdiff=1701nsec
+IFV:gptp:000016-240248:domainIndex=0, clock_master_sync_receive:the master clock rate to -4106ppb, GMdiff=1646nsec
+IFV:gptp:000016-365245:domainIndex=0, clock_master_sync_receive:the master clock rate to -4132ppb, GMdiff=1593nsec
+IFV:gptp:000016-490249:domainIndex=0, clock_master_sync_receive:the master clock rate to -4114ppb, GMdiff=1547nsec
+IFV:gptp:000016-61549:domainIndex=0, clock_master_sync_receive:the master clock rate to -4164ppb, GMdiff=1494nsec
+IFV:gptp:000016-740476:domainIndex=0, clock_master_sync_receive:the master clock rate to -4219ppb, GMdiff=1442nsec
+IFV:gptp:000016-990261:domainIndex=0, clock_master_sync_receive:the master clock rate to -4273ppb, GMdiff=1350nsec
+IFV:gptp:000017-115261:domainIndex=0, clock_master_sync_receive:the master clock rate to -4290ppb, GMdiff=1307nsec
+IFV:gptp:000017-24053:domainIndex=0, clock_master_sync_receive:the master clock rate to -4318ppb, GMdiff=1264nsec
+IFV:gptp:000017-365249:domainIndex=0, clock_master_sync_receive:the master clock rate to -4357ppb, GMdiff=1221nsec
+IFV:gptp:000017-615255:domainIndex=0, clock_master_sync_receive:the master clock rate to -4391ppb, GMdiff=1144nsec
+IFV:gptp:000017-740484:domainIndex=0, clock_master_sync_receive:the master clock rate to -4368ppb, GMdiff=1112nsec
+IFV:gptp:000017-86572:domainIndex=0, clock_master_sync_receive:the master clock rate to -4396ppb, GMdiff=1075nsec
+IFV:gptp:000017-990260:domainIndex=0, clock_master_sync_receive:the master clock rate to -4425ppb, GMdiff=1039nsec
+IFV:gptp:000018-115261:domainIndex=0, clock_master_sync_receive:the master clock rate to -4437ppb, GMdiff=1006nsec
+IFV:gptp:000018-24071:domainIndex=0, clock_master_sync_receive:the master clock rate to -4457ppb, GMdiff=973nsec
+IFV:gptp:000018-365261:domainIndex=0, clock_master_sync_receive:the master clock rate to -4486ppb, GMdiff=940nsec
+IFV:gptp:000018-490273:domainIndex=0, clock_master_sync_receive:the master clock rate to -4514ppb, GMdiff=908nsec
+IFV:gptp:000018-615256:domainIndex=0, clock_master_sync_receive:the master clock rate to -4535ppb, GMdiff=878nsec
+IFV:gptp:000018-74110:domainIndex=0, clock_master_sync_receive:the master clock rate to -4554ppb, GMdiff=849nsec
+IFV:gptp:000018-865260:domainIndex=0, clock_master_sync_receive:the master clock rate to -4623ppb, GMdiff=815nsec
+IFV:gptp:000018-990292:domainIndex=0, clock_master_sync_receive:the master clock rate to -4575ppb, GMdiff=796nsec
+IFV:gptp:000019-115259:domainIndex=0, clock_master_sync_receive:the master clock rate to -4591ppb, GMdiff=770nsec
+IFV:gptp:000019-49026:domainIndex=0, clock_master_sync_receive:the master clock rate to -4683ppb, GMdiff=691nsec
+IFV:gptp:000019-615274:domainIndex=0, clock_master_sync_receive:the master clock rate to -4633ppb, GMdiff=676nsec
+IFV:gptp:000019-740492:domainIndex=0, clock_master_sync_receive:the master clock rate to -4653ppb, GMdiff=653nsec
+IFV:gptp:000019-86527:domainIndex=0, clock_master_sync_receive:the master clock rate to -4672ppb, GMdiff=631nsec
+IFV:gptp:000019-990269:domainIndex=0, clock_master_sync_receive:the master clock rate to -4646ppb, GMdiff=615nsec
+domain=0, offset=0nsec, hw-adjrate=-4646ppb
+        gmsync=true, last_setts64=0nsec
+IFV:gptp:000020-115241:domainIndex=0, clock_master_ync_receive:the master clock rate to -4674ppb, GMdiff=593nsec
+IFV:gptp:000020-240266:domainIndex=0, clock_master_sync_receive:the master clock rate to -4657ppb, GMdiff=577nsec
+IFV:gptp:000020-365265:domainIndex=0, clock_master_sync_receive:the maste clock rate to -4718ppb, GMdiff=552nsec
+IFV:gptp:000020-490264:domainIndex=0, clock_master_sync_receive:the master clock rate to -4704ppb, GMdiff=537nsec
+IFV:gptp:000020-615267:domainIndex=0, clock_master_sync_receive:the master clock rate to -4751ppb, GMdiff=515nsec
+IFV:gptp:000020-86527:domainIndex=0, clock_master_sync_receive:the master clock rate to -4808ppb, GMdiff=477nsec
+IFV:gptp:000020-990276:domainIndex=0, clock_master_sync_receive:the master clock rate to -4746ppb, GMdiff=470nsec
+IFV:gptp:000021-115271:domainIndex=0, clock_master_sync_receive:the master clock rate to -4794ppb, GMdiff=450nsec
+IFV:gptp:000021-240264:domainIndex=0, clock_master_sync_receive:the master clock rate to -4747ppb, GMdiff=442nsec
+IFV:gptp:000021-36528:domainIndex=0, clock_master_sync_receive:the master clock rate to -4793ppb, GMdiff=423nsec
+IFV:gptp:000021-615268:domainIndex=0, clock_master_sync_receive:the master clock rate to -4756ppb, GMdiff=402nsec
+IFV:gptp:000021-740494:domainIndex=0, clock_master_sync_receive:the master clock rate to -4770ppb, GMdiff=388nsec
+IFV:gptp:000021-990278:domainIndex=0, clock_master_sync_receive:the master clock rate to -4841ppb, GMdiff=356nsec
+IFV:gptp:000022-11528:domainIndex=0, clock_master_sync_receive:the master clock rate to -4793ppb, GMdiff=351nsec
+IFV:gptp:000022-240285:domainIndex=0, clock_master_sync_receive:the master clock rate to -4845ppb, GMdiff=334nsec
+IFV:gptp:000022-365290:domainIndex=0, clock_master_sync_receive:the master clock rate to -4868ppb, GMdiff=321nsec
+IFV:gptp:000022-49028:domainIndex=0, clock_master_sync_receive:the master clock rate to -4821ppb, GMdiff=317nsec
+IFV:gptp:000022-615271:domainIndex=0, clock_master_sync_receive:the master clock rate to -4840ppb, GMdiff=305nsec
+IFV:gptp:000022-740506:domainIndex=0, clock_master_sync_receive:the master clock rate to -4903ppb, GMdiff=288nsec
+IFV:gptp:000022-865293:domainIndex=0, clock_master_sync_receive:the master clock rate to -4848ppb, GMdiff=286nsec
+IFV:gptp:000022-99028:domainIndex=0, clock_master_sync_receive:the master clock rate to -4884ppb, GMdiff=273nsec
+IFV:gptp:000023-115287:domainIndex=0, clock_master_sync_receive:the master clock rate to -4907ppb, GMdiff=262nsec
+IFV:gptp:000023-240286:domainIndex=0, clock_master_sync_receive:the master clock rate to -4850ppb, GMdiff=261nsec
+IFV:gptp:000023-365295:domainIndex=0, clock_master_sync_receive:the master clock rate to -4892ppb, GMdiff=248nsec
+IFV:gptp:000023-49027:domainIndex=0, clock_master_sync_receive:the master clock rate to -4938ppb, GMdiff=235nsec
+IFV:gptp:000023-615300:domainIndex=0, clock_master_sync_receive:the master clock rate to -4920ppb, GMdiff=230nsec
+INF:gptp:domainIndex=0, clock_master_sync_receive:stable rate
+IFV:gptp:000023-865329:domainIndex=0, clock_master_sync_receive:the master clock rate to -4889ppb, GMdiff=221nsec
+INF:gptp:gptpclock_set_gmsync:gptpInstanceIndex=0, domainIndex=0, gmstate2
+INF:gptp:000023-875218:gm_stable:gm_stable_proc:domainIndex=0
+IFV:gptp:000023-990299:domainIndex=0, clock_master_sync_receive:the master clock rate to -4851ppb, GMdiff=213nsec
+IFV:gptp:000024-115285:domainIndex=0, clock_master_sync_receive:the maser clock rate to -4827ppb, GMdiff=200nsec
+IFV:gptp:000024-240283:domainIndex=0, clock_master_sync_receive:the master clock rate to -4806ppb, GMdiff=187nsec
+IFV:gptp:000024-365300:domainIndex=0, clock_master_sync_receive:the master clock rate to -478ppb, GMdiff=174nsec
+IFV:gptp:000024-615269:domainIndex=0, clock_master_sync_receive:the master clock rate to -4777ppb, GMdiff=144nsec
+IFV:gptp:000024-865294:domainIndex=0, clock_master_sync_receive:the master clock rate to -4790ppb, GMdiff=110nsec
+IFV:gptp:000025-11525:domainIndex=0, clock_master_sync_receive:the master clock rate to -4802ppb, GMdiff=84nsec
+IFV:gptp:000025-240259:domainIndex=0, clock_master_sync_receive:the master clock rate to -4817ppb, GMdiff=68nsec
+IFV:gptp:000025-365269:domainIndex=0, clock_master_sync_receive:the master clock rate to -4839ppb, GMdiff=51nsec
+IFV:gptp:000025-490261:domainIndex=0, clock_master_sync_receive:the master clock rate to -4856ppb, GMdiff=38nsec
+IFV:gptp:000025-615259:omainIndex=0, clock_master_sync_receive:the master clock rate to -4880ppb, GMdiff=23nsec
+IFV:gptp:000025-865309:domainIndex=0, clock_master_sync_receive:the master clock rate to -4907ppb, GMdiff=7nsec
+IFV:gptp:000026-115258:domainIndex=0, clock_master_sync_receive:the master clock rate to -4925ppb, GMdiff=-7nsec
+IFV:gptp:000026-240259:dmainIndex=0, clock_master_sync_receive:the master clock rate to -4943ppb, GMdiff=-15nsec
+IFV:gptp:000026-365287:domainIndex=0, clock_master_sync_receive:the master clock rate to -4964ppb, GMdiff=-23nsec
+IFV:gptp:000026-490258:domainIndex=0, clock_master_sync_receive:the master clock rate to -4981ppb, GMdiff=-28nsec
+IFV:gptp:000026-61526:domainIndex=0, clock_master_sync_receive:the master clock rate to -5003ppb, GMdiff=-35nsec
+IFV:gptp:000026-865285:domainIndex=0, clock_master_sync_receive:the master clock rate to -5020ppb, GMdiff=-39nsec
+IFV:gptp:000026-990278:domainIndex=0, clock_master_sync_receive:the master clock rate to -5034ppb, GMdiff=-41nsec
+IFV:gptp:000027-11526:domainIndex=0, clock_master_sync_receive:the master clock rate to -5045ppb, GMdiff=-42nsec
+IFV:gptp:000027-240268:domainIndex=0, clock_master_sync_receive:the master clock rate to -5057ppb, GMdiff=-43nsec
+IFV:gptp:000027-490257:domainIndex=0, clock_master_sync_receive:the master clock rate to -5071ppb, GMdiff=-43nsec
+IFV:gptp:000028-740485:domainIndex=0, clock_master_sync_receive:the master clock rate to -5088ppb, GMdiff=-35nsec
+IFV:gptp:000029-365322:domainIndex=0, clock_master_sync_receive:the master clock rate to -5105ppb, GMdiff=-27nsec
+IFV:gptp:000029-490284:domainIndex=0, clock_master_sync_receive:the master clock rate to -5087ppb, GMdiff=-16nsec
+domain=0, offset=0nsec, hw-adjrate=-5087ppb
+        gmsync=true, last_setts64=0nsec
+IFV:gptp:000030-615273:domainIndex=0, clock_master_sync_receive:the master clock rate to -5076ppb, GMdiff=-2nsec
+IFV:gptp:000030-990282:domainIndex=0, clock_master_sync_receive:the master clock rate to -5087ppb, GMdiff=-7nsec
+IFV:gptp:000031-990286:domainIndex=0, clock_master_sync_receive:the master clock rate to -5103ppb, GMdiff=-16nsec
+IFV:gptp:000032-115291:domainIndex=0, clock_master_sync_receive:the master clock rate to -5092ppb, GMdiff=-9nsec
+IFV:gptp:000032-365326:domainIndex=0, clock_master_sync_receive:the master clock rate to -5104ppb, GMdiff=-16nsec
+IFV:gptp:000034-490304:domainIndex=0, clock_master_sync_receive:the master clock rate to -5116ppb, GMdiff=-11nsec
+IFV:gptp:000034-865352:domainIndex=0, clock_master_sync_receive:the master clock rate to -5130ppb, GMdiff=-19nsec
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
