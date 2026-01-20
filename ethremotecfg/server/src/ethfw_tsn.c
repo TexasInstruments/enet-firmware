@@ -1254,6 +1254,11 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
 
     if ((gEthFwTsnObj.ucCfg.ucReadySem != NULL) && (modCfg->onModuleRunner != NULL))
     {
+        /* Set the flags before creating the thread.
+           If the thread starts immediately (due to high priority),
+           it will see the correct state. */
+        modCfg->stopFlag = BFALSE;
+        modCfg->enable = BTRUE;
         cb_tsn_thread_attr_init(&attr, modCfg->taskPriority,
                                 modCfg->stackSize, modCfg->taskName);
         cb_tsn_thread_attr_set_stackaddr(&attr, modCfg->stackBuffer);
@@ -1262,6 +1267,9 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
                                   modCfg->onModuleRunner, modCfg->onModuleRunnerArgs);
         if (ETHFW_SOK != status)
         {
+            /* Undo the flags if creation failed */
+            modCfg->stopFlag = BTRUE;
+            modCfg->enable = BFALSE;
             status = ETHFW_EFAIL;
             ETHFWTRACE_ERR(status, "Failed to create %s task!\n", modCfg->taskName);
             EnetAppUtils_assert(BFALSE);
@@ -1269,8 +1277,6 @@ static int32_t EthFwTsn_startModTask(EthFwTsn_ModuleCfg *modCfg, uint32_t module
 
         else
         {
-            modCfg->stopFlag = BFALSE;
-            modCfg->enable = BTRUE;
             if (moduleIdx == ETHFWTSN_UNICONF_TASK_IDX)
             {
                 /* initDb must be run right after UNICONF is started and
