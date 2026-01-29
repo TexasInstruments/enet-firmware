@@ -59,11 +59,13 @@ extern "C" {
 /* ========================================================================== */
 
 #define IPC_MPU1_0                                  (CSL_CORE_ID_A53SS0_0)
-#ifdef SOC_AM62DX
+
+#if defined(SOC_AM62DX ) || defined(SOC_AM62AX)
 #define IPC_MCU2_0                                  (CSL_CORE_ID_R5FSS0_0)
 #else
 #define IPC_MCU2_0                                  (CSL_CORE_ID_WKUP_R5FSS0_0)
 #endif
+
 #define IPC_MCU2_1                                  (CSL_CORE_ID_MCU_R5FSS0_0)
 
 #define IPC_MAX_PROCS                               (3U)
