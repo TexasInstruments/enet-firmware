@@ -561,7 +561,7 @@ int32_t CpswProxy_connect(void)
                                          &notifySvc->masterEndpt,
                                          ETHFWIPC_WAIT_FOREVER);
         ETHFWTRACE_ERR_IF((status != CPSWPROXY_SOK), status,
-                          "Failed to get ETHFW command service endpt");
+                          "Failed to get ETHFW notify service endpt");
     }
 
     ETHFWTRACE_INFO_IF((status == CPSWPROXY_SOK),

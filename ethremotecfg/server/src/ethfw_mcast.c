@@ -739,6 +739,7 @@ static int32_t EthFwMcast_filterAddMacExcl(EthRemoteCfg_VirtPort virtPort,
     else if (status == ENET_ENOTFOUND)
     {
         /* No one has requested this multicast address, caller gets it */
+        ETHFWTRACE_ERR(ENET_SOK, "IOCTL cmd status -14 implies no other client has requested this multicast address, caller gets it ");
         status = ETHFW_SOK;
     }
     else

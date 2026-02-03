@@ -102,7 +102,11 @@
 #define CPSW_REMOTE_APP_POLL_PERIOD_MS        (2000U)
 
 /*! CPSW proxy command response timeout. */
+#if defined(SOC_J722S)
+#define CPSW_REMOTE_APP_CMD_TIMEOUT_MS        (2000U) //increasing the j722s timeout to 2s as the time range for mailbox_pend varies from ~0.5s-1.5s during ipc
+#else
 #define CPSW_REMOTE_APP_CMD_TIMEOUT_MS        (1000U)
+#endif
 
 #if defined(SOC_J784S4) || defined(SOC_J7200)
 #define CPSW_REMOTE_APP_TIMESYNC_TIMER_IDX       (14U)
@@ -389,7 +393,7 @@ void CpswRemoteApp_initTask(void* a0)
 {
     EthFwOsal_TaskParams params;
     uint32_t numProc = gNumRemoteProc;
-    uint32_t selfProcId = gRemoteAppObj.coreId;
+    uint32_t selfProcId = EnetSoc_getCoreId();
     CpswProxy_initParams initParams;
     int32_t status;
 

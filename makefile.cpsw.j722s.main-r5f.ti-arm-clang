@@ -13,7 +13,7 @@ AR=$(CGT_TI_ARM_CLANG_PATH)/bin/tiarmar
 PROFILE?=release
 ConfigName:=$(PROFILE)
 
-LIBNAME:=ethfw.j722s.wkup-r5f.ti-arm-clang.$(PROFILE).lib
+LIBNAME:=ethfw.j722s.main-r5f.ti-arm-clang.$(PROFILE).lib
 
 FILES_common := \
     ipc_trace.c \
@@ -132,13 +132,10 @@ DEFINES_common := \
     -DENET_ENABLE_PER_CPSW=1 \
     -DENABLE_ENET_LOG \
     -DFREERTOS \
-    -DENABLE_SCICLIENT_DIRECT \
     -DETHFW_PROXY_ARP_SUPPORT \
+    -DETHFW_PROXY_ARP_HANDLING \
     -DETHFW_INTERCORE_ETH_SUPPORT \
     -DETHFW_IPERF_SERVER_SUPPORT \
-    -DETHFW_PROXY_ARP_HANDLING \
-    -DETHFW_GPTP_SUPPORT \
-    -DCPU_mcu2_0 \
     -DMCU_PLUS_SDK \
     -DSOC_J722S \
     -DSW_VERSION=$(SW_VERSION)
@@ -150,7 +147,7 @@ DEFINES_debug := \
     -DSW_VERSION=$(SW_VERSION)
 
 CFLAGS_common := \
-    -DBUILD_WKUP_R5 \
+    -DBUILD_MAIN_R5 \
     -mcpu=cortex-r5 \
     -mfloat-abi=hard \
     -mfpu=vfpv3-d16 \
@@ -204,7 +201,7 @@ INCLUDES := $(INCLUDES_common) $(INCLUDE_$(PROFILE))
 ARFLAGS := $(ARFLAGS_common) $(ARFLAGS_$(PROFILE))
 
 LIBDIR := lib
-OBJDIR := obj/j722s/ti-arm-clang/$(PROFILE)/wkup-r5f/ethfw/
+OBJDIR := obj/j722s/ti-arm-clang/$(PROFILE)/main-r5f/ethfw/
 OBJS := $(FILES:%.c=%.obj)
 OBJS += $(ASMFILES:%.S=%.obj)
 OBJS += $(ASMEXTNFILES:%.asm=%.obj)

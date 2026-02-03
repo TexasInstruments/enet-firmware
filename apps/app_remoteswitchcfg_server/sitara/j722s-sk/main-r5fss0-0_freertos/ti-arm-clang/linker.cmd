@@ -7,6 +7,8 @@
  *   uses this stack.
  * - After vTaskStartScheduler() each task created in FreeRTOS has its own stack
  */
+#include "ti_enet_config.h"
+
 --stack_size=16384
 /* This is the heap size for malloc() API in NORTOS and FreeRTOS
  * This is also the heap used by pvPortMalloc in FreeRTOS
@@ -24,7 +26,7 @@
  * - But then the mode is switched to SVC mode and SVC stack is used for all user ISR callbacks
  * - Hence in FreeRTOS, IRQ stack size is less and SVC stack size is more
  */
-__IRQ_STACK_SIZE = 4096;
+__IRQ_STACK_SIZE = 4096;  
 /* This is the size of stack when R5 is in IRQ mode
  * - In both NORTOS and FreeRTOS nesting is disabled for FIQ
  */
@@ -55,14 +57,17 @@ SECTIONS
         .rodata: {} palign(8)   /* This is where const's go */
     } > DDR_CODE_DATA
 
-    /* this is used only when IPC RPMessage is enabled, else this is not used */
-    .bss.ipc_vring_mem   (NOLOAD) : {} > DDR_IPC_VRING_RTOS
     GROUP {
         /* This is the resource table used by linux to know where the IPC "VRINGs" are located */
         .resource_table: {} palign(1024)
     } > DDR_IPC_RESOURCE_TABLE_LINUX
     /* This IPC log can be viewed via ROV in CCS and when linux is enabled, this log can also be viewed via linux debugfs */
+    .tracebuf           (NOLOAD) : {} palign(128)    > DDR_IPC_TRACE_LINUX
     .bss.debug_mem_trace_buf    : {} palign(128)    > DDR_IPC_TRACE_LINUX
+    ipc_data_buffer     (NOLOAD) : {} palign(128)    > DDR_IPC_TRACE_LINUX
+
+    /* this is used only when IPC RPMessage is enabled, else this is not used */
+    .bss.ipc_vring_mem   (NOLOAD) : {} > DDR_IPC_VRING_RTOS
 
     /* This is rest of initialized data. This can be placed in DDR if DDR is available and needed */
     GROUP {
@@ -103,6 +108,18 @@ SECTIONS
         .init_array: {} palign(8)   /* Contains function pointers called before main */
         .fini_array: {} palign(8)   /* Contains function pointers called after main */
     } > DDR_CODE_DATA
+
+    enet_dma_mem (NOLOAD) : {
+    *(*ENET_DMA_DESC_MEMPOOL)
+    *(*ENET_DMA_RING_MEMPOOL)
+#if (ENET_SYSCFG_PKT_POOL_ENABLE == 1)
+    *(*ENET_DMA_PKT_MEMPOOL)
+#endif
+    } > DDR_CODE_DATA
+
+    intercore_eth_desc_mem (NOLOAD) : {} palign(128) > INTERCORE_ETH_DESC_MEM
+    intercore_eth_data_mem (NOLOAD) : {} palign(128) > INTERCORE_ETH_DATA_MEM
+
 }
 
 MEMORY
@@ -111,9 +128,15 @@ MEMORY
     R5F_TCMA  : ORIGIN = 0x00000040 , LENGTH = 0x00007FC0
     R5F_TCMB0 : ORIGIN = 0x41010000 , LENGTH = 0x00004000
 
-    DDR_IPC_VRING_LINUX           : ORIGIN = 0xA1000000, LENGTH = 0x100000   /* IPC VRING with Linux */
-    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0xA1100000, LENGTH = 0x400      /* For resource table   */
-    DDR_IPC_TRACE_LINUX           : ORIGIN = 0xA1100400, LENGTH = 0xFFC00    /* IPC trace buffer     */
-    DDR_CODE_DATA                 : ORIGIN = 0xA1200000, LENGTH = 0xE00000   /* Code/Data            */
+    DDR_IPC_VRING_LINUX           : ORIGIN = 0xA2000000, LENGTH = 0x100000   /* IPC VRING with Linux */
+    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0xA2100000, LENGTH = 0x400      /* For resource table   */
+    DDR_IPC_TRACE_LINUX           : ORIGIN = 0xA2100400, LENGTH = 0xFFC00    /* IPC trace buffer     */
+    DDR_CODE_DATA                 : ORIGIN = 0xA2200000, LENGTH = 0xE00000   /* Code/Data            */
     DDR_IPC_VRING_RTOS            : ORIGIN = 0xA5000000, LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
+    
+    /* Inter-core ethernet shared desc queues. MUST be non-cached or cache-coherent [ size 2 MB ] */
+    INTERCORE_ETH_DESC_MEM            : ORIGIN = 0xA7000000 , LENGTH = 0x00200000
+    /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 14 MB ] */
+    INTERCORE_ETH_DATA_MEM            : ORIGIN = 0xA7200000 , LENGTH = 0x01E00000
+    
 }

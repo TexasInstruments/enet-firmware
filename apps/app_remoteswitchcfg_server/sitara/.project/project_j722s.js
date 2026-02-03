@@ -8,6 +8,7 @@ const files = {
         "main_server.c",
         "main.c",
         "app_cpswconfighandler.c",
+        "ethfw_callbacks_lwipif.c",
     ],
 };
 
@@ -21,6 +22,7 @@ const filedirs = {
         "../../../..", /* apps base */
         "../../../../..", /* ethfw base */
         "../../../../../../../../../examples/drivers/boot/common/soc/j722s/", /* 2nd stage bootloader */
+        "../../../../../../utils/ethfw_callbacks/src", /* ethfw callbacks */
     ],
 };
 
@@ -34,6 +36,8 @@ const libdirs_freertos = {
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib",
         "${MCU_PLUS_SDK_PATH}/source/networking/tsn/lib",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/lib",
+        "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_lib",
+        "${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/license_lib",
     ],
 };
 
@@ -91,7 +95,8 @@ const includes_freertos_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib",
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/j722s",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw",
-        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include",
     ],
@@ -100,7 +105,7 @@ const includes_freertos_r5f = {
 const libs_freertos_r5f = {
     common: [
         "freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib",
-        "drivers.j722s.r5f.ti-arm-clang.${ConfigName}.lib",
+        "drivers.j722s.main-r5f.ti-arm-clang.${ConfigName}.lib",
         "enet-cpsw.j722s.r5f.ti-arm-clang.${ConfigName}.lib",
         "board.j722s.r5f.ti-arm-clang.${ConfigName}.lib",
         "libc.a",
@@ -112,7 +117,8 @@ const libs_freertos_r5f = {
         "lwipif-cpsw-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib",
         "lwip-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib",
         "lwip-contrib-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib",
-        "ethfw.j722s.wkup-r5f.ti-arm-clang.${ConfigName}.lib",
+        "ethfw.j722s.main-r5f.ti-arm-clang.${ConfigName}.lib",
+        "yangemb-freertos.j722s.main-r5f.ti-arm-clang.lib",
     ],
 };
 
@@ -150,11 +156,19 @@ const linker_includePath_freertos = {
 const defines_r5f = {
     common: [
         "SOC_J722S",
+        "R5F_CORE",
         "ENET_ENABLE_PER_CPSW=1",
         'PRINT_FORMAT_NO_WARNING',
         'SITARA',
         'GPTP_ENABLED=1',
-        'ETHAPP_ENABLE_IPERF_SERVER',
+        "MCU_PLUS_SDK",
+        "ETHFW_PROXY_ARP_HANDLING",
+        "ENABLE_ETHFW_PROXYARP",
+        "CPU_mcu2_0",
+        "ETHAPP_ENABLE_IPERF_SERVER",
+        "ETHFW_GPTP_SUPPORT",
+        "ETHFW_INTERCORE_ETH_SUPPORT",
+        "ETHAPP_ENABLE_INTERCORE_ETH",
     ],
 };
 
@@ -168,7 +182,7 @@ const defines_wkup_r5f = {
         'SITARA',
         'GPTP_ENABLED=1',
         "MCU_PLUS_SDK",
-        "ETHFW_PROXY_ARP_SUPPORT",
+        "ETHFW_PROXY_ARP_HANDLING",
         "ETHFW_INTERCORE_ETH_SUPPORT",
         "ETHAPP_ENABLE_INTERCORE_ETH",
         "ENABLE_ETHFW_PROXYARP",
@@ -255,6 +269,7 @@ const templates_freertos_r5f =
             entryFunction: "EthApp_initTaskFxn",
             taskPri : "2",
             stackSize : "16384",
+            skipDriversClose: "true",
         },
     },
 ];
@@ -275,8 +290,7 @@ const templates_freertos_wkup_r5f =
 ];
 
 const buildOptionCombos = [
-    { device: device, cpu: "wkup-r5fss0-0", cgt: "ti-arm-clang", board: "j722s-sk", os: "freertos"},
-    { device: device, cpu: "r5fss0-0", cgt: "ti-arm-clang", board: "j722s-sk" , os: "freertos"},
+    { device: device, cpu: "main-r5fss0-0", cgt: "ti-arm-clang", board: "j722s-sk" , os: "freertos"},
 
 ];
 
@@ -353,6 +367,7 @@ function getComponentBuildProperty(buildOption) {
             build_property.loptflags = loptflags_wkup_r5f;
         }
     }
+    
 
     return build_property;
 }

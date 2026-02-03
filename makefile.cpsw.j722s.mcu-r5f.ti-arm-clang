@@ -49,7 +49,7 @@ FILES_PATH_common = \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/client/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/console_io/src \
-    ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara \
+    ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_common/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_estdemo/src \
@@ -58,6 +58,7 @@ FILES_PATH_common = \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/mem/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/perf_stats/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/remote_services/src \
+    ${MCU_PLUS_SDK_PATH}/source/kernel/freertos/dpl/common \
 
 INCLUDES_common := \
     -I${CG_TOOL_ROOT}/include/c \
@@ -68,7 +69,7 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s \
     -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/console_io/include \
     -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract \
-    -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s \
     -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/include \
     -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_common/include \
     -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_estdemo/include \
@@ -80,6 +81,7 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/kernel/freertos/FreeRTOS-Kernel/include \
     -I${MCU_PLUS_SDK_PATH}/source/kernel/freertos/portable/TI_ARM_CLANG/ARM_CR5F \
     -I${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/j722s/r5f \
+    -I${MCU_PLUS_SDK_PATH}/source/kernel  \
     -I${MCU_PLUS_SDK_PATH}/source/drivers \
     -I${MCU_PLUS_SDK_PATH}/source/drivers/udma \
     -I${MCU_PLUS_SDK_PATH}/source/drivers/hw_include \
@@ -131,6 +133,7 @@ DEFINES_common := \
     -DENABLE_ENET_LOG \
     -DFREERTOS \
     -DETHFW_PROXY_ARP_SUPPORT \
+    -DETHFW_PROXY_ARP_HANDLING \
     -DETHFW_INTERCORE_ETH_SUPPORT \
     -DETHFW_IPERF_SERVER_SUPPORT \
     -DMCU_PLUS_SDK \

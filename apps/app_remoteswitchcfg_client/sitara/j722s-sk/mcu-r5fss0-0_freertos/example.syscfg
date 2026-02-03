@@ -1,9 +1,9 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --device "AM62Dx" --part "AM62D24-G" --package "ANF" --context "mcu-r5fss0-0" --product "MCU_PLUS_SDK@07.03.01"
- * @v2CliArgs --device "AM62D-Q1" --package "FCBGA (ANF)" --variant "AM62D24-G" --context "mcu-r5fss0-0" --product "MCU_PLUS_SDK@07.03.01"
- * @versions {"tool":"1.24.0+4150"}
+ * @cliArgs --device "J722S_TDA4VEN_TDA4AEN_AM67" --part "Default" --package "AMW" --context "mcu-r5fss0-0" --product "MCU_PLUS_SDK@07.03.01"
+ * @v2CliArgs --device "TDA4VEN-Q1" --package "FCBGA (AMW)" --context "mcu-r5fss0-0" --product "MCU_PLUS_SDK@07.03.01"
+ * @versions {"tool":"1.24.2+4234"}
  */
 scripting.excludeFromBuild("ti_enet_open_close.c");
 scripting.excludeFromBuild("ti_enet_lwipif.c");
@@ -12,23 +12,20 @@ scripting.excludeFromBuild("ti_enet_lwipif.h");
 /**
  * Import the modules used in this configuration.
  */
-const eeprom      = scripting.addModule("/board/eeprom/eeprom", {}, false);
-const eeprom1     = eeprom.addInstance();
-const ipc         = scripting.addModule("/drivers/ipc/ipc");
-const debug_log   = scripting.addModule("/kernel/dpl/debug_log");
-const mpu_armv7   = scripting.addModule("/kernel/dpl/mpu_armv7", {}, false);
-const mpu_armv71  = mpu_armv7.addInstance();
-const mpu_armv72  = mpu_armv7.addInstance();
-const mpu_armv73  = mpu_armv7.addInstance();
-const mpu_armv74  = mpu_armv7.addInstance();
-const mpu_armv75  = mpu_armv7.addInstance();
-const mpu_armv76  = mpu_armv7.addInstance();
-const mpu_armv77  = mpu_armv7.addInstance();
-const mpu_armv78  = mpu_armv7.addInstance();
-const mpu_armv79  = mpu_armv7.addInstance();
-const mpu_armv710 = mpu_armv7.addInstance();
-const enet_cpsw   = scripting.addModule("/networking/enet_cpsw/enet_cpsw", {}, false);
-const enet_cpsw1  = enet_cpsw.addInstance();
+const eeprom     = scripting.addModule("/board/eeprom/eeprom", {}, false);
+const eeprom1    = eeprom.addInstance();
+const ipc        = scripting.addModule("/drivers/ipc/ipc");
+const debug_log  = scripting.addModule("/kernel/dpl/debug_log");
+const mpu_armv7  = scripting.addModule("/kernel/dpl/mpu_armv7", {}, false);
+const mpu_armv71 = mpu_armv7.addInstance();
+const mpu_armv72 = mpu_armv7.addInstance();
+const mpu_armv73 = mpu_armv7.addInstance();
+const mpu_armv74 = mpu_armv7.addInstance();
+const mpu_armv75 = mpu_armv7.addInstance();
+const mpu_armv76 = mpu_armv7.addInstance();
+const mpu_armv77 = mpu_armv7.addInstance();
+const enet_cpsw  = scripting.addModule("/networking/enet_cpsw/enet_cpsw", {}, false);
+const enet_cpsw1 = enet_cpsw.addInstance();
 
 /**
  * Write custom configuration values to the imported modules.
@@ -41,63 +38,43 @@ i2c1.$name               = "CONFIG_I2C0";
 eeprom1.peripheralDriver = i2c1;
 i2c1.I2C_child.$name     = "drivers_i2c_v0_i2c_v0_template0";
 
-ipc.c75ss0_0 = "NONE";
+ipc.enableLinuxIpc     = false;
+ipc.vringAllocationPDK = false;
 
 debug_log.enableUartLog = true;
-debug_log.uartTrace     = true;
 debug_log.uartLog.$name = "CONFIG_UART0";
 
-mpu_armv71.size              = 31;
-mpu_armv71.attributes        = "Device";
-mpu_armv71.accessPermissions = "Supervisor RD+WR, User RD";
-mpu_armv71.allowExecute      = false;
-mpu_armv71.$name             = "CONFIG_MPU_REGISTER";
+mpu_armv71.size         = 31;
+mpu_armv71.attributes   = "Device";
+mpu_armv71.allowExecute = false;
+mpu_armv71.$name        = "CONFIG_MPU_REGISTER";
 
-mpu_armv72.size              = 15;
-mpu_armv72.accessPermissions = "Supervisor RD+WR, User RD";
-mpu_armv72.$name             = "CONFIG_MPU_TCMA";
+mpu_armv72.size       = 15;
+mpu_armv72.$name      = "CONFIG_MPU_TCMA";
+mpu_armv72.attributes = "NonCached";
 
-mpu_armv73.baseAddr          = 0x41010000;
-mpu_armv73.size              = 15;
-mpu_armv73.accessPermissions = "Supervisor RD+WR, User RD";
-mpu_armv73.$name             = "CONFIG_MPU_TCMB";
+mpu_armv73.baseAddr   = 0x41010000;
+mpu_armv73.size       = 15;
+mpu_armv73.$name      = "CONFIG_MPU_TCMB";
+mpu_armv73.attributes = "NonCached";
 
-mpu_armv74.accessPermissions = "Supervisor RD+WR, User RD";
-mpu_armv74.baseAddr          = 0x79100000;
-mpu_armv74.size              = 19;
-mpu_armv74.$name             = "CONFIG_MPU_MCU_MSRAM";
+mpu_armv74.baseAddr = 0x79100000;
+mpu_armv74.size     = 19;
+mpu_armv74.$name    = "CONFIG_MPU_MCU_MSRAM";
 
-mpu_armv75.$name             = "CONFIG_MPU_REGION4";
-mpu_armv75.baseAddr          = 0x60000000;
-mpu_armv75.size              = 28;
-mpu_armv75.accessPermissions = "Supervisor RD, User RD";
+mpu_armv75.baseAddr = 0x80000000;
+mpu_armv75.size     = 31;
+mpu_armv75.$name    = "CONFIG_MPU_DDR";
 
-mpu_armv76.baseAddr = 0x80000000;
-mpu_armv76.size     = 31;
-mpu_armv76.$name    = "CONFIG_MPU_DDR";
+mpu_armv76.baseAddr = 0x60000000;
+mpu_armv76.size     = 26;
+mpu_armv76.$name    = "CONFIG_MPU_FLASH";
 
-mpu_armv77.$name      = "CONFIG_MPU_RTOS_VRING1";
-mpu_armv77.baseAddr   = 0x9B500000;
-mpu_armv77.size       = 20;
-mpu_armv77.attributes = "NonCached";
-
-mpu_armv78.$name        = "CONFIG_MPU_RTOS_VRING2";
-mpu_armv78.baseAddr     = 0x9B600000;
-mpu_armv78.size         = 21;
-mpu_armv78.allowExecute = false;
-mpu_armv78.attributes   = "NonCached";
-
-mpu_armv79.$name        = "CONFIG_MPU_LINUX_VRING";
-mpu_armv79.baseAddr     = 0x9B800000;
-mpu_armv79.size         = 20;
-mpu_armv79.attributes   = "NonCached";
-mpu_armv79.allowExecute = false;
-
-mpu_armv710.$name        = "CONFIG_MPU_RESOURCE_TABLE_AND_TRACE";
-mpu_armv710.baseAddr     = 0x9B900000;
-mpu_armv710.size         = 20;
-mpu_armv710.attributes   = "NonCached";
-mpu_armv710.allowExecute = false;
+mpu_armv77.baseAddr     = 0xA5000000;
+mpu_armv77.$name        = "RTOS_IPC_VRING";
+mpu_armv77.allowExecute = false;
+mpu_armv77.attributes   = "NonCached";
+mpu_armv77.size         = 24;
 
 enet_cpsw1.$name                  = "CONFIG_ENET_CPSW0";
 enet_cpsw1.PktInfoOnlyEnable      = true;

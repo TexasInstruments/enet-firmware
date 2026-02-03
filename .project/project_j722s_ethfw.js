@@ -56,7 +56,7 @@ const filedirs = {
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/client/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/console_io/src",
-        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_common/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_estdemo/src",
@@ -76,7 +76,7 @@ const includes = {
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/console_io/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract",
-        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_common/include",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_estdemo/include",
@@ -174,6 +174,7 @@ const defines_r5f = {
         "ENABLE_ENET_LOG",
         "FREERTOS",
         "ETHFW_PROXY_ARP_SUPPORT",
+        "ETHFW_PROXY_ARP_HANDLING",
         "ETHFW_INTERCORE_ETH_SUPPORT",
         "ETHFW_IPERF_SERVER_SUPPORT",
         "MCU_PLUS_SDK",
@@ -232,6 +233,7 @@ const defines_a53 = {
 const buildOptionCombos = [
     { device: device, cpu: "wkup-r5f", cgt: "ti-arm-clang"},
     { device: device, cpu: "mcu-r5f", cgt: "ti-arm-clang"},
+    { device: device, cpu: "main-r5f", cgt: "ti-arm-clang"},
 ];
 
 function getComponentProperty() {

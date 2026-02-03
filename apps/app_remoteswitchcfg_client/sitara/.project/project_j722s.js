@@ -85,7 +85,7 @@ const includes_freertos_r5f = {
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib",
         "${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/j722s",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw",
-        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s",
     ],
 };
 
@@ -236,6 +236,7 @@ const templates_freertos_r5f =
             entryFunction: "CpswRemoteApp_initTask",
             taskPri : "2",
             stackSize : "16384",
+            skipDriversClose: "true",
         },
     },
 ];

@@ -206,12 +206,11 @@
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_3) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_5))
-#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined (SOC_AM62AX)
+#elif defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined (SOC_AM62AX) || defined(SOC_J722S)
 #if defined(ENABLE_MAC_ONLY_PORTS)
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_1))
 #else
-#elif defined(SOC_AM62PX) || defined(SOC_J722S)
 #define ETHAPP_DFLT_PORT_MASK                   (CPSW_ALE_HOST_PORT_MASK | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_1) | \
                                                  CPSW_ALE_MACPORT_TO_PORTMASK(ENET_MAC_PORT_2))
@@ -622,15 +621,14 @@ static Enet_MacPort gEthAppPorts[] =
 #endif
 #endif
 
-#if defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX)
-#if defined(SOC_AM62PX) || defined(SOC_J722S)
+#if defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX) || defined(SOC_J722S)
     ENET_MAC_PORT_1,
     ENET_MAC_PORT_2,
 #endif
 };
 
 #if defined(ETHFW_GPTP_SUPPORT)
-#if !((defined(SOC_AM62PX)  || defined(SOC_AM62DX)|| defined(SOC_AM62AX)) || defined(SOC_J722S)) && defined(ETHFW_BOOT_TIME_PROFILING))
+#if !((defined(SOC_AM62PX)  || defined(SOC_AM62DX)|| defined(SOC_AM62AX) || defined(SOC_J722S)) && defined(ETHFW_BOOT_TIME_PROFILING))
 
 /* Ethernet ports where gPTP support is enabled, it must be composed of
  * ports in non MAC-only mode */
@@ -867,7 +865,7 @@ static EthFwVlan_VlanCfg gEthApp_vlanCfg[] =
         .regMcastFloodMask   = ETHAPP_DFLT_PORT_MASK,
         .unregMcastFloodMask = ETHAPP_DFLT_PORT_MASK,
         .virtMemberMask      = ETHAPP_DFLT_VIRT_PORT_MASK,
-        .untagMask           = 0U,
+        .untagMask           = 0U,  /* Accept untagged packets on all ports */
     },
 };
 
@@ -1898,11 +1896,11 @@ static void EthApp_netifLinkChangeCb(struct netif *pNetif)
 {
     if (netif_is_link_up(pNetif))
     {
-    	EnetAppUtils_print("[%d]Network Link UP Event\r\n", pNetif->num);
+        EnetAppUtils_print("[%d]Network Link UP Event\r\n", pNetif->num);
     }
     else
     {
-    	EnetAppUtils_print("[%d]Network Link DOWN Event\r\n", pNetif->num);
+        EnetAppUtils_print("[%d]Network Link DOWN Event\r\n", pNetif->num);
     }
     return;
 }

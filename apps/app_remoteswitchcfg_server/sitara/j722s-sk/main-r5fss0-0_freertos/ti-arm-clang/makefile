@@ -43,6 +43,7 @@ FILES_common := \
 	main_server.c \
 	main.c \
 	app_cpswconfighandler.c \
+	ethfw_callbacks_lwipif.c \
 	ti_drivers_config.c \
 	ti_drivers_open_close.c \
 	ti_board_config.c \
@@ -51,8 +52,11 @@ FILES_common := \
 	ti_pinmux_config.c \
 	ti_power_clock_config.c \
     ti_enet_config.c \
+	ti_enet_dma_init.c \
+	ti_enet_init.c \
     ti_enet_open_close.c \
     ti_enet_soc.c \
+    ti_enet_lwipif.c \
 
 FILES_PATH_common = \
 	.. \
@@ -60,6 +64,7 @@ FILES_PATH_common = \
 	../../../.. \
 	../../../../.. \
 	../../../../../../../../../examples/drivers/boot/common/soc/j722s/ \
+	../../../../../../utils/ethfw_callbacks/src \
 	generated \
 
 INCLUDES_common := \
@@ -97,7 +102,8 @@ INCLUDES_common := \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/j722s \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw \
-	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/sitara \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s \
+	-I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/include \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipific_tap/inc \
 	-I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/intercore/include \
 	-Igenerated \
@@ -105,13 +111,22 @@ INCLUDES_common := \
 DEFINES_common := \
 	-DSOC_J722S \
 	-DSOC_J722S \
+	-DR5F_CORE \
 	-DENET_ENABLE_PER_CPSW=1 \
 	-DPRINT_FORMAT_NO_WARNING \
 	-DSITARA \
 	-DGPTP_ENABLED=1 \
+	-DMCU_PLUS_SDK \
+	-DETHFW_PROXY_ARP_HANDLING \
+	-DENABLE_ETHFW_PROXYARP \
+	-DCPU_mcu2_0 \
 	-DETHAPP_ENABLE_IPERF_SERVER \
+	-DETHFW_GPTP_SUPPORT \
+	-DETHFW_INTERCORE_ETH_SUPPORT \
+	-DETHAPP_ENABLE_INTERCORE_ETH \
 
 CFLAGS_common := \
+	-DBUILD_MAIN_R5 \
 	-mcpu=cortex-r5 \
 	-mfloat-abi=hard \
 	-mfpu=vfpv3-d16 \
@@ -155,11 +170,13 @@ LIBS_PATH_common = \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/tsn/lib \
 	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/ethfw/lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_lib \
+	-Wl,-i${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/license_lib \
 	-Wl,-i${CG_TOOL_ROOT}/lib \
 
 LIBS_common = \
 	-lfreertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
-	-ldrivers.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
+	-ldrivers.j722s.main-r5f.ti-arm-clang.${ConfigName}.lib \
 	-lenet-cpsw.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	-lboard.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llibc.a \
@@ -171,7 +188,8 @@ LIBS_common = \
 	-llwipif-cpsw-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	-llwip-contrib-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
-	-lethfw.j722s.wkup-r5f.ti-arm-clang.${ConfigName}.lib \
+	-lethfw.j722s.main-r5f.ti-arm-clang.${ConfigName}.lib \
+	-lyangemb-freertos.j722s.main-r5f.ti-arm-clang.lib \
 	-llibc.a \
 	-llibsysbm.a \
 
@@ -194,7 +212,7 @@ LNKOPTFLAGS_release = \
 
 LIBS_NAME = \
 	freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
-	drivers.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
+	drivers.j722s.main-r5f.ti-arm-clang.${ConfigName}.lib \
 	enet-cpsw.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	board.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	libc.a \
@@ -206,11 +224,10 @@ LIBS_NAME = \
 	lwipif-cpsw-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
 	lwip-contrib-freertos.j722s.r5f.ti-arm-clang.${ConfigName}.lib \
-	ethfw.j722s.wkup-r5f.ti-arm-clang.${ConfigName}.lib \
+	ethfw.j722s.main-r5f.ti-arm-clang.${ConfigName}.lib \
+	yangemb-freertos.j722s.main-r5f.ti-arm-clang.lib \
 	libc.a \
 	libsysbm.a \
-
-LIBS_PREBUILD_NAME = \
 
 LIBS_PATH_NAME = \
 	generated \
@@ -221,9 +238,9 @@ LIBS_PATH_NAME = \
 	${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib \
 	${MCU_PLUS_SDK_PATH}/source/networking/tsn/lib \
 	${MCU_PLUS_SDK_PATH}/source/networking/ethfw/lib \
+	${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/eval_lib \
+	${MCU_PLUS_SDK_PATH}/source/networking/tsn/tsn-stack/license_lib \
 	${CG_TOOL_ROOT}/lib \
-
-LIBS_PREBUILD_PATH_NAME = \
 
 FILES := $(FILES_common) $(FILES_$(PROFILE))
 ASMFILES := $(ASMFILES_common) $(ASMFILES_$(PROFILE))
@@ -232,9 +249,7 @@ CFLAGS := $(CFLAGS_common) $(CFLAGS_$(PROFILE))
 DEFINES := $(DEFINES_common) $(DEFINES_$(PROFILE))
 INCLUDES := $(INCLUDES_common) $(INCLUDE_$(PROFILE))
 LIBS := $(LIBS_common) $(LIBS_$(PROFILE))
-LIBS_PREBUILD := $(LIBS_PREBUILD_common) $(LIBS_PREBUILD_$(PROFILE))
 LIBS_PATH := $(LIBS_PATH_common) $(LIBS_PATH_$(PROFILE))
-LIBS_PREBUILD_PATH := $(LIBS_PREBUILD_PATH_common) $(LIBS_PREBUILD_PATH_$(PROFILE))
 LFLAGS := $(LFLAGS_common) $(LFLAGS_$(PROFILE))
 LNKOPTFLAGS := $(LNKOPTFLAGS_common) $(LNKOPTFLAGS_$(PROFILE))
 LNK_FILES := $(LNK_FILES_common) $(LNK_FILES_$(PROFILE))
@@ -251,11 +266,11 @@ vpath %.lib $(LIBS_PATH_NAME)
 vpath %.a $(LIBS_PATH_NAME)
 
 $(OBJDIR)/%.obj %.obj: %.c
-	@echo  Compiling: j722s:r5fss0-0:freertos:ti-arm-clang $(OUTNAME): $<
+	@echo  Compiling: j722s:main-r5fss0-0:freertos:ti-arm-clang $(OUTNAME): $<
 	$(CC) -c $(CFLAGS) $(INCLUDES) $(DEFINES) -MMD -o $(OBJDIR)/$@ $<
 
 $(OBJDIR)/%.obj %.obj: %.S
-	@echo  Compiling: j722s:r5fss0-0:freertos:ti-arm-clang $(LIBNAME): $<
+	@echo  Compiling: j722s:main-r5fss0-0:freertos:ti-arm-clang $(LIBNAME): $<
 	$(CC) -c $(CFLAGS) -o $(OBJDIR)/$@ $<
 
 all: $(TARGETS)
@@ -267,23 +282,26 @@ SYSCFG_GEN_FILES+=generated/ti_pinmux_config.c generated/ti_power_clock_config.c
 SYSCFG_GEN_FILES+=generated/ti_board_config.c generated/ti_board_config.h
 SYSCFG_GEN_FILES+=generated/ti_board_open_close.c generated/ti_board_open_close.h
 SYSCFG_GEN_FILES+=generated/ti_enet_config.c generated/ti_enet_config.h
+SYSCFG_GEN_FILES+=generated/ti_enet_dma_init.c generated/ti_enet_dma_init.h
+SYSCFG_GEN_FILES+=generated/ti_enet_init.c
 SYSCFG_GEN_FILES+=generated/ti_enet_open_close.c generated/ti_enet_open_close.h
 SYSCFG_GEN_FILES+=generated/ti_enet_soc.c
+SYSCFG_GEN_FILES+=generated/ti_enet_lwipif.c generated/ti_enet_lwipif.h
 
 $(OUTNAME): syscfg $(SYSCFG_GEN_FILES) $(OBJS) $(LNK_FILES) $(LIBS_NAME)
 	@echo  .
-	@echo  Linking: j722s:r5fss0-0:freertos:ti-arm-clang $@ ...
-	$(LNK) $(LNKOPTFLAGS) $(LFLAGS) $(LIBS_PREBUILD_PATH) $(LIBS_PATH) -Wl,-m=$(basename $@).map -o $@ $(addprefix $(OBJDIR), $(OBJS)) $(LIBS_PREBUILD) $(LIBS) $(LNK_FILES)
-	$(RM) ethfw_server..${ConfigName}.strip.out
-	$(STRIP) -p $@ -o=ethfw_server..${ConfigName}.strip.out
-	@echo  Linking: j722s:r5fss0-0:freertos:ti-arm-clang $@ Done !!!
+	@echo  Linking: j722s:main-r5fss0-0:freertos:ti-arm-clang $@ ...
+	$(LNK) $(LNKOPTFLAGS) $(LFLAGS) $(LIBS_PATH) -Wl,-m=$(basename $@).map -o $@ $(addprefix $(OBJDIR), $(OBJS)) $(LIBS) $(LNK_FILES)
+	$(RM) ethfw_server.main-r5f0_0.${ConfigName}.strip.out
+	$(STRIP) -p $@ -o=ethfw_server.main-r5f0_0.${ConfigName}.strip.out
+	@echo  Linking: j722s:main-r5fss0-0:freertos:ti-arm-clang $@ Done !!!
 	@echo  .
 
 clean:
-	@echo  Cleaning: j722s:r5fss0-0:freertos:ti-arm-clang $(OUTNAME) ...
+	@echo  Cleaning: j722s:main-r5fss0-0:freertos:ti-arm-clang $(OUTNAME) ...
 	$(RMDIR) $(OBJDIR)
 	$(RM) $(OUTNAME)
-	$(RM) ethfw_server..${ConfigName}.strip.out
+	$(RM) ethfw_server.main-r5f0_0.${ConfigName}.strip.out
 	$(RM) $(BOOTIMAGE_NAME)
 	$(RM) $(BOOTIMAGE_NAME_XIP)
 	$(RM) $(BOOTIMAGE_NAME_SIGNED)
@@ -294,7 +312,7 @@ clean:
 	$(RMDIR) generated/
 
 scrub:
-	@echo  Scrubing: j722s:r5fss0-0:freertos:ti-arm-clang ethfw_server ...
+	@echo  Scrubing: j722s:main-r5fss0-0:freertos:ti-arm-clang ethfw_server ...
 	$(RMDIR) obj
 ifeq ($(OS),Windows_NT)
 	$(RM) \*.out
@@ -325,10 +343,10 @@ $(SYSCFG_GEN_FILES): syscfg
 
 syscfg: ../example.syscfg
 	@echo Generating SysConfig files ...
-	$(SYSCFG_NODE) $(SYSCFG_CLI_PATH)/dist/cli.js --product $(SYSCFG_SDKPRODUCT) --context r5fss0-0 --part Default --package AMW --output generated/ ../example.syscfg
+	$(SYSCFG_NODE) $(SYSCFG_CLI_PATH)/dist/cli.js --product $(SYSCFG_SDKPRODUCT) --device J722S_TDA4VEN_TDA4AEN_AM67 --context main-r5fss0-0 --part Default --package AMW --output generated/ ../example.syscfg
 
 syscfg-gui:
-	$(SYSCFG_NWJS) $(SYSCFG_PATH) --product $(SYSCFG_SDKPRODUCT) --device J722S_TDA4VEN_TDA4AEN_AM67 --context r5fss0-0 --part Default --package AMW --output generated/  ../example.syscfg
+	$(SYSCFG_GUI_SCRIPT) --product $(SYSCFG_SDKPRODUCT) --device J722S_TDA4VEN_TDA4AEN_AM67 --context main-r5fss0-0 --part Default --package AMW --output generated/  ../example.syscfg
 
 #
 # Generation of boot image which can be loaded by Secondary Boot Loader (SBL)
@@ -369,30 +387,33 @@ else
 endif
 
 MULTI_CORE_IMAGE_PARAMS = \
-	$(SCISERVER_BOOTIMAGE_RPRC_NAME)@$(BOOTIMAGE_CORE_ID_wkup-r5fss0-0) \
-	$(BOOTIMAGE_RPRC_NAME)@$(BOOTIMAGE_CORE_ID_r5fss0-0) \
+	   $(SCISERVER_BOOTIMAGE_RPRC_NAME)@$(BOOTIMAGE_CORE_ID_wkup-r5fss0-0) \
+	$(BOOTIMAGE_RPRC_NAME)@$(BOOTIMAGE_CORE_ID_main-r5fss0-0) \
 
 MULTI_CORE_IMAGE_PARAMS_XIP = \
-	$(BOOTIMAGE_RPRC_NAME_XIP)@$(BOOTIMAGE_CORE_ID_r5fss0-0) \
+	$(BOOTIMAGE_RPRC_NAME_XIP)@$(BOOTIMAGE_CORE_ID_main-r5fss0-0) \
 
 $(BOOTIMAGE_NAME): $(OUTNAME)
-	@echo  Boot image: j722s:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ ...
+	@echo  Boot image: j722s:main-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ ...
 ifneq ($(OS),Windows_NT)
 	$(CHMOD) a+x $(XIPGEN_CMD)
 endif
-	$(OUTRPRC_CMD) $(OUTNAME) $(SW_VERSION) >> $(BOOTIMAGE_TEMP_OUT_FILE)
+	$(OUTRPRC_CMD) $(OUTNAME) $(SW_VERSION)>> $(BOOTIMAGE_TEMP_OUT_FILE)
 	$(COPY) $(BOOTIMAGE_RPRC_NAME) $(BOOTIMAGE_RPRC_NAME_TMP)
 	$(RM) $(BOOTIMAGE_RPRC_NAME)
 	$(XIPGEN_CMD) -i $(BOOTIMAGE_RPRC_NAME_TMP) -o $(BOOTIMAGE_RPRC_NAME) -x $(BOOTIMAGE_RPRC_NAME_XIP) --flash-start-addr 0x60000000 -v > $(BOOTIMAGE_TEMP_OUT_FILE)
 	$(MULTI_CORE_IMAGE_GEN) --devID $(SBL_DEV_ID) --out $(BOOTIMAGE_NAME) $(MULTI_CORE_IMAGE_PARAMS) >> $(BOOTIMAGE_TEMP_OUT_FILE)
 	$(MULTI_CORE_IMAGE_GEN) --devID $(SBL_DEV_ID) --out $(BOOTIMAGE_NAME_XIP) $(MULTI_CORE_IMAGE_PARAMS_XIP) >> $(BOOTIMAGE_TEMP_OUT_FILE)
 # Sign the appimage for HS-FS using appimage signing script
-	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 2 --key $(APP_SIGNING_KEY) --output $(BOOTIMAGE_NAME_HS_FS)
+    #
+    #   Authentication type 0 with load address 0xC2000000
+    #
+	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 0  --loadaddr C2000000 --key $(APP_SIGNING_KEY) --output $(BOOTIMAGE_NAME_HS_FS) --keyversion $(VERSION)
 	$(RM) $(BOOTIMAGE_RPRC_NAME_TMP)
 	$(RM) $(BOOTIMAGE_TEMP_OUT_FILE)
-	@echo  Boot image: j722s:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ Done !!!
+	@echo  Boot image: j722s:main-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$@ Done !!!
 	@echo  .
-	@echo  Boot image: j722s:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS_FS) Done !!!
+	@echo  Boot image: j722s:main-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS_FS) Done !!!
 	@echo  .
 
 $(BOOTIMAGE_NAME_HS): $(BOOTIMAGE_NAME)
@@ -400,13 +421,19 @@ ifeq ($(DEVICE_TYPE), HS)
 # Sign the appimage using appimage signing script
 ifeq ($(ENC_ENABLED),no)
 	@echo Boot image signing: Encryption is disabled.
-	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 2 --key $(APP_SIGNING_KEY) --output $(BOOTIMAGE_NAME_HS)
+    #
+    #   Authentication type 0 with load address 0xC2000000
+    #
+	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 0  --loadaddr C2000000 --key $(APP_SIGNING_KEY) --output $(BOOTIMAGE_NAME_HS) --keyversion $(VERSION)
 else
 	@echo Boot image signing: Encryption is enabled.
-	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 2 --key $(APP_SIGNING_KEY) --enc y --enckey $(APP_ENCRYPTION_KEY) --output $(BOOTIMAGE_NAME_HS)
+    #
+    #   Authentication type 0 with load address 0xC2000000
+    #
+	$(PYTHON) $(APP_IMAGE_SIGN_CMD) --bin $(BOOTIMAGE_NAME) --authtype 0  --loadaddr C2000000 --key $(APP_SIGNING_KEY) --enc y --enckey $(APP_ENCRYPTION_KEY) --output $(BOOTIMAGE_NAME_HS) --keyversion $(VERSION)
 	$(RM) $(BOOTIMAGE_NAME)-enc
 endif
-	@echo  Boot image: j722s:r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS) Done !!!
+	@echo  Boot image: j722s:main-r5fss0-0:freertos:ti-arm-clang $(BOOTIMAGE_PATH)/$(BOOTIMAGE_NAME_HS) Done !!!
 	@echo  .
 endif
 -include $(addprefix $(OBJDIR)/, $(DEPS))
