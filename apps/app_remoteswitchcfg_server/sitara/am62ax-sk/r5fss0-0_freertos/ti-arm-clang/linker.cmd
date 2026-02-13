@@ -187,20 +187,24 @@ MEMORY
 
     HSM_RAM                     : ORIGIN = 0x43C00000 LENGTH = 0x3FF00
     /* DDR for DM LPM data [ size 640.00 KB ] */
-    DDR_LPM_DATA    (RWIX)      : ORIGIN = 0x90000000 LENGTH = 0x000A0000
-    /* DDR for DM R5F code/data [ size 27 MiB + 384 KB ] */
-    DDR                         : ORIGIN = 0x900A0000 LENGTH = 0x01B60000
+    DDR_LPM_DATA    (RWIX)      : ORIGIN = 0x9CA00000 LENGTH = 0x000A0000
+    /* DDR for DM RM/PM HAL trace buffer [ size 20 KB ] */
+    DDR_DM_RMPM_TRACE (RWIX)    : ORIGIN = 0x9CAA0000 LENGTH = 0x00005000
+    /* DDR for DM R5F code/data [ size 27 MiB + 364 KB ] */
+    DDR                         : ORIGIN = 0x9CAA5000 LENGTH = 0x1B60000
 
-    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9BC00000, LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
-    DDR_IPC_VRING_LINUX           : ORIGIN = 0x9CC00000, LENGTH = 0x100000   /* IPC VRING with Linux */
-    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0x9CD00000, LENGTH = 0x400      /* For resource table   */
-    DDR_IPC_TRACE_LINUX           : ORIGIN = 0x9CD00400, LENGTH = 0xFFC00    /* IPC trace buffer     */
+    DDR_IPC_VRING_RTOS            : ORIGIN = 0xA0000000, LENGTH = 0x01000000   /* IPC VRING for RTOS/NoRTOS */
+
+    DDR_IPC_VRING_LINUX           : ORIGIN = 0x9C800000, LENGTH = 0x100000   /* IPC VRING with Linux */
+
+    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0x9C900000, LENGTH = 0x400      /* For resource table   */
+    DDR_IPC_TRACE_LINUX           : ORIGIN = 0x9C900400, LENGTH = 0xFFC00    /* IPC trace buffer     */
 
     /* This section is used by the SBL to temporarily load the appimage for authentication */
     APPIMAGE  : ORIGIN = 0x84000000 , LENGTH = 0x01900000
 
     /* Inter-core ethernet shared desc queues. MUST be non-cached or cache-coherent [ size 2 MB ] */
-    INTERCORE_ETH_DESC_MEM            : ORIGIN = 0xA4000000 , LENGTH = 0x00200000
-    /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 14 MB ] */
-    INTERCORE_ETH_DATA_MEM            : ORIGIN = 0xA4200000 , LENGTH = 0x01E00000
+    INTERCORE_ETH_DESC_MEM            : ORIGIN = 0xAC000000 , LENGTH = 0x00200000
+    /* Inter-core ethernet shared data buffers. MUST be non-cached or cache-coherent [ size 6 MB ] */
+    INTERCORE_ETH_DATA_MEM            : ORIGIN = 0xAC200000 , LENGTH = 0x00E00000
 }

@@ -105,7 +105,7 @@ SECTIONS
         .fini_array: {} palign(8)   /* Contains function pointers called after main */
     } > MSRAM
 
-        .enet_dma_mem (NOLOAD) : {
+    .enet_dma_mem (NOLOAD) : {
         *(*ENET_DMA_DESC_MEMPOOL)
         *(*ENET_DMA_RING_MEMPOOL)
 #if (ENET_SYSCFG_PKT_POOL_ENABLE == 1)
@@ -122,10 +122,11 @@ MEMORY
     R5F_TCMB  : ORIGIN = 0x41010000 , LENGTH = 0x00008000
 
     MSRAM     : ORIGIN = 0x79100000 , LENGTH = 0x80000
-    DDR       : ORIGIN = 0x9BA00000 , LENGTH = 0x200000
 
-    DDR_IPC_VRING_RTOS            : ORIGIN = 0x9BC00000, LENGTH = 0x1000000   /* IPC VRING for RTOS/NoRTOS */
-    DDR_IPC_VRING_LINUX           : ORIGIN = 0x9CC00000, LENGTH = 0x100000   /* IPC VRING with Linux */
-    DDR_IPC_RESOURCE_TABLE_LINUX  : ORIGIN = 0x9CD00000, LENGTH = 0x400      /* For resource table   */
-    DDR_IPC_TRACE_LINUX           : ORIGIN = 0x9CD00400, LENGTH = 0xFFC00    /* IPC trace buffer     */
+    DDR_IPC_VRING_RTOS   :ORIGIN = 0xA0000000 LENGTH=0x1000000   /* IPC VRING for RTOS/NoRTOS */
+    DDR_IPC_VRING_LINUX  :ORIGIN = 0x9B800000 LENGTH=0x100000   /* IPC VRING with Linux */
+
+    DDR_IPC_RESOURCE_TABLE_LINUX     : ORIGIN = 0x9B900000 LENGTH = 0x400      /* For resource table   */
+    DDR_IPC_TRACE_LINUX              : ORIGIN = 0x9B900400 LENGTH = 0xFFC00    /* IPC trace buffer     */
+    DDR                              : ORIGIN = 0x9BA00000 LENGTH = 0x00200000
 }
