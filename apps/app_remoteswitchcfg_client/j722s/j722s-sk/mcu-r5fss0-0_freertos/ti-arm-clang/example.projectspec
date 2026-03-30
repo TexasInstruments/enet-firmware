@@ -152,8 +152,6 @@
         <pathVariable name="MCU_PLUS_SDK_PATH" path="${COM_TI_MCU_PLUS_SDK_AMXXX_INSTALL_DIR}" scope="project" />
         <file path="../main_client.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
-        <file path="../virtnetif_lwipif.c" openOnCreation="false" excludeFromBuild="false" action="link">
-        </file>
         <file path="../../../../virtnetif_lwipif.c" openOnCreation="false" excludeFromBuild="false" action="link">
         </file>
         <file path="../../../../main.c" openOnCreation="false" excludeFromBuild="false" action="link">

@@ -1,7 +1,7 @@
 /*
  *
- * Copyright (c) 2025 Texas Instruments Incorporated
- * Copyright (c) 2024-2025 Texas Instruments Incorporated
+
+ * Copyright (c) 2024-2026 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *

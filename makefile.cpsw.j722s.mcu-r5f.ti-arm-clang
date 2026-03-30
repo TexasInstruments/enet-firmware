@@ -58,7 +58,6 @@ FILES_PATH_common = \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/mem/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/perf_stats/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/remote_services/src \
-    ${MCU_PLUS_SDK_PATH}/source/kernel/freertos/dpl/common \
 
 INCLUDES_common := \
     -I${CG_TOOL_ROOT}/include/c \
@@ -81,7 +80,6 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/kernel/freertos/FreeRTOS-Kernel/include \
     -I${MCU_PLUS_SDK_PATH}/source/kernel/freertos/portable/TI_ARM_CLANG/ARM_CR5F \
     -I${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/j722s/r5f \
-    -I${MCU_PLUS_SDK_PATH}/source/kernel  \
     -I${MCU_PLUS_SDK_PATH}/source/drivers \
     -I${MCU_PLUS_SDK_PATH}/source/drivers/udma \
     -I${MCU_PLUS_SDK_PATH}/source/drivers/hw_include \
