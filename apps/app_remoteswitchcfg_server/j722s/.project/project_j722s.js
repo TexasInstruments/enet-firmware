@@ -290,7 +290,7 @@ const templates_freertos_wkup_r5f =
 ];
 
 const buildOptionCombos = [
-    { device: device, cpu: "main-r5fss0-0", cgt: "ti-arm-clang", board: "j722s-sk" , os: "freertos"},
+    { device: device, cpu: "main-r5fss0-0", cgt: "ti-arm-clang", board: "j722s-evm" , os: "freertos"},
 
 ];
 
