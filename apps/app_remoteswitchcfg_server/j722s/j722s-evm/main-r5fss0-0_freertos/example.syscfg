@@ -38,8 +38,6 @@ i2c1.I2C.$assign                = "I2C0";
 i2c1.I2C.SCL.$assign            = "I2C0_SCL";
 i2c1.I2C.SDA.$assign            = "I2C0_SDA";
 
-ipc.vringAllocationPDK = false;
-
 udma1.$name = "CONFIG_UDMA0";
 
 debug_log.enableUartLog                      = true;
@@ -124,6 +122,12 @@ enet_cpsw1.netifInstance.create(1);
 enet_cpsw1.netifInstance[0].$name              = "NETIF_INST_ID0";
 enet_cpsw1.netifInstance[0].enableProxyArp     = true;
 enet_cpsw1.netifInstance[0].proxyArpRxDmaChNum = ["1"];
+enet_cpsw1.cpswVlanAwareMode                   = true;
+enet_cpsw1.vlanId_hostPort                     = 0x1;
+enet_cpsw1.vlanId_macPort1                     = 0x3;
+enet_cpsw1.vlanId_macPort2                     = 0x3;
+enet_cpsw1.hostportRxMtu                       = 1522;
+
 
 const ethphy_cpsw_icssg  = scripting.addModule("/board/ethphy_cpsw_icssg/ethphy_cpsw_icssg", {}, false);
 const ethphy_cpsw_icssg1 = ethphy_cpsw_icssg.addInstance({}, false);
