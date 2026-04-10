@@ -23,6 +23,7 @@ const files = {
         "ethfw_ipc.c",
         /* board */
         "board_j722s_evm.c",
+        "board_serdes_utils.c",
 
         /* ethfw_callbacks */
         "ethfw_callbacks_lwipif.c",
@@ -43,6 +44,44 @@ const files = {
         "ic_queue.c",
         "pbufQ_ic.c",
         "custom_pbuf_ic.c",
+
+        /* Serdes-Sgmii */
+        /* SGMII CSL */
+        "j722s_csl_cpsgmii.c",
+
+        /* SerDes CSL - V3*/
+        "j722s_csl_serdes3.c",
+        "j722s_csl_serdes3_ethernet.c",
+
+        /* SerDes Configuration Data - V1 */
+        "csl_wiz16m_ct2_refclk100MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk100MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk100MHz_20b_XAUI.c",
+        "csl_wiz16m_ct2_refclk125MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk125MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk100MHz_PCIe_SGMII_multilink.c",
+        "csl_wiz16m_ct2_refclk100MHz_PCIe_QSGMII_multilink.c",
+        "csl_wiz16m_ct2_refclk100MHz_20b_USXGMII.c",
+        "csl_wiz16m_ct2_refclk156p25MHz_20b_USXGMII.c",
+        "csl_wiz16m_ct2_refclk156p25MHz_20b_XAUI.c",
+        "csl_wiz16m_ct2_refclk19p2MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk19p2MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk19p2MHz_20b_XAUI.c",
+        "csl_wiz16m_ct2_refclk20MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk20MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk20MHz_20b_XAUI.c",
+        "csl_wiz16m_ct2_refclk24MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk24MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk24MHz_20b_XAUI.c",
+        "csl_wiz16m_ct2_refclk25MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk25MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk25MHz_20b_XAUI.c",
+        "csl_wiz16m_ct2_refclk26MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk26MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk26MHz_20b_XAUI.c",
+        "csl_wiz16m_ct2_refclk27MHz_20b_SGMII.c",
+        "csl_wiz16m_ct2_refclk27MHz_20b_QSGMII.c",
+        "csl_wiz16m_ct2_refclk27MHz_20b_XAUI.c",
     ],
 };
 
@@ -55,6 +94,7 @@ const filedirs = {
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/server/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/client/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s/serdes_sgmii",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/console_io/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/src",
@@ -65,6 +105,7 @@ const filedirs = {
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/mem/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/perf_stats/src",
         "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/remote_services/src",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/serdes_cd/V1",
     ],
 };
 
@@ -105,6 +146,8 @@ const includes = {
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include",
 
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include",
+        "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/serdes_cd/V1",
+        "${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s/serdes_sgmii",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/cpsw/V5",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/cpsw/V5/V5_0",
         "${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/cpts",

@@ -666,9 +666,9 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 #endif
 
 #if defined(SOC_AM62PX) || defined(SOC_AM62DX) || defined(SOC_AM62AX) || defined(SOC_J722S)
-    ENET_MAC_PORT_1,
+    ENET_MAC_PORT_1, /* RGMII */
 #if !defined(ENABLE_MAC_ONLY_PORTS)
-    ENET_MAC_PORT_2,
+    ENET_MAC_PORT_2, /* SGMII */
 #endif
 #endif
 };
@@ -1109,6 +1109,10 @@ static int32_t EthApp_boardInit(void)
 #if defined(ETHFW_CCS)
     flags |= ETHFW_BOARD_I2C_ALLOWED;
 #endif
+#endif
+
+#if defined(SOC_J722S)
+    flags |= (ETHFW_BOARD_SERDES_CONFIG | ETHFW_BOARD_UART_ALLOWED | ETHFW_BOARD_ENET_BRIDGE_ENABLE) ;
 #endif
 #endif /* !ETHFW_BOOT_TIME_PROFILING */
 

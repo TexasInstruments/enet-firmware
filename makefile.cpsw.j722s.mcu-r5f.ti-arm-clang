@@ -29,6 +29,7 @@ FILES_common := \
     ethfw_osal.c \
     ethfw_ipc.c \
     board_j722s_evm.c \
+    board_serdes_utils.c \
     ethfw_callbacks_lwipif.c \
     ethfw_trace.c \
     enet_mcm.c \
@@ -39,6 +40,37 @@ FILES_common := \
     ic_queue.c \
     pbufQ_ic.c \
     custom_pbuf_ic.c \
+    j722s_csl_cpsgmii.c \
+    j722s_csl_serdes3.c \
+    j722s_csl_serdes3_ethernet.c \
+    csl_wiz16m_ct2_refclk100MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk100MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk100MHz_20b_XAUI.c \
+    csl_wiz16m_ct2_refclk125MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk125MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk100MHz_PCIe_SGMII_multilink.c \
+    csl_wiz16m_ct2_refclk100MHz_PCIe_QSGMII_multilink.c \
+    csl_wiz16m_ct2_refclk100MHz_20b_USXGMII.c \
+    csl_wiz16m_ct2_refclk156p25MHz_20b_USXGMII.c \
+    csl_wiz16m_ct2_refclk156p25MHz_20b_XAUI.c \
+    csl_wiz16m_ct2_refclk19p2MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk19p2MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk19p2MHz_20b_XAUI.c \
+    csl_wiz16m_ct2_refclk20MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk20MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk20MHz_20b_XAUI.c \
+    csl_wiz16m_ct2_refclk24MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk24MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk24MHz_20b_XAUI.c \
+    csl_wiz16m_ct2_refclk25MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk25MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk25MHz_20b_XAUI.c \
+    csl_wiz16m_ct2_refclk26MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk26MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk26MHz_20b_XAUI.c \
+    csl_wiz16m_ct2_refclk27MHz_20b_SGMII.c \
+    csl_wiz16m_ct2_refclk27MHz_20b_QSGMII.c \
+    csl_wiz16m_ct2_refclk27MHz_20b_XAUI.c \
 
 FILES_PATH_common = \
     ${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/V2 \
@@ -48,6 +80,7 @@ FILES_PATH_common = \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/server/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/ethremotecfg/client/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s \
+    ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s/serdes_sgmii \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/console_io/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_abstract/j722s \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/ethfw_callbacks/src \
@@ -58,6 +91,7 @@ FILES_PATH_common = \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/mem/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/perf_stats/src \
     ${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/remote_services/src \
+    ${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/serdes_cd/V1 \
 
 INCLUDES_common := \
     -I${CG_TOOL_ROOT}/include/c \
@@ -94,6 +128,8 @@ INCLUDES_common := \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/core/src/phy \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/serdes_cd/V1 \
+    -I${MCU_PLUS_SDK_PATH}/source/networking/ethfw/utils/board/src/j722s/serdes_sgmii \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/cpsw/V5 \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/cpsw/V5/V5_0 \
     -I${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/cpts \

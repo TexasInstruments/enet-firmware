@@ -45,6 +45,7 @@
 /* ========================================================================== */
 
 #include <enet.h>
+#include <mod/cpsw_macport.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -206,6 +207,24 @@ int32_t EthFwBoard_setPortCfg(Enet_MacPort macPort,
  */
 uint32_t EthFwBoard_getMacAddrPool(uint8_t macAddr[][ENET_MAC_ADDR_LEN],
                                    uint32_t poolSize);
+
+#if defined(SOC_J722S)                                   
+int32_t BoardUtils_enableSerDes(uint32_t serdesInstance);
+int32_t PMLIBClkRateGet(uint32_t modId,
+                        uint32_t clkId,
+                        uint64_t *clkRate);
+
+int32_t PMLIBClkRateSet(uint32_t modId,
+                        uint32_t clkId,
+                        uint64_t clkRate);
+
+void BoardUtils_setDeviceState(uint32_t moduleId,
+                               uint32_t requiredState,
+                               uint32_t appFlags);
+
+uint32_t Board_serdesCfgSgmii(uint32_t serdesInstance);
+
+#endif
 
 /* ========================================================================== */
 /*                        Deprecated Function Declarations                    */
