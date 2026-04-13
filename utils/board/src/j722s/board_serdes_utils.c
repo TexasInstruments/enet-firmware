@@ -295,17 +295,13 @@ uint32_t Board_serdesCfgSgmii(uint32_t serdesInstance)
     CSL_SerdesLaneEnableParams serdesLaneEnableParams  = {0};
     uint32_t serdesBaseAddr;
 
-    DebugP_log("\r\n[SERDES] Board_serdesCfgSgmii: Starting SerDes configuration for instance %u\r\n", serdesInstance);
-
     if (serdesInstance == CSL_TORRENT_SERDES1)
     {
 		  serdesBaseAddr = CSL_SERDES_10G1_BASE;
-		  DebugP_log("[SERDES] Using SERDES1 base: 0x%08x\r\n", (unsigned int)CSL_SERDES_10G1_BASE);
     }
     else
     {
 		  serdesBaseAddr = CSL_SERDES_10G0_BASE;
-		  DebugP_log("[SERDES] Using SERDES0 base: 0x%08x\r\n", (unsigned int)CSL_SERDES_10G0_BASE);
     }
 
     memset(&serdesLaneEnableParams, 0, sizeof(serdesLaneEnableParams));
@@ -327,20 +323,15 @@ uint32_t Board_serdesCfgSgmii(uint32_t serdesInstance)
     serdesLaneEnableParams.laneCtrlRate[0] = CSL_SERDES_LANE_FULL_RATE;
     serdesLaneEnableParams.loopbackMode[0] = CSL_SERDES_LOOPBACK_DISABLED;
 
-    DebugP_log("[SERDES] Performing POR reset\r\n");
     CSL_serdesPorReset(serdesLaneEnableParams.baseAddr);
 
     /* Select the IP type, IP instance num, Serdes Lane Number */
-    DebugP_log("[SERDES] Selecting IP type: phyType=%u, phyInstance=%u, serdesInstance=%u\r\n",
-               serdesLaneEnableParams.phyType, serdesLaneEnableParams.phyInstanceNum, serdesLaneEnableParams.serdesInstance);
     CSL_serdesIPSelect(CSL_CTRL_MMR0_CFG0_BASE,
                        serdesLaneEnableParams.phyType,
                        serdesLaneEnableParams.phyInstanceNum,
                        serdesLaneEnableParams.serdesInstance,
                        0);
 
-    DebugP_log("[SERDES] Configuring reference clock: refClock=%u, refClkSrc=%u\r\n",
-               serdesLaneEnableParams.refClock, serdesLaneEnableParams.refClkSrc);
     result = CSL_serdesRefclkSel(CSL_CTRL_MMR0_CFG0_BASE,
                                  serdesLaneEnableParams.baseAddr,
                                  serdesLaneEnableParams.refClock,
@@ -350,36 +341,27 @@ uint32_t Board_serdesCfgSgmii(uint32_t serdesInstance)
 
     if (CSL_SERDES_NO_ERR != result)
     {
-        DebugP_log("[SERDES] ERROR: CSL_serdesRefclkSel failed with result %u\r\n", result);
         return 1U;
     }
-    DebugP_log("[SERDES] Reference clock configuration successful\r\n");
     /* Assert PHY reset and disable all lanes */
-    DebugP_log("[SERDES] Disabling PLL and lanes\r\n");
     CSL_serdesDisablePllAndLanes(serdesLaneEnableParams.baseAddr,
                                  serdesLaneEnableParams.numLanes,
                                  serdesLaneEnableParams.laneMask);
 
     /* Load the Serdes Config File */
-    DebugP_log("[SERDES] Loading Ethernet configuration\r\n");
     result = CSL_serdesEthernetInit(&serdesLaneEnableParams);
     /* Return error if input params are invalid */
     if (CSL_SERDES_NO_ERR != result)
     {
-        DebugP_log("[SERDES] ERROR: CSL_serdesEthernetInit failed with result %u\r\n", result);
         return 1U;
     }
-    DebugP_log("[SERDES] Ethernet configuration loaded successfully\r\n");
 
     /* Common Lane Enable API for lane enable, pll enable etc */
-    DebugP_log("[SERDES] Enabling lanes and PLL (this should lock the PLL)\r\n");
     laneRetVal = CSL_serdesLaneEnable(&serdesLaneEnableParams);
     if (0U != laneRetVal)
     {
-        DebugP_log("[SERDES] ERROR: CSL_serdesLaneEnable failed with result %u\r\n", laneRetVal);
         return 1U;
     }
-    DebugP_log("[SERDES] Lane enable successful - PLL should be locked now\r\n");
 
     return 0U;
 }

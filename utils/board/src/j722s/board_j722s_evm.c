@@ -44,6 +44,8 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x406
 
+#define ENABLE_SGMII (0U)
+
 #include <stdint.h>
 #include <stdarg.h>
 
@@ -175,22 +177,6 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
 
 static void EthFwBoard_configSerdesBridge(uint32_t macPortNum);
 
-/* SGMII Helper Functions */
-static void EthFwBoard_SGMII_enableMasterMode(uint32_t portNum);
-
-static void EthFwBoard_SGMII_disableAutoNegotiation(uint32_t portNum);
-
-static void EthFwBoard_SGMII_setAdvAbility(uint32_t portNum,
-                                           EthFwBoard_SGMII_AdvAbility* pSgmiiAdvAbility);
-
-static void EthFwBoard_configSgmiiPort(uint32_t macPortNum);
-
-static void EthFwBoard_SGMII_startRxTxSoftReset(uint32_t portNum);
-
-static void EthFwBoard_SGMII_endRxTxSoftReset(uint32_t portNum);
-
-static uint32_t EthFwBoard_SGMII_getRxTxSoftResetStatus(uint32_t portNum);
-
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */
@@ -220,7 +206,7 @@ static const Dp83867_Cfg gEnetCpbBoard_dp83867PhyCfg =
     },
 };
 
-/* 2 x ports: Port 1 (RGMII) + Port 2 (SGMII MAC-to-MAC) */
+/* 2 x ports: Port 1 (RGMII) + Port 2 (RGMII ) */
 static EthFwBoard_MacPortCfg gEthFw_cpbMacPortCfg[] =
 {
     {   /* MAC Port 1 - RGMII with DP83867 PHY */
@@ -237,23 +223,53 @@ static EthFwBoard_MacPortCfg gEthFw_cpbMacPortCfg[] =
         .sgmiiMode = ENET_MAC_SGMIIMODE_INVALID,
         .linkCfg   = { ENET_SPEED_AUTO, ENET_DUPLEX_AUTO },
     },
+    {   /* MAC Port 2 - RGMII with DP83867 PHY */
+        .macPort   = ENET_MAC_PORT_2,
+        .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_REDUCED },
+        .phyCfg    =
+        {
+            .phyAddr         = 1U,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
+            .extendedCfg     = &gEnetCpbBoard_dp83867PhyCfg,
+            .extendedCfgSize = sizeof(gEnetCpbBoard_dp83867PhyCfg),
+        },
+        .sgmiiMode = ENET_MAC_SGMIIMODE_INVALID,
+        .linkCfg   = { ENET_SPEED_AUTO, ENET_DUPLEX_AUTO },
+    },
 };
 
-/* 1 x SGMII port in MAC-to-MAC mode using (SGMII) ENET bridge expansion board */
-static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg =
+/* 2 x ports: Port 1 (RGMII) + Port 2 (SGMII MAC-to-MAC) */
+static EthFwBoard_MacPortCfg gEthFw_enetBridgeMacPortCfg[] =
 {
-    .macPort   = ENET_MAC_PORT_2,
-    .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_SERIAL },
-    .phyCfg    =
-    {
-        .phyAddr         = ENETPHY_INVALID_PHYADDR,
-        .isStrapped      = BFALSE,
-        .skipExtendedCfg = BFALSE,
-        .extendedCfg     = NULL,
-        .extendedCfgSize = 0U,
+    {   /* MAC Port 1 - RGMII with DP83867 PHY */
+        .macPort   = ENET_MAC_PORT_1,
+        .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_REDUCED },
+        .phyCfg    =
+        {
+            .phyAddr         = 0U,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
+            .extendedCfg     = &gEnetCpbBoard_dp83867PhyCfg,
+            .extendedCfgSize = sizeof(gEnetCpbBoard_dp83867PhyCfg),
+        },
+        .sgmiiMode = ENET_MAC_SGMIIMODE_INVALID,
+        .linkCfg   = { ENET_SPEED_AUTO, ENET_DUPLEX_AUTO },
     },
-    .sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_FORCEDLINK,
-    .linkCfg   = { ENET_SPEED_1GBIT, ENET_DUPLEX_FULL },
+    { /* MAC Port 2 - MAC-to-MAC mode using (SGMII) ENET bridge expansion board */
+        .macPort   = ENET_MAC_PORT_2,
+        .mii       = { ENET_MAC_LAYER_GMII, ENET_MAC_SUBLAYER_SERIAL },
+        .phyCfg    =
+        {
+            .phyAddr         = ENETPHY_INVALID_PHYADDR,
+            .isStrapped      = BFALSE,
+            .skipExtendedCfg = BFALSE,
+            .extendedCfg     = NULL,
+            .extendedCfgSize = 0U,
+        },
+        .sgmiiMode = ENET_MAC_SGMIIMODE_SGMII_FORCEDLINK,
+        .linkCfg   = { ENET_SPEED_1GBIT, ENET_DUPLEX_FULL },
+    },
 };
 
 /* ========================================================================== */
@@ -267,11 +283,16 @@ int32_t EthFwBoard_init(uint32_t flags)
     gEthFwBoard.serdesAllowed = ENET_NOT_ZERO(flags & ETHFW_BOARD_SERDES_CONFIG);
     int32_t boardStatus = ENET_SOK;
 
-    if (gEthFwBoard.enetBridgeEnabled)
+    if(ENABLE_SGMII)
     {
-        EthFwBoard_configSerdesBridge(ENET_MAC_PORT_2);
-        /*The below API is called as a part of enableMacport and hence commenting out here*/
-        //EthFwBoard_configSgmiiPort(ENET_MAC_PORT_2);
+        if (gEthFwBoard.enetBridgeEnabled)
+        {
+            /* Need to unlock the CTRL MMRs for Serdes Config needed for SGMII*/
+            EnetAppUtils_mainMmrCtrl(ENETAPPUTILS_MMR_LOCK1, ENETAPPUTILS_UNLOCK_MMR);
+            
+            /*Serdes Bridge config is done for mac port 2 */
+            EthFwBoard_configSerdesBridge(ENET_MAC_PORT_2);
+        }
     }
 
     EnetAppUtils_enableClocks(ENET_CPSW_3G, 0U);
@@ -308,7 +329,7 @@ uint32_t EthFwBoard_getMacPorts(Enet_MacPort macPorts[ENET_MAC_PORT_NUM])
     {
         if (num < ENET_MAC_PORT_NUM)
         {
-            macPorts[num++] = gEthFw_enetBridgeMacPortCfg.macPort;
+            macPorts[num++] = gEthFw_enetBridgeMacPortCfg[i].macPort;
         }
     }
 
@@ -320,20 +341,29 @@ static const EthFwBoard_MacPortCfg *EthFwBoard_findPortCfg(Enet_MacPort macPort)
     const EthFwBoard_MacPortCfg *portCfg = NULL;
     uint32_t i;
 
-    for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_cpbMacPortCfg); i++)
+    if(ENABLE_SGMII)
     {
-        if (gEthFw_cpbMacPortCfg[i].macPort == macPort)
+        if ((portCfg == NULL) && gEthFwBoard.enetBridgeEnabled)
         {
-            portCfg = &gEthFw_cpbMacPortCfg[i];
-            break;
+            for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_enetBridgeMacPortCfg); i++)
+            {
+                if (gEthFw_enetBridgeMacPortCfg[i].macPort == macPort)
+                {
+                    portCfg = &gEthFw_enetBridgeMacPortCfg[i];
+                    break;
+                }
+            }
         }
     }
-
-    if ((portCfg == NULL) && gEthFwBoard.enetBridgeEnabled)
+    else
     {
-        if (gEthFw_enetBridgeMacPortCfg.macPort == macPort)
+        for (i = 0U; i < ENET_ARRAYSIZE(gEthFw_cpbMacPortCfg); i++)
         {
-            portCfg = &gEthFw_enetBridgeMacPortCfg;
+            if (gEthFw_cpbMacPortCfg[i].macPort == macPort)
+            {
+                portCfg = &gEthFw_cpbMacPortCfg[i];
+                break;
+            }
         }
     }
 
@@ -394,7 +424,7 @@ static void EthFwBoard_configSerdesBridge(uint32_t macPortNum)
     uint32_t boardStatus;
     uint32_t serdesInstance;
 
-    ETHFWTRACE_INFO("EthFwBoard_configSerdesBridge: Configuring SerDes for MAC port %u", macPortNum);
+    ETHFWTRACE_INFO("EthFwBoard_configSerdesBridge: Configuring SerDes for MAC port %u", macPortNum+1);
 
     if (gEthFwBoard.serdesAllowed)
     {
@@ -402,30 +432,26 @@ static void EthFwBoard_configSerdesBridge(uint32_t macPortNum)
         if (macPortNum == ENET_MAC_PORT_1)
         {
             serdesInstance = CSL_TORRENT_SERDES1;
-            ETHFWTRACE_INFO("Using SERDES1 for MAC port 1");
         }
         else
         {
             serdesInstance = CSL_TORRENT_SERDES0;
-            ETHFWTRACE_INFO("Using SERDES0 for MAC port 2");
         }
 
-        ETHFWTRACE_INFO("Enabling SerDes instance %u", serdesInstance);
         boardStatus = BoardUtils_enableSerDes(serdesInstance);
         ETHFWTRACE_ERR_IF((boardStatus != ETHFW_SOK), boardStatus,
                           "Failed to enable SerDes ");
+        EnetAppUtils_assert(boardStatus == ETHFW_SOK);
 
         /* Configure SerDes for SGMII functionality */
-        ETHFWTRACE_INFO("Configuring SerDes for SGMII (this should lock PLL)");
         boardStatus = Board_serdesCfgSgmii(serdesInstance);
         ETHFWTRACE_ERR_IF((boardStatus != ETHFW_SOK), boardStatus,
                           "Failed to configure SerDes for SGMII");
-        ETHFWTRACE_INFO("SerDes SGMII configuration complete");
         EnetAppUtils_assert(boardStatus == ETHFW_SOK);
     }
     else
     {
-        ETHFWTRACE_ERR(-1, "SerDes configuration not allowed");
+        ETHFWTRACE_ERR(ETHFW_EFAIL, "SerDes configuration not allowed");
     }
 }
 
@@ -511,107 +537,3 @@ static uint32_t EthFwBoard_getMacAddrPoolStatic(uint8_t macAddr[][ENET_MAC_ADDR_
     return allocCnt;
 }
 
-/* ========================================================================== */
-/*                      SGMII Helper Functions                               */
-/* ========================================================================== */
-
-static void EthFwBoard_SGMII_startRxTxSoftReset(uint32_t portNum)
-{
-    CSL_FINS(*(volatile uint32_t *)SGMII_SOFT_RESET_REG_OFFSET(portNum),
-             CPSGMII_SOFT_RESET_REG_RT_SOFT_RESET, 1);
-    return;
-}
-
-static void EthFwBoard_SGMII_endRxTxSoftReset(uint32_t portNum)
-{
-    CSL_FINS(*(volatile uint32_t *)SGMII_SOFT_RESET_REG_OFFSET(portNum),
-             CPSGMII_SOFT_RESET_REG_RT_SOFT_RESET, 0);
-    return;
-}
-
-static uint32_t EthFwBoard_SGMII_getRxTxSoftResetStatus(uint32_t portNum)
-{
-    return CSL_FEXT(*(volatile uint32_t *)SGMII_SOFT_RESET_REG_OFFSET(portNum),
-                    CPSGMII_SOFT_RESET_REG_RT_SOFT_RESET);
-}
-
-static void EthFwBoard_SGMII_enableMasterMode(uint32_t portNum)
-{
-    volatile uint32_t * SgmiiCtrlReg = (volatile uint32_t *)SGMII_CONTROL_REG_OFFSET(portNum);
-    volatile uint32_t SgmiiCtrl = *SgmiiCtrlReg;
-    CSL_FINS(SgmiiCtrl, CPSGMII_CONTROL_REG_MASTER, 1);
-    *SgmiiCtrlReg = SgmiiCtrl;
-    return;
-}
-
-static void EthFwBoard_SGMII_disableAutoNegotiation(uint32_t portNum)
-{
-    volatile uint32_t * SgmiiCtrlReg = (volatile uint32_t *)SGMII_CONTROL_REG_OFFSET(portNum);
-    volatile uint32_t SgmiiCtrl = *SgmiiCtrlReg;
-    CSL_FINS(SgmiiCtrl, CPSGMII_CONTROL_REG_MR_AN_ENABLE, 0);
-    *SgmiiCtrlReg = SgmiiCtrl;
-    return;
-}
-
-static void EthFwBoard_SGMII_setAdvAbility(uint32_t portNum,
-                                           EthFwBoard_SGMII_AdvAbility* pSgmiiAdvAbility)
-{
-    volatile uint32_t * MRAdvAblityReg = (volatile uint32_t *)SGMII_ADV_ABILITY_REG_OFFSET(portNum);
-    volatile uint32_t MRAdvAblity = *MRAdvAblityReg;
-
-    CSL_FINSR(MRAdvAblity, 11, 10, pSgmiiAdvAbility->linkSpeed);
-    CSL_FINSR(MRAdvAblity, 12, 12, pSgmiiAdvAbility->duplexMode);
-    CSL_FINSR(MRAdvAblity, 15, 15, pSgmiiAdvAbility->bLinkUp);
-
-    /* tx_config_reg[15:0] bit zero is 0 for Fiber mode and 1 for SGMII mode */
-    if (CSL_SGMII_MODE_FIBER == pSgmiiAdvAbility->sgmiiMode)
-    {
-        CSL_FINSR(MRAdvAblity, 0, 0, 0U);
-    }
-    else
-    {
-        CSL_FINSR(MRAdvAblity, 0, 0, 1U);
-    }
-    *MRAdvAblityReg = MRAdvAblity;
-    return;
-}
-
-static void EthFwBoard_configSgmiiPort(uint32_t macPortNum)
-{
-    EthFwBoard_SGMII_AdvAbility  sgmiiAdvAbility;
-    uint32_t portNum = macPortNum - ENET_MAC_PORT_FIRST;
-
-    ETHFWTRACE_INFO("Configuring SGMII Port %u", macPortNum);
-
-    /* Perform soft reset */
-    EthFwBoard_SGMII_startRxTxSoftReset(portNum);
-    EthFwBoard_SGMII_endRxTxSoftReset(portNum);
-
-    /* Wait till software reset is complete */
-    while (EthFwBoard_SGMII_getRxTxSoftResetStatus(portNum) != 0U)
-    {
-        EnetAppUtils_delayInUsec(1U);
-    }
-
-    /* Configure for MAC-to-MAC mode:
-     * - Master mode enabled (this is the MAC side of the connection)
-     * - Auto-negotiation disabled (forced link)
-     * - Fixed 1Gbps, Full Duplex
-     */
-    EthFwBoard_SGMII_enableMasterMode(portNum);
-    EthFwBoard_SGMII_disableAutoNegotiation(portNum);
-    EnetAppUtils_delayInUsec(1U);
-
-    /* Set advertisement ability for 1Gbps, Full Duplex, Link Up */
-    sgmiiAdvAbility.duplexMode = CSL_SGMII_FULL_DUPLEX;
-    sgmiiAdvAbility.linkSpeed = CSL_SGMII_1000_MBPS;
-    sgmiiAdvAbility.sgmiiMode = CSL_SGMII_MODE_SGMII;  /* SGMII mode (not Fiber) */
-    sgmiiAdvAbility.bLinkUp = 1;
-
-    EthFwBoard_SGMII_setAdvAbility(portNum, &sgmiiAdvAbility);
-    EnetAppUtils_delayInUsec(5);
-
-    ETHFWTRACE_INFO("SGMII Port %u configuration complete", macPortNum);
-
-    return;
-}
