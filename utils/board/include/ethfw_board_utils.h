@@ -45,7 +45,6 @@
 /* ========================================================================== */
 
 #include <enet.h>
-#include <mod/cpsw_macport.h>
 
 #ifdef __cplusplus
 extern "C" {

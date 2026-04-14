@@ -31,7 +31,7 @@
  */
 
 /*!
- * \file  board_utils.c
+ * \file  board_serdes_utils.c
  *
  * \brief This file contains the implementation of the J722S SK-EVM board
  *        configuration functions.
@@ -45,6 +45,7 @@
 #include <stdbool.h>
 #include <drivers/hw_include/cslr_soc.h>
 #include <drivers/sciclient.h>
+#include <mod/cpsw_macport.h>
 #include <utils/board/include/ethfw_board_utils.h>
 
 #include <j722s_csl_serdes3.h>
