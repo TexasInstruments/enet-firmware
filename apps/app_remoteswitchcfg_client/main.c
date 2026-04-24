@@ -103,7 +103,7 @@
 
 /*! CPSW proxy command response timeout. */
 #if defined(SOC_J722S)
-#define CPSW_REMOTE_APP_CMD_TIMEOUT_MS        (2000U) //increasing the j722s timeout to 2s as the time range for mailbox_pend varies from ~0.5s-1.5s during ipc
+#define CPSW_REMOTE_APP_CMD_TIMEOUT_MS        (2500U) //increasing the j722s timeout to 2.5s as the time range for mailbox_pend varies from ~0.5s-1.5s during ipc
 #else
 #define CPSW_REMOTE_APP_CMD_TIMEOUT_MS        (1000U)
 #endif

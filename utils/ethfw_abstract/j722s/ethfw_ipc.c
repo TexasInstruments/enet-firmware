@@ -211,6 +211,16 @@ int32_t EthFwIpc_initVirtIO(uint16_t numProc,
     return status;
 }
 
+void EthFwIpc_resetObj()
+{
+    memset(&gEthFwIpcObj, 0, sizeof(EthFwIpc_Obj));
+}
+
+void EthFwIpc_enableControlEndPt()
+{
+    RPMessage_controlEndPtCallback(EthFwIpc_ctrlEndPtCb, NULL);
+}
+
 int32_t EthFwIpc_initRpmsg(void *rpmsgBuff, void *taskBuff, uint32_t selfCoreId)
 {
     int32_t status = SystemP_SUCCESS;
