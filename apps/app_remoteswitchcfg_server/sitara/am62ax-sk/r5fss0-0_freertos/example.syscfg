@@ -110,7 +110,7 @@ mpu_armv711.allowExecute = false;
 
 mpu_armv712.$name      = "INTERCORE_REGION";
 mpu_armv712.attributes = "NonCached";
-mpu_armv712.baseAddr   = 0xA4000000;
+mpu_armv712.baseAddr   = 0xE4000000;
 mpu_armv712.size       = 25;
 
 enet_cpsw1.$name                               = "CONFIG_ENET_CPSW0";
