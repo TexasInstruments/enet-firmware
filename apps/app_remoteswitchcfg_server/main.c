@@ -628,8 +628,6 @@ static Enet_MacPort gEthAppPorts[] =
 };
 
 #if defined(ETHFW_GPTP_SUPPORT)
-#if !((defined(SOC_AM62PX)  || defined(SOC_AM62DX)|| defined(SOC_AM62AX) || defined(SOC_J722S)) && defined(ETHFW_BOOT_TIME_PROFILING))
-
 /* Ethernet ports where gPTP support is enabled, it must be composed of
  * ports in non MAC-only mode */
 static Enet_MacPort gEthAppSwitchPorts[]=
@@ -672,7 +670,6 @@ static Enet_MacPort gEthAppSwitchPorts[]=
 #endif
 #endif
 };
-#endif
 #endif
 
 /* Custom policers which clients need to provide to add their own policers.
