@@ -221,6 +221,7 @@ const defines_r5f = {
         "ETHFW_INTERCORE_ETH_SUPPORT",
         "ETHFW_IPERF_SERVER_SUPPORT",
         "MCU_PLUS_SDK",
+        "ETHFW_GPTP_SUPPORT",
         "SOC_J722S"
     ],
     debug: [
