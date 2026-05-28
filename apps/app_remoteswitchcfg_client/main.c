@@ -399,9 +399,8 @@ void CpswRemoteApp_initTask(void* a0)
 
 #if defined(MCU_PLUS_SDK)
     EthApp_waitForDebugger();
-#endif
-
     EthFwOsal_init();
+#endif
 
     /* Initialize ETHFW Trace with INFO log level and higher */
     EthFwTrace_init(&gRemoteApp_traceCfg);
@@ -534,6 +533,8 @@ int main(void)
 
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
+    
+    EthFwOsal_init();
 
     /* Init Enet LLD and open Enet DMA */
     status = CpswRemoteApp_openEnet();

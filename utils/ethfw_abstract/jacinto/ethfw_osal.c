@@ -86,6 +86,9 @@
 /* EthFwTrace id for this module, must be unique within ETHFW */
 #define ETHFWTRACE_MOD_ID 0x502
 
+#define ETHFW_OSAL_FREERTOS_MAX_TASK                (15U)
+
+
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -97,6 +100,12 @@ typedef struct EthFwOsal_TaskObj_s
     void (*func)(void*);
 } EthFwOsal_TaskObj;
 
+typedef struct EthFwOsal_OsalObj_s
+{
+    bool isMutexValid;
+    EthFwOsal_MutexHandle hMutex;
+} EthFwOsal_OsalObj;
+
 /* ========================================================================== */
 /*                          Function Declarations                             */
 /* ========================================================================== */
@@ -107,7 +116,10 @@ typedef struct EthFwOsal_TaskObj_s
 /*                            Global Variables                                */
 /* ========================================================================== */
 
-/* None */
+/* global pool of statically allocated task objects */
+static EthFwOsal_TaskObj gEthFwOsalTaskPfreertosPool[ETHFW_OSAL_FREERTOS_MAX_TASK];
+
+static EthFwOsal_OsalObj gEthFwOsalObj;
 
 /* ========================================================================== */
 /*                          Function Definitions                              */
@@ -115,7 +127,23 @@ typedef struct EthFwOsal_TaskObj_s
 
 void EthFwOsal_init(void)
 {
-    /* Do Nothing */
+    static bool osalInitDone = BFALSE;
+
+    if (!osalInitDone)
+    {
+        memset(&gEthFwOsalObj, 0, sizeof(EthFwOsal_OsalObj));
+
+        gEthFwOsalObj.hMutex = EthFwOsal_createMutex();
+
+        if (gEthFwOsalObj.hMutex != NULL)
+        {
+            gEthFwOsalObj.isMutexValid = BTRUE;
+        }
+
+        memset(&gEthFwOsalTaskPfreertosPool[0], 0, sizeof(gEthFwOsalTaskPfreertosPool));
+
+        osalInitDone = BTRUE;
+    }
 }
 
 static void EthFwOsal_tempTask(void* a0, void* a1)
@@ -141,13 +169,27 @@ EthFwOsal_TaskHandle EthFwOsal_createTask(void (*func)(void*), EthFwOsal_TaskPar
 {
     int32_t status = ETHFW_SOK;
     TaskP_Params taskParams;
-    EthFwOsal_TaskObj *taskObj;
+    EthFwOsal_TaskObj *taskObj = NULL;
+    uint32_t i;
 
-    taskObj = malloc(sizeof(EthFwOsal_TaskObj));
+    EthFw_assert(gEthFwOsalObj.isMutexValid == BTRUE);
+
+    EthFwOsal_lockMutex(gEthFwOsalObj.hMutex);
+
+    /* Find a free slot in the pool */
+    for (i = 0U; i < ETHFW_OSAL_FREERTOS_MAX_TASK; i++)
+    {
+        if (gEthFwOsalTaskPfreertosPool[i].handle == NULL)
+        {
+            taskObj = &gEthFwOsalTaskPfreertosPool[i];
+            break;
+        }
+    }
+
+    EthFwOsal_unlockMutex(gEthFwOsalObj.hMutex);
+
     EthFw_assert(taskObj != NULL);
-
-    memset(taskObj, 0, sizeof(EthFwOsal_TaskObj));
-
+    
     TaskP_Params_init(&taskParams);
     if (params->name != NULL)
     {
@@ -189,6 +231,24 @@ int32_t EthFwOsal_deleteTask(EthFwOsal_TaskHandle *handle)
 {
     int32_t status = ETHFW_EFAIL;
     TaskP_Handle *hTask = (TaskP_Handle *)handle;
+    uint32_t i;
+
+    EthFw_assert(gEthFwOsalObj.isMutexValid == BTRUE);
+
+    EthFwOsal_lockMutex(gEthFwOsalObj.hMutex);
+
+    /* Find and clear the pool entry before deleting */
+    for (i = 0U; i < ETHFW_OSAL_FREERTOS_MAX_TASK; i++)
+    {
+        if (gEthFwOsalTaskPfreertosPool[i].handle == *hTask)
+        {
+            gEthFwOsalTaskPfreertosPool[i].handle = NULL;
+            gEthFwOsalTaskPfreertosPool[i].func = NULL;
+            break;
+        }
+    }
+
+    EthFwOsal_unlockMutex(gEthFwOsalObj.hMutex);
 
     status = TaskP_delete(hTask);
     ETHFWTRACE_ERR_IF((status != ETHFW_SOK), status, "Failed to delete the task");

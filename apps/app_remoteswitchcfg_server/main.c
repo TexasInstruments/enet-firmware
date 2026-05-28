@@ -1020,6 +1020,7 @@ int main(void)
     OS_init();
     /* Wait for debugger to attach (disabled by default) */
     EthApp_waitForDebugger();
+    EthFwOsal_init();
 
     gEthAppObj.coreId = EnetSoc_getCoreId();
 
@@ -1142,9 +1143,8 @@ void EthApp_initTaskFxn(void* arg0)
 
 #if defined(MCU_PLUS_SDK)
     EthApp_waitForDebugger();
-#endif
-
     EthFwOsal_init();
+#endif
 
 #if defined(ETHFW_BOOT_TIME_PROFILING)
     /* EthFw's initial timestamp, used as offset for further profiling timestamps */
